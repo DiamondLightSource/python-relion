@@ -27,3 +27,5 @@ with mrc.open(
     # print(header)
     print("Dimensions = {}".format(im.shape))
     print("Pixel size = {}".format(doc.voxel_size))
+
+# Changed to see how git works!
