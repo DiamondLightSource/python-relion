@@ -1,9 +1,17 @@
 import mrcfile as mrc
+import argparse
+
+parser = argparse.ArgumentParser()
+
+parser.add_argument("-i", "--input", help="Input file name")
+args = parser.parse_args()
 
 # infile = '/dls/ebic/data/staff-scratch/Yuriy/DataFileTypes/m02K2EPU_Mrc/em16619-23/GridSquare_9897066/FoilHole_9907179_Data_9923659_9923661_20190711_122055.mrc' # K2 Non-linear
-infile = "/dls/ebic/data/staff-scratch/Yuriy/DataFileTypes/m06K3EPU_Mrc/em20287-23/FoilHole_7821234_Data_7825668_7825670_20190708_1608.mrc"  # k3 Non-linear
-# framefile = '/dls/ebic/data/staff-scratch/Yuriy/DataFileTypes/m02K2EPU_Mrc/em16619-23/GridSquare_9897066/FoilHole_9907179_Data_9923659_9923661_20190711_122055-376198_frames.mrc' # K2 Non-linear frames
-# framefile = '/dls/ebic/data/staff-scratch/Yuriy/DataFileTypes/m06K3EPU_Mrc/em20287-23/FoilHole_7821234_Data_7825668_7825670_20190708_1608_fractions.mrc' # Does not work
+# infile = '/dls/ebic/data/staff-scratch/Yuriy/DataFileTypes/m06K3EPU_Mrc/em20287-23/FoilHole_7821234_Data_7825668_7825670_20190708_1608.mrc' # k3 Non-linear
+# infile = '/dls/ebic/data/staff-scratch/Yuriy/DataFileTypes/m02K2EPU_Mrc/em16619-23/GridSquare_9897066/FoilHole_9907179_Data_9923659_9923661_20190711_122055-376198_frames.mrc' # K2 Non-linear frames
+# infile = '/dls/ebic/data/staff-scratch/Yuriy/DataFileTypes/m06K3EPU_Mrc/em20287-23/FoilHole_7821234_Data_7825668_7825670_20190708_1608_fractions.mrc' # Does not work
+
+infile = args.input
 
 
 labels = {
@@ -27,32 +35,58 @@ labels = {
 metadata = {}
 
 
+def metadata_mrc(doc, labels):
+    for category, x in labels.items():
+        print category, ":", doc[0][x]
+        metadata[category] = doc[0][x]
+
+    # Unknown Value
+    print doc[0][19], "<----- What is this?"
+
+    # for x in enumerate(doc):
+    # 	print x
+
+    if metadata["Direct Detector Electron Counting"]:
+        linMod = "Not in linear mode"
+    else:
+        linMod = "\nIn linear mode"
+
+    if (
+        metadata["nx"] * metadata["ny"] == 14238980
+        or metadata["nx"] * metadata["ny"] == 28477960
+    ):  # Two values for super resolution
+        detect = "K2"
+        print metadata["nx"] * metadata["ny"]
+    elif (
+        metadata["nx"] * metadata["ny"] == 23569920
+        or metadata["nx"] * metadata["ny"] == 47139840
+    ):
+        detect = "K3"
+    else:
+        detect = "Unsure of detector"
+
+    print detect, linMod
+
+
+def metadata_frames(doc_all, labels):
+    nx = doc_all.shape[0]
+    ny = doc_all.shape[1]
+
+    if nx * ny == 14238980 or 28477960:  # Two values for super resolution
+        detect = "K2"
+    elif nx * ny == 23569920 or 47139840:
+        detect = "K3"
+    else:
+        detect = "Unsure of detector"
+
+    print detect
+
+
 with mrc.open(infile) as data:
-    doc_small = data.header
+    doc_all = data.data
     doc = data.extended_header
 
-for category, x in labels.items():
-    print category, ":", doc[0][x]
-    metadata[category] = doc[0][x]
-
-# Unknown Value
-print doc[0][19], "<----- What is this?"
-
-# for x in enumerate(doc):
-# 	print x
-
-if metadata["Direct Detector Electron Counting"]:
-    linMod = "Not in linear mode"
+if doc.shape == (0,):
+    metadata_frames(doc_all, labels)
 else:
-    linMod = "\nIn linear mode"
-
-if (
-    metadata["nx"] * metadata["ny"] == 14238980 or 28477960
-):  # Two values for super resolution
-    detect = "K2"
-elif metadata["nx"] * metadata["ny"] == 23569920 or 47139840:
-    detect = "K3"
-else:
-    detect = "Unsure of detector"
-
-print detect, linMod
+    metadata_mrc(doc, labels)
