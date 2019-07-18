@@ -1,4 +1,6 @@
 import mrcfile as mrc
+import sys
+import os.path
 import argparse
 
 parser = argparse.ArgumentParser()
@@ -8,12 +10,17 @@ args = parser.parse_args()
 
 
 """A range of testing files."""
-infile = "/dls/ebic/data/staff-scratch/Yuriy/DataFileTypes/m02K2EPU_Mrc/em16619-23/GridSquare_9897066/FoilHole_9907179_Data_9923659_9923661_20190711_122055.mrc"  # K2 Non-linear
+# infile = '/dls/ebic/data/staff-scratch/Yuriy/DataFileTypes/m02K2EPU_Mrc/em16619-23/GridSquare_9897066/FoilHole_9907179_Data_9923659_9923661_20190711_122055.mrc' # K2 Non-linear
 # infile = '/dls/ebic/data/staff-scratch/Yuriy/DataFileTypes/m06K3EPU_Mrc/em20287-23/FoilHole_7821234_Data_7825668_7825670_20190708_1608.mrc' # k3 Non-linear
 # infile = '/dls/ebic/data/staff-scratch/Yuriy/DataFileTypes/m02K2EPU_Mrc/em16619-23/GridSquare_9897066/FoilHole_9907179_Data_9923659_9923661_20190711_122055-376198_frames.mrc' # K2 Non-linear frames
 # infile = '/dls/ebic/data/staff-scratch/Yuriy/DataFileTypes/m06K3EPU_Mrc/em20287-23/FoilHole_7821234_Data_7825668_7825670_20190708_1608_fractions.mrc' # K3 Super resolution
-
-# infile = args.input
+infile = args.input
+if infile is None:
+    print "No input file given. Please run as 'ex_header.py -i FILE_NAME."
+    sys.exit()
+if os.path.exists(infile) == False:
+    print "File does not exist"
+    sys.exit()
 
 
 """Data to be extracted from extended header of MRC file."""
@@ -53,7 +60,7 @@ def metadata_mrc(doc, labels):
     print doc[0][19], "<----- What is this?"
 
     if metadata["Direct Detector Electron Counting"]:
-        linMod = "Not in linear mode"
+        linMod = "In counting mode"
     else:
         linMod = "In linear mode"
 
