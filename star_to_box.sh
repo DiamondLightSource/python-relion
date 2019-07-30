@@ -1,13 +1,15 @@
 #!/bin/bash
-mkdir temp
 
-for i in $(awk -F ' ' '{print $7}' particles.star | uniq | awk -F '/' '{print $2}')
+rm temp_selected_particles_stars -r
+mkdir temp_selected_particles_stars
+
+for i in $(awk -F ' ' '{print $10}' particles.star | uniq | awk -F '/' '{print $2}')
 do
-    head -10 particles.star > temp/$i
-    grep $i particles.star | awk -F ' ' '{print $1, $2, 150, 150}' >> temp/$i
+    echo "
+loop_
+_rlnCoordinateX #1 
+_rlnCoordinateY #2" > temp_selected_particles_stars/$i
+    grep $i particles.star | awk -F ' ' '{printf("%.6s	%.6s\n", $8, $9)}' >> temp_selected_particles_stars/$i
+    mv -- "temp_selected_particles_stars/$i" "temp_selected_particles_stars/${i%.mrcs}.star"
 done
 
-for f in temp/*.mrc
-do
-   mv -- "$f" "${f%.mrc}.star"
-done
