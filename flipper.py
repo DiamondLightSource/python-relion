@@ -7,9 +7,10 @@ import re
 
 #infile = 'FoilHole_22247924_Data_22246559_22246561_20180623_1736-193306.mrc'
 dir_main = '/dls/ebic/data/staff-scratch/Donovan/testdata/Ap_K2_PP_GO/cryolo_impurities/'
+#dir_main = '/dls/ebic/data/staff-scratch/Donovan/testdata/10026/MotionCorr/job002/'
 
-nx = 3830 - 200
-ny= 3710 - 200
+#nx = 3830 - 200
+#ny= 3710 - 200
 
 
 
@@ -19,16 +20,20 @@ def files(no_ext, dir_main):
     box_file = dir_main+'train_annotation/'+no_ext
     with mrc.open(im_file+'.mrc', permissive=True) as f:
 	image = f.data
+	nx_ = f.header.nx 
+	ny_ = f.header.ny
 
     boxes = pd.read_csv(box_file+'.box', sep='\t', header = None)
     box_val = boxes.values
+    nx = nx_ - box_val[0][2]
+    ny = ny_ - box_val[0][2]
     
-    flip_x_def(box_val, image, box_file, im_file)
-    flip_y_def(box_val, image, box_file, im_file)
-    flip_xy_def(box_val, image, box_file, im_file)
+    flip_x_def(box_val, image, box_file, im_file, nx)
+    flip_y_def(box_val, image, box_file, im_file, ny)
+    flip_xy_def(box_val, image, box_file, im_file, nx, ny)
 
 
-def flip_x_def(box_val, image, box_file, im_file, nx=nx):
+def flip_x_def(box_val, image, box_file, im_file, nx):
     flip_x = np.flip(image, 1)
     flip_x_box = np.array(box_val)
     for i in range(box_val.shape[0]):
@@ -42,7 +47,7 @@ def flip_x_def(box_val, image, box_file, im_file, nx=nx):
     print('done x')
 
 
-def flip_y_def(box_val, image, box_file, im_file, ny=ny):
+def flip_y_def(box_val, image, box_file, im_file, ny):
     flip_y = np.flip(image, 0)
     flip_y_box = np.array(box_val)
     for i in range(box_val.shape[0]):
@@ -55,7 +60,7 @@ def flip_y_def(box_val, image, box_file, im_file, ny=ny):
     print('done y')
 
 
-def flip_xy_def(box_val, image, box_file, im_file, ny=ny):
+def flip_xy_def(box_val, image, box_file, im_file, nx, ny):
     flip_y = np.flip(image, 0)
     flip_xy = np.flip(flip_y, 1)
     flip_xy_box = np.array(box_val)
