@@ -4,6 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
 import re
+import scipy.misc
 
 #infile = 'FoilHole_22247924_Data_22246559_22246561_20180623_1736-193306.mrc'
 dir_main = '/dls/ebic/data/staff-scratch/Donovan/testdata/Ap_K2_PP_GO/cryolo_impurities/'
@@ -23,6 +24,7 @@ def files(no_ext, dir_main):
 	nx_ = f.header.nx 
 	ny_ = f.header.ny
 
+    scipy.misc.imsave('./pngs/'+no_ext+'.png', image)
     boxes = pd.read_csv(box_file+'.box', sep='\t', header = None)
     box_val = boxes.values
     nx = nx_ - box_val[0][2]
