@@ -1,6 +1,8 @@
 #!/dls/ebic/data/staff-scratch/Donovan/anaconda/envs/cry_rel/bin/python
 """
 External job for calling cryolo within Relion 3.1
+in_mics are the micrographs to be picked on
+in_coords is the model to be used, empty will use general model!
 """
 
 import argparse
@@ -9,9 +11,9 @@ import os
 import os.path
 import random
 import sys
+import shutil
 
 import gemmi
-import shutil
 
 
 def run_job(project_dir, job_dir, args_list):
@@ -25,28 +27,37 @@ def run_job(project_dir, job_dir, args_list):
     )
     parser.add_argument("--box_size", help="Size of box (~ particle size)")
     parser.add_argument("--threshold", help="Threshold for picking (default = 0.3)")
+    parser.add_argument("--in_coords", help="model from previous job")
     args = parser.parse_args(args_list)
-    # print(args)
     thresh = args.threshold
     box_size = args.box_size
-    print(box_size)
+
+    try:
+        model = os.path.join(project_dir, args.in_coords)
+        print(model)
+    except:
+        print("no model specified")
+
+    # Making a cryolo config file with the correct box size
     with open("/dls_sw/apps/EM/crYOLO/cryo_phosaurus/config.json", "r") as json_file:
         data = json.load(json_file)
         print(data["model"]["anchors"])
         data["model"]["anchors"] = [int(box_size), int(box_size)]
         print(data["model"]["anchors"])
-
     with open("config.json", "w") as outfile:
         json.dump(data, outfile)
 
+    # Reading the micrographs star file from relion
     in_doc = gemmi.cif.read_file(os.path.join(project_dir, args.in_mics))
     data_as_dict = json.loads(in_doc.as_json())["micrographs"]
-    print(data_as_dict.keys())
-    print(data_as_dict["_rlnmicrographname"])
+
     try:
         os.mkdir("cryolo_input")
     except:
-        print("cryolo_input exists")
+        shutil.rmtree("cryolo_input")
+        os.mkdir("cryolo_input")
+
+    # Arranging files for cryolo to predict particles from
     for micrograph in data_as_dict["_rlnmicrographname"]:
         print(micrograph)
         try:
@@ -65,14 +76,22 @@ def run_job(project_dir, job_dir, args_list):
         )
         print(os.path.join(project_dir, micrograph))
 
-    os.system(
-        f"cryolo_predict.py -c config.json -i {os.path.join(project_dir, job_dir, 'cryolo_input')} -o {os.path.join(project_dir, job_dir, 'gen_pick')} -w /dls_sw/apps/EM/crYOLO/cryo_phosaurus/gmodel_phosnet_20190516.h5 -g 0 -t {thresh}"
-    )
+    # Checking to see if a paticular model has been specified
+    if args.in_coords is None:
+        os.system(
+            f"cryolo_predict.py -c config.json -i {os.path.join(project_dir, job_dir, 'cryolo_input')} -o {os.path.join(project_dir, job_dir, 'gen_pick')} -w /dls_sw/apps/EM/crYOLO/cryo_phosaurus/gmodel_phosnet_20190516.h5 -g 0 -t {thresh}"
+        )
+    else:
+        os.system(
+            f"cryolo_predict.py -c config.json -i {os.path.join(project_dir, job_dir, 'cryolo_input')} -o {os.path.join(project_dir, job_dir, 'gen_pick')} -w {model} -g 0 -t {thresh}"
+        )
     try:
         os.mkdir("data")
     except:
         print("data file exists")
     print("done")
+
+    # Arranging files for Relion to use
     for picked in os.listdir(os.path.join(project_dir, job_dir, "gen_pick", "STAR")):
         new_name = os.path.splitext(picked)[0] + "_crypick" + ".star"
         os.link(
@@ -80,10 +99,12 @@ def run_job(project_dir, job_dir, args_list):
             os.path.join(project_dir, job_dir, "data", new_name),
         )
 
+    # Writing a star file for Relion
     part_doc = open("_crypick.star", "w")
     part_doc.write(os.path.join(project_dir, args.in_mics))
     part_doc.close()
 
+    # Required star file
     out_doc = gemmi.cif.Document()
     output_nodes_block = out_doc.add_new_block("output_nodes")
     loop = output_nodes_block.init_loop(

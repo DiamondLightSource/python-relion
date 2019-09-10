@@ -1,6 +1,7 @@
 #!/dls/ebic/data/staff-scratch/Donovan/anaconda/envs/cry_rel/bin/python
 """
 External job for calling cryolo fine tune within Relion 3.1
+in_parts is from a subset selection job.
 """
 
 import argparse
@@ -9,9 +10,9 @@ import os
 import os.path
 import random
 import sys
+import shutil
 
 import gemmi
-import shutil
 
 
 def run_job(project_dir, job_dir, args_list):
@@ -25,9 +26,10 @@ def run_job(project_dir, job_dir, args_list):
     )
     parser.add_argument("--box_size", help="Size of box (~ particle size)")
     args = parser.parse_args(args_list)
-    # print(args)
     box_size = args.box_size
     print(box_size)
+
+    # Making a cryolo config file with the correct box size and model location
     with open("/dls_sw/apps/EM/crYOLO/cryo_phosaurus/config.json", "r") as json_file:
         data = json.load(json_file)
         print(data["model"]["anchors"])
@@ -36,10 +38,10 @@ def run_job(project_dir, job_dir, args_list):
         data["train"][
             "pretrained_weights"
         ] = "/dls_sw/apps/EM/crYOLO/cryo_phosaurus/gmodel_phosnet_20190516.h5"
-
     with open("config.json", "w") as outfile:
         json.dump(data, outfile)
 
+    # Reading particle star file from relion
     in_doc = gemmi.cif.read_file(os.path.join(project_dir, args.in_parts))
     data_as_dict = json.loads(in_doc.as_json())
 
@@ -54,8 +56,8 @@ def run_job(project_dir, job_dir, args_list):
         shutil.rmtree("train_image")
         os.mkdir("train_image")
 
+    # Arranging files for cryolo to train from
     for micro in range(len(data_as_dict["particles"]["_rlnmicrographname"])):
-
         try:
             print(
                 os.path.join(
@@ -108,9 +110,16 @@ def run_job(project_dir, job_dir, args_list):
         individual_files.write(f"{box_size}\n")
         individual_files.close()
 
+    # Running cryolo
     os.system(f"cryolo_train.py -c config.json -w 0 -g 0 --fine_tune")
     print("done")
 
+    # Writing a star file (This one is meaningless for now)
+    part_doc = open("_crypick.star", "w")
+    part_doc.write(os.path.join(project_dir, args.in_parts))
+    part_doc.close()
+
+    # Required star file
     out_doc = gemmi.cif.Document()
     output_nodes_block = out_doc.add_new_block("output_nodes")
     loop = output_nodes_block.init_loop(
