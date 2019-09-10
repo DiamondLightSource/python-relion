@@ -1,6 +1,6 @@
 #!/dls/ebic/data/staff-scratch/Donovan/anaconda/envs/cry_rel/bin/python
 """
-Initial external job attempt for RELION 3.1 - not working yet except as a simple skeleton
+External job for calling cryolo within Relion 3.1
 """
 
 import argparse
@@ -33,7 +33,7 @@ def run_job(project_dir, job_dir, args_list):
     with open("/dls_sw/apps/EM/crYOLO/cryo_phosaurus/config.json", "r") as json_file:
         data = json.load(json_file)
         print(data["model"]["anchors"])
-        data["model"]["anchors"] = f"[{box_size}, {box_size}]"
+        data["model"]["anchors"] = [int(box_size), int(box_size)]
         print(data["model"]["anchors"])
 
     with open("config.json", "w") as outfile:
@@ -43,12 +43,12 @@ def run_job(project_dir, job_dir, args_list):
     data_as_dict = json.loads(in_doc.as_json())["micrographs"]
     print(data_as_dict.keys())
     print(data_as_dict["_rlnmicrographname"])
+    try:
+        os.mkdir("cryolo_input")
+    except:
+        print("cryolo_input exists")
     for micrograph in data_as_dict["_rlnmicrographname"]:
         print(micrograph)
-        try:
-            os.mkdir("cryolo_input")
-        except:
-            print("cryolo_input exists")
         try:
             os.link(
                 os.path.join(project_dir, micrograph),
