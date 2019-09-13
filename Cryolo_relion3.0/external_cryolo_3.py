@@ -4,7 +4,10 @@ External job for calling cryolo within Relion 3.1
 in_mics are the micrographs to be picked on
 in_coords is the model to be used, empty will use general model!
 
-external_cryolo.py --project_dir $PATH_TO_RELION_PROJECT --job_dir $PATH_WHERE_TO_STORE --in_mics $PATH_TO_MCORR/CTF --box_size $BOX_SIZE --threshold 0.3
+Run in main Relion project directory
+external_cryolo.py --o $PATH_WHERE_TO_STORE --in_mics $PATH_TO_MCORR/CTF_STARFILE --box_size $BOX_SIZE --threshold 0.3 (optional: --in_coords $PATH_TO_MODEL)
+eg:
+external_cryolo_3.py --o "External" --in_mics "CtfFind/job004/micrographs_ctf.star" --box_size 300 --threshold 0.3
 """
 
 import argparse
@@ -14,6 +17,8 @@ import os.path
 import random
 import sys
 import shutil
+import correct_path_relion
+import pathlib
 
 import gemmi
 
@@ -51,7 +56,7 @@ def run_job(project_dir, job_dir, args_list):
 
     # Reading the micrographs star file from relion
     in_doc = gemmi.cif.read_file(os.path.join(project_dir, args.in_mics))
-    data_as_dict = json.loads(in_doc.as_json())["micrographs"]
+    data_as_dict = json.loads(in_doc.as_json())["#"]
 
     try:
         os.mkdir("cryolo_input")
@@ -88,7 +93,7 @@ def run_job(project_dir, job_dir, args_list):
             f"cryolo_predict.py -c config.json -i {os.path.join(project_dir, job_dir, 'cryolo_input')} -o {os.path.join(project_dir, job_dir, 'gen_pick')} -w {model} -g 0 -t {thresh}"
         )
     try:
-        os.mkdir("data")
+        os.mkdir("picked_stars")
     except:
         print("data file exists")
     print("done")
@@ -98,7 +103,7 @@ def run_job(project_dir, job_dir, args_list):
         new_name = os.path.splitext(picked)[0] + "_crypick" + ".star"
         os.link(
             os.path.join(project_dir, job_dir, "gen_pick", "STAR", picked),
-            os.path.join(project_dir, job_dir, "data", new_name),
+            os.path.join(project_dir, job_dir, "picked_stars", new_name),
         )
 
     # Writing a star file for Relion
@@ -116,6 +121,8 @@ def run_job(project_dir, job_dir, args_list):
     out_doc.write_file("RELION_OUTPUT_NODES.star")
     with open("RELION_OUTPUT_NODES.star") as f:
         print(f.read())
+    ctf_star = os.path.join(project_dir, args.in_mics)
+    correct_path_relion.correct(ctf_star)
 
 
 def main():
@@ -124,6 +131,12 @@ def main():
     parser.add_argument("--o", dest="out_dir", help="Output directory name")
     known_args, other_args = parser.parse_known_args()
     project_dir = os.getcwd()
+    try:
+        os.mkdir("External")
+    except:
+        print("External exists")
+    # try: os.mkdir('External/ctfpick')
+    # except: print('External/ctfpick exists')
     os.chdir(known_args.out_dir)
     try:
         run_job(project_dir, known_args.out_dir, other_args)
