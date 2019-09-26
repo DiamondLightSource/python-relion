@@ -278,9 +278,9 @@ import json
 import numpy as np
 
 try:
-    import Tkinter as tk
-    import tkMessageBox
-    import tkFileDialog
+    import tkinter as tk
+    import tkinter.messagebox
+    import tkinter.filedialog
 except ImportError:
     # The GUI is optional. If the user requests it, it will fail when it tries
     # to open so we can ignore the error for now.
@@ -409,8 +409,8 @@ class RelionItOptions(object):
 
     ### Use the largest 3D class from the first batch as a 3D reference for a second pass of autopicking? (only when do_class3d is True)
     do_second_pass = True
-    if autopick_do_cryolo:
-        do_second_pass = False
+    # if autopick_do_cryolo:
+    #     do_second_pass = False
     # Only move on to template-based autopicking if the 3D references achieves this resolution (in A)
     minimum_resolution_3dref_2ndpass = 20
     # In the second pass, perform 2D classification?
@@ -678,8 +678,7 @@ class RelionItOptions(object):
         Raises:
             ValueError: If there is a problem printing the options.
         """
-        print >> out_file, "# Options file for relion_it.py"
-        print >> out_file
+        print("# Options file for relion_it.py", file=out_file)
         seen_start = False
         option_names = [
             key
@@ -703,15 +702,18 @@ class RelionItOptions(object):
                 break
             if line.startswith("#") or len(line) == 0:
                 # Print comments or blank lines as-is
-                print >> out_file, line
+                print(line, file=out_file)
             else:
                 # Assume all other lines define an option name and value. Replace with new value.
                 equals_index = line.find("=")
                 if equals_index > 0:
                     option_name = line[:equals_index].strip()
                     if option_name in option_names:
-                        print >> out_file, "{} = {}".format(
-                            option_name, repr(getattr(self, option_name))
+                        print(
+                            "{} = {}".format(
+                                option_name, repr(getattr(self, option_name))
+                            ),
+                            file=out_file,
                         )
                         option_names.remove(option_name)
                     else:
@@ -738,7 +740,7 @@ class RelionItGui(object):
             master, var_to_set, filetypes=(("MRC file", "*.mrc"), ("All files", "*"))
         ):
             def browse_command():
-                chosen_file = tkFileDialog.askopenfilename(filetypes=filetypes)
+                chosen_file = tk.filedialog.askopenfilename(filetypes=filetypes)
                 if chosen_file is not None:
                     # Make path relative if it's in the current directory
                     if chosen_file.startswith(os.getcwd()):
@@ -965,6 +967,15 @@ class RelionItGui(object):
 
         row += 1
 
+        tk.Label(pipeline_frame, text="Use crYOLO?").grid(row=row, sticky=tk.W)
+        self.use_cryolo_var = tk.IntVar()
+        use_cryolo_button = tk.Checkbutton(pipeline_frame, var=self.use_cryolo_var)
+        use_cryolo_button.grid(row=row, column=1, sticky=tk.W)
+        if options.autopick_do_cryolo:
+            use_cryolo_button.select()
+
+        row += 1
+
         tk.Label(pipeline_frame, text="Do 2D classification?").grid(
             row=row, sticky=tk.W
         )
@@ -1145,6 +1156,7 @@ class RelionItGui(object):
             new_state = tk.DISABLED if self.stop_after_ctf_var.get() else tk.NORMAL
             class2d_button.config(state=new_state)
             class3d_button.config(state=new_state)
+            use_cryolo_button.config(state=new_state)
             self.particle_max_diam_entry.config(state=new_state)
             self.particle_min_diam_entry.config(state=new_state)
             self.ref_3d_entry.config(state=new_state)
@@ -1214,6 +1226,7 @@ class RelionItGui(object):
         warnings = []
 
         opts.stop_after_ctf_estimation = self.get_var_as_bool(self.stop_after_ctf_var)
+        opts.autopick_do_cryolo = self.get_var_as_bool(self.use_cryolo_var)
         opts.do_class2d = self.get_var_as_bool(self.class2d_var)
         opts.do_class3d = self.get_var_as_bool(self.class3d_var)
         opts.do_second_pass = self.get_var_as_bool(self.second_pass_var)
@@ -1361,11 +1374,11 @@ class RelionItGui(object):
         """
         try:
             warnings = self.fetch_options_from_gui()
-            if len(warnings) == 0 or tkMessageBox.askokcancel(
+            if len(warnings) == 0 or tk.messagebox.askokcancel(
                 "Warning",
                 "\n".join(warnings),
                 icon="warning",
-                default=tkMessageBox.CANCEL,
+                default=tk.messagebox.CANCEL,
             ):
                 self.calculate_full_options()
                 print(" RELION_IT: Writing all options to {}".format(OPTIONS_FILE))
@@ -1380,7 +1393,7 @@ class RelionItGui(object):
                     self.options.print_options(optfile)
                 return True
         except Exception as ex:
-            tkMessageBox.showerror("Error", ex.message)
+            tk.messagebox.showerror("Error", ex)
             traceback.print_exc()
         return False
 
