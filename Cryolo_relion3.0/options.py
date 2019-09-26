@@ -56,14 +56,17 @@ autopick_avg_noise = -999
 #
 # OR:
 #
-# Cryolo
+### Cryolo
+# True will run cryolo instead of gaussian and ref based autopickers
 autopick_do_cryolo = True
-cryolo_threshold = 0.6
+# Threshold for cryolo autopicking (higher the threshold the more *discriminative the cryolo picker) ((* But beware it may still not be picking what you want! ))
+cryolo_threshold = 0.3
+# Finetune the cryolo general model by selecting good classes from 2D classification
 cryolo_finetune = False
 
 
 ### Extract parameters
-# Box size of particles in the averaged micrographs (in pixels)
+# Box size of particles in the averaged micrographs (in pixels) (Also used for cryolo boxsize)
 extract_boxsize = 400
 # Down-scale the particles upon extraction?
 extract_downscale = True
@@ -105,6 +108,8 @@ class3d_ini_lowpass = 40
 
 ### Use the largest 3D class from the first batch as a 3D reference for a second pass of autopicking? (only when do_class3d is True)
 do_second_pass = True
+if autopick_do_cryolo:
+    do_second_pass = False
 # Only move on to template-based autopicking if the 3D references achieves this resolution (in A)
 minimum_resolution_3dref_2ndpass = 20
 # In the second pass, perform 2D classification?
@@ -134,13 +139,13 @@ batch_repeat_time = 1
 # Use RELION's own implementation of motion-correction (CPU-only) instead of the UCSF implementation?
 motioncor_do_own = False
 # The number of threads (only for RELION's own implementation) is optimal when nr_movie_frames/nr_threads = integer
-motioncor_threads = 10
+motioncor_threads = 6
 # Exectutable of UCSF MotionCor2
 motioncor_exe = "/dls_sw/apps/EM/MotionCor2/1.1.0/MotionCor2"
 # On which GPU(s) to execute UCSF MotionCor2
 motioncor_gpu = ""
 # How many MPI processes to use for running motion correction?
-motioncor_mpi = 4
+motioncor_mpi = 5
 # Local motion-estimation patches for MotionCor2
 motioncor_patches_x = 5
 motioncor_patches_y = 5
@@ -226,7 +231,7 @@ autopick_ref_angpix = -1
 # Diameter for background normalisation (in pixels; negative value: default is 75% box size)
 extract_bg_diameter = -1
 # How many MPI processes to use for running particle extraction?
-extract_mpi = 40
+extract_mpi = 30
 # Submit Extract job to the cluster?
 extract_submit_to_queue = True
 
@@ -253,7 +258,7 @@ refine_gpu = ""
 # How many MPI processes to use
 refine_mpi = 5
 # How many threads to use
-refine_threads = 8
+refine_threads = 6
 # Skip padding?
 refine_skip_padding = False
 # Submit jobs to the cluster?

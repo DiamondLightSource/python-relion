@@ -12,8 +12,11 @@ import os.path
 import random
 import sys
 import shutil
+import time
 
 import gemmi
+
+qsub_file = "/home/yig62234/Documents/pythonEM/Cryolo_relion3.0/qsub.sh"
 
 
 def run_job(project_dir, job_dir, args_list):
@@ -40,6 +43,8 @@ def run_job(project_dir, job_dir, args_list):
         json.dump(data, outfile)
 
     # Reading particle star file from relion
+    while not os.path.exists(os.path.join(project_dir, args.in_parts)):
+        time.sleep(1)
     in_doc = gemmi.cif.read_file(os.path.join(project_dir, args.in_parts))
     data_as_dict = json.loads(in_doc.as_json())["#"]
 
@@ -91,10 +96,11 @@ def run_job(project_dir, job_dir, args_list):
         individual_files.close()
 
     # Running cryolo
-    os.system(
-        f"/dls_sw/apps/EM/crYOLO/qsub_cryolo_dls.sh cryolo_train.py -c config.json -w 0 -g 0 --fine_tune"
-    )
-    print("done")
+    # os.system(f"/dls_sw/apps/EM/crYOLO/qsub_cryolo_dls.sh cryolo_train.py -c config.json -w 0 -g 0 --fine_tune")
+    os.system(f"{qsub_file} cryolo_train.py -c config.json -w 0 -g 0 --fine_tune")
+    while not os.path.exists(".cry_predict_done"):
+        time.sleep(1)
+    os.remove(".cry_predict_done")
 
     # Writing a star file (This one is meaningless for now)
     part_doc = open("_crypick.star", "w")
@@ -109,10 +115,11 @@ def run_job(project_dir, job_dir, args_list):
     )
     loop.add_row([os.path.join(job_dir, "_crypick.star"), "2"])
     out_doc.write_file("RELION_OUTPUT_NODES.star")
-    with open("RELION_OUTPUT_NODES.star") as f:
-        print(f.read())
+    # with open('RELION_OUTPUT_NODES.star') as f:
+    #     print(f.read())
     with open("DONE", "w"):
         pass
+    print(" crYOLO Finished Fine-Tuning")
 
 
 def main():

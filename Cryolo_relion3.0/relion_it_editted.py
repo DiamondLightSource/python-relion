@@ -267,7 +267,9 @@ import time
 import traceback
 import sys
 
-sys.path.append("/home/yig62234/Documents/pythonEM/Cryolo_relion3.0/")
+
+cryolo_relion_directory = "/home/yig62234/Documents/pythonEM/Cryolo_relion3.0/"
+sys.path.append(cryolo_relion_directory)
 
 import subprocess
 import RunJobsCryolo
@@ -330,10 +332,6 @@ class RelionItOptions(object):
     # Most cases won't need changes here...
 
     ### Autopick parameters
-    # Run Cryolo picking or autopicking
-    autopick_do_cryolo = True
-    cryolo_threshold = 0.3
-    cryolo_finetune = False
     # Use reference-free Laplacian-of-Gaussian picking (otherwise use reference-based template matching instead)
     autopick_do_LoG = True
     # Minimum and maximum diameter in Angstrom for the LoG filter
@@ -360,9 +358,18 @@ class RelionItOptions(object):
     autopick_stddev_noise = -1
     # Use this to remove false positives from carbon edges (useful range: -0.5-0.0; -999 to switch off)
     autopick_avg_noise = -999
+    #
+    # OR:
+    #
+    # Run Cryolo picking or autopicking
+    autopick_do_cryolo = True
+    # Threshold for cryolo autopicking (higher the threshold the more *discriminative the cryolo picker) ((* But beware it may still not be picking what you want! ))
+    cryolo_threshold = 0.3
+    # Finetune the cryolo general model by selecting good classes from 2D classification
+    cryolo_finetune = False
 
     ### Extract parameters
-    # Box size of particles in the averaged micrographs (in pixels)
+    # Box size of particles in the averaged micrographs (in pixels) (Also used for cryolo boxsize)
     extract_boxsize = 256
     # Down-scale the particles upon extraction?
     extract_downscale = False
@@ -2043,13 +2050,14 @@ def run_pipeline(opts):
 
             #### CRYOLO INSERT BEGIN ####
             else:
+                done_fine_tune = 0
                 split_job = RunJobsCryolo.RunJobsCry(
                     1, runjobs, motioncorr_job, ctffind_job, opts, ipass, queue_options
                 )
                 # Running cryolo pipeline as a background process so that Relion_it script can carry on to Class2D etc.
                 subprocess.Popen(
                     [
-                        "/home/yig62234/Documents/pythonEM/Cryolo_relion3.0/RunJobsCryolo.py",
+                        os.path.join(cryolo_relion_directory, "RunJobsCryolo.py"),
                         "--num_repeats",
                         "{}".format(opts.preprocess_repeat_times),
                         "--runjobs",
@@ -2338,10 +2346,36 @@ def run_pipeline(opts):
                                 WaitForJob(class2d_job, 30)
 
                                 ### INSERT FOR CRYOLO FINE ###
-                                if opts.cryolo_finetune and opts.autopick_do_cryolo:
+                                """
+                                Fine tuning for cryolo is an option. If this is True then a `good` subselection of 2D classes can be made and then the general cryolo model can be finetuned with these particles.
+                                """
+
+                                if (
+                                    opts.cryolo_finetune
+                                    and opts.autopick_do_cryolo
+                                    and done_fine_tune == 0
+                                ):
+                                    done_fine_tune = 1
                                     # ! TODO get selection from subselect 2D class
-                                    print(particles_star_file)
+                                    subset_fine_options = [
+                                        "Select classes from model.star: == {}run_it020_model.star".format(
+                                            class2d_job
+                                        )
+                                    ]
+                                    subset_fine_name = "subset_fine_job"
+                                    alias = "fine_tune"
+                                    subset_fine_job, already_had_it = addJob(
+                                        "Select",
+                                        subset_fine_name,
+                                        SETUP_CHECK_FILE,
+                                        subset_fine_options,
+                                        alias=alias,
+                                    )
+                                    RunJobs([subset_fine_job], 1, 1, "SUBSET")
                                     ### Fine Tuning for Cryolo
+                                    fine_particles_star_file = (
+                                        "Select/{}/particles.star".format(alias)
+                                    )
                                     in_doc_fine = gemmi.cif.read_file(
                                         particles_star_file
                                     )
@@ -2359,7 +2393,9 @@ def run_pipeline(opts):
                                         # Enough to fine tune
                                         print("Enough micrographs to retrain!")
                                         cryolo_fineoptions = [
-                                            "--in_parts {}".format(particles_star_file),
+                                            "--in_parts {}".format(
+                                                fine_particles_star_file
+                                            ),
                                             "--o {}".format("ExternalFine"),
                                             "--box_size {}".format(
                                                 opts.extract_boxsize
@@ -2370,16 +2406,24 @@ def run_pipeline(opts):
                                             option_string += cry_option
                                             option_string += " "
                                         command = (
-                                            "~/Documents/pythonEM/Cryolo_relion3.0/external_cryolo_fine_3.py "
+                                            os.path.join(
+                                                cryolo_relion_directory,
+                                                "external_cryolo_fine_3.py",
+                                            )
+                                            + " "
                                             + option_string
                                         )
                                         print(" RELION_IT: RUNNING {}".format(command))
 
+                                        # Run in background so relion_it can carry on processing new data. Training can take a while...
                                         subprocess.Popen(
                                             [
-                                                "/home/yig62234/Documents/pythonEM/Cryolo_relion3.0/external_cryolo_fine_3.py",
+                                                os.path.join(
+                                                    cryolo_relion_directory,
+                                                    "external_cryolo_fine_3.py",
+                                                ),
                                                 "--in_parts",
-                                                particles_star_file,
+                                                fine_particles_star_file,
                                                 "--o",
                                                 "ExternalFine",
                                                 "--box_size",

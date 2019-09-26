@@ -19,8 +19,11 @@ import sys
 import shutil
 import correct_path_relion
 import pathlib
+import time
 
 import gemmi
+
+qsub_file = "/home/yig62234/Documents/pythonEM/Cryolo_relion3.0/qsub.sh"
 
 
 def run_job(project_dir, job_dir, args_list):
@@ -41,7 +44,6 @@ def run_job(project_dir, job_dir, args_list):
 
     try:
         model = os.path.join(project_dir, args.in_model)
-        print(model)
     except:
         pass
 
@@ -92,16 +94,15 @@ def run_job(project_dir, job_dir, args_list):
     # Checking to see if a paticular model has been specified
     if args.in_model is None:
         os.system(
-            f"/home/yig62234/Documents/pythonEM/Cryolo_relion3.0/qsub.sh cryolo_predict.py -c config.json -i {os.path.join(project_dir, job_dir, 'cryolo_input')} -o {os.path.join(project_dir, job_dir, 'gen_pick')} -w /dls_sw/apps/EM/crYOLO/cryo_phosaurus/gmodel_phosnet_20190516.h5 -g 0 -t {thresh}"
+            f"{qsub_file} cryolo_predict.py -c config.json -i {os.path.join(project_dir, job_dir, 'cryolo_input')} -o {os.path.join(project_dir, job_dir, 'gen_pick')} -w /dls_sw/apps/EM/crYOLO/cryo_phosaurus/gmodel_phosnet_20190516.h5 -g 0 -t {thresh}"
         )
     else:
         print("Running from model {}".format(model))
         os.system(
-            f"/home/yig62234/Documents/pythonEM/Cryolo_relion3.0/qsub.sh cryolo_predict.py -c config.json -i {os.path.join(project_dir, job_dir, 'cryolo_input')} -o {os.path.join(project_dir, job_dir, 'gen_pick')} -w {model} -g 0 -t {thresh}"
+            f"{qsub_file} cryolo_predict.py -c config.json -i {os.path.join(project_dir, job_dir, 'cryolo_input')} -o {os.path.join(project_dir, job_dir, 'gen_pick')} -w {model} -g 0 -t {thresh}"
         )
     ### WAIT FOR DONEFILE! ###
     while not os.path.exists(".cry_predict_done"):
-        print("cryolo not done")
         time.sleep(1)
     os.remove(".cry_predict_done")
     try:

@@ -1,3 +1,6 @@
+"""
+Creates a folder tree that is the relion standard and then populates folder tree with the picked coordinate star files produced by Cryolo
+"""
 import gemmi
 import os
 import json

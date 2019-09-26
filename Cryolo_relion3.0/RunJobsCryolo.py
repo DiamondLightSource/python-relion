@@ -1,6 +1,6 @@
 #!/dls_sw/apps/EM/conda/envs/cryolo/bin/python
 """
-This is the cryolo preprocessing pipeline. This script executes the relion_it pipeline up to picking - cryolo then runs through external_cryolo_3.py and its output is used by relion extraction. All executions of this script after the first run in the background and in parallel to the relion_it script.
+This is the cryolo preprocessing pipeline run from relion_it script. This script first executes the relion_it pipeline up to picking - cryolo then runs through external_cryolo_3.py and its output is used by relion extraction. All executions of this script after the first run in the background and in parallel to the relion_it script.
 
 As with the relion_it script, if RUNNING_RELION_IT is deleted then this script will stop.
 """
@@ -12,6 +12,8 @@ import sys
 import runpy
 
 import relion_it_editted
+
+cryolo_relion_directory = "/home/yig62234/Documents/pythonEM/Cryolo_relion3.0/"
 
 
 def main():
@@ -75,12 +77,12 @@ def RunJobsCry(
         preprocess_schedule_name = "BEFORE_CRYOLO"
         # Running jobs up until picking
         relion_it_editted.RunJobs(runjobs, 1, 1, preprocess_schedule_name)
-        relion_it_editted.WaitForJob(motioncorr_job, 20)
-        relion_it_editted.WaitForJob(ctffind_job, 20)
+        relion_it_editted.WaitForJob(motioncorr_job, 15)
+        relion_it_editted.WaitForJob(ctffind_job, 15)
         cryolo_options = [
             "--in_mics {}".format(os.path.join(ctffind_job + "micrographs_ctf.star")),
             "--o {}".format("External"),
-            "--box_size {}".format(opts.cryolo_boxsize),
+            "--box_size {}".format(opts.extract_boxsize),
             "--threshold {}".format(opts.cryolo_threshold),
         ]
         option_string = ""
@@ -90,11 +92,16 @@ def RunJobsCry(
         if os.path.exists("ExternalFine/DONE"):
             option_string += "--in_model 'ExternalFine/model.h5'"
         command = (
-            "~/Documents/pythonEM/Cryolo_relion3.0/external_cryolo_3.py "
+            os.path.join(cryolo_relion_directory, "external_cryolo_3.py")
+            + " "
             + option_string
         )
         print(" RELION_IT: RUNNING {}".format(command))
         os.system(command)
+
+        if not os.path.exists("RUNNING_RELION_IT"):
+            print("Exiting cryolo pipeline")
+            exit
 
         #### Set up the Extract job
         extract_options = [
