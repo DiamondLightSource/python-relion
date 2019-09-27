@@ -313,12 +313,12 @@ class RelionItOptions(object):
     # Pixel size in Angstroms in the input movies
     angpix = 0.885
     # Acceleration voltage (in kV)
-    voltage = 200
+    voltage = 300
     # Polara = 2.0; Talos/Krios = 2.7; some Cryo-ARM = 1.4
-    Cs = 1.4
+    Cs = 2.7
 
     ### Import images (Linux wild card; movies as *.mrc, *.mrcs, *.tiff or *.tif; single-frame micrographs as *.mrc)
-    import_images = "Movies/*.tiff"
+    import_images = "Movies/*.tif"
     # Are these multi-frame movies? Set to False for single-frame micrographs (and motion-correction will be skipped)
     images_are_movies = True
 
@@ -362,7 +362,7 @@ class RelionItOptions(object):
     # OR:
     #
     # Run Cryolo picking or autopicking
-    autopick_do_cryolo = True
+    autopick_do_cryolo = False
     # Threshold for cryolo autopicking (higher the threshold the more *discriminative the cryolo picker) ((* But beware it may still not be picking what you want! ))
     cryolo_threshold = 0.3
     # Finetune the cryolo general model by selecting good classes from 2D classification
@@ -409,8 +409,6 @@ class RelionItOptions(object):
 
     ### Use the largest 3D class from the first batch as a 3D reference for a second pass of autopicking? (only when do_class3d is True)
     do_second_pass = True
-    # if autopick_do_cryolo:
-    #     do_second_pass = False
     # Only move on to template-based autopicking if the 3D references achieves this resolution (in A)
     minimum_resolution_3dref_2ndpass = 20
     # In the second pass, perform 2D classification?
@@ -438,13 +436,13 @@ class RelionItOptions(object):
     # Use RELION's own implementation of motion-correction (CPU-only) instead of the UCSF implementation?
     motioncor_do_own = False
     # The number of threads (only for RELION's own implementation) is optimal when nr_movie_frames/nr_threads = integer
-    motioncor_threads = 12
+    motioncor_threads = 6
     # Exectutable of UCSF MotionCor2
-    motioncor_exe = "/public/EM/MOTIONCOR2/MotionCor2"
+    motioncor_exe = "/dls_sw/apps/EM/MotionCor2/1.1.0/MotionCor2"
     # On which GPU(s) to execute UCSF MotionCor2
-    motioncor_gpu = "0"
+    motioncor_gpu = ""
     # How many MPI processes to use for running motion correction?
-    motioncor_mpi = 1
+    motioncor_mpi = 5
     # Local motion-estimation patches for MotionCor2
     motioncor_patches_x = 5
     motioncor_patches_y = 5
@@ -460,7 +458,7 @@ class RelionItOptions(object):
     # Other arguments for MotionCor2
     motioncor_other_args = ""
     # Submit motion correction job to the cluster?
-    motioncor_submit_to_queue = False
+    motioncor_submit_to_queue = True
 
     ### CTF estimation parameters
     # Amplitude contrast (Q0)
@@ -480,33 +478,33 @@ class RelionItOptions(object):
     # Also estimate phase shifts (for VPP data)
     ctffind_do_phaseshift = False
     # Executable to Kai Zhang's Gctf
-    gctf_exe = "/public/EM/Gctf/bin/Gctf"
+    gctf_exe = "/dls_sw/apps/EM/Gctf/1.18/Gctf"
     # On which GPU(s) to execute Gctf
-    gctf_gpu = "0"
+    gctf_gpu = ""
     # Use Alexis Rohou's CTFFIND4 (CPU-only) instead?
     use_ctffind_instead = False
     # Executable for Alexis Rohou's CTFFIND4
-    ctffind4_exe = "/public/EM/ctffind/ctffind.exe"
+    ctffind4_exe = "/dls_sw/apps/EM/ctffind/4.1.5-compat/ctffind"
     # How many MPI processes to use for running CTF estimation?
-    ctffind_mpi = 1
+    ctffind_mpi = 4
     # Submit CTF estimation job to the cluster?
-    ctffind_submit_to_queue = False
+    ctffind_submit_to_queue = True
 
     ### Autopick parameters
     # Use GPU-acceleration for autopicking?
     autopick_do_gpu = True
     # Which GPU(s) to use for autopicking
-    autopick_gpu = "0"
+    autopick_gpu = ""
     # Low-pass filter for auto-picking the micrographs
     autopick_lowpass = 20
     # Shrink factor for faster picking (0 = fastest; 1 = slowest)
     autopick_shrink_factor = 0
     # How many MPI processes to use for running auto-picking?
-    autopick_mpi = 1
+    autopick_mpi = 4
     # Additional arguments for autopicking
     autopick_other_args = ""
     # Submit Autopick job to the cluster?
-    autopick_submit_to_queue = False
+    autopick_submit_to_queue = True
     # Are the references CTF-corrected?
     autopick_refs_are_ctf_corrected = True
     # Do the references have inverted contrast wrt the micrographs?
@@ -528,9 +526,9 @@ class RelionItOptions(object):
     # Diameter for background normalisation (in pixels; negative value: default is 75% box size)
     extract_bg_diameter = -1
     # How many MPI processes to use for running particle extraction?
-    extract_mpi = 1
+    extract_mpi = 30
     # Submit Extract job to the cluster?
-    extract_submit_to_queue = False
+    extract_submit_to_queue = True
 
     ## Discard particles based on average/stddev values? (this may be important for SGD initial model generation)
     do_discard_on_image_statistics = False
@@ -549,15 +547,15 @@ class RelionItOptions(object):
     # Use GPU-acceleration?
     refine_do_gpu = True
     # Which GPU to use (different from GPU used for pre-processing?)
-    refine_gpu = "1"
+    refine_gpu = "0"
     # How many MPI processes to use
-    refine_mpi = 1
+    refine_mpi = 5
     # How many threads to use
     refine_threads = 6
     # Skip padding?
     refine_skip_padding = False
     # Submit jobs to the cluster?
-    refine_submit_to_queue = False
+    refine_submit_to_queue = True
     # Use fast subsets in 2D/3D classification when batch_size is bigger than this
     refine_batchsize_for_fast_subsets = 100000
 
@@ -635,7 +633,7 @@ class RelionItOptions(object):
     # Name of the command used to submit scripts to the queue
     queue_submit_command = "qsub"
     # The template for your standard queue job submission script
-    queue_submission_template = "/public/EM/RELION/relion/bin/qsub.csh"
+    queue_submission_template = "/dls_sw/apps/EM/relion/qsub_template_hamilton"
     # Minimum number of dedicated cores that need to be requested on each node
     queue_minimum_dedicated = 1
 
@@ -976,6 +974,17 @@ class RelionItGui(object):
 
         row += 1
 
+        tk.Label(pipeline_frame, text="crYOLO finetune? (still testing)").grid(
+            row=row, sticky=tk.W
+        )
+        self.cryolo_fine_var = tk.IntVar()
+        cryolo_fine_button = tk.Checkbutton(pipeline_frame, var=self.cryolo_fine_var)
+        cryolo_fine_button.grid(row=row, column=1, sticky=tk.W)
+        if options.cryolo_finetune:
+            cryolo_fine_button.select()
+
+        row += 1
+
         tk.Label(pipeline_frame, text="Do 2D classification?").grid(
             row=row, sticky=tk.W
         )
@@ -1157,6 +1166,7 @@ class RelionItGui(object):
             class2d_button.config(state=new_state)
             class3d_button.config(state=new_state)
             use_cryolo_button.config(state=new_state)
+            cryolo_fine_button.config(state=new_state)
             self.particle_max_diam_entry.config(state=new_state)
             self.particle_min_diam_entry.config(state=new_state)
             self.ref_3d_entry.config(state=new_state)
@@ -1172,6 +1182,7 @@ class RelionItGui(object):
                 self.class3d_var.get()
                 and len(self.ref_3d_var.get()) == 0
                 and not self.stop_after_ctf_var.get()
+                and not self.use_cryolo_var.get()
             )
             second_pass_button.config(
                 state=tk.NORMAL if can_do_second_pass else tk.DISABLED
@@ -1183,8 +1194,12 @@ class RelionItGui(object):
             class3d_pass2_button.config(
                 state=tk.NORMAL if will_do_second_pass else tk.DISABLED
             )
+            cryolo_fine_button.config(
+                state=tk.NORMAL if self.use_cryolo_var.get() else tk.DISABLED
+            )
 
         stop_after_ctf_button.config(command=update_pipeline_control_state)
+        use_cryolo_button.config(command=update_pipeline_control_state)  #!
         class3d_button.config(command=update_pipeline_control_state)
         second_pass_button.config(command=update_pipeline_control_state)
         self.ref_3d_var.trace("w", update_pipeline_control_state)
@@ -1358,6 +1373,9 @@ class RelionItGui(object):
             # No 3D reference - do LoG autopicking in the first pass
             opts.autopick_do_LoG = True
             opts.class3d_reference = ""
+
+        if opts.autopick_do_cryolo:
+            opts.do_second_pass = False
 
         # Now set a sensible batch size (leaving batch_size_pass2 at its default 100,000)
         if opts.do_second_pass:
@@ -2083,6 +2101,8 @@ def run_pipeline(opts):
                         "{}".format(ipass),
                         "--user_opt_file",
                         "{}".format(option_files),
+                        "--gui",
+                        "{}".format(gui),
                     ]
                 )
 
@@ -2914,13 +2934,16 @@ def main():
         user_opts = runpy.run_path(user_opt_file)
         opts.update_from(user_opts)
 
+    global gui
     if args.gui:
+        gui = 1
         print(" RELION_IT: launching GUI...")
         tk_root = tk.Tk()
         tk_root.title("relion_it.py setup")
         RelionItGui(tk_root, opts)
         tk_root.mainloop()
     else:
+        gui = 0
         run_pipeline(opts)
 
 
