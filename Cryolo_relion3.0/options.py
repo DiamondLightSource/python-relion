@@ -262,7 +262,7 @@ refine_skip_padding = False
 # Submit jobs to the cluster?
 refine_submit_to_queue = True
 # Use fast subsets in 2D/3D classification when batch_size is bigger than this
-refine_batchsize_for_fast_subsets = 20000
+refine_batchsize_for_fast_subsets = 100000
 
 
 ### 2D classification parameters
