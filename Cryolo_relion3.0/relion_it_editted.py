@@ -1,7 +1,5 @@
 #!/dls_sw/apps/EM/conda/envs/cryolo/bin/python
-"""
-Live version
-"""
+# Live
 """
 relion_it.py
 ============
@@ -271,7 +269,7 @@ import traceback
 import sys
 
 
-cryolo_relion_directory = "/home/yig62234/Documents/pythonEM/Cryolo_relion3.0/"
+cryolo_relion_directory = "/dls_sw/apps/EM/relion_cryolo/CryoloRelion-master/"
 sys.path.append(cryolo_relion_directory)
 
 import subprocess
