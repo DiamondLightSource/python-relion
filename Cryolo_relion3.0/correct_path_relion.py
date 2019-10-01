@@ -19,7 +19,7 @@ def correct(ctf_star):
         for d in dirs.split("/")[2:]:
             full_dir = os.path.join(full_dir, d)
         pathlib.Path(full_dir).mkdir(parents=True, exist_ok=True)
-        picked_star = os.path.splitext(ctf_file)[0] + "_crypick.star"
+        picked_star = os.path.splitext(ctf_file)[0] + "_manualpick.star"
         try:
             shutil.move(
                 os.path.join("picked_stars", picked_star),

@@ -269,7 +269,8 @@ import traceback
 import sys
 
 
-cryolo_relion_directory = "/dls_sw/apps/EM/relion_cryolo/CryoloRelion-master/"
+# cryolo_relion_directory = '/dls_sw/apps/EM/relion_cryolo/CryoloRelion-master/'
+cryolo_relion_directory = "/home/yig62234/Documents/pythonEM/Cryolo_relion3.0"
 sys.path.append(cryolo_relion_directory)
 
 import subprocess
@@ -2123,8 +2124,15 @@ def run_pipeline(opts):
             #### CRYOLO INSERT BEGIN ####
             else:
                 done_fine_tune = 0
-                split_job = RunJobsCryolo.RunJobsCry(
-                    1, runjobs, motioncorr_job, ctffind_job, opts, ipass, queue_options
+                split_job, manpick_job = RunJobsCryolo.RunJobsCry(
+                    1,
+                    runjobs,
+                    motioncorr_job,
+                    ctffind_job,
+                    opts,
+                    ipass,
+                    queue_options,
+                    "None",
                 )
                 # Running cryolo pipeline as a background process so that Relion_it script can carry on to Class2D etc.
                 subprocess.Popen(
@@ -2144,6 +2152,8 @@ def run_pipeline(opts):
                         "{}".format(option_files),
                         "--gui",
                         "{}".format(gui),
+                        "--manpick_job",
+                        manpick_job,
                     ]
                 )
 

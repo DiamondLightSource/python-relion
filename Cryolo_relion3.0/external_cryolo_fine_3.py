@@ -103,7 +103,7 @@ def run_job(project_dir, job_dir, args_list):
     os.remove(".cry_predict_done")
 
     # Writing a star file (This one is meaningless for now)
-    part_doc = open("_crypick.star", "w")
+    part_doc = open("_manualpick.star", "w")
     part_doc.write(os.path.join(project_dir, args.in_parts))
     part_doc.close()
 
@@ -113,7 +113,7 @@ def run_job(project_dir, job_dir, args_list):
     loop = output_nodes_block.init_loop(
         "", ["_rlnPipeLineNodeName", "_rlnPipeLineNodeType"]
     )
-    loop.add_row([os.path.join(job_dir, "_crypick.star"), "2"])
+    loop.add_row([os.path.join(job_dir, "_manualpick.star"), "2"])
     out_doc.write_file("RELION_OUTPUT_NODES.star")
     # with open('RELION_OUTPUT_NODES.star') as f:
     #     print(f.read())

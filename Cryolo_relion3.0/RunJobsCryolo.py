@@ -11,10 +11,12 @@ import ast
 import sys
 import runpy
 import subprocess
+import shutil
 
 import relion_it_editted
 
-cryolo_relion_directory = "/dls_sw/apps/EM/relion_cryolo/CryoloRelion-master/"
+# cryolo_relion_directory = '/dls_sw/apps/EM/relion_cryolo/CryoloRelion-master/'
+cryolo_relion_directory = "/home/yig62234/Documents/pythonEM/Cryolo_relion3.0"
 
 
 def main():
@@ -30,6 +32,7 @@ def main():
     parser.add_argument("--ipass")
     parser.add_argument("--user_opt_files")
     parser.add_argument("--gui")
+    parser.add_argument("--manpick_job")
     args = parser.parse_args()
     num_repeats = int(args.num_repeats)
     runjobs = ast.literal_eval(args.runjobs)
@@ -37,6 +40,7 @@ def main():
     ctffind_job = args.ctffind_job
     ipass = int(args.ipass)
     gui = int(args.gui)
+    manpick_job = args.manpick_job
 
     option_files = ast.literal_eval(args.user_opt_files)
     if gui == 1:
@@ -55,12 +59,26 @@ def main():
     ]
 
     RunJobsCry(
-        num_repeats, runjobs, motioncorr_job, ctffind_job, opts, ipass, queue_options
+        num_repeats,
+        runjobs,
+        motioncorr_job,
+        ctffind_job,
+        opts,
+        ipass,
+        queue_options,
+        manpick_job,
     )
 
 
 def RunJobsCry(
-    num_repeats, runjobs, motioncorr_job, ctffind_job, opts, ipass, queue_options
+    num_repeats,
+    runjobs,
+    motioncorr_job,
+    ctffind_job,
+    opts,
+    ipass,
+    queue_options,
+    manpick_job,
 ):
     """
     Very similar to relion_it preprocessing pipeline with the autopicker. Extract and select jobs are identical.
@@ -104,15 +122,37 @@ def RunJobsCry(
         )
         print(" RELION_IT: RUNNING {}".format(command))
         os.system(command)
-        # subprocess.Popen('/home/yig62234/Documents/testprogs/liveplotting.py')
 
         if not os.path.exists("RUNNING_RELION_IT"):
             print("Exiting cryolo pipeline")
             exit
 
+        #### Set up manual pick job
+        if num_repeats == 1:
+            # In order to visualise cry picked particles
+            manpick_options = [
+                "Input micrographs: == {}micrographs_ctf.star".format(ctffind_job)
+            ]
+            manualpick_job_name = "cryolo_picks"
+            manualpick_alias = "cryolo_picks"
+            manpick_job, already_had_it = relion_it_editted.addJob(
+                "ManualPick",
+                manualpick_job_name,
+                SETUP_CHECK_FILE,
+                manpick_options,
+                alias=manualpick_alias,
+            )
+            relion_it_editted.RunJobs([manpick_job], 1, 1, "ManualPick")
+
+        try:
+            shutil.rmtree(os.path.join(manpick_job, "Movies"))
+        except:
+            pass
+        shutil.copytree("External/Movies", os.path.join(manpick_job, "Movies"))
+
         #### Set up the Extract job
         extract_options = [
-            "Input coordinates:  == {}_crypick.star".format("External/"),
+            "Input coordinates:  == {}_manualpick.star".format("External/"),
             "micrograph STAR file:  == {}micrographs_ctf.star".format(ctffind_job),
             "Diameter background circle (pix):  == {}".format(opts.extract_bg_diameter),
             "Particle box size (pix): == {}".format(opts.extract_boxsize),
@@ -193,7 +233,7 @@ def RunJobsCry(
                 preprocess_schedule_name = PREPROCESS_SCHEDULE_PASS2
             relion_it_editted.RunJobs(secondjobs, 1, 1, preprocess_schedule_name)
     if num_repeats == 1:
-        return split_job
+        return split_job, manpick_job
 
 
 if __name__ == "__main__":
