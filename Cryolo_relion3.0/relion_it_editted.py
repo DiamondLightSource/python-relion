@@ -854,6 +854,15 @@ class RelionItGui(object):
 
         row += 1
 
+        tk.Label(particle_frame, text="MotionCor binning:").grid(row=row, sticky=tk.W)
+        self.motioncor_binning_entry = tk.Entry(particle_frame)
+        self.motioncor_binning_entry.grid(
+            row=row, column=1, sticky=tk.W + tk.E, columnspan=2
+        )
+        self.motioncor_binning_entry.insert(0, str(options.motioncor_binning))
+
+        row += 1
+
         tk.Label(particle_frame, text=u"Mask diameter (\u212B):").grid(
             row=row, sticky=tk.W
         )
@@ -1248,6 +1257,13 @@ class RelionItGui(object):
         opts.do_second_pass = self.get_var_as_bool(self.second_pass_var)
         opts.do_class2d_pass2 = self.get_var_as_bool(self.class2d_pass2_var)
         opts.do_class3d_pass2 = self.get_var_as_bool(self.class3d_pass2_var)
+
+        try:
+            opts.motioncor_binning = float(self.motioncor_binning_entry.get())
+        except ValueError:
+            raise ValueError("MotionCor binning must be a number")
+        if opts.motioncor_binning <= 0.0:
+            warnings.append("- MotionCor binning should be a positive number")
 
         try:
             opts.voltage = float(self.voltage_entry.get())
