@@ -115,7 +115,7 @@ do_class2d_pass2 = True
 # In the second pass, perform 3D classification?
 do_class3d_pass2 = False
 # Batch size in the second pass
-batch_size_pass2 = 100000
+batch_size_pass2 = 20000
 
 
 ###################################################################################
@@ -262,7 +262,7 @@ refine_skip_padding = False
 # Submit jobs to the cluster?
 refine_submit_to_queue = True
 # Use fast subsets in 2D/3D classification when batch_size is bigger than this
-refine_batchsize_for_fast_subsets = 100000
+refine_batchsize_for_fast_subsets = 20000
 
 
 ### 2D classification parameters
