@@ -1,4 +1,4 @@
-#!/dls/ebic/data/staff-scratch/Donovan/anaconda/envs/cry_rel/bin/python
+#!/dls_sw/apps/python/anaconda/4.6.14/64/envs/cryolo/bin/python
 """
 External job for calling cryolo within Relion 3.0
 in_mics are the micrographs to be picked on
@@ -23,7 +23,7 @@ import time
 
 import gemmi
 
-qsub_file = "/home/yig62234/Documents/pythonEM/Cryolo_relion3.0/qsub.sh"
+qsub_file = "/dls_sw/apps/EM/relion_cryolo/CryoloRelion-master/qsub.sh"
 
 
 def run_job(project_dir, job_dir, args_list):

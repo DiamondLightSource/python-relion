@@ -1,4 +1,4 @@
-#!/dls_sw/apps/EM/conda/envs/cryolo/bin/python
+#!/dls_sw/apps/python/anaconda/4.6.14/64/envs/cryolo/bin/python
 """
 This is the cryolo preprocessing pipeline run from relion_it script. This script first executes the relion_it pipeline up to picking - cryolo then runs through external_cryolo_3.py and its output is used by relion extraction. All executions of this script after the first run in the background and in parallel to the relion_it script.
 
@@ -14,7 +14,7 @@ import subprocess
 
 import relion_it_editted
 
-cryolo_relion_directory = "/home/yig62234/Documents/pythonEM/Cryolo_relion3.0/"
+cryolo_relion_directory = "/dls_sw/apps/EM/relion_cryolo/CryoloRelion-master/"
 
 
 def main():

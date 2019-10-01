@@ -1,5 +1,4 @@
 #!/dls_sw/apps/EM/conda/envs/cryolo/bin/python
-# Live
 """
 relion_it.py
 ============
