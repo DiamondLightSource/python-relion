@@ -15,8 +15,8 @@ import shutil
 
 import relion_it_editted
 
-# cryolo_relion_directory = '/dls_sw/apps/EM/relion_cryolo/CryoloRelion-master/'
-cryolo_relion_directory = "/home/yig62234/Documents/pythonEM/Cryolo_relion3.0"
+cryolo_relion_directory = "/dls_sw/apps/EM/relion_cryolo/CryoloRelion-master/"
+# cryolo_relion_directory = '/home/yig62234/Documents/pythonEM/Cryolo_relion3.0'
 
 
 def main():
