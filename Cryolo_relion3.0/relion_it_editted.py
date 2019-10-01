@@ -363,7 +363,7 @@ class RelionItOptions(object):
     # OR:
     #
     # Run Cryolo picking or autopicking
-    autopick_do_cryolo = False
+    autopick_do_cryolo = True
     # Threshold for cryolo autopicking (higher the threshold the more *discriminative the cryolo picker) ((* But beware it may still not be picking what you want! ))
     cryolo_threshold = 0.3
     # Finetune the cryolo general model by selecting good classes from 2D classification
@@ -1213,6 +1213,30 @@ class RelionItGui(object):
         class3d_button.config(command=update_pipeline_control_state)
         second_pass_button.config(command=update_pipeline_control_state)
         self.ref_3d_var.trace("w", update_pipeline_control_state)
+
+        # Initial blanking of buttons
+        if self.stop_after_ctf_var.get():
+            use_cryolo_button.config(state=tk.DISABLED)
+            cryolo_fine_button.config(state=tk.DISABLED)
+            second_pass_button.config(state=tk.DISABLED)
+            class2d_pass2_button.config(state=tk.DISABLED)
+            class3d_pass2_button.config(state=tk.DISABLED)
+            class2d_button.config(state=tk.DISABLED)
+            class3d_button.config(state=tk.DISABLED)
+            use_cryolo_button.config(state=tk.DISABLED)
+            cryolo_fine_button.config(state=tk.DISABLED)
+            self.particle_max_diam_entry.config(state=tk.DISABLED)
+            self.particle_min_diam_entry.config(state=tk.DISABLED)
+            self.ref_3d_entry.config(state=tk.DISABLED)
+            # Update the box size controls with care to avoid activating them when we shouldn't
+            auto_boxsize_button.config(state=tk.DISABLED)
+
+        if not self.use_cryolo_var.get():
+            cryolo_fine_button.config(state=tk.DISABLED)
+        else:
+            second_pass_button.config(state=tk.DISABLED)
+            class2d_pass2_button.config(state=tk.DISABLED)
+            class3d_pass2_button.config(state=tk.DISABLED)
 
         ###
 
