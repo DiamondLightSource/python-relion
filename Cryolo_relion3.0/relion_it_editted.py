@@ -278,6 +278,7 @@ import RunJobsCryolo
 import gemmi
 import json
 import numpy as np
+import grp
 
 try:
     import tkinter as tk
@@ -1231,6 +1232,18 @@ class RelionItGui(object):
             self.ref_3d_entry.config(state=tk.DISABLED)
             # Update the box size controls with care to avoid activating them when we shouldn't
             auto_boxsize_button.config(state=tk.DISABLED)
+
+        ### Checking if industrial user is trying to use cryolo...
+        not_allowed = ["m10_valid_users", "m10_staff", "m08_valid_users", "m08_staff"]
+        uid = os.getegid()
+        fedid = grp.getgrgid(uid)[0]
+        groups = str(subprocess.check_output(["groups", "{}".format(fedid)]))
+        print(groups)
+        if any(group in groups for group in not_allowed):
+            print("Industrial use of crYOLO is prohibited")
+            use_cryolo_button.config(state=tk.DISABLED)
+            cryolo_fine_button.config(state=tk.DISABLED)
+            self.autopick_do_cryolo = False
 
         if not self.use_cryolo_var.get():
             cryolo_fine_button.config(state=tk.DISABLED)
