@@ -977,11 +977,22 @@ class RelionItGui(object):
 
         row += 1
 
+        ### Checking if industrial user is trying to use relion_it...
+        not_allowed = ["m10_valid_users", "m10_staff", "m08_valid_users", "m08_staff"]
+        uid = os.getegid()
+        fedid = grp.getgrgid(uid)[0]
+        groups = str(subprocess.check_output(["groups", "{}".format(fedid)]))
+        if any(group in groups for group in not_allowed):
+            print("Industrial use of crYOLO is prohibited")
+            industrial_group = True
+        else:
+            industrial_group = False
+
         tk.Label(pipeline_frame, text="Use crYOLO?").grid(row=row, sticky=tk.W)
         self.use_cryolo_var = tk.IntVar()
         use_cryolo_button = tk.Checkbutton(pipeline_frame, var=self.use_cryolo_var)
         use_cryolo_button.grid(row=row, column=1, sticky=tk.W)
-        if options.autopick_do_cryolo:
+        if options.autopick_do_cryolo and not industrial_group:
             use_cryolo_button.select()
 
         row += 1
@@ -1177,8 +1188,9 @@ class RelionItGui(object):
             new_state = tk.DISABLED if self.stop_after_ctf_var.get() else tk.NORMAL
             class2d_button.config(state=new_state)
             class3d_button.config(state=new_state)
-            use_cryolo_button.config(state=new_state)
-            cryolo_fine_button.config(state=new_state)
+            if not industrial_group:
+                use_cryolo_button.config(state=new_state)
+                cryolo_fine_button.config(state=new_state)
             self.particle_max_diam_entry.config(state=new_state)
             self.particle_min_diam_entry.config(state=new_state)
             self.ref_3d_entry.config(state=new_state)
@@ -1207,7 +1219,9 @@ class RelionItGui(object):
                 state=tk.NORMAL if will_do_second_pass else tk.DISABLED
             )
             cryolo_fine_button.config(
-                state=tk.NORMAL if self.use_cryolo_var.get() else tk.DISABLED
+                state=tk.NORMAL
+                if self.use_cryolo_var.get() and not self.stop_after_ctf_var.get()
+                else tk.DISABLED
             )
 
         stop_after_ctf_button.config(command=update_pipeline_control_state)
@@ -1233,17 +1247,9 @@ class RelionItGui(object):
             # Update the box size controls with care to avoid activating them when we shouldn't
             auto_boxsize_button.config(state=tk.DISABLED)
 
-        ### Checking if industrial user is trying to use cryolo...
-        not_allowed = ["m10_valid_users", "m10_staff", "m08_valid_users", "m08_staff"]
-        uid = os.getegid()
-        fedid = grp.getgrgid(uid)[0]
-        groups = str(subprocess.check_output(["groups", "{}".format(fedid)]))
-        print(groups)
-        if any(group in groups for group in not_allowed):
-            print("Industrial use of crYOLO is prohibited")
+        if industrial_group:
             use_cryolo_button.config(state=tk.DISABLED)
             cryolo_fine_button.config(state=tk.DISABLED)
-            self.autopick_do_cryolo = False
 
         if not self.use_cryolo_var.get():
             cryolo_fine_button.config(state=tk.DISABLED)
@@ -1284,12 +1290,23 @@ class RelionItGui(object):
         Raises:
             ValueError: If an option value is invalid.
         """
+        ### Checking if industrial user is trying to use relion_it..
+        not_allowed = ["m10_valid_users", "m10_staff", "m08_valid_users", "m08_staff"]
+        uid = os.getegid()
+        fedid = grp.getgrgid(uid)[0]
+        groups = str(subprocess.check_output(["groups", "{}".format(fedid)]))
+        if any(group in groups for group in not_allowed):
+            industrial_group = True
+        else:
+            industrial_group = False
 
         opts = self.options
         warnings = []
 
         opts.stop_after_ctf_estimation = self.get_var_as_bool(self.stop_after_ctf_var)
         opts.autopick_do_cryolo = self.get_var_as_bool(self.use_cryolo_var)
+        if industrial_group:
+            opts.autopick_do_cryolo = False
         opts.do_class2d = self.get_var_as_bool(self.class2d_var)
         opts.do_class3d = self.get_var_as_bool(self.class3d_var)
         opts.do_second_pass = self.get_var_as_bool(self.second_pass_var)
