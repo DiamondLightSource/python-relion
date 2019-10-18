@@ -2075,7 +2075,9 @@ def run_pipeline(opts):
                     "Diameter background circle (pix):  == {}".format(
                         opts.extract_bg_diameter
                     ),
-                    "Particle box size (pix): == {}".format(opts.extract_boxsize),
+                    "Particle box size (pix): == {}".format(
+                        opts.extract_boxsize / opts.motioncor_binning
+                    ),
                     "Number of MPI procs: == {}".format(opts.extract_mpi),
                 ]
 
