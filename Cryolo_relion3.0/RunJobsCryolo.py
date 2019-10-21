@@ -148,7 +148,7 @@ def RunJobsCry(
         wait_count = 0
         # movies_dir to make sure if they named 'Movies' file differently it wont fail
         movies_dir = opts.import_images.split("/")[0]
-        while not os.path.exists(os.path.join(manpick_job, movies_dir)):
+        while not os.path.exists(manpick_job):
             if wait_count > 15:
                 # but dont wait too long as not too important
                 break
@@ -156,7 +156,10 @@ def RunJobsCry(
             wait_count += 1
 
         if wait_count <= 15:
-            shutil.rmtree(os.path.join(manpick_job, movies_dir))
+            try:
+                shutil.rmtree(os.path.join(manpick_job, movies_dir))
+            except:
+                pass
             shutil.copytree(
                 os.path.join("External", movies_dir),
                 os.path.join(manpick_job, movies_dir),
