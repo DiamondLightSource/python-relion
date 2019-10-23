@@ -23,13 +23,14 @@ import time
 
 import gemmi
 
+##### SPECIFIC TO FACILITY ######
+# cluster submit script
 qsub_file = "/dls_sw/apps/EM/relion_cryolo/CryoloRelion-master/qsub.sh"
+gen_model = "/dls_sw/apps/EM/crYOLO/cryo_phosaurus/gmodel_phosnet_20190516.h5"
+#################################
 
 
 def run_job(project_dir, job_dir, args_list):
-    # print("Project directory is {}".format(project_dir))
-    # print("Job directory is {}".format(job_dir))
-    # print("arguments are {}".format(args_list))
     parser = argparse.ArgumentParser()
     parser.add_argument("--in_mics", help="Input micrographs STAR file")
     parser.add_argument(
@@ -42,10 +43,10 @@ def run_job(project_dir, job_dir, args_list):
     thresh = args.threshold
     box_size = args.box_size
 
-    try:
+    if os.path.exists(os.path.join(project_dir, args.in_model)):
         model = os.path.join(project_dir, args.in_model)
-    except:
-        pass
+    else:
+        model = gen_model
 
     # Making a cryolo config file with the correct box size
     with open("/dls_sw/apps/EM/crYOLO/cryo_phosaurus/config.json", "r") as json_file:
@@ -60,7 +61,8 @@ def run_job(project_dir, job_dir, args_list):
 
     try:
         os.mkdir("cryolo_input")
-    except:
+    except FileExistsError:
+        # Not crucial so if fails due to any reason just carry on
         try:
             with open("done_mics.txt", "a+") as f:
                 for micrograph in os.listdir("cryolo_input"):
@@ -71,6 +73,7 @@ def run_job(project_dir, job_dir, args_list):
         os.mkdir("cryolo_input")
 
     # Arranging files for cryolo to predict particles from
+    # Not crucial so if fails due to any reason just carry on
     try:
         with open("done_mics.txt", "r") as f:
             done_mics = f.read().splitlines()
@@ -78,38 +81,27 @@ def run_job(project_dir, job_dir, args_list):
         done_mics = []
     for micrograph in data_as_dict["_rlnmicrographname"]:
         if os.path.split(micrograph)[-1] not in done_mics:
-            try:
-                os.link(
-                    os.path.join(project_dir, micrograph),
-                    os.path.join(
-                        project_dir,
-                        job_dir,
-                        "cryolo_input",
-                        os.path.split(micrograph)[-1],
-                    ),
-                )
-            except:
-                pass
+            # try:
+            os.link(
+                os.path.join(project_dir, micrograph),
+                os.path.join(
+                    project_dir, job_dir, "cryolo_input", os.path.split(micrograph)[-1]
+                ),
+            )
+            # except: pass
 
-    # Checking to see if a paticular model has been specified
-    if args.in_model is None:
-        os.system(
-            f"{qsub_file} cryolo_predict.py -c config.json -i {os.path.join(project_dir, job_dir, 'cryolo_input')} -o {os.path.join(project_dir, job_dir, 'gen_pick')} -w /dls_sw/apps/EM/crYOLO/cryo_phosaurus/gmodel_phosnet_20190516.h5 -g 0 -t {thresh}"
-        )
-    else:
-        print("Running from model {}".format(model))
-        os.system(
-            f"{qsub_file} cryolo_predict.py -c config.json -i {os.path.join(project_dir, job_dir, 'cryolo_input')} -o {os.path.join(project_dir, job_dir, 'gen_pick')} -w {model} -g 0 -t {thresh}"
-        )
+    print("Running from model {}".format(model))
+    os.system(
+        f"{qsub_file} cryolo_predict.py -c config.json -i {os.path.join(project_dir, job_dir, 'cryolo_input')} -o {os.path.join(project_dir, job_dir, 'gen_pick')} -w {model} -g 0 -t {thresh}"
+    )
     ### WAIT FOR DONEFILE! ###
     while not os.path.exists(".cry_predict_done"):
         time.sleep(1)
     os.remove(".cry_predict_done")
     try:
         os.mkdir("picked_stars")
-    except:
+    except FileExistsError:
         pass
-    # print('data file exists')
 
     # Arranging files for Relion to use
     for picked in os.listdir(os.path.join(project_dir, job_dir, "gen_pick", "STAR")):
@@ -121,7 +113,6 @@ def run_job(project_dir, job_dir, args_list):
             )
         except:
             pass
-        # print('file exists')
 
     # Writing a star file for Relion
     part_doc = open("_manualpick.star", "w")
@@ -136,8 +127,6 @@ def run_job(project_dir, job_dir, args_list):
     )
     loop.add_row([os.path.join(job_dir, "_manualpick.star"), "2"])
     out_doc.write_file("RELION_OUTPUT_NODES.star")
-    # with open('RELION_OUTPUT_NODES.star') as f:
-    #     print(f.read())
     ctf_star = os.path.join(project_dir, args.in_mics)
     correct_path_relion.correct(ctf_star)
 
@@ -150,9 +139,8 @@ def main():
     project_dir = os.getcwd()
     try:
         os.mkdir(known_args.out_dir)
-    except:
+    except FileExistsError:
         pass
-    # print('External exists')
     os.chdir(known_args.out_dir)
     try:
         run_job(project_dir, known_args.out_dir, other_args)

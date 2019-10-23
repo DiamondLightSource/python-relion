@@ -16,13 +16,13 @@ import time
 
 import gemmi
 
+##### SPECIFIC TO FACILITY ######
+# cluster submit script
 qsub_file = "/dls_sw/apps/EM/relion_cryolo/CryoloRelion-master/qsub.sh"
+#################################
 
 
 def run_job(project_dir, job_dir, args_list):
-    # print("Project directory is {}".format(project_dir))
-    # print("Job directory is {}".format(job_dir))
-    # print("arguments are {}".format(args_list))
     parser = argparse.ArgumentParser()
     parser.add_argument("--in_parts", help="Input micrographs STAR file")
     parser.add_argument(
@@ -50,32 +50,28 @@ def run_job(project_dir, job_dir, args_list):
 
     try:
         os.mkdir("train_annotation")
-    except:
+    except FileExistsError:
         shutil.rmtree("train_annotation")
         os.mkdir("train_annotation")
     try:
         os.mkdir("train_image")
-    except:
+    except FileExistsError:
         shutil.rmtree("train_image")
         os.mkdir("train_image")
 
     # Arranging files for cryolo to train from
     for micro in range(len(data_as_dict["_rlnmicrographname"])):
-        try:
-            # print(os.path.join(project_dir, data_as_dict['_rlnmicrographname'][micro]))
-            # print(os.path.join(project_dir, job_dir, 'train_image', os.path.split(data_as_dict['_rlnmicrographname'][micro])[-1]))
-            os.link(
-                os.path.join(project_dir, data_as_dict["_rlnmicrographname"][micro]),
-                os.path.join(
-                    project_dir,
-                    job_dir,
-                    "train_image",
-                    os.path.split(data_as_dict["_rlnmicrographname"][micro])[-1],
-                ),
-            )
-        except:
-            pass
-        # print('{} already exists'.format(micro))
+        # try:
+        os.link(
+            os.path.join(project_dir, data_as_dict["_rlnmicrographname"][micro]),
+            os.path.join(
+                project_dir,
+                job_dir,
+                "train_image",
+                os.path.split(data_as_dict["_rlnmicrographname"][micro])[-1],
+            ),
+        )
+        # except: pass
 
         box_name = (
             os.path.splitext(
@@ -96,7 +92,6 @@ def run_job(project_dir, job_dir, args_list):
         individual_files.close()
 
     # Running cryolo
-    # os.system(f"/dls_sw/apps/EM/crYOLO/qsub_cryolo_dls.sh cryolo_train.py -c config.json -w 0 -g 0 --fine_tune")
     os.system(f"{qsub_file} cryolo_train.py -c config.json -w 0 -g 0 --fine_tune")
     while not os.path.exists(".cry_predict_done"):
         time.sleep(1)
@@ -115,8 +110,6 @@ def run_job(project_dir, job_dir, args_list):
     )
     loop.add_row([os.path.join(job_dir, "_manualpick.star"), "2"])
     out_doc.write_file("RELION_OUTPUT_NODES.star")
-    # with open('RELION_OUTPUT_NODES.star') as f:
-    #     print(f.read())
     with open("DONE", "w"):
         pass
     print(" crYOLO Finished Fine-Tuning")
@@ -130,9 +123,8 @@ def main():
     project_dir = os.getcwd()
     try:
         os.mkdir(known_args.out_dir)
-    except:
+    except FileExistsError:
         pass
-    # print('External exists')
     os.chdir(known_args.out_dir)
     try:
         run_job(project_dir, known_args.out_dir, other_args)

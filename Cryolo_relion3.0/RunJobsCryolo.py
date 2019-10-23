@@ -15,8 +15,10 @@ import shutil
 
 import relion_it_editted
 
+##### SPECIFIC TO FACILITY ######
 cryolo_relion_directory = "/dls_sw/apps/EM/relion_cryolo/CryoloRelion-master/"
 # cryolo_relion_directory = '/home/yig62234/Documents/pythonEM/Cryolo_relion3.0'
+#################################
 
 
 def main():
@@ -91,9 +93,6 @@ def RunJobsCry(
     PREPROCESS_SCHEDULE_PASS1 = "PREPROCESS"
     PREPROCESS_SCHEDULE_PASS2 = "PREPROCESS_PASS2"
 
-    # print ' RELION_IT: submitted',preprocess_schedule_name,'pipeliner with', opts.preprocess_repeat_times,'repeats of the preprocessing jobs'
-    # print ' RELION_IT: this pipeliner will run in the background of your shell. You can stop it by deleting the file RUNNING_PIPELINER_'+preprocess_schedule_name
-
     for i in range(0, num_repeats):
         if not os.path.exists("RUNNING_RELION_IT"):
             print("Exiting cryolo pipeline")
@@ -158,6 +157,7 @@ def RunJobsCry(
         if wait_count <= 15:
             try:
                 shutil.rmtree(os.path.join(manpick_job, movies_dir))
+                # Multiple reasons this could fail... Not crucial
             except:
                 pass
             shutil.copytree(

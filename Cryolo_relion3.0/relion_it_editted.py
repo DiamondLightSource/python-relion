@@ -268,9 +268,11 @@ import time
 import traceback
 import sys
 
-
+##### SPECIFIC TO FACILITY #####
+# Directory in which these scripts are stored
 cryolo_relion_directory = "/dls_sw/apps/EM/relion_cryolo/CryoloRelion-master/"
 # cryolo_relion_directory = '/home/yig62234/Documents/pythonEM/Cryolo_relion3.0'
+################################
 sys.path.append(cryolo_relion_directory)
 
 import subprocess
@@ -1975,7 +1977,9 @@ def run_pipeline(opts):
 
         # There is an option to stop on-the-fly processing after CTF estimation
         if not opts.stop_after_ctf_estimation:
-            if not opts.autopick_do_cryolo:
+            if (
+                not opts.autopick_do_cryolo
+            ):  # If using crYOLO need to run different pipeline. See below...
                 autopick_options = [
                     "Input micrographs for autopick: == {}micrographs_ctf.star".format(
                         ctffind_job
@@ -2155,7 +2159,7 @@ def run_pipeline(opts):
 
             #### CRYOLO INSERT BEGIN ####
             else:
-                done_fine_tune = 0
+                done_fine_tune = False
                 split_job, manpick_job = RunJobsCryolo.RunJobsCry(
                     1,
                     runjobs,
@@ -2469,9 +2473,9 @@ def run_pipeline(opts):
                                 if (
                                     opts.cryolo_finetune
                                     and opts.autopick_do_cryolo
-                                    and done_fine_tune == 0
+                                    and not done_fine_tune
                                 ):
-                                    done_fine_tune = 1
+                                    done_fine_tune = True
                                     # ! TODO get selection from subselect 2D class
                                     subset_fine_options = [
                                         "Select classes from model.star: == {}run_it020_model.star".format(
