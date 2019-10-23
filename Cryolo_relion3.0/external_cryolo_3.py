@@ -43,10 +43,13 @@ def run_job(project_dir, job_dir, args_list):
     thresh = args.threshold
     box_size = args.box_size
 
-    if os.path.exists(os.path.join(project_dir, args.in_model)):
-        model = os.path.join(project_dir, args.in_model)
-    else:
+    if args.in_model is None:
         model = gen_model
+    else:
+        if os.path.exists(os.path.join(project_dir, args.in_model)):
+            model = os.path.join(project_dir, args.in_model)
+        else:
+            print(" RELION_IT: Cannot find fine tuned model")
 
     # Making a cryolo config file with the correct box size
     with open("/dls_sw/apps/EM/crYOLO/cryo_phosaurus/config.json", "r") as json_file:
@@ -90,7 +93,7 @@ def run_job(project_dir, job_dir, args_list):
             )
             # except: pass
 
-    print("Running from model {}".format(model))
+    print(" RELION_IT: Running from model {}".format(model))
     os.system(
         f"{qsub_file} cryolo_predict.py -c config.json -i {os.path.join(project_dir, job_dir, 'cryolo_input')} -o {os.path.join(project_dir, job_dir, 'gen_pick')} -w {model} -g 0 -t {thresh}"
     )
