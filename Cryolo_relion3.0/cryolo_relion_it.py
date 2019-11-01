@@ -1,15 +1,15 @@
 #!/dls_sw/apps/python/anaconda/4.6.14/64/envs/cryolo/bin/python
 # testing
 """
-relion_it.py
+cryolo_relion_it.py
 ============
 
 Script for automated, on-the-fly single-particle analysis in RELION 3
 
-Authors: Sjors H.W. Scheres, Takanori Nakane & Colin M. Palmer
+Authors: Sjors H.W. Scheres, Takanori Nakane, Colin M. Palmer & Donovan Webb (for addition of crYOLO)
 
 Usage:
-    relion_it.py  [extra_options.py [extra_options2.py ....] ] [--gui] [--continue]
+    cryolo_relion_it.py  [extra_options.py [extra_options2.py ....] ] [--gui] [--continue]
 
 To get started, go to the intended location of your RELION project directory and make sure your micrographs are
 accessible from within it (e.g. in a subdirectory called `Movies/' - use a symlink if necessary). Then run this
@@ -272,11 +272,8 @@ import grp
 
 import relion_it_config
 
-##### SPECIFIC TO FACILITY #####
-# Directory in which these scripts are stored
 cryolo_relion_directory = relion_it_config.cryolo_relion_directory
 # cryolo_relion_directory = '/home/yig62234/Documents/pythonEM/Cryolo_relion3.0'
-################################
 sys.path.append(cryolo_relion_directory)
 
 import gemmi
