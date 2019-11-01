@@ -27,6 +27,7 @@ import gemmi
 # cluster submit script
 qsub_file = "/dls_sw/apps/EM/relion_cryolo/CryoloRelion-master/qsub.sh"
 gen_model = "/dls_sw/apps/EM/crYOLO/cryo_phosaurus/gmodel_phosnet_20190516.h5"
+conf_file = "/dls_sw/apps/EM/crYOLO/cryo_phosaurus/config.json"
 #################################
 
 
@@ -52,7 +53,7 @@ def run_job(project_dir, job_dir, args_list):
             print(" RELION_IT: Cannot find fine tuned model")
 
     # Making a cryolo config file with the correct box size
-    with open("/dls_sw/apps/EM/crYOLO/cryo_phosaurus/config.json", "r") as json_file:
+    with open(conf_file, "r") as json_file:
         data = json.load(json_file)
         data["model"]["anchors"] = [int(box_size), int(box_size)]
     with open("config.json", "w") as outfile:

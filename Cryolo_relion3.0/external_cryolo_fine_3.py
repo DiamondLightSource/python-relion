@@ -19,6 +19,8 @@ import gemmi
 ##### SPECIFIC TO FACILITY ######
 # cluster submit script
 qsub_file = "/dls_sw/apps/EM/relion_cryolo/CryoloRelion-master/qsub.sh"
+conf_file = "/dls_sw/apps/EM/crYOLO/cryo_phosaurus/config.json"
+weights = "/dls_sw/apps/EM/crYOLO/cryo_phosaurus/gmodel_phosnet_20190516.h5"
 #################################
 
 
@@ -33,12 +35,10 @@ def run_job(project_dir, job_dir, args_list):
     box_size = args.box_size
 
     # Making a cryolo config file with the correct box size and model location
-    with open("/dls_sw/apps/EM/crYOLO/cryo_phosaurus/config.json", "r") as json_file:
+    with open(conf_file, "r") as json_file:
         data = json.load(json_file)
         data["model"]["anchors"] = [int(box_size), int(box_size)]
-        data["train"][
-            "pretrained_weights"
-        ] = "/dls_sw/apps/EM/crYOLO/cryo_phosaurus/gmodel_phosnet_20190516.h5"
+        data["train"]["pretrained_weights"] = weights
     with open("config.json", "w") as outfile:
         json.dump(data, outfile)
 
