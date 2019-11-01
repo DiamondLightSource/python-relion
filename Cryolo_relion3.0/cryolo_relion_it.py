@@ -270,9 +270,11 @@ import json
 import numpy as np
 import grp
 
+import relion_it_config
+
 ##### SPECIFIC TO FACILITY #####
 # Directory in which these scripts are stored
-cryolo_relion_directory = "/dls_sw/apps/EM/relion_cryolo/CryoloRelion-master/"
+cryolo_relion_directory = relion_it_config.cryolo_relion_directory
 # cryolo_relion_directory = '/home/yig62234/Documents/pythonEM/Cryolo_relion3.0'
 ################################
 sys.path.append(cryolo_relion_directory)

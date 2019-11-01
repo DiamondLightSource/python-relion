@@ -16,11 +16,13 @@ import time
 
 import gemmi
 
+import relion_it_config
+
 ##### SPECIFIC TO FACILITY ######
 # cluster submit script
-qsub_file = "/dls_sw/apps/EM/relion_cryolo/CryoloRelion-master/qsub.sh"
-conf_file = "/dls_sw/apps/EM/crYOLO/cryo_phosaurus/config.json"
-weights = "/dls_sw/apps/EM/crYOLO/cryo_phosaurus/gmodel_phosnet_20190516.h5"
+qsub_file = relion_it_config.qsub_file
+conf_file = relion_it_config.cryolo_config
+weights = relion_it_config.cryolo_gmodel
 #################################
 
 
