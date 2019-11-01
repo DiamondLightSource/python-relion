@@ -96,9 +96,9 @@ def run_job(project_dir, job_dir, args_list):
     # Running cryolo
     if relion_it_config.use_cluster:
         os.system(f"{qsub_file} cryolo_train.py -c config.json -w 0 -g 0 --fine_tune")
-        while not os.path.exists(".cry_predict_done"):
+        while not os.path.exists(".cry_done"):
             time.sleep(1)
-        os.remove(".cry_predict_done")
+        os.remove(".cry_done")
     else:
         os.system(f"cryolo_train.py -c config.json -w 0 -g 0 --fine_tune")
 

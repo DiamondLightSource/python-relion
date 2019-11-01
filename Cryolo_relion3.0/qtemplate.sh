@@ -16,5 +16,5 @@
 
 "$@"
 sleep 0.1
-touch .cry_predict_done
+touch .cry_done
 

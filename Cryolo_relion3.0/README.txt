@@ -89,7 +89,8 @@ Scripts being use:
 
  - qtemplate.sh: 
  
-        Cluster template for crYOLO.
+	Cluster template for crYOLO. If using cluster must have template create
+	a '.cry_done' file so that the pipeline knows that cryolo has finished.
 
 
 *Still in Development* 
