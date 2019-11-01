@@ -53,7 +53,6 @@ def main():
         user_opts = runpy.run_path(user_opt_file)
         opts.update_from(user_opts)
 
-    # Cluster?
     queue_options = [
         "Submit to queue? == Yes",
         "Queue name:  == {}".format(opts.queue_name),

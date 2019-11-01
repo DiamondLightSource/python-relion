@@ -93,13 +93,14 @@ def run_job(project_dir, job_dir, args_list):
         individual_files.write(f"{box_size}\n")
         individual_files.close()
 
-    ###CLUSTER
     # Running cryolo
-    os.system(f"{qsub_file} cryolo_train.py -c config.json -w 0 -g 0 --fine_tune")
-    while not os.path.exists(".cry_predict_done"):
-        time.sleep(1)
-    os.remove(".cry_predict_done")
-    ###CLUSTER
+    if relion_it_config.use_cluster:
+        os.system(f"{qsub_file} cryolo_train.py -c config.json -w 0 -g 0 --fine_tune")
+        while not os.path.exists(".cry_predict_done"):
+            time.sleep(1)
+        os.remove(".cry_predict_done")
+    else:
+        os.system(f"cryolo_train.py -c config.json -w 0 -g 0 --fine_tune")
 
     # Writing a star file (This one is meaningless for now)
     part_doc = open("_manualpick.star", "w")
