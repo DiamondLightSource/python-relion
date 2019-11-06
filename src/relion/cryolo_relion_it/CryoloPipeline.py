@@ -13,13 +13,7 @@ import runpy
 import subprocess
 import shutil
 
-import cryolo_relion_it
-import relion_it_config
-
-##### SPECIFIC TO FACILITY ######
-cryolo_relion_directory = relion_it_config.cryolo_relion_directory
-# cryolo_relion_directory = '/home/yig62234/Documents/pythonEM/Cryolo_relion3.0'
-#################################
+from relion_yolo_it import cryolo_relion_it
 
 
 def main():
@@ -106,20 +100,21 @@ def RunJobsCry(
         cryolo_options = [
             "--in_mics {}".format(os.path.join(ctffind_job + "micrographs_ctf.star")),
             "--o {}".format("External"),
-            "--box_size {}".format(opts.extract_boxsize),
+            "--box_size {}".format(int(opts.extract_boxsize / opts.motioncor_binning)),
             "--threshold {}".format(opts.cryolo_threshold),
+            "--qsub {}".format(opts.cryolo_qsub_file),
+            "--gmodel {}".format(opts.cryolo_gmodel),
+            "--config {}".format(opts.cryolo_config),
+            "--cluster {}".format(opts.cryolo_use_cluster),
         ]
+
         option_string = ""
         for cry_option in cryolo_options:
             option_string += cry_option
             option_string += " "
         if os.path.exists("ExternalFine/DONE"):
             option_string += "--in_model 'ExternalFine/model.h5'"
-        command = (
-            os.path.join(cryolo_relion_directory, "CryoloExternalJob.py")
-            + " "
-            + option_string
-        )
+        command = "CryoloExternalJob.py" + " " + option_string
         print(" RELION_IT: RUNNING {}".format(command))
         os.system(command)
 
@@ -131,7 +126,10 @@ def RunJobsCry(
         if num_repeats == 1:
             # In order to visualise cry picked particles
             manpick_options = [
-                "Input micrographs: == {}micrographs_ctf.star".format(ctffind_job)
+                "Input micrographs: == {}micrographs_ctf.star".format(ctffind_job),
+                "Particle diameter (A): == {}".format(
+                    opts.extract_boxsize / opts.motioncor_binning
+                ),
             ]
             manualpick_job_name = "cryolo_picks"
             manualpick_alias = "cryolo_picks"

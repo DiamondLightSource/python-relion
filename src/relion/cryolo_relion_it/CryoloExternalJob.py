@@ -22,15 +22,7 @@ import time
 
 import gemmi
 
-import CorrectPath
-import relion_it_config
-
-##### SPECIFIC TO FACILITY ######
-# cluster submit script
-qsub_file = relion_it_config.qsub_file
-gen_model = relion_it_config.cryolo_gmodel
-conf_file = relion_it_config.cryolo_config
-#################################
+from relion_yolo_it import CorrectPath
 
 
 def run_job(project_dir, job_dir, args_list):
@@ -42,9 +34,17 @@ def run_job(project_dir, job_dir, args_list):
     parser.add_argument("--box_size", help="Size of box (~ particle size)")
     parser.add_argument("--threshold", help="Threshold for picking (default = 0.3)")
     parser.add_argument("--in_model", help="model from previous job")
+    parser.add_argument("--qsub", help="cryolo submit script")
+    parser.add_argument("--gmodel", help="cryolo general model")
+    parser.add_argument("--config", help="cryolo config")
+    parser.add_argument("--cluster", help="cryolo use cluster?")
     args = parser.parse_args(args_list)
     thresh = args.threshold
     box_size = args.box_size
+    qsub_file = args.qsub
+    gen_model = args.gmodel
+    conf_file = args.config
+    use_cluster = args.cluster
 
     if args.in_model is None:
         model = gen_model
@@ -96,14 +96,14 @@ def run_job(project_dir, job_dir, args_list):
 
     print(" RELION_IT: Running from model {}".format(model))
 
-    if relion_it_config.use_cluster:
+    if use_cluster:
         os.system(
             f"{qsub_file} cryolo_predict.py -c config.json -i {os.path.join(project_dir, job_dir, 'cryolo_input')} -o {os.path.join(project_dir, job_dir, 'gen_pick')} -w {model} -g 0 -t {thresh}"
         )
         ### WAIT FOR DONEFILE! ###
-        while not os.path.exists(".cry_done"):
+        while not os.path.exists(".cry_predict_done"):
             time.sleep(1)
-        os.remove(".cry_done")
+        os.remove(".cry_predict_done")
     else:
         os.system(
             f"cryolo_predict.py -c config.json -i {os.path.join(project_dir, job_dir, 'cryolo_input')} -o {os.path.join(project_dir, job_dir, 'gen_pick')} -w {model} -g 0 -t {thresh}"

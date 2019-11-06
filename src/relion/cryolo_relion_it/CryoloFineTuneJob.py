@@ -16,15 +16,6 @@ import time
 
 import gemmi
 
-import relion_it_config
-
-##### SPECIFIC TO FACILITY ######
-# cluster submit script
-qsub_file = relion_it_config.qsub_file
-conf_file = relion_it_config.cryolo_config
-weights = relion_it_config.cryolo_gmodel
-#################################
-
 
 def run_job(project_dir, job_dir, args_list):
     parser = argparse.ArgumentParser()
@@ -33,8 +24,16 @@ def run_job(project_dir, job_dir, args_list):
         "--j", dest="threads", help="Number of threads to run (ignored)"
     )
     parser.add_argument("--box_size", help="Size of box (~ particle size)")
+    parser.add_argument("--qsub", help="cryolo submit script")
+    parser.add_argument("--gmodel", help="cryolo general model")
+    parser.add_argument("--config", help="cryolo config")
+    parser.add_argument("--cluster", help="cryolo use cluster?")
     args = parser.parse_args(args_list)
     box_size = args.box_size
+    qsub_file = args.qsub
+    weights = args.gmodel
+    conf_file = args.config
+    use_cluster = args.cluster
 
     # Making a cryolo config file with the correct box size and model location
     with open(conf_file, "r") as json_file:
@@ -94,7 +93,7 @@ def run_job(project_dir, job_dir, args_list):
         individual_files.close()
 
     # Running cryolo
-    if relion_it_config.use_cluster:
+    if use_cluster:
         os.system(f"{qsub_file} cryolo_train.py -c config.json -w 0 -g 0 --fine_tune")
         while not os.path.exists(".cry_done"):
             time.sleep(1)

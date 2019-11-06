@@ -157,7 +157,9 @@ motioncor_defectfile = ""
 motioncor_gainflip = "No flipping (0)"
 motioncor_gainrot = "No rotation (0)"
 # Other arguments for MotionCor2
-motioncor_other_args = ""
+motioncor2_other_args = ""
+# Other arguments for Motion Correction
+motioncor_other_args = "--do_at_most 15"
 # Submit motion correction job to the cluster?
 motioncor_submit_to_queue = True
 
