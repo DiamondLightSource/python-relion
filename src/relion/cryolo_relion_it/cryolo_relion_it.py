@@ -672,7 +672,7 @@ class RelionItOptions(object):
     # And/or perform 3D classification?
     do_class3d = True
     # Repeat 2D and/or 3D-classification for batches of this many particles
-    batch_size = 10000
+    batch_size = 1000
     # Number of 2D classes to use
     class2d_nr_classes = 50
     # Diameter of the mask used for 2D/3D classification (in Angstrom)
@@ -703,7 +703,7 @@ class RelionItOptions(object):
     # In the second pass, perform 3D classification?
     do_class3d_pass2 = False
     # Batch size in the second pass
-    batch_size_pass2 = 10000
+    batch_size_pass2 = 1000
 
     ###################################################################################
     ############ Often the parameters below can be kept the same for a given set-up
@@ -846,7 +846,7 @@ class RelionItOptions(object):
     # Submit jobs to the cluster?
     refine_submit_to_queue = True
     # Use fast subsets in 2D/3D classification when batch_size is bigger than this
-    refine_batchsize_for_fast_subsets = 10000
+    refine_batchsize_for_fast_subsets = 1000
 
     ### 2D classification parameters
     # Wait with the first 2D classification batch until at least this many particles are extracted
@@ -1710,9 +1710,9 @@ class RelionItGui(object):
 
         # Now set a sensible batch size (leaving batch_size_pass2 at its default 100,000)
         if opts.do_second_pass:
-            opts.batch_size = 10000
+            opts.batch_size = 1000
         else:
-            opts.batch_size = 10000
+            opts.batch_size = 1000
 
     def save_options(self):
         """
