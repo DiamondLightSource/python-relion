@@ -12,9 +12,9 @@ appear as a manual pick job in the relion gui and can be viewed there.
 
 2. Conda Environment for crYOLO and Relion
 
-3. Edit paths in options part of cryolo_relion_it for MotionCor2 and Cryolo general model locations
+3. Edit paths in options.py for MotionCor2 and Cryolo general model locations
 
-4. Run by: `cryolo_relion_it.py --gui`
+4. Run by: `cryolo_relion_it.py /Path/To/options.py --gui`
 
 
 ## Scripts being used:
