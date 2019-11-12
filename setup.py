@@ -12,7 +12,7 @@ with open("README.md", "r") as fh:
 
 
 setup(
-    name="relion_yolo_it",
+    name="dls_relion_yolo_it",
     author="Donovan Webb",
     author_email="donovan.webb@diamond.ac.uk",
     classifiers=[
@@ -20,7 +20,7 @@ setup(
         "License :: OSI Approved :: GNU General Public License v2 (GPLv2)",
         "Natural Language :: English",
     ],
-    description="Updated relion_it with cryolo wrappers",
+    description="Updated relion_it with cryolo wrappers for Diamond Light Source",
     long_description=long_description,
     long_description_content_type="text/markdown",
     install_requires=requirements,
@@ -35,6 +35,6 @@ setup(
     ],
     python_requires="==3.6.8",
     setup_requires=setup_requirements,
-    version="0.2.5",
+    version="0.1.0",
     zip_safe=False,
 )
