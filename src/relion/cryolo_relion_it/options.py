@@ -1,8 +1,7 @@
 # Options file for relion_it.py
-
 ### General parameters
 # Pixel size in Angstroms in the input movies
-angpix = 1.0
+angpix = 0.885
 # Acceleration voltage (in kV)
 voltage = 300.0
 # Polara = 2.0; Talos/Krios = 2.7; some Cryo-ARM = 1.4
@@ -17,7 +16,7 @@ images_are_movies = True
 
 ### MotionCorrection parameters
 # Dose in electrons per squared Angstrom per frame
-motioncor_doseperframe = 1.0
+motioncor_doseperframe = 1.277
 # Gain-reference image in MRC format (only necessary if input movies are not yet gain-corrected, e.g. compressed TIFFs from K2)
 motioncor_gainreference = "Movies/gain.mrc"
 
@@ -30,8 +29,8 @@ motioncor_gainreference = "Movies/gain.mrc"
 # Use reference-free Laplacian-of-Gaussian picking (otherwise use reference-based template matching instead)
 autopick_do_LoG = True
 # Minimum and maximum diameter in Angstrom for the LoG filter
-autopick_LoG_diam_min = 150
-autopick_LoG_diam_max = 180
+autopick_LoG_diam_min = 150.0
+autopick_LoG_diam_max = 180.0
 # Use positive values (0-1) to pick fewer particles; use negative values (-1-0) to pick more particles
 autopick_LoG_adjust_threshold = 0.0
 #
@@ -56,22 +55,29 @@ autopick_avg_noise = -999
 #
 # OR:
 #
-### Cryolo
-# True will run cryolo instead of gaussian and ref based autopickers
+# Run Cryolo picking or autopicking
 autopick_do_cryolo = True
 # Threshold for cryolo autopicking (higher the threshold the more *discriminative the cryolo picker) ((* But beware it may still not be picking what you want! ))
 cryolo_threshold = 0.3
 # Finetune the cryolo general model by selecting good classes from 2D classification
 cryolo_finetune = False
 
+# Location of the cryolo specific files
+cryolo_config = "/dls_sw/apps/EM/crYOLO/cryo_phosaurus/config.json"
+cryolo_gmodel = "/dls_sw/apps/EM/crYOLO/cryo_phosaurus/gmodel_phosnet_20190516.h5"
+
+# Cluster options for cryolo
+cryolo_use_cluster = True
+cryolo_qsub_file = "/dls_sw/apps/EM/relion_cryolo/CryoloRelion-master/qsub.sh"
+
 
 ### Extract parameters
 # Box size of particles in the averaged micrographs (in pixels) (Also used for cryolo boxsize)
-extract_boxsize = 400
+extract_boxsize = 246
 # Down-scale the particles upon extraction?
 extract_downscale = True
 # Box size of the down-scaled particles (in pixels)
-extract_small_boxsize = 100
+extract_small_boxsize = 64
 # In second pass, down-scale the particles upon extraction?
 extract2_downscale = True
 # In second pass, box size of the down-scaled particles (in pixels)
@@ -87,7 +93,7 @@ batch_size = 10000
 # Number of 2D classes to use
 class2d_nr_classes = 50
 # Diameter of the mask used for 2D/3D classification (in Angstrom)
-mask_diameter = 300.0
+mask_diameter = 198.00000000000003
 # Symmetry group (when using SGD for initial model generation, C1 may work best)
 symmetry = "C1"
 #
@@ -107,7 +113,7 @@ class3d_ini_lowpass = 40
 
 
 ### Use the largest 3D class from the first batch as a 3D reference for a second pass of autopicking? (only when do_class3d is True)
-do_second_pass = True
+do_second_pass = False
 # Only move on to template-based autopicking if the 3D references achieves this resolution (in A)
 minimum_resolution_3dref_2ndpass = 20
 # In the second pass, perform 2D classification?
@@ -115,7 +121,7 @@ do_class2d_pass2 = True
 # In the second pass, perform 3D classification?
 do_class3d_pass2 = False
 # Batch size in the second pass
-batch_size_pass2 = 20000
+batch_size_pass2 = 10000
 
 
 ###################################################################################
@@ -150,7 +156,7 @@ motioncor_patches_y = 5
 # B-factor in A^2 for downweighting of high-spatial frequencies
 motioncor_bfactor = 150
 # Use binning=2 for super-resolution K2 movies
-motioncor_binning = 1
+motioncor_binning = 1.0
 # Provide a defect file for your camera if you have one
 motioncor_defectfile = ""
 # orientation of the gain-reference w.r.t your movies (if input movies are not yet gain-corrected, e.g. TIFFs)
@@ -159,7 +165,7 @@ motioncor_gainrot = "No rotation (0)"
 # Other arguments for MotionCor2
 motioncor2_other_args = ""
 # Other arguments for Motion Correction
-motioncor_other_args = "--do_at_most 15"
+motioncor_other_args = "--do_at_most 40"
 # Submit motion correction job to the cluster?
 motioncor_submit_to_queue = True
 
