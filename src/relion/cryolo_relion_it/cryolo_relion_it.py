@@ -2358,6 +2358,12 @@ def run_pipeline(opts):
                 runjobs.append(autopick_job)
 
                 #### Set up the Extract job
+                bin_corrected_box_exact = int(
+                    opts.extract_boxsize / opts.motioncor_binning
+                )
+                bin_corrected_box_even = (
+                    bin_corrected_box_exact + bin_correct_box_exact % 2
+                )
                 extract_options = [
                     "Input coordinates:  == {}coords_suffix_autopick.star".format(
                         autopick_job
@@ -2368,9 +2374,7 @@ def run_pipeline(opts):
                     "Diameter background circle (pix):  == {}".format(
                         opts.extract_bg_diameter
                     ),
-                    "Particle box size (pix): == {}".format(
-                        opts.extract_boxsize / opts.motioncor_binning
-                    ),
+                    "Particle box size (pix): == {}".format(bin_corrected_box_even),
                     "Number of MPI procs: == {}".format(opts.extract_mpi),
                 ]
 
