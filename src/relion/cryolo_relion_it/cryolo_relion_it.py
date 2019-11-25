@@ -2362,7 +2362,7 @@ def run_pipeline(opts):
                     opts.extract_boxsize / opts.motioncor_binning
                 )
                 bin_corrected_box_even = (
-                    bin_corrected_box_exact + bin_correct_box_exact % 2
+                    bin_corrected_box_exact + bin_corrected_box_exact % 2
                 )
                 extract_options = [
                     "Input coordinates:  == {}coords_suffix_autopick.star".format(
@@ -2466,7 +2466,7 @@ def run_pipeline(opts):
                 # Running cryolo pipeline as a background process so that Relion_it script can carry on to Class2D etc.
                 subprocess.Popen(
                     [
-                        "CryoloPipeline.py",
+                        "eval $RELION_PIPELINE_HOME/CryoloPipeline.py",
                         "--num_repeats",
                         "{}".format(opts.preprocess_repeat_times),
                         "--runjobs",
@@ -2832,7 +2832,7 @@ def run_pipeline(opts):
                                         # Run in background so relion_it can carry on processing new data. Training can take a while...
                                         subprocess.Popen(
                                             [
-                                                "CryoloFineTuneJob.py",
+                                                "eval $RELION_PIPELINE_HOME/CryoloFineTuneJob.py",
                                                 "--in_parts",
                                                 fine_particles_star_file,
                                                 "--o",

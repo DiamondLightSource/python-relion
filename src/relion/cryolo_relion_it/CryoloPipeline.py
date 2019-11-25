@@ -114,7 +114,9 @@ def RunJobsCry(
             option_string += " "
         if os.path.exists("ExternalFine/DONE"):
             option_string += "--in_model 'ExternalFine/model.h5'"
-        command = "CryoloExternalJob.py" + " " + option_string
+        command = (
+            "eval $RELION_PIPELINE_HOME/CryoloExternalJob.py" + " " + option_string
+        )
         print(" RELION_IT: RUNNING {}".format(command))
         os.system(command)
 
@@ -166,7 +168,7 @@ def RunJobsCry(
 
         #### Set up the Extract job
         bin_corrected_box_exact = int(opts.extract_boxsize / opts.motioncor_binning)
-        bin_corrected_box_even = bin_corrected_box_exact + bin_correct_box_exact % 2
+        bin_corrected_box_even = bin_corrected_box_exact + bin_corrected_box_exact % 2
         extract_options = [
             "Input coordinates:  == {}_manualpick.star".format("External/"),
             "micrograph STAR file:  == {}micrographs_ctf.star".format(ctffind_job),
