@@ -1,4 +1,4 @@
-#!/dls_sw/apps/python/anaconda/4.6.14/64/envs/cryolo/bin/python
+#!/usr/bin/env python
 """
 External job for calling cryolo within Relion 3.0
 in_mics are the micrographs to be picked on

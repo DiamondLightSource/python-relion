@@ -1,4 +1,4 @@
-#!/dls_sw/apps/python/anaconda/4.6.14/64/envs/cryolo/bin/python
+#!/usr/bin/env python
 __license__ = """
                     GNU GENERAL PUBLIC LICENSE
                        Version 2, June 1991

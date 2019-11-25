@@ -1,4 +1,4 @@
-#!/dls_sw/apps/python/anaconda/4.6.14/64/envs/cryolo/bin/python
+#!/usr/bin/env python
 """
 This is the cryolo preprocessing pipeline run from relion_it script. This script first executes the relion_it pipeline up to picking - cryolo then runs through CryoloExternalJob.py and its output is used by relion extraction. All executions of this script after the first run in the background and in parallel to the relion_it script.
 
