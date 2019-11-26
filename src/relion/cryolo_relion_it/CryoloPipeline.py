@@ -13,7 +13,8 @@ import runpy
 import subprocess
 import shutil
 
-from relion_yolo_it import cryolo_relion_it
+# from relion_yolo_it import cryolo_relion_it
+import cryolo_relion_it
 
 
 def main():
@@ -114,9 +115,9 @@ def RunJobsCry(
             option_string += " "
         if os.path.exists("ExternalFine/DONE"):
             option_string += "--in_model 'ExternalFine/model.h5'"
-        command = (
-            "eval $RELION_PIPELINE_HOME/CryoloExternalJob.py" + " " + option_string
-        )
+        relion_pipeline_home = os.environ["RELION_PIPELINE_HOME"]
+        external_path = os.path.join(relion_pipeline_home, "CryoloExternalJob.py")
+        command = external_path + " " + option_string
         print(" RELION_IT: RUNNING {}".format(command))
         os.system(command)
 

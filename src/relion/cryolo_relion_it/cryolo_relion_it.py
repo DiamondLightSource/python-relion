@@ -2464,11 +2464,14 @@ def run_pipeline(opts):
                     "None",
                 )
                 # Running cryolo pipeline as a background process so that Relion_it script can carry on to Class2D etc.
+                relion_pipeline_home = os.environ["RELION_PIPELINE_HOME"]
+                num_repeats = "{}".format(opts.preprocess_repeat_times)
+                cry_exec = os.path.join(relion_pipeline_home, "CryoloPipeline.py")
                 subprocess.Popen(
                     [
-                        "eval $RELION_PIPELINE_HOME/CryoloPipeline.py",
+                        cry_exec,
                         "--num_repeats",
-                        "{}".format(opts.preprocess_repeat_times),
+                        num_repeats,
                         "--runjobs",
                         "{}".format(runjobs),
                         "--motioncorr_job",
@@ -2830,9 +2833,15 @@ def run_pipeline(opts):
                                         print(" RELION_IT: RUNNING {}".format(command))
 
                                         # Run in background so relion_it can carry on processing new data. Training can take a while...
+                                        relion_pipeline_home = os.environ[
+                                            "RELION_PIPELINE_HOME"
+                                        ]
+                                        external_path = os.path.join(
+                                            relion_pipeline_home, "CryoloFineTuneJob.py"
+                                        )
                                         subprocess.Popen(
                                             [
-                                                "eval $RELION_PIPELINE_HOME/CryoloFineTuneJob.py",
+                                                external_path,
                                                 "--in_parts",
                                                 fine_particles_star_file,
                                                 "--o",
