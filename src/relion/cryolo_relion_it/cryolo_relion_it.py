@@ -281,7 +281,6 @@ POSSIBILITY OF SUCH DAMAGES.
 
                      END OF TERMS AND CONDITIONS
 """
-# testing..
 """
 cryolo_relion_it.py
 ============
@@ -649,7 +648,9 @@ class RelionItOptions(object):
 
     # Location of the cryolo specific files
     cryolo_config = "/dls_sw/apps/EM/crYOLO/cryo_phosaurus/config.json"
-    cryolo_gmodel = "/dls_sw/apps/EM/crYOLO/cryo_phosaurus/gmodel_phosnet_20190516.h5"
+    cryolo_gmodel = (
+        "/dls_sw/apps/EM/crYOLO/cryo_phosaurus_1_5/gmodel_phosnet_201912_N63.h5"
+    )
 
     # Cluster options for cryolo
     cryolo_use_cluster = True
@@ -2466,7 +2467,9 @@ def run_pipeline(opts):
                 # Running cryolo pipeline as a background process so that Relion_it script can carry on to Class2D etc.
                 import pathlib
 
-                relion_pipeline_home = pathlib.Path(__file__).parent.absolute()
+                relion_pipeline_home = pathlib.Path(
+                    __file__
+                ).parent.absolute()  # Need to find absolute paths to CryoloPipeline file to run with subprocess
                 num_repeats = "{}".format(opts.preprocess_repeat_times)
                 cry_exec = os.path.join(relion_pipeline_home, "CryoloPipeline.py")
                 subprocess.Popen(

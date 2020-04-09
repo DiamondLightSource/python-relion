@@ -25,8 +25,8 @@ def correct(ctf_star):
                 os.path.join("picked_stars", picked_star),
                 os.path.join(full_dir, picked_star),
             )
-        except:
-            print(f"cryolo found no particles in {picked_star} or already moved")
+        except FileNotFoundError:
+            print(f"cryolo found no particles in {picked_star}")
 
 
 if __name__ == "__main__":
