@@ -118,9 +118,7 @@ def RunJobsCry(
 
         import pathlib
 
-        print(pathlib.Path(__file__).parent.absolute())
-
-        relion_pipeline_home = os.environ["RELION_PIPELINE_HOME"]
+        relion_pipeline_home = pathlib.Path(__file__).parent.absolute()
         external_path = os.path.join(relion_pipeline_home, "CryoloExternalJob.py")
         command = external_path + " " + option_string
         print(" RELION_IT: RUNNING {}".format(command))
