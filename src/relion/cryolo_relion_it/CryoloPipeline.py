@@ -115,7 +115,11 @@ def RunJobsCry(
             option_string += " "
         if os.path.exists("ExternalFine/DONE"):
             option_string += "--in_model 'ExternalFine/model.h5'"
-        print(os.getcwd())
+
+        import pathlib
+
+        print(pathlib.Path(__file__).parent.absolute())
+
         relion_pipeline_home = os.environ["RELION_PIPELINE_HOME"]
         external_path = os.path.join(relion_pipeline_home, "CryoloExternalJob.py")
         command = external_path + " " + option_string
