@@ -64,7 +64,7 @@ cryolo_finetune = False
 
 # Location of the cryolo specific files
 cryolo_config = "/dls_sw/apps/EM/crYOLO/cryo_phosaurus/config.json"
-cryolo_gmodel = "/dls_sw/apps/EM/crYOLO/cryo_phosaurus/gmodel_phosnet_20190516.h5"
+cryolo_gmodel = "/dls_sw/apps/EM/crYOLO/cryo_phosaurus_1_5/gmodel_phosnet_201912_N63.h5"
 
 # Cluster options for cryolo
 cryolo_use_cluster = True

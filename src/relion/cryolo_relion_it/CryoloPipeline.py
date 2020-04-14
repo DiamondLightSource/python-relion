@@ -13,7 +13,6 @@ import runpy
 import subprocess
 import shutil
 
-# from relion_yolo_it import cryolo_relion_it
 import cryolo_relion_it
 
 
