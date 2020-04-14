@@ -70,7 +70,9 @@ def run_job(project_dir, job_dir, args_list):
     except FileExistsError:
         # Not crucial so if fails due to any reason just carry on
         try:
-            with open("done_mics.txt", "a+") as f:
+            with open(
+                "done_mics.txt", "a+"
+            ) as f:  # Done mics is to ensure that cryolo doesn't pick from already done mics
                 for micrograph in os.listdir("cryolo_input"):
                     f.write(micrograph + "\n")
         except:
