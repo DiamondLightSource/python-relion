@@ -2118,8 +2118,6 @@ def run_pipeline(opts):
     else:
         nr_passes = 1
 
-    iteration_3D = 0
-
     # if SECONDPASS_REF3D_FILE exists, go straight into the second pass
     first_pass = 0
     if opts.do_second_pass:
@@ -2873,13 +2871,9 @@ def run_pipeline(opts):
                                 ### END CRYOLO FINE ###
 
                     # Perform 3D classification
-                    if iteration_3D < 4 and (
-                        (ipass == 0 and opts.do_class3d)
-                        or (ipass == 1 and opts.do_class3d_pass2)
+                    if (ipass == 0 and opts.do_class3d) or (
+                        ipass == 1 and opts.do_class3d_pass2
                     ):
-
-                        # Only repeat 3D classification 3 times as computationally expensive
-                        iteration_3D += 1
 
                         # Do SGD initial model generation only in the first pass, when no reference is provided AND only for the first (complete) batch, for subsequent batches use that model
                         if (
@@ -3036,7 +3030,7 @@ def run_pipeline(opts):
                             opts.class3d_ref_is_ctf_corrected = True
                             opts.have_3d_reference = True
 
-                        if opts.have_3d_reference:
+                        if opts.have_3d_reference and batch_size == opts.batch_size:
                             # Now perform the actual 3D classification
                             class3d_options = [
                                 "Input images STAR file: == {}".format(
