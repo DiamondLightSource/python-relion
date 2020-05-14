@@ -12,7 +12,6 @@ CryoloExternalJob.py --o "External/crYOLO_AutoPick" --in_mics "CtfFind/job004/mi
 
 import argparse
 import json
-import pathlib
 import os
 import os.path
 import shutil
@@ -154,7 +153,7 @@ def correct_paths(ctf_star):
         full_dir = ""
         for d in dirs.split("/")[2:]:
             full_dir = os.path.join(full_dir, d)
-        pathlib.Path(full_dir).mkdir(parents=True, exist_ok=True)
+        os.makedirs(full_dir, exist_ok=True)
         picked_star = os.path.splitext(ctf_file)[0] + "_manualpick.star"
         try:
             shutil.move(
