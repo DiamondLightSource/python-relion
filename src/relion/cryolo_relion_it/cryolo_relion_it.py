@@ -2472,13 +2472,10 @@ def run_pipeline(opts):
                     "None",
                 )
                 # Running cryolo pipeline as a background process so that Relion_it script can carry on to Class2D etc.
-                import pathlib
-
-                relion_pipeline_home = pathlib.Path(
-                    __file__
-                ).parent.absolute()  # Need to find absolute paths to CryoloPipeline file to run with subprocess
                 num_repeats = "{}".format(opts.preprocess_repeat_times)
-                cry_exec = os.path.join(relion_pipeline_home, "CryoloPipeline.py")
+                cry_exec = os.path.abspath(
+                    CryoloPipeline.__file__
+                )  # Need to find absolute paths to CryoloPipeline file to run with subprocess
                 subprocess.Popen(
                     [
                         cry_exec,
@@ -2850,11 +2847,9 @@ def run_pipeline(opts):
                                         print(" RELION_IT: RUNNING {}".format(command))
 
                                         # Run in background so relion_it can carry on processing new data. Training can take a while...
-                                        import pathlib
-
-                                        relion_pipeline_home = pathlib.Path(
-                                            __file__
-                                        ).parent.absolute()
+                                        relion_pipeline_home = os.path.abspath(
+                                            os.path.dirname(CryoloPipeline.__file__)
+                                        )
                                         external_path = os.path.join(
                                             relion_pipeline_home, "CryoloFineTuneJob.py"
                                         )

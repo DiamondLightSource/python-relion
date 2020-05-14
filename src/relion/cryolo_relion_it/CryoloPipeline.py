@@ -14,6 +14,7 @@ import subprocess
 import shutil
 
 import cryolo_relion_it
+import CryoloExternalJob
 
 
 CRYOLO_PICK_JOB_DIR = "External/crYOLO_AutoPick"
@@ -119,10 +120,7 @@ def RunJobsCry(
         if os.path.exists(f"{CRYOLO_FINETUNE_JOB_DIR}/DONE"):
             option_string += f"--in_model '{CRYOLO_FINETUNE_JOB_DIR}/model.h5'"
 
-        import pathlib
-
-        relion_pipeline_home = pathlib.Path(__file__).parent.absolute()
-        external_path = os.path.join(relion_pipeline_home, "CryoloExternalJob.py")
+        external_path = CryoloExternalJob.__file__
         command = external_path + " " + option_string
         print(" RELION_IT: RUNNING {}".format(command))
         os.system(command)
