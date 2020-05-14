@@ -2,7 +2,7 @@
 """
 External job for calling cryolo fine tune within Relion 3.0
 in_parts is from a subset selection job.
-CryoloFineTuneJob.py --o 'ExternalFine' --in_parts 'Select/job005/particles.star' --box_size 300
+CryoloFineTuneJob.py --o 'External/crYOLO_FineTune' --in_parts 'Select/job005/particles.star' --box_size 300
 """
 
 import argparse

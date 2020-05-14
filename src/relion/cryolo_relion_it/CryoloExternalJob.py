@@ -7,7 +7,7 @@ in_model is the model to be used, empty will use general model!
 Run in main Relion project directory
 external_cryolo.py --o $PATH_WHERE_TO_STORE --in_mics $PATH_TO_MCORR/CTF_STARFILE --box_size $BOX_SIZE --threshold 0.3 (optional: --in_model $PATH_TO_MODEL)
 eg:
-CryoloExternalJob.py --o "External" --in_mics "CtfFind/job004/micrographs_ctf.star" --box_size 300 --threshold 0.3
+CryoloExternalJob.py --o "External/crYOLO_AutoPick" --in_mics "CtfFind/job004/micrographs_ctf.star" --box_size 300 --threshold 0.3
 """
 
 import argparse

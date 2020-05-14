@@ -2827,7 +2827,9 @@ def run_pipeline(opts):
                                             "--in_parts {}".format(
                                                 fine_particles_star_file
                                             ),
-                                            "--o {}".format("ExternalFine"),
+                                            "--o {}".format(
+                                                CryoloPipeline.CRYOLO_FINETUNE_JOB_DIR
+                                            ),
                                             "--box_size {}".format(
                                                 opts.extract_boxsize
                                             ),
@@ -2862,7 +2864,7 @@ def run_pipeline(opts):
                                                 "--in_parts",
                                                 fine_particles_star_file,
                                                 "--o",
-                                                "ExternalFine",
+                                                CryoloPipeline.CRYOLO_FINETUNE_JOB_DIR,
                                                 "--box_size",
                                                 "{}".format(opts.extract_boxsize),
                                             ]
