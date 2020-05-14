@@ -591,12 +591,12 @@ class RelionItOptions(object):
     # Pixel size in Angstroms in the input movies
     angpix = 0.885
     # Acceleration voltage (in kV)
-    voltage = 300
+    voltage = 200
     # Polara = 2.0; Talos/Krios = 2.7; some Cryo-ARM = 1.4
-    Cs = 2.7
+    Cs = 1.4
 
     ### Import images (Linux wild card; movies as *.mrc, *.mrcs, *.tiff or *.tif; single-frame micrographs as *.mrc)
-    import_images = "Movies/*.tif"
+    import_images = "Movies/*.tiff"
     # Are these multi-frame movies? Set to False for single-frame micrographs (and motion-correction will be skipped)
     images_are_movies = True
 
@@ -641,20 +641,19 @@ class RelionItOptions(object):
     #
     # Run Cryolo picking or autopicking
     autopick_do_cryolo = True
-    # Threshold for cryolo autopicking (higher the threshold the more *discriminative the cryolo picker) ((* But beware it may still not be picking what you want! ))
+    # Threshold for cryolo autopicking (higher the threshold the more *discriminative the cryolo picker)
+    # (* But beware it may still not be picking what you want! )
     cryolo_threshold = 0.3
     # Finetune the cryolo general model by selecting good classes from 2D classification
     cryolo_finetune = False
 
     # Location of the cryolo specific files
-    cryolo_config = "/dls_sw/apps/EM/crYOLO/cryo_phosaurus/config.json"
-    cryolo_gmodel = (
-        "/dls_sw/apps/EM/crYOLO/cryo_phosaurus_1_5/gmodel_phosnet_201912_N63.h5"
-    )
+    cryolo_config = ""
+    cryolo_gmodel = ""
 
     # Cluster options for cryolo
     cryolo_use_cluster = True
-    cryolo_qsub_file = "/dls_sw/apps/EM/relion_cryolo/CryoloRelion-master/qsub.sh"
+    cryolo_qsub_file = ""
 
     ### Extract parameters
     # Box size of particles in the averaged micrographs (in pixels) (Also used for cryolo boxsize)
@@ -677,7 +676,7 @@ class RelionItOptions(object):
     # Number of 2D classes to use
     class2d_nr_classes = 50
     # Diameter of the mask used for 2D/3D classification (in Angstrom)
-    mask_diameter = 250
+    mask_diameter = 190
     # Symmetry group (when using SGD for initial model generation, C1 may work best)
     symmetry = "C1"
     #
@@ -704,7 +703,7 @@ class RelionItOptions(object):
     # In the second pass, perform 3D classification?
     do_class3d_pass2 = False
     # Batch size in the second pass
-    batch_size_pass2 = 10000
+    batch_size_pass2 = 100000
 
     ###################################################################################
     ############ Often the parameters below can be kept the same for a given set-up
@@ -724,13 +723,13 @@ class RelionItOptions(object):
     # Use RELION's own implementation of motion-correction (CPU-only) instead of the UCSF implementation?
     motioncor_do_own = False
     # The number of threads (only for RELION's own implementation) is optimal when nr_movie_frames/nr_threads = integer
-    motioncor_threads = 6
+    motioncor_threads = 12
     # Exectutable of UCSF MotionCor2
-    motioncor_exe = "/dls_sw/apps/EM/MotionCor2/1.1.0/MotionCor2"
+    motioncor_exe = "/public/EM/MOTIONCOR2/MotionCor2"
     # On which GPU(s) to execute UCSF MotionCor2
-    motioncor_gpu = ""
+    motioncor_gpu = "0"
     # How many MPI processes to use for running motion correction?
-    motioncor_mpi = 5
+    motioncor_mpi = 1
     # Local motion-estimation patches for MotionCor2
     motioncor_patches_x = 5
     motioncor_patches_y = 5
@@ -745,10 +744,10 @@ class RelionItOptions(object):
     motioncor_gainrot = "No rotation (0)"
     # Other arguments for MotionCor2
     motioncor2_other_args = ""
-    # Other arguments for Motion Correction
-    motioncor_other_args = "--do_at_most 40"
+    # Additional arguments for RELION's Motion Correction wrapper
+    motioncor_other_args = ""
     # Submit motion correction job to the cluster?
-    motioncor_submit_to_queue = True
+    motioncor_submit_to_queue = False
 
     ### CTF estimation parameters
     # Amplitude contrast (Q0)
@@ -768,33 +767,33 @@ class RelionItOptions(object):
     # Also estimate phase shifts (for VPP data)
     ctffind_do_phaseshift = False
     # Executable to Kai Zhang's Gctf
-    gctf_exe = "/dls_sw/apps/EM/Gctf/1.18/Gctf"
+    gctf_exe = "/public/EM/Gctf/bin/Gctf"
     # On which GPU(s) to execute Gctf
-    gctf_gpu = ""
+    gctf_gpu = "0"
     # Use Alexis Rohou's CTFFIND4 (CPU-only) instead?
     use_ctffind_instead = False
     # Executable for Alexis Rohou's CTFFIND4
-    ctffind4_exe = "/dls_sw/apps/EM/ctffind/4.1.5-compat/ctffind"
+    ctffind4_exe = "/public/EM/ctffind/ctffind.exe"
     # How many MPI processes to use for running CTF estimation?
-    ctffind_mpi = 4
+    ctffind_mpi = 1
     # Submit CTF estimation job to the cluster?
-    ctffind_submit_to_queue = True
+    ctffind_submit_to_queue = False
 
     ### Autopick parameters
     # Use GPU-acceleration for autopicking?
     autopick_do_gpu = True
     # Which GPU(s) to use for autopicking
-    autopick_gpu = ""
+    autopick_gpu = "0"
     # Low-pass filter for auto-picking the micrographs
     autopick_lowpass = 20
     # Shrink factor for faster picking (0 = fastest; 1 = slowest)
     autopick_shrink_factor = 0
     # How many MPI processes to use for running auto-picking?
-    autopick_mpi = 4
+    autopick_mpi = 1
     # Additional arguments for autopicking
     autopick_other_args = ""
     # Submit Autopick job to the cluster?
-    autopick_submit_to_queue = True
+    autopick_submit_to_queue = False
     # Are the references CTF-corrected?
     autopick_refs_are_ctf_corrected = True
     # Do the references have inverted contrast wrt the micrographs?
@@ -816,9 +815,9 @@ class RelionItOptions(object):
     # Diameter for background normalisation (in pixels; negative value: default is 75% box size)
     extract_bg_diameter = -1
     # How many MPI processes to use for running particle extraction?
-    extract_mpi = 30
+    extract_mpi = 1
     # Submit Extract job to the cluster?
-    extract_submit_to_queue = True
+    extract_submit_to_queue = False
 
     ## Discard particles based on average/stddev values? (this may be important for SGD initial model generation)
     do_discard_on_image_statistics = False
@@ -837,21 +836,21 @@ class RelionItOptions(object):
     # Use GPU-acceleration?
     refine_do_gpu = True
     # Which GPU to use (different from GPU used for pre-processing?)
-    refine_gpu = ""
+    refine_gpu = "1"
     # How many MPI processes to use
-    refine_mpi = 5
+    refine_mpi = 1
     # How many threads to use
     refine_threads = 6
     # Skip padding?
     refine_skip_padding = False
     # Submit jobs to the cluster?
-    refine_submit_to_queue = True
+    refine_submit_to_queue = False
     # Use fast subsets in 2D/3D classification when batch_size is bigger than this
-    refine_batchsize_for_fast_subsets = 10000
+    refine_batchsize_for_fast_subsets = 100000
 
     ### 2D classification parameters
     # Wait with the first 2D classification batch until at least this many particles are extracted
-    minimum_batch_size = 250
+    minimum_batch_size = 1000
     # Number of iterations to perform in 2D classification
     class2d_nr_iter = 20
     # Rotational search step (in degrees)
@@ -923,7 +922,7 @@ class RelionItOptions(object):
     # Name of the command used to submit scripts to the queue
     queue_submit_command = "qsub"
     # The template for your standard queue job submission script
-    queue_submission_template = "/dls_sw/apps/EM/relion/qsub_template_hamilton"
+    queue_submission_template = "/public/EM/RELION/relion/bin/qsub.csh"
     # Minimum number of dedicated cores that need to be requested on each node
     queue_minimum_dedicated = 1
 
