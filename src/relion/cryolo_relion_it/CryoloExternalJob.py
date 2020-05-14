@@ -22,6 +22,10 @@ import gemmi
 from relion_yolo_it import CorrectPath
 
 
+RELION_JOB_FAILURE_FILENAME = "RELION_JOB_EXIT_FAILURE"
+RELION_JOB_SUCCESS_FILENAME = "RELION_JOB_EXIT_SUCCESS"
+
+
 def run_job(project_dir, job_dir, args_list):
     parser = argparse.ArgumentParser()
     parser.add_argument("--in_mics", help="Input micrographs STAR file")
@@ -149,13 +153,19 @@ def main():
     project_dir = os.getcwd()
     os.makedirs(known_args.out_dir, exist_ok=True)
     os.chdir(known_args.out_dir)
+    if os.path.isfile(RELION_JOB_FAILURE_FILENAME):
+        print(" CryoloExternalJob: Removing previous failure indicator file")
+        os.remove(RELION_JOB_FAILURE_FILENAME)
+    if os.path.isfile(RELION_JOB_SUCCESS_FILENAME):
+        print(" CryoloExternalJob: Removing previous success indicator file")
+        os.remove(RELION_JOB_SUCCESS_FILENAME)
     try:
         run_job(project_dir, known_args.out_dir, other_args)
     except:
-        open("RELION_JOB_EXIT_FAILURE", "w").close()
+        open(RELION_JOB_FAILURE_FILENAME, "w").close()
         raise
     else:
-        open("RELION_JOB_EXIT_SUCCESS", "w").close()
+        open(RELION_JOB_SUCCESS_FILENAME, "w").close()
 
 
 if __name__ == "__main__":
