@@ -125,7 +125,7 @@ def run_job(project_dir, job_dir, args_list):
                 os.path.join(project_dir, job_dir, "gen_pick", "STAR", picked),
                 os.path.join(project_dir, job_dir, "picked_stars", new_name),
             )
-        except:
+        except FileExistsError:
             pass
 
     # Writing a star file for Relion
