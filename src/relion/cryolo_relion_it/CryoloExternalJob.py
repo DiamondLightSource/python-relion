@@ -12,14 +12,13 @@ CryoloExternalJob.py --o "External/crYOLO_AutoPick" --in_mics "CtfFind/job004/mi
 
 import argparse
 import json
+import pathlib
 import os
 import os.path
 import shutil
 import time
 
 import gemmi
-
-from relion_yolo_it import CorrectPath
 
 
 RELION_JOB_FAILURE_FILENAME = "RELION_JOB_EXIT_FAILURE"
@@ -142,7 +141,28 @@ def run_job(project_dir, job_dir, args_list):
     loop.add_row([os.path.join(job_dir, "_manualpick.star"), "2"])
     out_doc.write_file("RELION_OUTPUT_NODES.star")
     ctf_star = os.path.join(project_dir, args.in_mics)
-    CorrectPath.correct(ctf_star)
+    correct_paths(ctf_star)
+
+
+def correct_paths(ctf_star):
+    in_doc = gemmi.cif.read_file(ctf_star)
+    data_as_dict = json.loads(in_doc.as_json())["#"]
+
+    for i in range(len(data_as_dict["_rlnctfimage"])):
+        name = data_as_dict["_rlnctfimage"][i]
+        dirs, ctf_file = os.path.split(name)
+        full_dir = ""
+        for d in dirs.split("/")[2:]:
+            full_dir = os.path.join(full_dir, d)
+        pathlib.Path(full_dir).mkdir(parents=True, exist_ok=True)
+        picked_star = os.path.splitext(ctf_file)[0] + "_manualpick.star"
+        try:
+            shutil.move(
+                os.path.join("picked_stars", picked_star),
+                os.path.join(full_dir, picked_star),
+            )
+        except FileNotFoundError:
+            print(f"cryolo found no particles in {picked_star}")
 
 
 def main():
