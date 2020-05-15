@@ -2463,6 +2463,7 @@ def run_pipeline(opts):
             #### CRYOLO INSERT BEGIN ####
             else:
                 done_fine_tune = False
+                # Call cryolo pipeline once in this process with num_repeats = 1 to set up jobs
                 split_job, manpick_job = CryoloPipeline.RunJobsCry(
                     1,
                     runjobs,
@@ -2473,16 +2474,16 @@ def run_pipeline(opts):
                     queue_options,
                     "None",
                 )
-                # Running cryolo pipeline as a background process so that Relion_it script can carry on to Class2D etc.
-                num_repeats = "{}".format(opts.preprocess_repeat_times)
-                cry_exec = os.path.abspath(
+                # Now run cryolo pipeline as a background process so that this script can carry on to Class2D etc.
+                # Write the current options to a single file for the cryolo pipeline to use
+                with open(CryoloPipeline.CRYOLO_PIPELINE_OPTIONS_FILE, "w") as optfile:
+                    opts.print_options(optfile)
+                cryolo_pipeline_script = os.path.abspath(
                     CryoloPipeline.__file__
                 )  # Need to find absolute paths to CryoloPipeline file to run with subprocess
                 subprocess.Popen(
                     [
-                        cry_exec,
-                        "--num_repeats",
-                        num_repeats,
+                        cryolo_pipeline_script,
                         "--runjobs",
                         "{}".format(runjobs),
                         "--motioncorr_job",
@@ -2491,10 +2492,6 @@ def run_pipeline(opts):
                         ctffind_job,
                         "--ipass",
                         "{}".format(ipass),
-                        "--user_opt_file",
-                        "{}".format(option_files),
-                        "--gui",
-                        "{}".format(gui),
                         "--manpick_job",
                         manpick_job,
                     ]
@@ -3313,23 +3310,18 @@ def main():
         args.extra_options.append(OPTIONS_FILE)
 
     opts = RelionItOptions()
-    global option_files
-    option_files = args.extra_options
     for user_opt_file in args.extra_options:
         print(" RELION_IT: reading options from {}".format(user_opt_file))
         user_opts = runpy.run_path(user_opt_file)
         opts.update_from(user_opts)
 
-    global gui
     if args.gui:
-        gui = 1
         print(" RELION_IT: launching GUI...")
         tk_root = tk.Tk()
         tk_root.title("relion_it.py setup")
         RelionItGui(tk_root, opts)
         tk_root.mainloop()
     else:
-        gui = 0
         run_pipeline(opts)
 
 

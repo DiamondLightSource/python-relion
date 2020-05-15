@@ -17,40 +17,29 @@ import cryolo_relion_it
 import CryoloExternalJob
 
 
+CRYOLO_PIPELINE_OPTIONS_FILE = "cryolo_pipeline_options.py"
 CRYOLO_PICK_JOB_DIR = "External/crYOLO_AutoPick"
 CRYOLO_FINETUNE_JOB_DIR = "External/crYOLO_FineTune"
 
 
 def main():
     # When this script is run in the background a few arguments and options need to be parsed
-    OPTIONS_FILE = "relion_it_options.py"
     opts = cryolo_relion_it.RelionItOptions()
+    opts_dict = runpy.run_path(CRYOLO_PIPELINE_OPTIONS_FILE)
+    opts.update_from(opts_dict)
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--num_repeats")
     parser.add_argument("--runjobs")
     parser.add_argument("--motioncorr_job")
     parser.add_argument("--ctffind_job")
     parser.add_argument("--ipass")
-    parser.add_argument("--user_opt_files")
-    parser.add_argument("--gui")
     parser.add_argument("--manpick_job")
     args = parser.parse_args()
-    num_repeats = int(args.num_repeats)
     runjobs = ast.literal_eval(args.runjobs)
     motioncorr_job = args.motioncorr_job
     ctffind_job = args.ctffind_job
     ipass = int(args.ipass)
-    gui = int(args.gui)
     manpick_job = args.manpick_job
-
-    option_files = ast.literal_eval(args.user_opt_files)
-    if gui == 1:
-        option_files.append(OPTIONS_FILE)
-
-    for user_opt_file in option_files:
-        user_opts = runpy.run_path(user_opt_file)
-        opts.update_from(user_opts)
 
     queue_options = [
         "Submit to queue? == Yes",
@@ -61,7 +50,7 @@ def main():
     ]
 
     RunJobsCry(
-        num_repeats,
+        opts.preprocess_repeat_times,
         runjobs,
         motioncorr_job,
         ctffind_job,
