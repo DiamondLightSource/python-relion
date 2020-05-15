@@ -51,7 +51,7 @@ def run_job(project_dir, job_dir, args_list):
         if os.path.exists(os.path.join(project_dir, args.in_model)):
             model = os.path.join(project_dir, args.in_model)
         else:
-            print(" RELION_IT: Cannot find fine tuned model")
+            print(" CryoloExternalJob: Cannot find fine tuned model")
 
     # Making a cryolo config file with the correct box size
     with open(conf_file, "r") as json_file:
@@ -95,7 +95,7 @@ def run_job(project_dir, job_dir, args_list):
                 ),
             )
 
-    print(" RELION_IT: Running from model {}".format(model))
+    print(" CryoloExternalJob: Running from model {}".format(model))
 
     if use_cluster:
         os.system(
@@ -161,7 +161,7 @@ def correct_paths(ctf_star):
                 os.path.join(full_dir, picked_star),
             )
         except FileNotFoundError:
-            print(f"cryolo found no particles in {picked_star}")
+            print(f" CryoloExternalJob: cryolo found no particles in {picked_star}")
 
 
 def main():

@@ -120,7 +120,7 @@ def run_job(project_dir, job_dir, args_list):
     out_doc.write_file("RELION_OUTPUT_NODES.star")
     with open("DONE", "w"):
         pass
-    print(" crYOLO Finished Fine-Tuning")
+    print(" CryoloFineTuneJob: crYOLO Finished Fine-Tuning")
 
 
 def main():
