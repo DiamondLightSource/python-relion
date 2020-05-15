@@ -321,9 +321,9 @@ these options can be changed in a number of ways:
   simple options. These are then used to calculate appropriate values for the complete set of options. (See "Using the
   GUI" below for more information on this.)
 
-- For more control, options can be put into one or more Python files (with a simple "option_name = value" format or
-  with more complicated calculations - see "Options files" below for more information). The names of these options
-  files can passed as command line arguments to relion_it.py.
+- For more control, options can be put into one or more Python files with a simple "option_name = value" format (see
+  "Options files" below for more information). The names of these options files can passed as command line arguments
+  to relion_it.py.
 
 - For maximum control, you can make your own copy of this script and change the option values and the code itself
   however you want.
@@ -352,10 +352,10 @@ angpix = 1.06
 
 This would override the default pixel size value, but leave all other options at their defaults.
 
-The options files are read and interpreted as Python scripts. A simple list of "option_name = value" lines is all
-that is needed, though you can also use any Python commands you like to do more complex calculations. To generate
-an example file containing all of the options, run "relion_it.py --gui" and then click the "Save options" button,
-which will save all the current options to a file called `relion_it_options.py' in the working directory.
+The entries in options files are read and interpreted as pairs in "key = value" format, where the values can be any
+Python literals. To generate an example file containing all of the options, run "relion_it.py --gui" and then click
+the "Save options" button, which will save all the current options to a file called `relion_it_options.py' in the
+working directory.
 
 The options are named descriptively so you can probably understand what most of them do quite easily. For more help on
 any particular option, look at the comment above its definition in this script, or search the script's code to see
@@ -538,11 +538,11 @@ important logic is in the `run_pipeline()' function so that's a good place to st
 """
 
 import argparse
+import ast
 import glob
 import inspect
 import math
 import os
-import runpy
 import time
 import traceback
 import sys
@@ -934,13 +934,30 @@ class RelionItOptions(object):
     ############ typically no need to change anything below this line
     #######################################################################
 
+    def update_from_file(self, opts_file):
+        """
+        Update this RelionItOptions object from a file containing options
+        as key = value pairs.
+        """
+        print(" RELION_IT: reading options from {}".format(opts_file))
+        other_opts = {}
+        with open(opts_file) as opt_fd:
+            for line in opt_fd:
+                if line.strip().startswith("#"):
+                    continue
+                if "=" in line:
+                    key, value = line.split("=", 1)
+                    other_opts[key.strip()] = ast.literal_eval(value.strip())
+        self.update_from(other_opts)
+
     def update_from(self, other):
         """
         Update this RelionItOptions object from a dictionary.
 
         Special values (with names like '__xxx__') are removed, allowing this
         method to be given a dictionary containing the namespace from a script
-        run with ``runpy``.
+        run with ``runpy`` (though beware: using runpy could be a serious
+        security risk if any of the script contents are provided by users).
         """
         while len(other) > 0:
             key, value = other.popitem()
@@ -3314,9 +3331,7 @@ def main():
 
     opts = RelionItOptions()
     for user_opt_file in args.extra_options:
-        print(" RELION_IT: reading options from {}".format(user_opt_file))
-        user_opts = runpy.run_path(user_opt_file)
-        opts.update_from(user_opts)
+        opts.update_from_file(user_opt_file)
 
     if args.gui:
         print(" RELION_IT: launching GUI...")

@@ -9,7 +9,6 @@ import time
 import argparse
 import ast
 import sys
-import runpy
 import subprocess
 import shutil
 
@@ -25,8 +24,7 @@ CRYOLO_FINETUNE_JOB_DIR = "External/crYOLO_FineTune"
 def main():
     # When this script is run in the background a few arguments and options need to be parsed
     opts = cryolo_relion_it.RelionItOptions()
-    opts_dict = runpy.run_path(CRYOLO_PIPELINE_OPTIONS_FILE)
-    opts.update_from(opts_dict)
+    opts.update_from_file(CRYOLO_PIPELINE_OPTIONS_FILE)
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--runjobs")
