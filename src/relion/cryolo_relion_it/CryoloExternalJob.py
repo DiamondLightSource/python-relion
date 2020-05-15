@@ -45,13 +45,14 @@ def run_job(project_dir, job_dir, args_list):
     conf_file = args.config
     use_cluster = args.cluster
 
-    if args.in_model is None:
-        model = gen_model
-    else:
-        if os.path.exists(os.path.join(project_dir, args.in_model)):
-            model = os.path.join(project_dir, args.in_model)
+    # Use general model by default if in_model not given or doesn't exist
+    model = gen_model
+    if args.in_model is not None:
+        model_path = os.path.join(project_dir, args.in_model)
+        if os.path.isfile(model_path):
+            model = model_path
         else:
-            print(" CryoloExternalJob: Cannot find fine tuned model")
+            print(f" CryoloExternalJob: Cannot find fine tuned model {model_path}")
 
     # Making a cryolo config file with the correct box size
     with open(conf_file, "r") as json_file:
