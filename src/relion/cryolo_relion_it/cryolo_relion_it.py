@@ -2820,50 +2820,37 @@ def run_pipeline(opts):
                                     ):
                                         # Enough to fine tune
                                         print("Enough micrographs to retrain!")
-                                        cryolo_fineoptions = [
-                                            "--in_parts {}".format(
-                                                fine_particles_star_file
-                                            ),
-                                            "--o {}".format(
-                                                CryoloPipeline.CRYOLO_FINETUNE_JOB_DIR
-                                            ),
-                                            "--box_size {}".format(
-                                                opts.extract_boxsize
-                                            ),
-                                            "--qsub {}".format(opts.cryolo_qsub_file),
-                                            "--gmodel {}".format(opts.cryolo_gmodel),
-                                            "--config {}".format(opts.cryolo_config),
-                                            "--cluster {}".format(
-                                                opts.cryolo_use_cluster
-                                            ),
-                                        ]
-                                        option_string = ""
-                                        for cry_option in cryolo_fineoptions:
-                                            option_string += cry_option
-                                            option_string += " "
-                                        command = (
-                                            "CryoloFineTuneJob.py" + " " + option_string
-                                        )
-                                        print(" RELION_IT: RUNNING {}".format(command))
-
-                                        # Run in background so relion_it can carry on processing new data. Training can take a while...
                                         relion_pipeline_home = os.path.abspath(
                                             os.path.dirname(CryoloPipeline.__file__)
                                         )
                                         external_path = os.path.join(
                                             relion_pipeline_home, "CryoloFineTuneJob.py"
                                         )
-                                        subprocess.Popen(
-                                            [
-                                                external_path,
-                                                "--in_parts",
-                                                fine_particles_star_file,
-                                                "--o",
-                                                CryoloPipeline.CRYOLO_FINETUNE_JOB_DIR,
-                                                "--box_size",
-                                                "{}".format(opts.extract_boxsize),
-                                            ]
+                                        cryolo_fine_cmd = [
+                                            external_path,
+                                            "--in_parts",
+                                            fine_particles_star_file,
+                                            "--o",
+                                            CryoloPipeline.CRYOLO_FINETUNE_JOB_DIR,
+                                            "--box_size",
+                                            str(opts.extract_boxsize),
+                                            "--qsub {}".format(opts.cryolo_qsub_file),
+                                            "--gmodel",
+                                            str(opts.cryolo_gmodel),
+                                            "--config",
+                                            str(opts.cryolo_config),
+                                            "--cluster {}".format(
+                                                opts.cryolo_use_cluster
+                                            ),
+                                        ]
+
+                                        # Run in background so relion_it can carry on processing new data. Training can take a while...
+                                        print(
+                                            " RELION_IT: RUNNING {}".format(
+                                                " ".join(cryolo_fine_cmd)
+                                            )
                                         )
+                                        subprocess.Popen(cryolo_fine_cmd)
 
                                 ### END CRYOLO FINE ###
 
