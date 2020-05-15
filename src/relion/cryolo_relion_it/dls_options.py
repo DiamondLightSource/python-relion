@@ -20,7 +20,8 @@ cryolo_finetune = False
 cryolo_config = "/dls_sw/apps/EM/crYOLO/phosaurus_models/config.json"
 cryolo_gmodel = "/dls_sw/apps/EM/crYOLO/phosaurus_models/gmodel_phosnet_202002_N63.h5"
 
-# Cluster options for cryolo
+# Running options for cryolo
+cryolo_pick_gpus = "0 1 2 3"
 cryolo_submit_to_queue = True
 cryolo_queue_submission_template = "/dls_sw/apps/EM/crYOLO/qsub_cryolo_template_rh7"
 

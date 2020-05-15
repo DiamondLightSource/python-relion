@@ -35,11 +35,13 @@ def run_job(project_dir, job_dir, args_list):
     parser.add_argument("--in_model", help="model from previous job")
     parser.add_argument("--gmodel", help="cryolo general model")
     parser.add_argument("--config", help="cryolo config")
+    parser.add_argument("--gpu", help='GPUs to use (e.g. "0 1 2 3")')
     args = parser.parse_args(args_list)
     thresh = args.threshold
     box_size = args.box_size
     gen_model = args.gmodel
     conf_file = args.config
+    gpus = args.gpu
 
     # Use general model by default if in_model not given or doesn't exist
     model = gen_model
@@ -95,7 +97,7 @@ def run_job(project_dir, job_dir, args_list):
     print(" CryoloExternalJob: Running from model {}".format(model))
 
     os.system(
-        f"cryolo_predict.py --conf config.json -i {os.path.join(project_dir, job_dir, 'cryolo_input')} -o {os.path.join(project_dir, job_dir, 'gen_pick')} --weights {model} --gpu 0 --threshold {thresh}"
+        f"cryolo_predict.py --conf config.json -i {os.path.join(project_dir, job_dir, 'cryolo_input')} -o {os.path.join(project_dir, job_dir, 'gen_pick')} --weights {model} --gpu {gpus} --threshold {thresh}"
     )
 
     os.makedirs("picked_stars", exist_ok=True)

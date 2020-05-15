@@ -644,14 +644,16 @@ class RelionItOptions(object):
     # Threshold for cryolo autopicking (higher the threshold the more *discriminative the cryolo picker)
     # (* But beware it may still not be picking what you want! )
     cryolo_threshold = 0.3
-    # Finetune the cryolo general model by selecting good classes from 2D classification
+    # Finetune the cryolo general model by manually selecting good classes from 2D classification
     cryolo_finetune = False
 
     # Location of the cryolo specific files
     cryolo_config = ""
     cryolo_gmodel = ""
 
-    # Cluster options for cryolo
+    # Running options for cryolo
+    # Which GPUs to use for cryolo autopicking? ID numbers separated by spaces, e.g. "0" or "0 1 2 3". (Not used for fine tuning jobs, which just use GPU 0)
+    cryolo_pick_gpus = "0"
     cryolo_submit_to_queue = False
     cryolo_queue_submission_template = ""
 

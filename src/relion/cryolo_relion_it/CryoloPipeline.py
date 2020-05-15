@@ -116,6 +116,8 @@ def RunJobsCry(
             str(opts.cryolo_gmodel),
             "--config",
             str(opts.cryolo_config),
+            "--gpu",
+            f'"{opts.cryolo_pick_gpus}"',
         ]
 
         if os.path.isfile(
