@@ -81,9 +81,11 @@ def RunJobsCry(
     PREPROCESS_SCHEDULE_PASS2 = "PREPROCESS_PASS2"
 
     for i in range(0, num_repeats):
-        if not os.path.isfile("RUNNING_RELION_IT"):
-            print("Exiting cryolo pipeline")
-            exit
+        if not os.path.isfile(RUNNING_FILE):
+            print(
+                f" cryolo_pipeline: {RUNNING_FILE} file no longer exists, exiting now ..."
+            )
+            exit(0)
         preprocess_schedule_name = "BEFORE_CRYOLO"
         # Running jobs up until picking
         cryolo_relion_it.RunJobs(runjobs, 1, 1, preprocess_schedule_name)
@@ -120,9 +122,11 @@ def RunJobsCry(
             CRYOLO_PICK_JOB_DIR, cryolo_command, opts, wait_for_completion=True
         )
 
-        if not os.path.isfile("RUNNING_RELION_IT"):
-            print("Exiting cryolo pipeline")
-            exit
+        if not os.path.isfile(RUNNING_FILE):
+            print(
+                f" cryolo_pipeline: {RUNNING_FILE} file no longer exists, exiting now ..."
+            )
+            exit(0)
 
         #### Set up manual pick job
         if num_repeats == 1:
