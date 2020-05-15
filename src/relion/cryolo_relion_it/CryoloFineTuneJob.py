@@ -118,8 +118,6 @@ def run_job(project_dir, job_dir, args_list):
     )
     loop.add_row([os.path.join(job_dir, "_manualpick.star"), "2"])
     out_doc.write_file("RELION_OUTPUT_NODES.star")
-    with open("DONE", "w"):
-        pass
     print(" CryoloFineTuneJob: crYOLO Finished Fine-Tuning")
 
 
