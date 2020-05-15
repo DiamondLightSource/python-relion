@@ -129,9 +129,7 @@ def RunJobsCry(
             # In order to visualise cry picked particles
             manpick_options = [
                 "Input micrographs: == {}micrographs_ctf.star".format(ctffind_job),
-                "Particle diameter (A): == {}".format(
-                    opts.extract_boxsize / opts.motioncor_binning
-                ),
+                "Particle diameter (A): == {}".format(opts.autopick_LoG_diam_min),
             ]
             manualpick_job_name = "cryolo_picks"
             manualpick_alias = "cryolo_picks"
