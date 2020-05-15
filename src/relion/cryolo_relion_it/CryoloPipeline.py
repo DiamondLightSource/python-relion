@@ -102,28 +102,34 @@ def RunJobsCry(
         cryolo_relion_it.RunJobs(runjobs, 1, 1, preprocess_schedule_name)
         cryolo_relion_it.WaitForJob(motioncorr_job, 15)
         cryolo_relion_it.WaitForJob(ctffind_job, 15)
-        cryolo_options = [
-            "--in_mics {}".format(os.path.join(ctffind_job + "micrographs_ctf.star")),
-            "--o {}".format(CRYOLO_PICK_JOB_DIR),
-            "--box_size {}".format(int(opts.extract_boxsize / opts.motioncor_binning)),
-            "--threshold {}".format(opts.cryolo_threshold),
-            "--qsub {}".format(opts.cryolo_qsub_file),
-            "--gmodel {}".format(opts.cryolo_gmodel),
-            "--config {}".format(opts.cryolo_config),
-            "--cluster {}".format(opts.cryolo_use_cluster),
+        cryolo_command = [
+            CryoloExternalJob.__file__,
+            "--in_mics",
+            os.path.join(ctffind_job, "micrographs_ctf.star"),
+            "--o",
+            CRYOLO_PICK_JOB_DIR,
+            "--box_size",
+            str(int(opts.extract_boxsize / opts.motioncor_binning)),
+            "--threshold",
+            str(opts.cryolo_threshold),
+            "--gmodel",
+            str(opts.cryolo_gmodel),
+            "--config",
+            str(opts.cryolo_config),
         ]
 
-        option_string = ""
-        for cry_option in cryolo_options:
-            option_string += cry_option
-            option_string += " "
-        if os.path.isfile(f"{CRYOLO_FINETUNE_JOB_DIR}/RELION_JOB_EXIT_SUCCESS"):
-            option_string += f"--in_model '{CRYOLO_FINETUNE_JOB_DIR}/model.h5'"
+        if os.path.isfile(
+            os.path.join(
+                CRYOLO_FINETUNE_JOB_DIR, CryoloExternalJob.RELION_JOB_SUCCESS_FILENAME
+            )
+        ):
+            cryolo_command.extend(
+                ["--in_model", os.path.join(CRYOLO_FINETUNE_JOB_DIR, "model.h5")]
+            )
 
-        external_path = CryoloExternalJob.__file__
-        command = external_path + " " + option_string
-        print(" RELION_IT: RUNNING {}".format(command))
-        os.system(command)
+        run_cryolo_job(
+            CRYOLO_PICK_JOB_DIR, cryolo_command, opts, wait_for_completion=True
+        )
 
         if not os.path.isfile("RUNNING_RELION_IT"):
             print("Exiting cryolo pipeline")
@@ -259,6 +265,46 @@ def RunJobsCry(
             cryolo_relion_it.RunJobs(secondjobs, 1, 1, preprocess_schedule_name)
     if num_repeats == 1:
         return split_job, manpick_job
+
+
+def run_cryolo_job(job_dir, command_list, pipeline_opts, wait_for_completion=True):
+    """Run a cryolo job (submitting to the queue if requested) and optionally wait for completion"""
+    success_file = os.path.join(job_dir, CryoloExternalJob.RELION_JOB_SUCCESS_FILENAME)
+    failure_file = os.path.join(job_dir, CryoloExternalJob.RELION_JOB_FAILURE_FILENAME)
+    if os.path.isfile(failure_file):
+        print(f" CryoloPipeline: Removing previous job failure file {failure_file}")
+        os.remove(failure_file)
+    if os.path.isfile(success_file):
+        print(f" CryoloPipeline: Removing previous job success file {success_file}")
+        os.remove(success_file)
+
+    if pipeline_opts.cryolo_submit_to_queue:
+        submit_command = [
+            pipeline_opts.queue_submit_command,
+            pipeline_opts.cryolo_queue_submission_template,
+        ]
+        submit_command.extend(command_list)
+        print(
+            " CryoloPipeline: running cryolo command: {}".format(
+                " ".join(submit_command)
+            )
+        )
+        subprocess.Popen(submit_command)
+    else:
+        print(
+            " CryoloPipeline: running cryolo command: {}".format(" ".join(command_list))
+        )
+        subprocess.Popen(command_list)
+
+    if wait_for_completion:
+        count = 0
+        while not (os.path.isfile(failure_file) or os.path.isfile(success_file)):
+            count += 1
+            if count % 6 == 0:
+                print(
+                    " CryoloPipeline: Still waiting for cryolo job to finish after {count * 10} seconds"
+                )
+            time.sleep(10)
 
 
 if __name__ == "__main__":

@@ -652,8 +652,8 @@ class RelionItOptions(object):
     cryolo_gmodel = ""
 
     # Cluster options for cryolo
-    cryolo_use_cluster = True
-    cryolo_qsub_file = ""
+    cryolo_submit_to_queue = False
+    cryolo_queue_submission_template = ""
 
     ### Extract parameters
     # Box size of particles in the averaged micrographs (in pixels) (Also used for cryolo boxsize)
@@ -2784,10 +2784,9 @@ def run_pipeline(opts):
                                     and not done_fine_tune
                                 ):
                                     done_fine_tune = True
-                                    # ! TODO get selection from subselect 2D class
                                     subset_fine_options = [
-                                        "Select classes from model.star: == {}run_it020_model.star".format(
-                                            class2d_job
+                                        "Select classes from model.star: == {}run_it{:03d}_model.star".format(
+                                            class2d_job, opts.class2d_nr_iter
                                         )
                                     ]
                                     subset_fine_name = "subset_fine_job"
@@ -2834,23 +2833,20 @@ def run_pipeline(opts):
                                             CryoloPipeline.CRYOLO_FINETUNE_JOB_DIR,
                                             "--box_size",
                                             str(opts.extract_boxsize),
-                                            "--qsub {}".format(opts.cryolo_qsub_file),
                                             "--gmodel",
                                             str(opts.cryolo_gmodel),
                                             "--config",
                                             str(opts.cryolo_config),
-                                            "--cluster {}".format(
-                                                opts.cryolo_use_cluster
-                                            ),
                                         ]
 
                                         # Run in background so relion_it can carry on processing new data. Training can take a while...
-                                        print(
-                                            " RELION_IT: RUNNING {}".format(
-                                                " ".join(cryolo_fine_cmd)
-                                            )
+                                        # TODO: fix this so it allows this script to continue, but waits for the Select job to be done before starting cryolo to avoid clogging a cluster node while waiting for user input
+                                        CryoloPipeline.run_cryolo_job(
+                                            CryoloPipeline.CRYOLO_FINETUNE_JOB_DIR,
+                                            cryolo_fine_cmd,
+                                            opts,
+                                            wait_for_completion=False,
                                         )
-                                        subprocess.Popen(cryolo_fine_cmd)
 
                                 ### END CRYOLO FINE ###
 

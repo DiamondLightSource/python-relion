@@ -26,16 +26,12 @@ def run_job(project_dir, job_dir, args_list):
         "--j", dest="threads", help="Number of threads to run (ignored)"
     )
     parser.add_argument("--box_size", help="Size of box (~ particle size)")
-    parser.add_argument("--qsub", help="cryolo submit script")
     parser.add_argument("--gmodel", help="cryolo general model")
     parser.add_argument("--config", help="cryolo config")
-    parser.add_argument("--cluster", help="cryolo use cluster?")
     args = parser.parse_args(args_list)
     box_size = args.box_size
-    qsub_file = args.qsub
     weights = args.gmodel
     conf_file = args.config
-    use_cluster = args.cluster
 
     # Making a cryolo config file with the correct box size and model location
     with open(conf_file, "r") as json_file:
@@ -46,10 +42,21 @@ def run_job(project_dir, job_dir, args_list):
         json.dump(data, outfile)
 
     # Reading particle star file from relion
-    while not os.path.exists(os.path.join(project_dir, args.in_parts)):
-        # TODO: avoid infinite loop here if file name is wrong
-        time.sleep(1)
-    in_doc = gemmi.cif.read_file(os.path.join(project_dir, args.in_parts))
+    count = 0
+    particle_file = os.path.join(project_dir, args.in_parts)
+    while not os.path.exists(particle_file):
+        count += 1
+        if count > 60:
+            print(
+                f" CryoloFineTuneJob: giving up after waiting for over {count * 10} seconds for particle file {particle_file} to appear"
+            )
+            raise AssertionError("Timeout waiting for input file")
+        if count % 6 == 0:
+            print(
+                f" CryoloFineTuneJob: still waiting for particle file {particle_file} to appear after {count * 10} seconds"
+            )
+        time.sleep(10)
+    in_doc = gemmi.cif.read_file(particle_file)
     data_as_dict = json.loads(in_doc.as_json())["#"]
 
     try:
@@ -97,14 +104,7 @@ def run_job(project_dir, job_dir, args_list):
         individual_files.close()
 
     # Running cryolo
-    if use_cluster:
-        os.system(f"{qsub_file} cryolo_train.py -c config.json -w 0 -g 0 --fine_tune")
-        while not os.path.exists(".cry_done"):
-            # TODO: avoid infinite loop here if job fails
-            time.sleep(1)
-        os.remove(".cry_done")
-    else:
-        os.system(f"cryolo_train.py -c config.json -w 0 -g 0 --fine_tune")
+    os.system("cryolo_train.py --conf config.json --warmup 0 --gpu 0 --fine_tune")
 
     # Writing a star file (This one is meaningless for now)
     with open("_manualpick.star", "w") as part_doc:

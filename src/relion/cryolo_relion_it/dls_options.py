@@ -21,10 +21,8 @@ cryolo_config = "/dls_sw/apps/EM/crYOLO/phosaurus_models/config.json"
 cryolo_gmodel = "/dls_sw/apps/EM/crYOLO/phosaurus_models/gmodel_phosnet_202002_N63.h5"
 
 # Cluster options for cryolo
-cryolo_use_cluster = True
-cryolo_qsub_file = (
-    "/dls_sw/apps/EM/relion_cryolo/python-relion-yolo-it/relion_yolo_it/qsub.sh"
-)
+cryolo_submit_to_queue = True
+cryolo_queue_submission_template = "/dls_sw/apps/EM/crYOLO/qsub_cryolo_template_rh7"
 
 do_second_pass = False
 
