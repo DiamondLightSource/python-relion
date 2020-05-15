@@ -7,7 +7,7 @@ in_model is the model to be used, empty will use general model!
 Run in main Relion project directory
 external_cryolo.py --o $PATH_WHERE_TO_STORE --in_mics $PATH_TO_MCORR/CTF_STARFILE --box_size $BOX_SIZE --threshold 0.3 (optional: --in_model $PATH_TO_MODEL)
 eg:
-CryoloExternalJob.py --o "External/crYOLO_AutoPick" --in_mics "CtfFind/job004/micrographs_ctf.star" --box_size 300 --threshold 0.3
+cryolo_external_job.py --o "External/crYOLO_AutoPick" --in_mics "CtfFind/job004/micrographs_ctf.star" --box_size 300 --threshold 0.3
 """
 
 import argparse
@@ -50,7 +50,7 @@ def run_job(project_dir, job_dir, args_list):
         if os.path.isfile(model_path):
             model = model_path
         else:
-            print(f" CryoloExternalJob: Cannot find fine tuned model {model_path}")
+            print(f" cryolo_external_job: Cannot find fine tuned model {model_path}")
 
     # Making a cryolo config file with the correct box size
     with open(conf_file, "r") as json_file:
@@ -94,7 +94,7 @@ def run_job(project_dir, job_dir, args_list):
                 ),
             )
 
-    print(" CryoloExternalJob: Running from model {}".format(model))
+    print(" cryolo_external_job: Running from model {}".format(model))
 
     os.system(
         f"cryolo_predict.py --conf config.json -i {os.path.join(project_dir, job_dir, 'cryolo_input')} -o {os.path.join(project_dir, job_dir, 'gen_pick')} --weights {model} --gpu {gpus} --threshold {thresh}"
@@ -148,7 +148,7 @@ def correct_paths(ctf_star):
                 os.path.join(full_dir, picked_star),
             )
         except FileNotFoundError:
-            print(f" CryoloExternalJob: cryolo found no particles in {picked_star}")
+            print(f" cryolo_external_job: cryolo found no particles in {picked_star}")
 
 
 def main():
@@ -160,10 +160,10 @@ def main():
     os.makedirs(known_args.out_dir, exist_ok=True)
     os.chdir(known_args.out_dir)
     if os.path.isfile(RELION_JOB_FAILURE_FILENAME):
-        print(" CryoloExternalJob: Removing previous failure indicator file")
+        print(" cryolo_external_job: Removing previous failure indicator file")
         os.remove(RELION_JOB_FAILURE_FILENAME)
     if os.path.isfile(RELION_JOB_SUCCESS_FILENAME):
-        print(" CryoloExternalJob: Removing previous success indicator file")
+        print(" cryolo_external_job: Removing previous success indicator file")
         os.remove(RELION_JOB_SUCCESS_FILENAME)
     try:
         run_job(project_dir, known_args.out_dir, other_args)

@@ -29,9 +29,9 @@ setup(
     packages=find_packages(),
     scripts=[
         "relion_yolo_it/cryolo_relion_it.py",
-        "relion_yolo_it/CryoloPipeline.py",
-        "relion_yolo_it/CryoloExternalJob.py",
-        "relion_yolo_it/CryoloFineTuneJob.py",
+        "relion_yolo_it/cryolo_pipeline.py",
+        "relion_yolo_it/cryolo_external_job.py",
+        "relion_yolo_it/cryolo_fine_tune_job.py",
     ],
     python_requires="==3.6.8",
     setup_requires=setup_requirements,

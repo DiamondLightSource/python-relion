@@ -2,7 +2,7 @@
 """
 External job for calling cryolo fine tune within Relion 3.0
 in_parts is from a subset selection job.
-CryoloFineTuneJob.py --o 'External/crYOLO_FineTune' --in_parts 'Select/job005/particles.star' --box_size 300
+cryolo_fine_tune_job.py --o 'External/crYOLO_FineTune' --in_parts 'Select/job005/particles.star' --box_size 300
 """
 
 import argparse
@@ -48,12 +48,12 @@ def run_job(project_dir, job_dir, args_list):
         count += 1
         if count > 60:
             print(
-                f" CryoloFineTuneJob: giving up after waiting for over {count * 10} seconds for particle file {particle_file} to appear"
+                f" cryolo_fine_tune_job: giving up after waiting for over {count * 10} seconds for particle file {particle_file} to appear"
             )
             raise AssertionError("Timeout waiting for input file")
         if count % 6 == 0:
             print(
-                f" CryoloFineTuneJob: still waiting for particle file {particle_file} to appear after {count * 10} seconds"
+                f" cryolo_fine_tune_job: still waiting for particle file {particle_file} to appear after {count * 10} seconds"
             )
         time.sleep(10)
     in_doc = gemmi.cif.read_file(particle_file)
@@ -118,7 +118,7 @@ def run_job(project_dir, job_dir, args_list):
     )
     loop.add_row([os.path.join(job_dir, "_manualpick.star"), "2"])
     out_doc.write_file("RELION_OUTPUT_NODES.star")
-    print(" CryoloFineTuneJob: crYOLO Finished Fine-Tuning")
+    print(" cryolo_fine_tune_job: crYOLO Finished Fine-Tuning")
 
 
 def main():
@@ -130,10 +130,10 @@ def main():
     os.makedirs(known_args.out_dir, exist_ok=True)
     os.chdir(known_args.out_dir)
     if os.path.isfile(RELION_JOB_FAILURE_FILENAME):
-        print(" CryoloFineTuneJob: Removing previous failure indicator file")
+        print(" cryolo_fine_tune_job: Removing previous failure indicator file")
         os.remove(RELION_JOB_FAILURE_FILENAME)
     if os.path.isfile(RELION_JOB_SUCCESS_FILENAME):
-        print(" CryoloFineTuneJob: Removing previous success indicator file")
+        print(" cryolo_fine_tune_job: Removing previous success indicator file")
         os.remove(RELION_JOB_SUCCESS_FILENAME)
     try:
         run_job(project_dir, known_args.out_dir, other_args)

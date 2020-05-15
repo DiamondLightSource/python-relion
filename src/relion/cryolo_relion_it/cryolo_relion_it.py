@@ -553,7 +553,7 @@ import grp
 
 import gemmi
 
-from relion_yolo_it import CryoloPipeline
+from relion_yolo_it import cryolo_pipeline
 
 try:
     import tkinter as tk
@@ -2464,7 +2464,7 @@ def run_pipeline(opts):
             else:
                 done_fine_tune = False
                 # Call cryolo pipeline once in this process with num_repeats = 1 to set up jobs
-                split_job, manpick_job = CryoloPipeline.RunJobsCry(
+                split_job, manpick_job = cryolo_pipeline.RunJobsCry(
                     1,
                     runjobs,
                     motioncorr_job,
@@ -2476,11 +2476,11 @@ def run_pipeline(opts):
                 )
                 # Now run cryolo pipeline as a background process so that this script can carry on to Class2D etc.
                 # Write the current options to a single file for the cryolo pipeline to use
-                with open(CryoloPipeline.CRYOLO_PIPELINE_OPTIONS_FILE, "w") as optfile:
+                with open(cryolo_pipeline.CRYOLO_PIPELINE_OPTIONS_FILE, "w") as optfile:
                     opts.print_options(optfile)
                 cryolo_pipeline_script = os.path.abspath(
-                    CryoloPipeline.__file__
-                )  # Need to find absolute paths to CryoloPipeline file to run with subprocess
+                    cryolo_pipeline.__file__
+                )  # Need to find absolute paths to cryolo_pipeline file to run with subprocess
                 subprocess.Popen(
                     [
                         cryolo_pipeline_script,
@@ -2819,17 +2819,18 @@ def run_pipeline(opts):
                                         # Enough to fine tune
                                         print("Enough micrographs to retrain!")
                                         relion_pipeline_home = os.path.abspath(
-                                            os.path.dirname(CryoloPipeline.__file__)
+                                            os.path.dirname(cryolo_pipeline.__file__)
                                         )
                                         external_path = os.path.join(
-                                            relion_pipeline_home, "CryoloFineTuneJob.py"
+                                            relion_pipeline_home,
+                                            "cryolo_fine_tune_job.py",
                                         )
                                         cryolo_fine_cmd = [
                                             external_path,
                                             "--in_parts",
                                             fine_particles_star_file,
                                             "--o",
-                                            CryoloPipeline.CRYOLO_FINETUNE_JOB_DIR,
+                                            cryolo_pipeline.CRYOLO_FINETUNE_JOB_DIR,
                                             "--box_size",
                                             str(opts.extract_boxsize),
                                             "--gmodel",
@@ -2840,8 +2841,8 @@ def run_pipeline(opts):
 
                                         # Run in background so relion_it can carry on processing new data. Training can take a while...
                                         # TODO: fix this so it allows this script to continue, but waits for the Select job to be done before starting cryolo to avoid clogging a cluster node while waiting for user input
-                                        CryoloPipeline.run_cryolo_job(
-                                            CryoloPipeline.CRYOLO_FINETUNE_JOB_DIR,
+                                        cryolo_pipeline.run_cryolo_job(
+                                            cryolo_pipeline.CRYOLO_FINETUNE_JOB_DIR,
                                             cryolo_fine_cmd,
                                             opts,
                                             wait_for_completion=False,
