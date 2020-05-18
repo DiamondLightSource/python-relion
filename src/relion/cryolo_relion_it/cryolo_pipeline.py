@@ -274,8 +274,16 @@ def run_cryolo_job(job_dir, command_list, pipeline_opts, wait_for_completion=Tru
         os.remove(success_file)
 
     if pipeline_opts.cryolo_submit_to_queue:
+        # TODO: remove -o and -e arguments after switch to Relion 3.1. This syntax is specific to
+        # qsub but necessary for now to ensure stdout and stderr files go in the job directory
+        # rather than the project directory. In Relion 3.1 the normal Relion qsub template can be
+        # used which will put the files in the right place automatically.
         submit_command = [
             pipeline_opts.queue_submit_command,
+            "-o",
+            os.path.join(job_dir, "cryolo_job.out"),  # Temporary!
+            "-e",
+            os.path.join(job_dir, "cryolo_job.err"),  # Temporary!
             pipeline_opts.cryolo_queue_submission_template,
         ]
         submit_command.extend(command_list)
