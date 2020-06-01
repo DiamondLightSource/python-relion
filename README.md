@@ -19,22 +19,22 @@ appear as a manual pick job in the relion gui and can be viewed there.
 
 ## Scripts being used:
 
- - cryolo\_relion\_it.py: The main script that dls_yolo_relion calls. This houses the main pipeline
+ - `cryolo_relion_it.py`: The main script called by `dls_yolo_relion`. This houses the main pipeline
         and calls to all the other scripts.
 
- - cryolo\_pipeline.py: The crYOLO pipeline. This runs as a subprocess and exectutes many repeated
+ - `cryolo_pipeline.py`: The crYOLO pipeline. This runs as a subprocess and exectutes many repeated
         times to Import, MotionCorr, CtfFind, crYOLO pick, Extract... as new movies are
         collected. As Relion 3.0 does not support external job types the YOLO pipeline is in fact 3
         seperate pipelines chained together.
 
- - cryolo\_external\_job.py: Reads Relion star files and makes a directory that crYOLO can execute
+ - `cryolo_external_job.py`: Reads Relion star files and makes a directory that crYOLO can execute
         particle picking from.
 
- - cryolo\_fine\_tune\_job.py: After 2D classification, good classes can be selected to fine tune the
+ - `cryolo_fine_tune_job.py`: After 2D classification, good classes can be selected to fine tune the
         cryolo general model. After the finetuning, crYOLO uses this new model to pick future
         particles in the current run.
 
- - dls\_options.py: Example template options for the installation at DLS / eBIC.
+ - `dls_options.py`: Example template options for the installation at DLS / eBIC.
 
 
 Note: Fine-tuning requires good 2D classes to be picked by hand after first 2D iteration
