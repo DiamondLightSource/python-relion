@@ -1,3 +1,20 @@
-*~
+# Compiled Python files
 __pycache__/
+*.py[cod]
+*$py.class
 
+# Temporary files
+.cache
+.pytest_cache
+
+# Python packaging
+/dist
+/relion_yolo_it.egg-info
+
+.DS_Store
+*~
+*.sw[op]
+*.log
+.git-notifier*
+git-notifier.log
+.gitversion
