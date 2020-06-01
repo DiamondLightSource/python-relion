@@ -41,3 +41,10 @@ appear as a manual pick job in the relion gui and can be viewed there.
 
 Note: Fine-tuning requires good 2D classes to be picked by hand after first 2D iteration
 
+## Contributors
+
+* Sjors H.W. Scheres
+* Takanori Nakane
+* Colin M. Palmer
+* Donovan Webb
+
