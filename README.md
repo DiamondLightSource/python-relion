@@ -1,6 +1,8 @@
 # relion_it with crYOLO support
 
-relion_it is now running with python 3.6.8!  In options you can choose to pick via the crYOLO
+![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)
+
+In options you can choose to pick via the crYOLO
 general model or with the relion auto picker.  CrYOLO runs as an external job after ctfFind. Relion
 then takes the particle coordinates found by crYOLO and then further processes them.  Particles
 appear as a manual pick job in the relion gui and can be viewed there.
