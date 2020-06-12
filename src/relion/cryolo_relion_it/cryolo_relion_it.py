@@ -1843,6 +1843,8 @@ def load_star(filename):
             line = line[:comment_pos]
 
         if line == "":
+            if in_loop == 2:
+                in_loop = 0
             continue
 
         if line.startswith("data_"):
@@ -2178,12 +2180,19 @@ def run_pipeline(opts):
     for ipass in range(first_pass, nr_passes):
 
         #### Set up the Import job
-        import_options = ["Input files: == {}".format(opts.import_images)]
+        import_options = [
+            "Raw input files: == {}".format(opts.import_images),
+            "Import raw movies/micrographs? == Yes",
+            "Pixel size (Angstrom): == {}".format(opts.angpix),
+            "Voltage (kV): == {}".format(opts.voltage),
+            "Spherical aberration (mm): == {}".format(opts.Cs),
+            "Amplitude contrast: == {}".format(opts.ampl_contrast),
+        ]
 
         if opts.images_are_movies:
-            import_options.append("Node type: == 2D micrograph movies (*.mrcs)")
+            import_options.append("Are these multi-frame movies? == Yes")
         else:
-            import_options.append("Node type: == 2D micrographs/tomograms (*.mrc)")
+            import_options.append("Are these multi-frame movies? == No")
 
         import_job, already_had_it = addJob(
             "Import", "import_job", SETUP_CHECK_FILE, import_options
@@ -2199,9 +2208,7 @@ def run_pipeline(opts):
                 "Gain flip: == {}".format(opts.motioncor_gainflip),
                 "Gain rotation: == {}".format(opts.motioncor_gainrot),
                 "Do dose-weighting? == Yes",
-                "Voltage (kV): == {}".format(opts.voltage),
                 "Dose per frame (e/A2): == {}".format(opts.motioncor_doseperframe),
-                "Pixel size (A): == {}".format(opts.angpix),
                 "Number of patches X: ==  {}".format(opts.motioncor_patches_x),
                 "Number of patches Y: == {}".format(opts.motioncor_patches_y),
                 "Bfactor: ==  {}".format(opts.motioncor_bfactor),
@@ -2215,6 +2222,10 @@ def run_pipeline(opts):
 
             if opts.motioncor_do_own:
                 motioncorr_options.append("Use RELION's own implementation? == Yes")
+                if opts.use_ctffind_instead:
+                    motioncorr_options.append("Save sum of power spectra? == Yes")
+                else:
+                    motioncorr_options.append("Save sum of power spectra? == No")
             else:
                 motioncorr_options.append("Use RELION's own implementation? == No")
 
@@ -2227,17 +2238,11 @@ def run_pipeline(opts):
 
         #### Set up the CtfFind job
         ctffind_options = [
-            "Voltage (kV): == {}".format(opts.voltage),
-            "Spherical aberration (mm): == {}".format(opts.Cs),
-            "Amplitude contrast: == {}".format(opts.ampl_contrast),
             "Amount of astigmatism (A): == {}".format(opts.ctffind_astigmatism),
             "FFT box size (pix): == {}".format(opts.ctffind_boxsize),
             "Maximum defocus value (A): == {}".format(opts.ctffind_defocus_max),
             "Minimum defocus value (A): == {}".format(opts.ctffind_defocus_min),
             "Defocus step size (A): == {}".format(opts.ctffind_defocus_step),
-            "Magnified pixel size (Angstrom): == {}".format(
-                opts.angpix * opts.motioncor_binning
-            ),
             "Maximum resolution (A): == {}".format(opts.ctffind_maxres),
             "Minimum resolution (A): == {}".format(opts.ctffind_minres),
             "Gctf executable: == {}".format(opts.gctf_exe),
@@ -2262,9 +2267,11 @@ def run_pipeline(opts):
         if opts.use_ctffind_instead:
             ctffind_options.append("Use CTFFIND-4.1? == Yes")
             ctffind_options.append("Use Gctf instead? == No")
+            ctffind_options.append("Use power spectra from MotionCorr job? == Yes")
         else:
             ctffind_options.append("Use CTFFIND-4.1? == No")
             ctffind_options.append("Use Gctf instead? == Yes")
+            ctffind_options.append("Use power spectra from MotionCorr job? == No")
             if opts.ctffind_do_ignore_search_params:
                 ctffind_options.append("Ignore 'Searches' parameters? == Yes")
             else:
@@ -2309,8 +2316,11 @@ def run_pipeline(opts):
                     "Maximum resolution to consider (A) == {}".format(
                         opts.autopick_lowpass
                     ),
-                    "Adjust default threshold == {}".format(
+                    "Adjust default threshold (stddev): == {}".format(
                         opts.autopick_LoG_adjust_threshold
+                    ),
+                    "Upper threshold (stddev): == {}".format(
+                        opts.autopick_LoG_upper_threshold
                     ),
                     "2D references: == {}".format(opts.autopick_2dreferences),
                     "3D reference: == {}".format(opts.autopick_3dreference),
@@ -2922,7 +2932,7 @@ def run_pipeline(opts):
                                 "Final mini-batch size: == {}".format(
                                     opts.inimodel_batchsize_final
                                 ),
-                                "SGD increased noise variance half-life: == {}".format(
+                                "Increased noise variance half-life: == {}".format(
                                     opts.inimodel_sigmafudge_halflife
                                 ),
                                 "Number of pooled particles: == 1",
@@ -3266,7 +3276,7 @@ def main():
         " RELION_IT: -------------------------------------------------------------------------------------------------------------------"
     )
     print(
-        " RELION_IT: script for automated, on-the-fly single-particle analysis in RELION (>= 3.0-alpha-5)"
+        " RELION_IT: script for automated, on-the-fly single-particle analysis in RELION (>= 3.1)"
     )
     print(
         " RELION_IT: authors: Sjors H.W. Scheres, Takanori Nakane, Colin M. Palmer & Donovan Webb"

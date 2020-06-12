@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-External job for calling cryolo fine tune within Relion 3.0
+External job for calling cryolo fine tune within Relion 3.1
 in_parts is from a subset selection job.
 cryolo_fine_tune_job.py --o 'External/crYOLO_FineTune' --in_parts 'Select/job005/particles.star' --box_size 300
 """
@@ -57,7 +57,7 @@ def run_job(project_dir, job_dir, args_list):
             )
         time.sleep(10)
     in_doc = gemmi.cif.read_file(particle_file)
-    data_as_dict = json.loads(in_doc.as_json())["#"]
+    data_as_dict = json.loads(in_doc.as_json())["micrographs"]
 
     try:
         os.mkdir("train_annotation")

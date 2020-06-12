@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-External job for calling cryolo within Relion 3.0
+External job for calling cryolo within Relion 3.1
 in_mics are the micrographs to be picked on
 in_model is the model to be used, empty will use general model!
 
@@ -61,7 +61,7 @@ def run_job(project_dir, job_dir, args_list):
 
     # Reading the micrographs star file from relion
     in_doc = gemmi.cif.read_file(os.path.join(project_dir, args.in_mics))
-    data_as_dict = json.loads(in_doc.as_json())["#"]
+    data_as_dict = json.loads(in_doc.as_json())["micrographs"]
 
     try:
         os.mkdir("cryolo_input")
@@ -132,16 +132,16 @@ def run_job(project_dir, job_dir, args_list):
 
 def correct_paths(ctf_star):
     in_doc = gemmi.cif.read_file(ctf_star)
-    data_as_dict = json.loads(in_doc.as_json())["#"]
+    data_as_dict = json.loads(in_doc.as_json())["micrographs"]
 
-    for i in range(len(data_as_dict["_rlnctfimage"])):
-        name = data_as_dict["_rlnctfimage"][i]
-        dirs, ctf_file = os.path.split(name)
+    for i in range(len(data_as_dict["_rlnmicrographname"])):
+        name = data_as_dict["_rlnmicrographname"][i]
+        dirs, mic_file = os.path.split(name)
         full_dir = ""
         for d in dirs.split("/")[2:]:
             full_dir = os.path.join(full_dir, d)
         os.makedirs(full_dir, exist_ok=True)
-        picked_star = os.path.splitext(ctf_file)[0] + "_manualpick.star"
+        picked_star = os.path.splitext(mic_file)[0] + "_manualpick.star"
         try:
             shutil.move(
                 os.path.join("picked_stars", picked_star),

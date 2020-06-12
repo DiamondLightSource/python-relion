@@ -19,7 +19,7 @@ setup(
         "License :: OSI Approved :: GNU General Public License v2 (GPLv2)",
         "Natural Language :: English",
     ],
-    description="Updated relion_it with cryolo wrappers for Diamond Light Source",
+    description="Updated relion_it with cryolo wrappers for Diamond Light Source. For Relion 3.1. Thanks to Yuriy Chaban, Josh Lobo and Sean Connell.",
     long_description=long_description,
     long_description_content_type="text/markdown",
     install_requires=requirements,
