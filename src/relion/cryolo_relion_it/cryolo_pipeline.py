@@ -255,7 +255,7 @@ def RunJobsCry(
                 preprocess_schedule_name = PREPROCESS_SCHEDULE_PASS2
             cryolo_relion_it.RunJobs(secondjobs, 1, 1, preprocess_schedule_name)
     if num_repeats == 1:
-        return manpick_job
+        return split_job, manpick_job
 
 
 def run_cryolo_job(job_dir, command_list, pipeline_opts, wait_for_completion=True):
