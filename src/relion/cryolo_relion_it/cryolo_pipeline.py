@@ -135,8 +135,8 @@ def RunJobsCry(
                 "Input micrographs: == {}micrographs_ctf.star".format(ctffind_job),
                 "Particle diameter (A): == {}".format(opts.autopick_LoG_diam_min),
             ]
-            manualpick_job_name = "cryolo_picks"
-            manualpick_alias = "cryolo_picks"
+            manualpick_job_name = "crYOLO_AutoPick"
+            manualpick_alias = "crYOLO_AutoPick"
             manpick_job, already_had_it = cryolo_relion_it.addJob(
                 "ManualPick",
                 manualpick_job_name,
