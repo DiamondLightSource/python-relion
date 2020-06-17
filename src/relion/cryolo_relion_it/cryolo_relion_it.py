@@ -2615,9 +2615,9 @@ def run_pipeline(opts):
                 and first_split_file is not None
             ):
                 batch1 = safe_load_star(
-                    first_split_file, expected=["", "rlnMicrographName"]
+                    first_split_file, expected=["particles", "rlnMicrographName"]
                 )
-                previous_batch1_size = len(batch1[""]["rlnMicrographName"])
+                previous_batch1_size = len(batch1["particles"]["rlnMicrographName"])
             else:
                 previous_batch1_size = 0
 
@@ -2633,9 +2633,9 @@ def run_pipeline(opts):
                     )
 
                     batch = safe_load_star(
-                        batch_name, expected=["", "rlnMicrographName"]
+                        batch_name, expected=["particles", "rlnMicrographName"]
                     )
-                    batch_size = len(batch[""]["rlnMicrographName"])
+                    batch_size = len(batch["particles"]["rlnMicrographName"])
                     rerun_batch1 = False
                     if (
                         iibatch == 1
