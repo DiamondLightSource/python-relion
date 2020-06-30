@@ -11,6 +11,11 @@ __pycache__/
 /dist
 /relion_yolo_it.egg-info
 
+# IDE files
+/.idea/
+/.project/
+/.pydevproject/
+
 .DS_Store
 *~
 *.sw[op]
