@@ -80,9 +80,9 @@ def RunJobsCry(
     PREPROCESS_SCHEDULE_PASS1 = "PREPROCESS"
     PREPROCESS_SCHEDULE_PASS2 = "PREPROCESS_PASS2"
 
-    # Ensure return variables are initialised
+    # Ensure split_job variable is initialised (because it is returned at the end of the function and its
+    # initialisation can be missed in some code paths)
     split_job = None
-    manpick_job = None
 
     for i in range(0, num_repeats):
         if not os.path.isfile(RUNNING_FILE):
@@ -311,7 +311,7 @@ def run_cryolo_job(job_dir, command_list, pipeline_opts, wait_for_completion=Tru
             count += 1
             if count % 6 == 0:
                 print(
-                    " cryolo_pipeline: Still waiting for cryolo job to finish after {count * 10} seconds"
+                    f" cryolo_pipeline: Still waiting for cryolo job to finish after {count * 10} seconds"
                 )
             time.sleep(10)
 
