@@ -311,7 +311,7 @@ def run_cryolo_job(job_dir, command_list, pipeline_opts, wait_for_completion=Tru
             count += 1
             if count % 6 == 0:
                 print(
-                    " cryolo_pipeline: Still waiting for cryolo job to finish after {count * 10} seconds"
+                    f" cryolo_pipeline: Still waiting for cryolo job to finish after {count * 10} seconds"
                 )
             time.sleep(10)
 
