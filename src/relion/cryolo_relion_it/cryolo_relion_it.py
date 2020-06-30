@@ -2491,7 +2491,7 @@ def run_pipeline(opts):
             else:
                 done_fine_tune = False
                 # Call cryolo pipeline once in this process with num_repeats = 1 to set up jobs
-                manpick_job = cryolo_pipeline.RunJobsCry(
+                split_job, manpick_job = cryolo_pipeline.RunJobsCry(
                     1,
                     runjobs,
                     motioncorr_job,
