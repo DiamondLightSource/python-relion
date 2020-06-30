@@ -80,9 +80,9 @@ def RunJobsCry(
     PREPROCESS_SCHEDULE_PASS1 = "PREPROCESS"
     PREPROCESS_SCHEDULE_PASS2 = "PREPROCESS_PASS2"
 
-    # Ensure return variables are initialised
+    # Ensure split_job variable is initialised (because it is returned at the end of the function and its
+    # initialisation can be missed in some code paths)
     split_job = None
-    manpick_job = None
 
     for i in range(0, num_repeats):
         if not os.path.isfile(RUNNING_FILE):
