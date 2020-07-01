@@ -20,8 +20,8 @@ class CryoloExternalJobTest(unittest.TestCase):
         os.chdir(self.orig_dir)
         shutil.rmtree(self.test_dir)
 
-    @mock.patch("cryolo_external_job.os.system")
-    def test_run_job(self, mock_os_system):
+    @mock.patch("cryolo_external_job.subprocess")
+    def test_run_job(self, mock_subprocess):
         # Prepare things
         config_file = "example_config.json"
         with open(config_file, "w") as f:
@@ -70,11 +70,23 @@ class CryoloExternalJobTest(unittest.TestCase):
         )
 
         # Check results
-        mock_os_system.assert_called_once_with(
-            "cryolo_predict.py --conf config.json "
-            f"-i {self.test_dir}/External/job002/cryolo_input "
-            f"-o {self.test_dir}/External/job002/gen_pick "
-            '--weights path/to/cryolo/gmodel.h5 --gpu "0 1" --threshold 0.3'
+        mock_subprocess.run.assert_called_once_with(
+            [
+                "cryolo_predict.py",
+                "--conf",
+                "config.json",
+                "-i",
+                f"{self.test_dir}/External/job002/cryolo_input",
+                "-o",
+                f"{self.test_dir}/External/job002/gen_pick",
+                "--weights",
+                "path/to/cryolo/gmodel.h5",
+                "--gpu",
+                '"0 1"',
+                "--threshold",
+                "0.3",
+            ],
+            check=True,
         )
         assert os.path.isfile("_manualpick.star")
         with open("_manualpick.star") as f:

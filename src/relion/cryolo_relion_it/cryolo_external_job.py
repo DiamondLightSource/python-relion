@@ -15,7 +15,7 @@ import json
 import os
 import os.path
 import shutil
-import time
+import subprocess
 
 import gemmi
 
@@ -96,9 +96,22 @@ def run_job(project_dir, job_dir, args_list):
 
     print(" cryolo_external_job: Running from model {}".format(model))
 
-    os.system(
-        f"cryolo_predict.py --conf config.json -i {os.path.join(project_dir, job_dir, 'cryolo_input')} -o {os.path.join(project_dir, job_dir, 'gen_pick')} --weights {model} --gpu {gpus} --threshold {thresh}"
-    )
+    cryolo_command = [
+        "cryolo_predict.py",
+        "--conf",
+        "config.json",
+        "-i",
+        os.path.join(project_dir, job_dir, "cryolo_input"),
+        "-o",
+        os.path.join(project_dir, job_dir, "gen_pick"),
+        "--weights",
+        model,
+        "--gpu",
+        gpus,
+        "--threshold",
+        thresh,
+    ]
+    subprocess.run(cryolo_command, check=True)
 
     os.makedirs("picked_stars", exist_ok=True)
 
