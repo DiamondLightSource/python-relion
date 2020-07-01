@@ -88,13 +88,13 @@ class CryoloExternalJobTest(unittest.TestCase):
             ],
             check=True,
         )
-        assert os.path.isfile("_manualpick.star")
-        with open("_manualpick.star") as f:
+        assert os.path.isfile("coords_suffix_autopick.star")
+        with open("coords_suffix_autopick.star") as f:
             contents = f.read().strip()
             assert contents == mic_star_file
 
         assert os.path.isdir("picked_stars")
-        assert os.path.isfile("Micrographs/micrograph_1_manualpick.star")
+        assert os.path.isfile("Micrographs/micrograph_1_autopick.star")
         assert len(os.listdir("picked_stars")) == 0
 
         assert os.path.isfile("RELION_OUTPUT_NODES.star")
@@ -102,7 +102,7 @@ class CryoloExternalJobTest(unittest.TestCase):
         block = doc.sole_block()
         table = block.find("_rlnPipeLineNode", ["Name", "Type"])
         assert len(table) == 1
-        assert list(table[0]) == ["External/job002/_manualpick.star", "2"]
+        assert list(table[0]) == ["External/job002/coords_suffix_autopick.star", "2"]
 
         # Restore state
         os.chdir(self.test_dir)

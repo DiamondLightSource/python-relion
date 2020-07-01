@@ -117,7 +117,7 @@ def run_job(project_dir, job_dir, args_list):
 
     # Arranging files for Relion to use
     for picked in os.listdir(os.path.join(project_dir, job_dir, "gen_pick", "STAR")):
-        new_name = os.path.splitext(picked)[0] + "_manualpick" + ".star"
+        new_name = os.path.splitext(picked)[0] + "_autopick" + ".star"
         try:
             os.link(
                 os.path.join(project_dir, job_dir, "gen_pick", "STAR", picked),
@@ -127,7 +127,7 @@ def run_job(project_dir, job_dir, args_list):
             pass
 
     # Writing a star file for Relion
-    with open("_manualpick.star", "w") as part_file:
+    with open("coords_suffix_autopick.star", "w") as part_file:
         part_file.write(args.in_mics)
 
     # Required star file
@@ -136,7 +136,7 @@ def run_job(project_dir, job_dir, args_list):
     loop = output_nodes_block.init_loop(
         "", ["_rlnPipeLineNodeName", "_rlnPipeLineNodeType"]
     )
-    loop.add_row([os.path.join(job_dir, "_manualpick.star"), "2"])
+    loop.add_row([os.path.join(job_dir, "coords_suffix_autopick.star"), "2"])
     out_doc.write_file("RELION_OUTPUT_NODES.star")
     ctf_star = os.path.join(project_dir, args.in_mics)
     correct_paths(ctf_star)
@@ -153,7 +153,7 @@ def correct_paths(ctf_star):
         for d in dirs.split("/")[2:]:
             full_dir = os.path.join(full_dir, d)
         os.makedirs(full_dir, exist_ok=True)
-        picked_star = os.path.splitext(mic_file)[0] + "_manualpick.star"
+        picked_star = os.path.splitext(mic_file)[0] + "_autopick.star"
         try:
             shutil.move(
                 os.path.join("picked_stars", picked_star),
