@@ -1,6 +1,7 @@
 import json
 import os
 import shutil
+import sys
 import tempfile
 import unittest
 from unittest import mock
@@ -21,7 +22,7 @@ class CryoloExternalJobTest(unittest.TestCase):
         shutil.rmtree(self.test_dir)
 
     @mock.patch("cryolo_external_job.subprocess")
-    def test_run_job(self, mock_subprocess):
+    def test_main(self, mock_subprocess):
         # Prepare things
         config_file = "example_config.json"
         with open(config_file, "w") as f:
@@ -41,33 +42,32 @@ class CryoloExternalJobTest(unittest.TestCase):
         mics_doc.write_file(mic_star_file)
 
         job_dir = "External/job002"
-        os.makedirs(job_dir)
-        os.chdir(job_dir)
 
-        os.makedirs("gen_pick/STAR")
-        open(os.path.join("gen_pick/STAR", os.path.basename(mic_file)), "w").close()
+        cryolo_star_dir = os.path.join(job_dir, "gen_pick", "STAR")
+        os.makedirs(cryolo_star_dir)
+        open(os.path.join(cryolo_star_dir, os.path.basename(mic_file)), "w").close()
 
         # Run the job
-        cryolo_external_job.run_job(
-            self.test_dir,
+        orig_sys_argv = sys.argv[:]
+        sys.argv[1:] = [
+            "--o",
             job_dir,
-            [
-                "--in_mics",
-                mic_star_file,
-                "--box_size",
-                "256",
-                "--threshold",
-                "0.3",
-                "--gmodel",
-                "path/to/cryolo/gmodel.h5",
-                "--config",
-                os.path.join(self.test_dir, config_file),
-                "--gpu",
-                '"0 1"',
-                "--j",
-                "10",
-            ],
-        )
+            "--in_mics",
+            mic_star_file,
+            "--box_size",
+            "256",
+            "--threshold",
+            "0.3",
+            "--gmodel",
+            "path/to/cryolo/gmodel.h5",
+            "--config",
+            os.path.join(self.test_dir, config_file),
+            "--gpu",
+            '"0 1"',
+            "--j",
+            "10",
+        ]
+        cryolo_external_job.main()
 
         # Check results
         mock_subprocess.run.assert_called_once_with(
@@ -103,6 +103,10 @@ class CryoloExternalJobTest(unittest.TestCase):
         table = block.find("_rlnPipeLineNode", ["Name", "Type"])
         assert len(table) == 1
         assert list(table[0]) == ["External/job002/_manualpick.star", "2"]
+
+        # Restore state
+        os.chdir(self.test_dir)
+        sys.argv = orig_sys_argv
 
 
 if __name__ == "__main__":

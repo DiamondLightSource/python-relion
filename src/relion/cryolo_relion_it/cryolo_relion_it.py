@@ -2305,7 +2305,7 @@ def run_pipeline(opts):
             if opts.autopick_do_cryolo:
                 cryolo_options = [
                     f"External executable: == python3 {cryolo_external_job.__file__}",
-                    f"Input micrographs: == {ctffind_job}micrographs_ctf.star",
+                    f"Input micrographs:  == {ctffind_job}micrographs_ctf.star",
                     "Param1 - label: == box_size",
                     f"Param1 - value: == {int(opts.extract_boxsize / opts.motioncor_binning)}",
                     "Param2 - label: == threshold",
