@@ -79,8 +79,7 @@ class CryoloExternalJobTest(unittest.TestCase):
         assert os.path.isfile("_manualpick.star")
         with open("_manualpick.star") as f:
             contents = f.read().strip()
-            # TODO: fix this! Should be relative path, i.e. mic_star_file only, not abs path
-            assert contents == os.path.join(self.test_dir, mic_star_file)
+            assert contents == mic_star_file
 
         assert os.path.isdir("picked_stars")
         assert os.path.isfile("Micrographs/micrograph_1_manualpick.star")

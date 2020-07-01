@@ -114,9 +114,8 @@ def run_job(project_dir, job_dir, args_list):
             pass
 
     # Writing a star file for Relion
-    part_doc = open("_manualpick.star", "w")
-    part_doc.write(os.path.join(project_dir, args.in_mics))
-    part_doc.close()
+    with open("_manualpick.star", "w") as part_file:
+        part_file.write(args.in_mics)
 
     # Required star file
     out_doc = gemmi.cif.Document()
