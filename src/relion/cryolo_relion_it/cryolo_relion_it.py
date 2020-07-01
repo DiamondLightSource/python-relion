@@ -617,6 +617,7 @@ class RelionItOptions(object):
     autopick_LoG_diam_max = 180
     # Use positive values (0-1) to pick fewer particles; use negative values (-1-0) to pick more particles
     autopick_LoG_adjust_threshold = 0.0
+    autopick_LoG_upper_threshold = 999.0
     #
     # OR:
     #
@@ -854,6 +855,7 @@ class RelionItOptions(object):
     # Wait with the first 2D classification batch until at least this many particles are extracted
     minimum_batch_size = 1000
     # Number of iterations to perform in 2D classification
+    # Must be at least 20 for fast subsets
     class2d_nr_iter = 20
     # Rotational search step (in degrees)
     class2d_angle_step = 6
@@ -868,6 +870,7 @@ class RelionItOptions(object):
 
     ### 3D classification parameters
     # Number of iterations to perform in 3D classification
+    # Must be at least 20 for fast subsets
     class3d_nr_iter = 20
     # Reference mask
     class3d_reference_mask = ""
