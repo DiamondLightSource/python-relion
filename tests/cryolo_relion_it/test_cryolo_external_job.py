@@ -97,6 +97,13 @@ class CryoloExternalJobTest(unittest.TestCase):
         assert os.path.isfile("Micrographs/micrograph_1_manualpick.star")
         assert len(os.listdir("picked_stars")) == 0
 
+        assert os.path.isfile("RELION_OUTPUT_NODES.star")
+        doc = gemmi.cif.read_file("RELION_OUTPUT_NODES.star")
+        block = doc.sole_block()
+        table = block.find("_rlnPipeLineNode", ["Name", "Type"])
+        assert len(table) == 1
+        assert list(table[0]) == ["External/job002/_manualpick.star", "2"]
+
 
 if __name__ == "__main__":
     unittest.main()
