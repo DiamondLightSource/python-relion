@@ -52,6 +52,8 @@ class CryoloExternalJobTest(unittest.TestCase):
         sys.argv[1:] = [
             "--o",
             job_dir,
+            "--pipeline_control",
+            job_dir,
             "--in_mics",
             mic_star_file,
             "--box_size",

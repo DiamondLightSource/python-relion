@@ -167,23 +167,39 @@ def main():
     """Change to the job working directory, then call run_job()"""
     parser = argparse.ArgumentParser()
     parser.add_argument("--o", dest="out_dir", help="Output directory name")
+    parser.add_argument(
+        "--pipeline_control", help="Directory for pipeline control files"
+    )
     known_args, other_args = parser.parse_known_args()
     project_dir = os.getcwd()
-    os.makedirs(known_args.out_dir, exist_ok=True)
-    os.chdir(known_args.out_dir)
-    if os.path.isfile(RELION_JOB_FAILURE_FILENAME):
-        print(" cryolo_external_job: Removing previous failure indicator file")
-        os.remove(RELION_JOB_FAILURE_FILENAME)
-    if os.path.isfile(RELION_JOB_SUCCESS_FILENAME):
-        print(" cryolo_external_job: Removing previous success indicator file")
-        os.remove(RELION_JOB_SUCCESS_FILENAME)
+    job_dir = known_args.out_dir
+
+    # pipeline_control_dir is probably the same as job_dir, and we should us job_dir if
+    # pipeline_control_dir is not given. Make the path absolute so success and failure
+    # indicator files are always written in the right place even if the working
+    # directory is changed.
+    pipeline_control_dir = (
+        os.path.join(project_dir, known_args.pipeline_control)
+        if known_args.pipeline_control is not None
+        else os.path.join(project_dir, job_dir)
+    )
+    # Ensure job_dir and pipeline_control_dir (probably the same) both exist
+    os.makedirs(job_dir, exist_ok=True)
+    os.makedirs(pipeline_control_dir, exist_ok=True)
+
+    # Prepare indicator filenames for use after the job has finished
+    failure_filename = os.path.join(pipeline_control_dir, RELION_JOB_FAILURE_FILENAME)
+    success_filename = os.path.join(pipeline_control_dir, RELION_JOB_SUCCESS_FILENAME)
+
+    # Change to the job directory to actually run the job
+    os.chdir(job_dir)
     try:
-        run_job(project_dir, known_args.out_dir, other_args)
+        run_job(project_dir, job_dir, other_args)
     except:
-        open(RELION_JOB_FAILURE_FILENAME, "w").close()
+        open(failure_filename, "w").close()
         raise
     else:
-        open(RELION_JOB_SUCCESS_FILENAME, "w").close()
+        open(success_filename, "w").close()
 
 
 if __name__ == "__main__":
