@@ -35,9 +35,9 @@ class CryoloExternalJobTest(unittest.TestCase):
 
         mic_star_file = os.path.join(mic_job_dir, "example_mics.star")
         mics_doc = gemmi.cif.Document()
-        block = mics_doc.add_new_block("")
-        loop = block.init_loop("_rln", ["MicrographName", "CtfImage"])
-        loop.add_row([mic_file, mic_file + "_ctf"])
+        block = mics_doc.add_new_block("micrographs")
+        loop = block.init_loop("_rln", ["MicrographName"])
+        loop.add_row([mic_file])
         mics_doc.write_file(mic_star_file)
 
         job_dir = "External/job002"
