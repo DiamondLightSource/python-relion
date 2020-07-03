@@ -1892,7 +1892,7 @@ def load_star(filename):
 def CheckForExit():
     if not os.path.isfile(RUNNING_FILE):
         print(" RELION_IT:", RUNNING_FILE, "file no longer exists, exiting now ...")
-        exit(0)
+        sys.exit(0)
 
 
 # Allow direct progressing to the second pass
@@ -1997,7 +1997,7 @@ def WaitForJob(wait_for_this_job, seconds_wait):
                 myjobnr = jobnr
         if myjobnr < 0:
             print(" ERROR: cannot find ", wait_for_this_job, " in ", PIPELINE_STAR)
-            exit(1)
+            sys.exit(1)
 
         status = int(
             pipeline["pipeline_processes"]["rlnPipeLineProcessStatus"][myjobnr]
@@ -3313,7 +3313,7 @@ def main():
             RUNNING_FILE,
             "is already present: delete this file and make sure no other copy of this script is running. Exiting now ...",
         )
-        exit(0)
+        sys.exit(0)
 
     # Also make sure the preprocessing pipeliners are stopped before re-starting this script
     for checkfile in (
@@ -3326,7 +3326,7 @@ def main():
                 checkfile,
                 "is already present: delete this file and make sure no relion_pipeliner job is still running. Exiting now ...",
             )
-            exit(0)
+            sys.exit(0)
 
     if args.continue_:
         print(
