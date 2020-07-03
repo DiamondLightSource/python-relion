@@ -1937,16 +1937,16 @@ def addJob(jobtype, name_in_script, done_file, options, alias=None):
         for opt in options[:]:
             optionstring += opt + ";"
 
-        command = (
-            "relion_pipeliner --addJob "
-            + jobtype
-            + ' --addJobOptions "'
-            + optionstring
-            + '"'
-        )
+        command = [
+            "relion_pipeliner",
+            "--addJob",
+            str(jobtype),
+            "--addJobOptions",
+            optionstring,
+        ]
         if alias is not None:
-            command += ' --setJobAlias "' + alias + '"'
-        os.system(command)
+            command.extend(["--setJobAlias", str(alias)])
+        subprocess.run(command)
 
         pipeline = safe_load_star(
             PIPELINE_STAR, expected=["pipeline_processes", "rlnPipeLineProcessName"]
@@ -1968,19 +1968,19 @@ def RunJobs(jobs, repeat, wait, schedulename):
     for job in jobs[:]:
         runjobsstring += job + " "
 
-    command = (
-        "relion_pipeliner --schedule "
-        + schedulename
-        + " --repeat "
-        + str(repeat)
-        + " --min_wait "
-        + str(wait)
-        + ' --RunJobs "'
-        + runjobsstring
-        + '" &'
-    )
-
-    os.system(command)
+    command = [
+        "relion_pipeliner",
+        "--schedule",
+        str(schedulename),
+        "--repeat",
+        str(repeat),
+        "--min_wait",
+        str(wait),
+        "--RunJobs",
+        runjobsstring,
+    ]
+    # Popen rather than run because we want to run the process in the background
+    subprocess.Popen(command)
 
 
 def WaitForJob(wait_for_this_job, seconds_wait):
@@ -2589,19 +2589,20 @@ def run_pipeline(opts):
                         "and saving the new reference as",
                         opts.class3d_reference,
                     )
-                    command = (
-                        "relion_image_handler --i "
-                        + opts.autopick_3dreference
-                        + " --o "
-                        + opts.class3d_reference
-                        + " --angpix "
-                        + str(opts.autopick_ref_angpix)
-                        + " --rescale_angpix "
-                        + str(particles_angpix)
-                        + " --new_box "
-                        + str(particles_boxsize)
-                    )
-                    os.system(command)
+                    command = [
+                        "relion_image_handler",
+                        "--i",
+                        str(opts.autopick_3dreference),
+                        "--o",
+                        str(opts.class3d_reference),
+                        "--angpix",
+                        str(opts.autopick_ref_angpix),
+                        "--rescale_angpix",
+                        str(particles_angpix),
+                        "--new_box",
+                        str(particles_boxsize),
+                    ]
+                    subprocess.run(command)
 
             print(
                 " RELION_IT: now entering an infinite loop for batch-processing of particles. You can stop this loop by deleting the file",

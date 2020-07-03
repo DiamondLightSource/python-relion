@@ -107,7 +107,18 @@ def run_job(project_dir, job_dir, args_list):
         individual_files.close()
 
     # Running cryolo
-    os.system("cryolo_train.py --conf config.json --warmup 0 --gpu 0 --fine_tune")
+    subprocess.run(
+        [
+            "cryolo_train.py",
+            "--conf",
+            "config.json",
+            "--warmup",
+            "0",
+            "--gpu",
+            "0",
+            "--fine_tune",
+        ]
+    )
 
     # Writing a star file (This one is meaningless for now)
     with open("_manualpick.star", "w") as part_doc:
