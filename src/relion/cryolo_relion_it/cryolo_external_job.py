@@ -85,6 +85,9 @@ def run_job(project_dir, job_dir, args_list):
             done_mics = f.read().splitlines()
     except:
         done_mics = []
+
+    # Count new micrographs because cryolo fails if its input directory is empty
+    mic_count = 0
     for micrograph in data_as_dict["_rlnmicrographname"]:
         if os.path.split(micrograph)[-1] not in done_mics:
             os.link(
@@ -93,25 +96,28 @@ def run_job(project_dir, job_dir, args_list):
                     project_dir, job_dir, "cryolo_input", os.path.split(micrograph)[-1]
                 ),
             )
+            mic_count += 1
 
-    print(" cryolo_external_job: Running from model {}".format(model))
-
-    cryolo_command = [
-        "cryolo_predict.py",
-        "--conf",
-        "config.json",
-        "-i",
-        os.path.join(project_dir, job_dir, "cryolo_input"),
-        "-o",
-        os.path.join(project_dir, job_dir, "gen_pick"),
-        "--weights",
-        model,
-        "--gpu",
-        gpus,
-        "--threshold",
-        thresh,
-    ]
-    subprocess.run(cryolo_command, check=True)
+    if mic_count > 0:
+        print(" cryolo_external_job: Running from model {}".format(model))
+        cryolo_command = [
+            "cryolo_predict.py",
+            "--conf",
+            "config.json",
+            "-i",
+            os.path.join(project_dir, job_dir, "cryolo_input"),
+            "-o",
+            os.path.join(project_dir, job_dir, "gen_pick"),
+            "--weights",
+            model,
+            "--gpu",
+            gpus,
+            "--threshold",
+            thresh,
+        ]
+        subprocess.run(cryolo_command, check=True)
+    else:
+        print(" cryolo_external_job: No new micrographs, not running crYOLO")
 
     os.makedirs("picked_stars", exist_ok=True)
 
