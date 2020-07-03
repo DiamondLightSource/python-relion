@@ -3247,7 +3247,8 @@ def run_pipeline(opts):
                                 break
 
                 if not have_new_batch:
-                    CheckForExit()
+                    if CheckForExit():
+                        return
                     # The following prevents checking the particles.star file too often
                     time.sleep(60 * opts.batch_repeat_time)
 
