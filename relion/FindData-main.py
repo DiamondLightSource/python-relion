@@ -8,28 +8,24 @@ import FindData
 input = {
     1: {
         "name": "MotionCorr/relioncor2",
-        "values": ["total_motion"],
-        "file_name": ["corrected_micrographs.star"],
-        "block_number": [1],
-        "loop_name": ["_rlnAccumMotionTotal"],
+        1: ["total_motion", "corrected_micrographs.star", 1, "_rlnAccumMotionTotal"],
     },
     2: {
         "name": "CtfFind/job003",
-        "values": ["astigmatism", "defocusU", "defocusV"],
-        "file_name": [
-            "micrographs_ctf.star",
-            "micrographs_ctf.star",
-            "micrographs_ctf.star",
-        ],
-        "block_number": [1, 1, 1],
-        "loop_name": ["_rlnCtfAstigmatism", "_rlnDefocusU", "_rlnDefocusV"],
+        1: ["astigmatism", "micrographs_ctf.star", 1, "_rlnCtfAstigmatism"],
+        2: ["defocusU", "micrographs_ctf.star", 1, "_rlnDefocusU"],
+        3: ["defocusV", "micrographs_ctf.star", 1, "_rlnDefocusV"],
     },
 }
-
 
 first_data = FindData.FindData(
     "/dls/ebic/data/staff-scratch/ccpem/Relion31TutorialPrecalculatedResults",
     "star",
     input,
 )
-first_data.get_data()
+
+output = first_data.get_data()
+print(output)
+print(output[0][1][1])
+print(output[0][0][0])
+print(output[1][1][1])

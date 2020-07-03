@@ -1,4 +1,5 @@
 from gemmi import cif
+from pprint import pprint
 
 # This class aims to be as unspecific as possible, a general tool for extracting data from files.
 # The main use case in mind is where there is information in several files in different directories.
@@ -30,12 +31,22 @@ class FindData:
 
     def get_data(self):
         if self.file_type == "star":
-
+            output_list = []
             for section in self.input_dict:
-
                 self.folder = self.input_dict[section]["name"]
-                count = 0
-                while count < len(self.input_dict[section]["values"]):
+                section_list = []
+                section_list.append(self.folder)
+                count = 1
+                while count < len(self.input_dict[section]):
+                    values_list = []
+
+                    # extract values from the input dictionary
+                    value_name = self.input_dict[section][count][0]
+                    file_name = self.input_dict[section][count][1]
+                    block_number = self.input_dict[section][count][2]
+                    loop_name = self.input_dict[section][count][3]
+
+                    values_list.append(value_name)
 
                     self.file_path = (
                         str(self.relion_dir)
@@ -43,21 +54,16 @@ class FindData:
                         + str(self.folder)
                         + "/"
                         + "/"
-                        + self.input_dict[section]["file_name"][count]
+                        + file_name
                     )  # Will need to add the job folder automatically as well somehow
                     self.star_doc = cif.read_file(self.file_path)
-                    block_number = self.input_dict[section]["block_number"][count]
                     data_block = self.star_doc[block_number]
-                    values = data_block.find_loop(
-                        self.input_dict[section]["loop_name"][count]
-                    )
+                    values = data_block.find_loop(loop_name)
 
-                    values_list = []
                     for x in values:
                         values_list.append(x)
-                    value_name = str(self.input_dict[section]["values"][count])
-                    print(value_name, ": ", values_list, sep="")
-
+                    section_list.append(values_list)
                     count += 1
-
-            return values_list
+                output_list.append(section_list)
+            pprint(output_list)
+            return output_list
