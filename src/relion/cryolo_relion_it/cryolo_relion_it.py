@@ -1305,7 +1305,7 @@ class RelionItGui(object):
 
         row += 1
 
-        tk.Label(pipeline_frame, text="crYOLO finetune? (still testing)").grid(
+        tk.Label(pipeline_frame, text="crYOLO finetune? (not working)").grid(
             row=row, sticky=tk.W
         )
         self.cryolo_fine_var = tk.IntVar()
@@ -1313,6 +1313,8 @@ class RelionItGui(object):
         cryolo_fine_button.grid(row=row, column=1, sticky=tk.W)
         if options.cryolo_finetune:
             cryolo_fine_button.select()
+        # Disable button while code is not working
+        cryolo_fine_button.config(state=tk.DISABLED)
 
         row += 1
 
