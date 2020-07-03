@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 __license__ = """
                     GNU GENERAL PUBLIC LICENSE
                        Version 2, June 1991
@@ -553,7 +553,7 @@ import grp
 
 import gemmi
 
-from relion_yolo_it import cryolo_external_job, cryolo_fine_tune_job
+from . import cryolo_external_job, cryolo_fine_tune_job
 
 try:
     import tkinter as tk
