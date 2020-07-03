@@ -553,7 +553,7 @@ import grp
 
 import gemmi
 
-from relion_yolo_it import cryolo_external_job
+from relion_yolo_it import cryolo_external_job, cryolo_fine_tune_job
 
 try:
     import tkinter as tk
@@ -2842,19 +2842,15 @@ def run_pipeline(opts):
                                 #     ):
                                 #         # Enough to fine tune
                                 #         print("Enough micrographs to retrain!")
-                                #         relion_pipeline_home = os.path.abspath(
-                                #             os.path.dirname(cryolo_pipeline.__file__)
-                                #         )
-                                #         external_path = os.path.join(
-                                #             relion_pipeline_home,
-                                #             "cryolo_fine_tune_job.py",
+                                #         external_path = os.path.abspath(
+                                #             cryolo_fine_tune_job.__file__
                                 #         )
                                 #         cryolo_fine_cmd = [
                                 #             external_path,
                                 #             "--in_parts",
                                 #             fine_particles_star_file,
                                 #             "--o",
-                                #             cryolo_pipeline.CRYOLO_FINETUNE_JOB_DIR,
+                                #             cryolo_fine_tune_job.CRYOLO_FINETUNE_JOB_DIR,
                                 #             "--box_size",
                                 #             str(opts.extract_boxsize),
                                 #             "--gmodel",
@@ -2865,8 +2861,8 @@ def run_pipeline(opts):
                                 #
                                 #         # Run in background so relion_it can carry on processing new data. Training can take a while...
                                 #         # TODO: fix this so it allows this script to continue, but waits for the Select job to be done before starting cryolo to avoid clogging a cluster node while waiting for user input
-                                #         cryolo_pipeline.run_cryolo_job(
-                                #             cryolo_pipeline.CRYOLO_FINETUNE_JOB_DIR,
+                                #         cryolo_fine_tune_job.run_cryolo_job(
+                                #             cryolo_fine_tune_job.CRYOLO_FINETUNE_JOB_DIR,
                                 #             cryolo_fine_cmd,
                                 #             opts,
                                 #             wait_for_completion=False,

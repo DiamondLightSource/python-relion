@@ -24,11 +24,6 @@ appear as a manual pick job in the relion gui and can be viewed there.
  - `cryolo_relion_it.py`: The main script called by `dls_yolo_relion`. This houses the main pipeline
         and calls to all the other scripts.
 
- - `cryolo_pipeline.py`: The crYOLO pipeline. This runs as a subprocess and exectutes many repeated
-        times to Import, MotionCorr, CtfFind, crYOLO pick, Extract... as new movies are
-        collected. As Relion 3.0 does not support external job types the YOLO pipeline is in fact 3
-        seperate pipelines chained together.
-
  - `cryolo_external_job.py`: Reads Relion star files and makes a directory that crYOLO can execute
         particle picking from.
 
