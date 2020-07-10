@@ -28,15 +28,16 @@ cryolo_queue_submission_template = "/dls_sw/apps/EM/crYOLO/qsub_cryolo_template_
 do_second_pass = False
 
 #### Other site configuration options
+# Assume modules are loaded so these executables can be found by name alone
 
 # Exectutable of UCSF MotionCor2
-motioncor_exe = "/dls_sw/apps/EM/MotionCor2/1.3.1/MotionCor2"
+motioncor_exe = "MotionCor2"
 
 # Executable to Kai Zhang's Gctf
-gctf_exe = "/dls_sw/apps/EM/Gctf/1.18/Gctf"
+gctf_exe = "Gctf"
 
 # Executable for Alexis Rohou's CTFFIND4
-ctffind4_exe = "/dls_sw/apps/EM/ctffind/4.1.13/bin/ctffind"
+ctffind4_exe = "ctffind"
 
 queue_submission_template = "/dls_sw/apps/EM/relion/qsub_template_hamilton"
 
@@ -48,8 +49,8 @@ motioncor_other_args = "--do_at_most 40"
 motioncor_submit_to_queue = True
 
 gctf_gpu = ""
-ctffind_mpi = 4
-use_ctffind_instead = False
+ctffind_mpi = 40
+use_ctffind_instead = True
 ctffind_submit_to_queue = True
 
 autopick_do_gpu = True

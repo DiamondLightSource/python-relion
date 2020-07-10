@@ -2275,7 +2275,10 @@ def run_pipeline(opts):
         if opts.use_ctffind_instead:
             ctffind_options.append("Use CTFFIND-4.1? == Yes")
             ctffind_options.append("Use Gctf instead? == No")
-            ctffind_options.append("Use power spectra from MotionCorr job? == Yes")
+            if opts.motioncor_do_own:
+                ctffind_options.append("Use power spectra from MotionCorr job? == Yes")
+            else:
+                ctffind_options.append("Use power spectra from MotionCorr job? == No")
         else:
             ctffind_options.append("Use CTFFIND-4.1? == No")
             ctffind_options.append("Use Gctf instead? == Yes")
