@@ -8,7 +8,7 @@ from unittest import mock
 
 import gemmi
 
-import cryolo_external_job
+from relion_yolo_it import cryolo_external_job
 
 
 class CryoloExternalJobTest(unittest.TestCase):
@@ -21,7 +21,7 @@ class CryoloExternalJobTest(unittest.TestCase):
         os.chdir(self.orig_dir)
         shutil.rmtree(self.test_dir)
 
-    @mock.patch("cryolo_external_job.subprocess")
+    @mock.patch("relion_yolo_it.cryolo_external_job.subprocess")
     def test_main(self, mock_subprocess):
         # Prepare things
         config_file = "example_config.json"
