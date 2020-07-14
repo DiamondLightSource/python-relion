@@ -11,11 +11,14 @@ cryolo_external_job.py --o "External/crYOLO_AutoPick" --in_mics "CtfFind/job004/
 """
 
 import argparse
+import datetime
 import json
 import os
 import os.path
+import platform
 import shutil
 import subprocess
+import sys
 
 import gemmi
 
@@ -196,6 +199,14 @@ def main():
     # Prepare indicator filenames for use after the job has finished
     failure_filename = os.path.join(pipeline_control_dir, RELION_JOB_FAILURE_FILENAME)
     success_filename = os.path.join(pipeline_control_dir, RELION_JOB_SUCCESS_FILENAME)
+
+    # Print current time and host to stdout and stderr
+    # This helps with debugging when the job is run repeatedly
+    time = datetime.datetime.now()
+    host = platform.node()
+    message = f"{time}: cryolo_external_job.py running on {host}"
+    print(message)
+    print(message, file=sys.stderr)
 
     # Change to the job directory to actually run the job
     os.chdir(job_dir)
