@@ -23,7 +23,6 @@ jobs:
       vmImage: ubuntu-latest
     strategy:
       matrix:
-        maxParallel: 3
         python35:
           PYTHON_VERSION: 3.5
         python36:
@@ -32,6 +31,7 @@ jobs:
           PYTHON_VERSION: 3.7
         python38:
           PYTHON_VERSION: 3.8
+      maxParallel: 3
 
     steps:
     - template: .azure-pipelines/ci.yml
@@ -41,7 +41,6 @@ jobs:
       vmImage: macOS-latest
     strategy:
       matrix:
-        maxParallel: 3
         python35:
           PYTHON_VERSION: 3.5
         python36:
@@ -50,6 +49,7 @@ jobs:
           PYTHON_VERSION: 3.7
         python38:
           PYTHON_VERSION: 3.8
+      maxParallel: 3
 
     steps:
     - template: .azure-pipelines/ci.yml
@@ -59,7 +59,6 @@ jobs:
       vmImage: windows-latest
     strategy:
       matrix:
-        maxParallel: 3
         python35:
           PYTHON_VERSION: 3.5
         python36:
@@ -68,6 +67,7 @@ jobs:
           PYTHON_VERSION: 3.7
         python38:
           PYTHON_VERSION: 3.8
+      maxParallel: 3
 
     steps:
     - template: .azure-pipelines/ci.yml
