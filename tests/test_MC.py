@@ -3,8 +3,13 @@ import pytest
 
 
 @pytest.fixture
-def known_file_path():
-    return "/dls/ebic/data/staff-scratch/ccpem/Relion31TutorialPrecalculatedResults/MotionCorr/relioncor2/corrected_micrographs.star"
+def known_file_path(dials_data):
+    return (
+        dials_data("relion_tutorial_data")
+        / "MotionCorr"
+        / "relioncor2"
+        / "corrected_micrographs.star"
+    )
 
 
 @pytest.fixture
@@ -26,9 +31,13 @@ def known_MC_object():
 #    assert known_MC_object.number_of_blocks == 2
 
 
-def test_total_motion_for_known_file():
+def test_total_motion_for_known_file(dials_data):
+
     MC = MotionCorrection.MotionCorrection(
-        "/dls/ebic/data/staff-scratch/ccpem/Relion31TutorialPrecalculatedResults/MotionCorr/relioncor2/corrected_micrographs.star"
+        dials_data("relion_tutorial_data")
+        / "MotionCorr"
+        / "relioncor2"
+        / "corrected_micrographs.star"
     )
     assert MC.total_motion() == "16.420495"
     # assert known_MC_object.total_motion() == '16.420495'
