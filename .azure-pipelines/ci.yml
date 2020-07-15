@@ -6,15 +6,17 @@ steps:
 
 - script: |
     python -m pip install --upgrade pip
-    pip install tox
-  displayName: "Set up tox"
+    pip install -r requirements_dev.txt
+  displayName: Install dependencies
 
 - script: |
-    tox -e azure
-  displayName: "Run tests"
+    pytest -v -ra \
+        --cov=relion --cov-report=html --cov-report=xml --cov-branch \
+        --regression || echo "##vso[task.complete result=Failed;]Some tests failed"
+  displayName: Run tests
 
-- task: PublishTestResults@2
-  condition: succeededOrFailed()
-  inputs:
-    testResultsFiles: '**/test-*.xml'
-    testRunTitle: 'Publish test results for Python $(PYTHON_VERSION)'
+#- script: |
+#    bash <(curl -s https://codecov.io/bash) -n "Python $(PYTHON_VERSION) $(Agent.OS)"
+#  displayName: 'Publish coverage stats'
+#  continueOnError: True
+#  timeoutInMinutes: 3

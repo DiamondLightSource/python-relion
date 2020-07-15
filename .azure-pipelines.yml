@@ -1,4 +1,7 @@
-jobs:
+stages:
+- stage: tests
+  displayName: Tests
+  jobs:
   - job: checks
     displayName: static code analysis
     pool:
@@ -18,6 +21,28 @@ jobs:
           python .azure-pipelines/flake8-validation.py
         displayName: Flake8 validation
 
+  - template: .azure-pipelines/tox.yml
+    parameters:
+      name: linux
+      python: 3.6
+      vmImage: ubuntu-latest
+
+  - template: .azure-pipelines/tox.yml
+    parameters:
+      name: macOS
+      python: 3.6
+      vmImage: macOS-latest
+
+  - template: .azure-pipelines/tox.yml
+    parameters:
+      name: windows
+      python: 3.6
+      vmImage: windows-latest
+
+- stage: platform_tests
+  displayName: Full platform checks
+  dependsOn: tests
+  jobs:
   - job: linux
     pool:
       vmImage: ubuntu-latest
@@ -31,7 +56,7 @@ jobs:
           PYTHON_VERSION: 3.7
         python38:
           PYTHON_VERSION: 3.8
-      maxParallel: 3
+      maxParallel: 2
 
     steps:
     - template: .azure-pipelines/ci.yml
@@ -49,7 +74,7 @@ jobs:
           PYTHON_VERSION: 3.7
         python38:
           PYTHON_VERSION: 3.8
-      maxParallel: 3
+      maxParallel: 2
 
     steps:
     - template: .azure-pipelines/ci.yml
@@ -67,7 +92,7 @@ jobs:
           PYTHON_VERSION: 3.7
         python38:
           PYTHON_VERSION: 3.8
-      maxParallel: 3
+      maxParallel: 2
 
     steps:
     - template: .azure-pipelines/ci.yml
