@@ -1,3 +1,4 @@
+import pathlib
 import relion.MotionCorrection as MotionCorrection
 import pytest
 
@@ -5,7 +6,7 @@ import pytest
 @pytest.fixture
 def known_file_path(dials_data):
     return (
-        dials_data("relion_tutorial_data")
+        pathlib.Path(dials_data("relion_tutorial_data"))
         / "MotionCorr"
         / "relioncor2"
         / "corrected_micrographs.star"
@@ -34,7 +35,7 @@ def known_MC_object():
 def test_total_motion_for_known_file(dials_data):
 
     MC = MotionCorrection.MotionCorrection(
-        dials_data("relion_tutorial_data")
+        pathlib.Path(dials_data("relion_tutorial_data"))
         / "MotionCorr"
         / "relioncor2"
         / "corrected_micrographs.star"

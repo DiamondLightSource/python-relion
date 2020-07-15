@@ -1,3 +1,4 @@
+import pathlib
 import pytest
 import relion.FindData as FD
 
@@ -25,7 +26,7 @@ def input_test_dict():
 
 @pytest.fixture
 def input_test_folder(dials_data):
-    return dials_data("relion_tutorial_data")
+    return pathlib.Path(dials_data("relion_tutorial_data"))
 
 
 @pytest.fixture
