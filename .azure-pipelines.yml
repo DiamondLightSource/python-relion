@@ -57,7 +57,7 @@ stages:
       maxParallel: 2
 
     steps:
-    - template: .azure-pipelines/ci.yml
+    - template: .azure-pipelines/ci-unix.yml
 
   - job: macOS
     pool:
@@ -73,7 +73,7 @@ stages:
       maxParallel: 2
 
     steps:
-    - template: .azure-pipelines/ci.yml
+    - template: .azure-pipelines/ci-unix.yml
 
   - job: windows
     pool:
@@ -89,4 +89,4 @@ stages:
       maxParallel: 2
 
     steps:
-    - template: .azure-pipelines/ci.yml
+    - template: .azure-pipelines/ci-windows.yml

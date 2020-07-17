@@ -10,14 +10,13 @@ steps:
   displayName: Install dependencies
 
 - script: |
-    pytest -v -ra \
-        --cov=relion --cov-report=html --cov-report=xml --cov-branch \
-        --regression || echo "##vso[task.complete result=Failed;]Some tests failed"
+    pytest -v -ra --regression ^
+        --cov=relion --cov-report=xml --cov-branch ^
+        || echo "##vso[task.complete result=Failed;]Some tests failed"
   displayName: Run tests
-  workingDirectory: $(Build.Repository.LocalPath)
 
 #- script: |
 #    bash <(curl -s https://codecov.io/bash) -n "Python $(PYTHON_VERSION) $(Agent.OS)"
 #  displayName: 'Publish coverage stats'
 #  continueOnError: True
-#  timeoutInMinutes: 3
+#  timeoutInMinutes: 2
