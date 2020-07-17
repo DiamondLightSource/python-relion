@@ -1,5 +1,7 @@
 from gemmi import cif
 from pprint import pprint
+from pathlib import Path
+import os
 
 # This class aims to be as unspecific as possible, a general tool for extracting data from files.
 # The main use case in mind is where there is information in several files in different directories.
@@ -47,16 +49,13 @@ class FindData:
                     loop_name = self.input_dict[section][count][3]
 
                     values_list.append(value_name)
+                    directory = str(self.relion_dir)
+                    folder_name = str(self.folder)
+                    self.file_path = Path(directory) / folder_name / file_name
+                    # Will need to add the job folder automatically as well somehow
 
-                    self.file_path = (
-                        str(self.relion_dir)
-                        + "/"
-                        + str(self.folder)
-                        + "/"
-                        + "/"
-                        + file_name
-                    )  # Will need to add the job folder automatically as well somehow
-                    self.star_doc = cif.read_file(self.file_path)
+                    gemmi_readable_path = os.fspath(self.file_path)
+                    self.star_doc = cif.read_file(gemmi_readable_path)
                     data_block = self.star_doc[block_number]
                     values = data_block.find_loop(loop_name)
 
