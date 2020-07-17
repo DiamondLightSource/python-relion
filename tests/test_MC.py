@@ -19,7 +19,7 @@ def known_MC_object():
     return MC
 
 
-@pytest.mark.motion_correction  # Possible route if we decide to have one test_relion file containing all sections
+# @pytest.mark.motion_correction  # Possible route if we decide to have one test_relion file containing all sections
 # def test_total_motion_is_numeric():
 #    x = known_MC_object.total_motion()
 #    try:
@@ -32,13 +32,12 @@ def known_MC_object():
 #    assert known_MC_object.number_of_blocks == 2
 
 
-def test_total_motion_for_known_file(dials_data):
+# def test_total_motion_for_known_file(dials_data):
 
-    MC = MotionCorrection.MotionCorrection(
-        pathlib.Path(dials_data("relion_tutorial_data"))
-        / "MotionCorr"
-        / "relioncor2"
-        / "corrected_micrographs.star"
-    )
-    assert MC.total_motion() == "16.420495"
-    # assert known_MC_object.total_motion() == '16.420495'
+#    MC = MotionCorrection.MotionCorrection(
+#        pathlib.Path(dials_data("relion_tutorial_data"))
+#        / "MotionCorr"
+#        / "relioncor2"
+#        / "corrected_micrographs.star"
+#    )
+#    assert MC.total_motion() == "16.420495"
