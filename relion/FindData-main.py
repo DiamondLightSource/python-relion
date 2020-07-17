@@ -7,7 +7,7 @@ import FindData
 
 input = {
     1: {
-        "name": "MotionCorr/relioncor2",
+        "name": "MotionCorr/job002",
         1: ["total_motion", "corrected_micrographs.star", 1, "_rlnAccumMotionTotal"],
     },
     2: {
