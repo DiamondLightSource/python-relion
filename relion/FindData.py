@@ -47,7 +47,7 @@ class FindData:
                     block_number = self.input_dict[section][count][2]
                     loop_name = self.input_dict[section][count][3]
 
-                    values_list.append(value_name)
+                    # values_list.append(value_name)
                     directory = str(self.relion_dir)
                     folder_name = str(self.folder)
                     self.file_path = Path(directory) / folder_name / file_name
@@ -60,7 +60,10 @@ class FindData:
 
                     for x in values:
                         values_list.append(x)
-                    section_list.append(values_list)
+                    if not values_list:
+                        print("Warning - no values found for", value_name)
+                    final_list = [value_name] + values_list
+                    section_list.append(final_list)
                     count += 1
                 output_list.append(section_list)
             # pprint(output_list)

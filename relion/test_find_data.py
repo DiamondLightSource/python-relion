@@ -30,6 +30,7 @@ def input_test_dict():
             4: ["astigmatism_angle", "micrographs_ctf.star", 1, "_rlnDefocusAngle"],
             5: ["max_resolution", "micrographs_ctf.star", 1, "_rlnCtfMaxResolution"],
             6: ["cc/fig_of_merit", "micrographs_ctf.star", 1, "_rlnCtfFigureOfMerit"],
+            7: ["cc/fig_doesnt_exist", "micrographs_ctf.star", 1, "_rlnCtfFigure"],
         },
     }
 
