@@ -1,5 +1,4 @@
 from gemmi import cif
-from pprint import pprint
 from pathlib import Path
 import os
 
@@ -64,5 +63,5 @@ class FindData:
                     section_list.append(values_list)
                     count += 1
                 output_list.append(section_list)
-            pprint(output_list)
+            # pprint(output_list)
             return output_list
