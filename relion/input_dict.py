@@ -44,6 +44,7 @@ for section in new_input:
     print(section)
 
 # This input format feels more intuitive, neater, and more compact
+# Section name, then values, each with associated file name, file type and other info
 restructured_input = {
     1: {
         "name": "MotionCorr",

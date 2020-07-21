@@ -22,37 +22,67 @@ import os
 
 
 class FindData:
-    def __init__(self, data_dir, file_type, input_dict):
+    def __init__(self, data_dir, input_dict):
         self.relion_dir = data_dir
-        self.file_type = file_type
+        self.directory = str(self.relion_dir)
+        self.file_type = None
         self.input_dict = input_dict
         self.folder = None
         self.file_path = None
         self.star_doc = None
+        self.file_name = None
+        self.value_name = None
+        self.folder_string = None
+
+    def extract_per_section(self, section):
+        self.folder = self.input_dict[section]["name"]
+        self.folder_string = str(self.folder)
+
+    def extract_per_value(self, section, count):
+        self.file_name = self.input_dict[section][count][2]
+        print(self.file_name)
+        self.value_name = self.input_dict[section][count][0]
+        self.file_path = Path(self.directory) / self.folder_string / self.file_name
+
+    def extract_section_name(self, section):
+        self.folder = self.input_dict[section]["name"]
+
+    def get_file_type(self, section, count):
+        self.file_type = self.input_dict[section][count][1]
 
     def get_data(self):
-        if self.file_type == "star":
-            output_list = []
-            for section in self.input_dict:
-                self.folder = self.input_dict[section]["name"]
-                section_list = []
-                section_list.append(self.folder)
-                count = 1
-                while count < len(self.input_dict[section]):
+        output_list = []
+        for section in self.input_dict:
+            print("SECTION", section)
+            # self.extract_section_name(section)
+            count = 1
+            self.extract_per_section(section)
+            print("name", self.folder)
+            section_list = []
+            section_list.append(self.folder)
+
+            print(len(self.input_dict[section]))
+
+            while count < len(self.input_dict[section]):
+                self.get_file_type(section, count)
+                self.extract_per_value(count, section)
+                if self.get_file_type == "out":
+                    print("here out")
+                    # self.extract_section_name(section)
+                    f = open(self.file_path)
+
+                    while count < len(self.input_dict[section]):
+                        self.extract_per_value(count, section)
+                        for line in f:
+                            if self.value_name in line:
+                                print("Match found")
+                                return True
+                if self.file_type == "star":
+                    print("here star")
+                    # self.extract_per_value(count, section)
                     values_list = []
-
-                    # extract values from the input dictionary
-                    value_name = self.input_dict[section][count][0]
-                    file_name = self.input_dict[section][count][1]
-                    block_number = self.input_dict[section][count][2]
-                    loop_name = self.input_dict[section][count][3]
-
-                    # values_list.append(value_name)
-                    directory = str(self.relion_dir)
-                    folder_name = str(self.folder)
-                    self.file_path = Path(directory) / folder_name / file_name
-                    # Will need to add the job folder automatically as well somehow
-
+                    block_number = self.input_dict[section][count][3]
+                    loop_name = self.input_dict[section][count][4]
                     gemmi_readable_path = os.fspath(self.file_path)
                     self.star_doc = cif.read_file(gemmi_readable_path)
                     data_block = self.star_doc[block_number]
@@ -61,10 +91,9 @@ class FindData:
                     for x in values:
                         values_list.append(x)
                     if not values_list:
-                        print("Warning - no values found for", value_name)
-                    final_list = [value_name] + values_list
+                        print("Warning - no values found for", self.value_name)
+                    final_list = [self.value_name] + values_list
                     section_list.append(final_list)
-                    count += 1
-                output_list.append(section_list)
-            # pprint(output_list)
-            return output_list
+                    output_list.append(section_list)
+                count += 1
+        return output_list
