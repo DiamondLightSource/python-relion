@@ -39,47 +39,33 @@ class FindData:
         self.folder_string = str(self.folder)
 
     def extract_per_value(self, section, count):
-        self.file_name = self.input_dict[section][count][2]
-        print(self.file_name)
         self.value_name = self.input_dict[section][count][0]
+        self.file_name = self.input_dict[section][count][2]
         self.file_path = Path(self.directory) / self.folder_string / self.file_name
+        self.file_type = self.input_dict[section][count][1]
 
-    def extract_section_name(self, section):
-        self.folder = self.input_dict[section]["name"]
-
-    def get_file_type(self, section, count):
+    def set_file_type(self, section, count):
         self.file_type = self.input_dict[section][count][1]
 
     def get_data(self):
         output_list = []
         for section in self.input_dict:
-            print("SECTION", section)
-            # self.extract_section_name(section)
-            count = 1
             self.extract_per_section(section)
-            print("name", self.folder)
             section_list = []
             section_list.append(self.folder)
-
-            print(len(self.input_dict[section]))
-
+            count = 1
             while count < len(self.input_dict[section]):
-                self.get_file_type(section, count)
-                self.extract_per_value(count, section)
-                if self.get_file_type == "out":
-                    print("here out")
-                    # self.extract_section_name(section)
-                    f = open(self.file_path)
+                self.extract_per_value(section, count)
 
-                    while count < len(self.input_dict[section]):
-                        self.extract_per_value(count, section)
-                        for line in f:
-                            if self.value_name in line:
-                                print("Match found")
-                                return True
+                if self.file_type == "out":
+                    f = open(self.file_path)
+                    self.extract_per_value(count, section)
+                    for line in f:
+                        if self.value_name in line:
+                            print("Match found")
+                            return True
+
                 if self.file_type == "star":
-                    print("here star")
-                    # self.extract_per_value(count, section)
                     values_list = []
                     block_number = self.input_dict[section][count][3]
                     loop_name = self.input_dict[section][count][4]
@@ -87,13 +73,13 @@ class FindData:
                     self.star_doc = cif.read_file(gemmi_readable_path)
                     data_block = self.star_doc[block_number]
                     values = data_block.find_loop(loop_name)
-
                     for x in values:
                         values_list.append(x)
                     if not values_list:
                         print("Warning - no values found for", self.value_name)
                     final_list = [self.value_name] + values_list
                     section_list.append(final_list)
-                    output_list.append(section_list)
+
                 count += 1
+            output_list.append(section_list)
         return output_list
