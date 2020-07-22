@@ -44,9 +44,6 @@ class FindData:
         self.file_path = Path(self.directory) / self.folder_string / self.file_name
         self.file_type = self.input_dict[section][count][1]
 
-    def set_file_type(self, section, count):
-        self.file_type = self.input_dict[section][count][1]
-
     def get_data(self):
         output_list = []
         for section in self.input_dict:
@@ -58,28 +55,36 @@ class FindData:
                 self.extract_per_value(section, count)
 
                 if self.file_type == "out":
-                    f = open(self.file_path)
-                    self.extract_per_value(count, section)
-                    for line in f:
-                        if self.value_name in line:
-                            print("Match found")
-                            return True
+                    result = self.parse_out_file()
+                    return result
 
                 if self.file_type == "star":
-                    values_list = []
-                    block_number = self.input_dict[section][count][3]
-                    loop_name = self.input_dict[section][count][4]
-                    gemmi_readable_path = os.fspath(self.file_path)
-                    self.star_doc = cif.read_file(gemmi_readable_path)
-                    data_block = self.star_doc[block_number]
-                    values = data_block.find_loop(loop_name)
-                    for x in values:
-                        values_list.append(x)
-                    if not values_list:
-                        print("Warning - no values found for", self.value_name)
-                    final_list = [self.value_name] + values_list
-                    section_list.append(final_list)
+                    list = self.parse_star_file(section, count)
+                    section_list.append(list)
 
                 count += 1
             output_list.append(section_list)
         return output_list
+
+    def parse_star_file(self, section, count):
+        values_list = []
+        block_number = self.input_dict[section][count][3]
+        loop_name = self.input_dict[section][count][4]
+        gemmi_readable_path = os.fspath(self.file_path)
+        self.star_doc = cif.read_file(gemmi_readable_path)
+        data_block = self.star_doc[block_number]
+        values = data_block.find_loop(loop_name)
+        for x in values:
+            values_list.append(x)
+        if not values_list:
+            print("Warning - no values found for", self.value_name)
+        final_list = [self.value_name] + values_list
+        return final_list
+
+    def parse_out_file(self):  # section, count):
+        f = open(self.file_path)
+        for line in f:
+            if self.value_name in line:
+                print("Match found")
+                return True
+            # return a final list
