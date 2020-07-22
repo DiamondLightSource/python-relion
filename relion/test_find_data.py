@@ -101,10 +101,6 @@ def input_file_type_2():
     return "out"
 
 
-# Test that the result of FindData.get_data can be indexed - this is how the values will be accessed
-# To keep the generalness we won't refer directly to any value when accessing the data
-
-
 def test_total_motion_value(input_test_folder, input_test_dict_star):
     FDobject = FD.FindData(input_test_folder, input_test_dict_star)
     data = FDobject.get_data()
@@ -163,3 +159,9 @@ def test_fig_of_merit_value(input_test_folder, input_test_dict_star):
 def test_out_file_finds_string(input_test_folder_2, input_test_dict_out_file):
     FDobject = FD.FindData(input_test_folder_2, input_test_dict_out_file)
     assert FDobject.get_data() is True
+
+
+def test_output_is_serialisable(input_test_folder, input_test_dict_star):
+    FDobject = FD.FindData(input_test_folder, input_test_dict_star)
+    data = FDobject.get_data()
+    assert data == eval(repr(data))
