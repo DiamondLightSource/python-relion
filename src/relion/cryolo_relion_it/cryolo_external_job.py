@@ -183,10 +183,10 @@ def main():
     project_dir = os.getcwd()
     job_dir = known_args.out_dir
 
-    # pipeline_control_dir is probably the same as job_dir, and we should us job_dir if
-    # pipeline_control_dir is not given. Make the path absolute so success and failure
-    # indicator files are always written in the right place even if the working
-    # directory is changed.
+    # pipeline_control_dir is probably the same as job_dir, and we should use job_dir
+    # if pipeline_control_dir is not given. Make the path absolute (by joining it onto
+    # project_dir) so success and failure indicator files are always written in the
+    # right place even if the working directory is changed.
     pipeline_control_dir = (
         os.path.join(project_dir, known_args.pipeline_control)
         if known_args.pipeline_control is not None
