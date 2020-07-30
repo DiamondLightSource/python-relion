@@ -10,6 +10,11 @@ def input_test_dict_star():
 
 
 @pytest.fixture
+def input_test_dict_class():
+    return relion.input_dict.input_class_number
+
+
+@pytest.fixture
 def input_test_dict_out_file():
     return relion.input_dict.input_out
 
@@ -22,16 +27,6 @@ def input_test_folder(dials_data):
 @pytest.fixture
 def input_test_folder_2():
     return Path("/dls/m02/data/2020/bi27053-1/processing/Relion_nd/")
-
-
-@pytest.fixture
-def input_file_type():
-    return "star"
-
-
-@pytest.fixture
-def input_file_type_2():
-    return "out"
 
 
 def test_total_motion_value(input_test_folder, input_test_dict_star):
@@ -89,6 +84,18 @@ def test_fig_of_merit_value(input_test_folder, input_test_dict_star):
     assert data[1][6][1] == "0.131144"
 
 
+def test_2D_class_distribution_value(input_test_folder, input_test_dict_star):
+    FDobject = FD.FindData(input_test_folder, input_test_dict_star)
+    data = FDobject.get_data()
+    assert data[2][1][1] == "0.016487"
+
+
+def test_3D_class_distribution_value(input_test_folder, input_test_dict_star):
+    FDobject = FD.FindData(input_test_folder, input_test_dict_star)
+    data = FDobject.get_data()
+    assert data[3][1][1] == "0.055685"
+
+
 def test_out_file_finds_string(input_test_folder_2, input_test_dict_out_file):
     FDobject = FD.FindData(input_test_folder_2, input_test_dict_out_file)
     assert FDobject.get_data() is True
@@ -98,3 +105,9 @@ def test_output_is_serialisable(input_test_folder, input_test_dict_star):
     FDobject = FD.FindData(input_test_folder, input_test_dict_star)
     data = FDobject.get_data()
     assert data == eval(repr(data))
+
+
+def test_class_number(input_test_folder, input_test_dict_class):
+    FDobject = FD.FindData(input_test_folder, input_test_dict_class)
+    data = FDobject.get_data()
+    assert data[0][1][1] == "24"
