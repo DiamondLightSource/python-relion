@@ -97,13 +97,12 @@ class FindData:
         values = data_block.find_loop(loop_name)
         for x in values:
             values_list.append(x)
-            # if self.value_name == "class_number":
-            #    print('class number:', x, self.file_name)
             self.line_count += 1
         if not values_list:
             print("Warning - no values found for", self.value_name)
-
-        final_list = [self.value_name] + values_list
+        name_job_title = str(self.value_name + "/" + self.job_num)
+        line_entry = str(self.line_count) + " lines"
+        final_list = [name_job_title] + [line_entry] + values_list
         return final_list
 
     def parse_out_file(self):  # section, count):

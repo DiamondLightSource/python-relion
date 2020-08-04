@@ -47,3 +47,15 @@ input_out = {
 input_class_number = {
     1: {"name": "Class2D", 1: ["_rlnClassNumber", "rundata.star", 1,]}
 }
+
+input_2D_class = {
+    1: {
+        "name": "Class2D",
+        1: ["_rlnClassDistribution", "runmodel.star", 1,],
+        2: ["_rlnAccuracyRotations", "runmodel.star", 1,],
+        3: ["_rlnAccuracyTranslationsAngst", "runmodel.star", 1,],
+        4: ["_rlnEstimatedResolution", "runmodel.star", 1,],
+        5: ["_rlnOverallFourierCompleteness", "runmodel.star", 1,],
+        6: ["_rlnClassNumber", "rundata.star", 1,],
+    }
+}
