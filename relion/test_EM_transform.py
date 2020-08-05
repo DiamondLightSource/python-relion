@@ -9,7 +9,6 @@ def test_list():
         "Class2D",
         [
             "OverallFourierCompleteness/job013",
-            "50 lines",
             "0.984734",
             "0.942004",
             "0.736861",
@@ -19,7 +18,6 @@ def test_list():
         ],
         [
             "ClassNumber/job008",
-            "2 lines",
             "24",
             "4",
             "45",
@@ -34,7 +32,6 @@ def test_list():
         ],
         [
             "ClassNumber/job016",
-            "16 lines",
             "24",
             "6",
             "65",
@@ -75,5 +72,13 @@ def test_sort_by_particles(test_list):
 
 def test_sum_particles(test_list):
     em_object = EM.EMTransform(test_list)
-    total = em_object.sum_all_particles()
-    assert total == 28
+    sum_list = em_object.sum_all_particles_per_section()
+    assert sum_list[0][1] == 6
+    assert sum_list[1][1] == 11
+    assert sum_list[2][1] == 11
+
+
+def test_percentage(test_list):
+    em_object = EM.EMTransform(test_list)
+    data = em_object.group_by_class_number()
+    em_object.percent_all_particles_per_class(data)

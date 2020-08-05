@@ -3,7 +3,6 @@
 # 2D - percentage of particles in all data in each class
 # 2D - percentage of particles in all data in the 20 classes shown
 
-from pprint import pprint
 from collections import Counter
 
 
@@ -13,7 +12,6 @@ class EMTransform:
 
     def group_by_class_number(self):
         final_dict = {}
-        count = 1
         for x in self.data:
             dict = {}
             if "ClassNumber" in x[0]:
@@ -25,9 +23,7 @@ class EMTransform:
                         dict[key].append(i)
                     except ValueError:
                         pass
-
-                final_dict[count] = dict
-                count += 1
+                final_dict[x[0]] = dict
         return final_dict
 
     def show_class_num_and_particle_count(self, grouped_dict):
@@ -37,7 +33,6 @@ class EMTransform:
                 # print('Class number:', nest_key, 'Particle count', len(grouped_dict[key][nest_key]))
 
     def try_counter(self):
-        count = None
         for x in self.data:
             if "ClassNumber" in x[0]:
                 count = Counter(
@@ -48,35 +43,32 @@ class EMTransform:
     def sort_particles_per_class(self, grouped_dict):
         joined_list = []
         for key in grouped_dict:
-            print(key, grouped_dict[key])
             per_job_list = []
             for nest_key in grouped_dict[key]:
                 per_job_list.append([nest_key, len(grouped_dict[key][nest_key])])
                 per_job_list.sort(key=lambda x: x[1], reverse=True)
-            joined_list.append(per_job_list)
-        pprint(joined_list)
-        for item in joined_list:
-            for list in item:
-                print("Class:", list[0], "Num. particles:", list[1])
-            print("\n")
+            joined_list.append([key, per_job_list])
         return joined_list
 
-    def sum_all_particles(self):
-        count = 0
-        for x in self.data[
-            1:
-        ]:  # including the first element meant if it contains a number it will count it as a particle
-            for y in x:
-                try:
-                    float(
-                        y
-                    )  # should later add something to catch particles which have 'null' or 'n/a' as values
-                    print(y)
-                    count += 1
-                except ValueError:
-                    pass
-        # print(count)
-        return count
+    def sum_all_particles_per_section(self):
+        section_list = []
+        for x in self.data[1:]:
+            section_list.append([x[0], len(x[1:])])
+        return section_list
 
     def percent_all_particles_per_class(self, grouped_dict):
-        pass
+        per_class_list = self.sort_particles_per_class(grouped_dict)
+        per_section_list = self.sum_all_particles_per_section()
+
+        for item1 in per_class_list:
+            for item2 in per_section_list:
+                if item1[0] == item2[0]:
+                    for i in range(1, len(item1), 2):
+                        for list in item1[i]:
+                            print("Class:", list[0], "Num. particles:", list[1])
+                            percentage = (list[1] / item2[1]) * 100
+                            print(
+                                "Percent of data from job in this class:",
+                                round(percentage, 2),
+                            )
+                    print("\n")

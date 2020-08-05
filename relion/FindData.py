@@ -101,8 +101,7 @@ class FindData:
         if not values_list:
             print("Warning - no values found for", self.value_name)
         name_job_title = str(self.value_name + "/" + self.job_num)
-        line_entry = str(self.line_count) + " lines"
-        final_list = [name_job_title] + [line_entry] + values_list
+        final_list = [name_job_title] + values_list
         return final_list
 
     def parse_out_file(self):  # section, count):
