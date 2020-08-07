@@ -3,7 +3,9 @@ Relion Python API
 https://github.com/DiamondLightSource/python-relion
 """
 
+import functools
 import pathlib
+from relion._parser.ctffind import CTFFind
 
 __all__ = []
 __author__ = "Diamond Light Source - Scientific Software"
@@ -31,3 +33,8 @@ class Project:
 
     def __str__(self):
         return f"<relion.Project at {self.basepath}>"
+
+    @property
+    @functools.lru_cache(maxsize=1)
+    def ctffind(self):
+        return CTFFind(self.basepath / "CtfFind")
