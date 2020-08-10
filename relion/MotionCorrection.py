@@ -9,21 +9,21 @@ class MotionCorrection:
         self.directory = str(self.relion_dir)
         self.file_name = None
         self.job_num = ""
-        self.accum_motion_total = None
-        self.accum_motion_early = None
-        self.accum_motion_late = None
+        self.val_accum_motion_total = None
+        self.val_accum_motion_early = None
+        self.val_accum_motion_late = None
 
     @property
-    def get_accum_motion_total(self):
-        return self.accum_motion_total
+    def accum_motion_total(self):
+        return self.val_accum_motion_total
 
     @property
-    def get_accum_motion_late(self):
-        return self.accum_motion_late
+    def accum_motion_late(self):
+        return self.val_accum_motion_late
 
     @property
-    def get_accum_motion_early(self):
-        return self.accum_motion_early
+    def accum_motion_early(self):
+        return self.val_accum_motion_early
 
     def set_total_accum_motion(self):
         file_path = Path(self.directory) / "MotionCorr"
@@ -35,7 +35,7 @@ class MotionCorrection:
                 AMT_list = self.parse_star_file("_rlnAccumMotionTotal", 1)
                 list = [self.job_num] + AMT_list
             final_list.append(list)
-        self.accum_motion_total = final_list
+        self.val_accum_motion_total = final_list
 
     def set_late_accum_motion(self):
         file_path = Path(self.directory) / "MotionCorr"
@@ -47,7 +47,7 @@ class MotionCorrection:
                 AML_list = self.parse_star_file("_rlnAccumMotionLate", 1)
                 list = [self.job_num] + AML_list
             final_list.append(list)
-        self.accum_motion_late = final_list
+        self.val_accum_motion_late = final_list
 
     def set_early_accum_motion(self):
         file_path = Path(self.directory) / "MotionCorr"
@@ -59,7 +59,7 @@ class MotionCorrection:
                 AME_list = self.parse_star_file("_rlnAccumMotionEarly", 1)
                 list = [self.job_num] + AME_list
             final_list.append(list)
-        self.accum_motion_early = final_list
+        self.val_accum_motion_early = final_list
 
     def parse_star_file(self, loop_name, block_number):
         values_list = []
