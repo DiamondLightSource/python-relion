@@ -27,3 +27,9 @@ def test_early_motion(input_test_folder):
     mc_object.set_early_accum_motion()
     early_motion = mc_object.get_accum_motion_early()
     assert early_motion[0][1] == "2.506308"
+
+
+def test_invalid_loop_name(input_test_folder):
+    mc_object = MC.MotionCorrection(input_test_folder)
+    early_motion = mc_object.get_accum_motion_early()
+    assert early_motion is None
