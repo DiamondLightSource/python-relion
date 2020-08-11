@@ -4,6 +4,10 @@ import os
 import functools
 from collections import namedtuple
 
+MCMicrograph = namedtuple(
+    "MCMicrograph", ["total_motion", "early_motion", "late_motion"]
+)
+
 
 class MotionCorrection:
     def __init__(self, data_dir):
@@ -83,17 +87,11 @@ class MotionCorrection:
         early_motion_list,
         late_motion_list,
     ):  # *args):
-        final_dict = {}
-        MCMicrographs = namedtuple(
-            "Micrograph", ["Total_motion", "Early_motion", "Late_motion"]
-        )
-        for i in range(len(micrograph_name_list)):
-            p = MCMicrographs(
+        final_dict = {
+            name: MCMicrograph(
                 total_motion_list[i], early_motion_list[i], late_motion_list[i]
             )
-            final_dict[micrograph_name_list[i]] = {
-                p.Total_motion,
-                p.Early_motion,
-                p.Late_motion,
-            }
+            for i, name in enumerate(micrograph_name_list)
+        }
         print(final_dict)
+        return final_dict
