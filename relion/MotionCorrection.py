@@ -1,40 +1,97 @@
 from gemmi import cif
+from pathlib import Path
+import os
+import functools
+from collections import namedtuple
+
+MCMicrograph = namedtuple(
+    "MCMicrograph", ["total_motion", "early_motion", "late_motion"]
+)
 
 
 class MotionCorrection:
-    def __init__(self, file_path):
-        print("\nINIT")
-        self.doc = cif.read_file(file_path)
-        self.motion_vals = None
-        self.number_of_blocks = len(self.doc)
-        print("number of blocks = {}".format(self.number_of_blocks))
-        print("first block = {}".format(self.doc[0]))
-        print("second block = {}".format(self.doc[1]))
+    def __init__(self, data_dir):
+        self.relion_dir = data_dir
+        self.directory = str(self.relion_dir)
+        self.file_name = None
+        # self.job_num = ""
+        self.val_accum_motion_total = None
+        self.val_accum_motion_early = None
+        self.val_accum_motion_late = None
+        self.val_micrograph_name = None
 
-    def total_motion(self):
-        print("\nTOTAL MOTION")
-        micrographs_block = self.doc[1]
-        self.motion_vals = micrographs_block.find_loop("_rlnAccumMotionTotal")
-        for value in self.motion_vals:
-            print(value)
+    @property
+    def accum_motion_total(self):
+        return self.val_accum_motion_total
 
-        # testing if the loop columns can be indexed
-        print("first value = ", self.motion_vals[0])
-        return self.motion_vals[0]
+    @property
+    def accum_motion_late(self):
+        return self.val_accum_motion_late
 
-    # Currently unsure how this is supposed to be calculated - maybe (Early - Late)/2 ?
-    # Or all of the frames' motions averaged?
-    # Is it 'the average motion of a given frame' or 'the average of all the frames motions'?
+    @property
+    def accum_motion_early(self):
+        return self.val_accum_motion_early
 
-    def av_motion_per_frame(self):
-        print("\nAVERAGE MOTION")
-        sum_total_motion = 0
-        for value in self.motion_vals:
-            sum_total_motion += float(value)
-        print("total motion sum = ", sum_total_motion)
-        print("number of frames = ", len(self.motion_vals))
-        average = sum_total_motion / len(self.motion_vals)
-        print(
-            "average motion per frame (sum of all total motions divided by number of frames) = ",
-            average,
+    @property
+    def micrograph_name(self):
+        return self.val_micrograph_name
+
+    def set_total_accum_motion(self):
+        values = self.find_values("_rlnAccumMotionTotal")
+        self.val_accum_motion_total = values
+
+    def set_late_accum_motion(self):
+        values = self.find_values("_rlnAccumMotionLate")
+        self.val_accum_motion_late = values
+
+    def set_early_accum_motion(self):
+        values = self.find_values("_rlnAccumMotionEarly")
+        self.val_accum_motion_early = values
+
+    def set_micrograph_name(self):
+        values = self.find_values("_rlnMicrographName")
+        self.val_micrograph_name = values
+
+    def parse_star_file(self, loop_name, star_doc, block_number):
+        data_block = star_doc[block_number]
+        values = data_block.find_loop(loop_name)
+        values_list = list(values)
+        if not values_list:
+            print("Warning - no values found for", loop_name)
+        return values_list
+
+    def find_values(self, value):
+        file_path = Path(self.directory) / "MotionCorr"
+        final_list = []
+        for x in file_path.iterdir():
+            if "job" in x.name:
+                job = x.name
+                doc = self._read_star_file(job)
+                val_list = list(self.parse_star_file(value, doc, 1))
+                final_list.extend(val_list)
+        return final_list
+
+    @functools.lru_cache(maxsize=None)
+    def _read_star_file(self, job_num):
+        full_path = (
+            Path(self.directory) / "MotionCorr" / job_num / "corrected_micrographs.star"
         )
+        gemmi_readable_path = os.fspath(full_path)
+        star_doc = cif.read_file(gemmi_readable_path)
+        return star_doc
+
+    def construct_dict(
+        self,
+        micrograph_name_list,
+        total_motion_list,
+        early_motion_list,
+        late_motion_list,
+    ):  # *args):
+        final_dict = {
+            name: MCMicrograph(
+                total_motion_list[i], early_motion_list[i], late_motion_list[i]
+            )
+            for i, name in enumerate(micrograph_name_list)
+        }
+        print(final_dict)
+        return final_dict
