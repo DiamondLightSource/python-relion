@@ -12,9 +12,7 @@ MCMicrograph = namedtuple(
 
 class MotionCorr:
     def __init__(self, path):
-        print("path", path)
         self._basepath = path
-        print("basepath", self._basepath)
         self._jobcache = {}
 
     def __str__(self):
