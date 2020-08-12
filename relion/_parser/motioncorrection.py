@@ -83,9 +83,10 @@ class MotionCorr:
         for x in file_path.iterdir():
             if "job" in x.name:
                 job = x.name
-                doc = self._read_star_file(job)
-                val_list = list(self.parse_star_file(value, doc, 1))
-                final_list.extend(val_list)
+                if x not in self._jobcache:
+                    doc = self._read_star_file(job)
+                    val_list = list(self.parse_star_file(value, doc, 1))
+                    final_list.extend(val_list)
         return final_list
 
     @functools.lru_cache(maxsize=None)
