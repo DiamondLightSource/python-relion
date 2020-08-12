@@ -1,5 +1,5 @@
 import pathlib
-import relion.MotionCorrection as MotionCorrection
+import relion._parser.motioncorrection as MotionCorrection
 import pytest
 
 
