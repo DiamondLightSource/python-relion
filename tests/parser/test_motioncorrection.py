@@ -7,41 +7,42 @@ def input(dials_data):
     return relion.Project(dials_data("relion_tutorial_data")).motioncorrection
 
 
+@pytest.fixture
+def invalid_input(dials_data):
+    return relion.Project(dials_data("relion_tutorial_data"))
+
+
 def test_total_value(input):
     mc_object = input
-    # mc_object.set_total_accum_motion()
-    total_motion = mc_object.accum_motion_total
-    assert total_motion[0] == "16.420495"
+    assert mc_object.accum_motion_total[0] == "16.420495"
 
 
 def test_late_motion(input):
     mc_object = input
-    # mc_object.set_late_accum_motion()
-    late_motion = mc_object.accum_motion_late
-    assert late_motion[0] == "13.914187"
+    assert mc_object.accum_motion_late[0] == "13.914187"
 
 
 def test_early_motion(input):
     mc_object = input
-    # mc_object.set_early_accum_motion()
-    early_motion = mc_object.accum_motion_early
-    assert early_motion[0] == "2.506308"
+    assert mc_object.accum_motion_early[0] == "2.506308"
 
 
-def test_invalid_loop_name(input):
+def test_invalid_input(invalid_input):
+    mc_object = invalid_input
+    try:
+        early_motion = mc_object.accum_motion_early
+    except AttributeError:
+        early_motion = False
+    assert early_motion is False
+
+
+def test_all_keys_are_different(input):
     mc_object = input
-    early_motion = mc_object.accum_motion_early
-    assert early_motion is None
-
-
-def test_dict(input):
-    mc_object = input
-    # mc_object.set_early_accum_motion()
-    # mc_object.set_late_accum_motion()
-    # mc_object.set_total_accum_motion()
-    # mc_object.set_micrograph_name()
     early_motion = mc_object.accum_motion_early
     late_motion = mc_object.accum_motion_late
     total_motion = mc_object.accum_motion_total
     names = mc_object.micrograph_name
-    mc_object.construct_dict(names, total_motion, early_motion, late_motion)
+    mc_dict = mc_object.construct_dict(names, total_motion, early_motion, late_motion)
+    key_list = list(mc_dict.keys())
+    for i in range(1, len(key_list) - 1):
+        assert key_list[i] != key_list[i - 1]

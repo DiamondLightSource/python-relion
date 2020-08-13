@@ -59,7 +59,6 @@ class MotionCorr:
         return values_list
 
     def _find_values(self, value):
-        print(self._basepath)
         final_list = []
         for x in self._basepath.iterdir():
             if "job" in x.name:
@@ -90,5 +89,4 @@ class MotionCorr:
             )
             for i, name in enumerate(micrograph_name_list)
         }
-        print(final_dict)
         return final_dict

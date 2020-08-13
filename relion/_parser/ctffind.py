@@ -4,7 +4,15 @@ import functools
 from collections import namedtuple
 
 CTFMicrograph = namedtuple(
-    "CTFMicrograph", ["total_motion", "early_motion", "late_motion"]
+    "CTFMicrograph",
+    [
+        "astigmatism",
+        "defocus_u",
+        "defocus_v",
+        "defocus_angle",
+        "max_resolution",
+        "fig_of_merit",
+    ],
 )
 
 
@@ -56,6 +64,10 @@ class CTFFind:
     def fig_of_merit(self):
         return self._find_values("_rlnCtfFigureOfMerit")
 
+    @property
+    def micrograph_name(self):
+        return self._find_values("_rlnMicrographName")
+
     def parse_star_file(self, loop_name, star_doc, block_number):
         data_block = star_doc[block_number]
         values = data_block.find_loop(loop_name)
@@ -84,15 +96,22 @@ class CTFFind:
     def construct_dict(
         self,
         micrograph_name_list,
-        total_motion_list,
-        early_motion_list,
-        late_motion_list,
+        astigmatism_list,
+        defocus_u_list,
+        defocus_v_list,
+        defocus_angle_list,
+        max_res_list,
+        fig_of_merit_list,
     ):  # *args):
         final_dict = {
             name: CTFMicrograph(
-                total_motion_list[i], early_motion_list[i], late_motion_list[i]
+                astigmatism_list[i],
+                defocus_u_list[i],
+                defocus_v_list[i],
+                defocus_angle_list[i],
+                max_res_list[i],
+                fig_of_merit_list[i],
             )
             for i, name in enumerate(micrograph_name_list)
         }
-        print(final_dict)
         return final_dict
