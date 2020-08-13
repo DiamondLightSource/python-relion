@@ -114,11 +114,8 @@ class FindData:
 
     def find_last_iteration(self):
         file_list = list(self.file_path.glob("**/*.star"))
-        filename_list = []
-        for x in file_list:
-            filename_list.append(x.name)
+        filename_list = [x.name for x in file_list]
         for x in filename_list:
-
             if "run" in x:
                 if "data" or "model" in x:
                     if self.has_numbers(x):

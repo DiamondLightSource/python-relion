@@ -24,6 +24,7 @@ class EMTransform:
                     except ValueError:
                         pass
                 final_dict[x[0]] = dict
+        print(final_dict)
         return final_dict
 
     def show_class_num_and_particle_count(self, grouped_dict):
@@ -38,6 +39,7 @@ class EMTransform:
                 count = Counter(
                     x[2:]
                 )  # from second to end, to exclude the string values
+                print(count)
                 return count
 
     def sort_particles_per_class(self, grouped_dict):

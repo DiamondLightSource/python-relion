@@ -1,6 +1,5 @@
 from gemmi import cif
 
-# from pathlib import Path
 import os
 import functools
 from collections import namedtuple

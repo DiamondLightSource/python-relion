@@ -7,6 +7,7 @@ import functools
 import pathlib
 from relion._parser.ctffind import CTFFind
 from relion._parser.motioncorrection import MotionCorr
+from relion._parser.class2D import Class2D
 
 __all__ = []
 __author__ = "Diamond Light Source - Scientific Software"
@@ -44,3 +45,8 @@ class Project:
     @functools.lru_cache(maxsize=1)
     def motioncorrection(self):
         return MotionCorr(self.basepath / "MotionCorr")
+
+    @property
+    @functools.lru_cache(maxsize=1)
+    def class2D(self):
+        return Class2D(self.basepath / "Class2D")
