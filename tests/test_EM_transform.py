@@ -60,7 +60,6 @@ def test_particle_group_matching(test_list):
 
 def test_counter(test_list):
     em_object = EM.EMTransform(test_list)
-    # data = em_object.group_by_class_number()
     em_object.try_counter()
 
 
