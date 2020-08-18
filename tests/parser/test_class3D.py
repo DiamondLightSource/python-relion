@@ -9,12 +9,12 @@ def input(dials_data):
 
 def test_class_number(input):
     class3d_object = input
-    assert class3d_object.class_number[0] == "4"
+    assert class3d_object.class_number[0][0] == "4"
 
 
 def test_class_distribution(input):
     class3d_object = input
-    assert class3d_object.class_distribution[0] == "0.055685"
+    assert class3d_object.class_distribution[0][0] == "0.055685"
 
 
 def test_output_is_serialisable(input):
@@ -30,7 +30,9 @@ def test_all_keys_are_different(input):
     estimated_res = class3d_object.estimated_resolution
     overall_fourier = class3d_object.overall_fourier_completeness
     reference_image = class3d_object.reference_image
+    job_num = class3d_object.job_number
     class3d_dict = class3d_object.construct_dict(
+        job_num,
         reference_image,
         class_dist,
         accuracy_rot,
@@ -48,20 +50,26 @@ def test_all_keys_are_different(input):
 def test_counter(input):
     class3d_object = input
     class_numbers = class3d_object.class_number
-    class3d_object._count_all(class_numbers)
+    for i in range(len(class_numbers)):
+        class3d_object._count_all(class_numbers[i])
 
 
 def test_percentage(input):
-    class2d_object = input
-    class_numbers = class2d_object.class_number
-    percentage = class2d_object.percent_all_particles_per_class(class_numbers)
-    print("Percent of particles from all data in each class:", percentage)
+    class3d_object = input
+    class_numbers = class3d_object.class_number
+    job_numbers = class3d_object.job_number
+    percentage = None
+    for i in range(len(job_numbers)):
+        percentage = class3d_object.percent_all_particles_per_class(class_numbers[i])
+        print("Percent of particles from all data in each class:", percentage)
     assert percentage[0][1] == 83.86435625116452
     assert round(sum(x[1] for x in percentage), 10) == 100
 
 
 def test_sum_all(input):
-    class2d_object = input
-    class_numbers = class2d_object.class_number
-    total = class2d_object._sum_all_particles(class_numbers)
-    assert total == 5367
+    class3d_object = input
+    class_numbers = class3d_object.class_number
+    total = []
+    for i in range(len(class_numbers)):
+        total.append(class3d_object._sum_all_particles(class_numbers[i]))
+    assert sum(total) == 5367
