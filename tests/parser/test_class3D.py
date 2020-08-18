@@ -30,7 +30,7 @@ def test_all_keys_are_different(input):
     estimated_res = class3d_object.estimated_resolution
     overall_fourier = class3d_object.overall_fourier_completeness
     reference_image = class3d_object.reference_image
-    class2d_dict = class3d_object.construct_dict(
+    class3d_dict = class3d_object.construct_dict(
         reference_image,
         class_dist,
         accuracy_rot,
@@ -40,7 +40,7 @@ def test_all_keys_are_different(input):
     )
 
     # print(class3d_dict)
-    key_list = list(class2d_dict.keys())
+    key_list = list(class3d_dict.keys())
     for i in range(1, len(key_list) - 1):
         assert key_list[i] != key_list[i - 1]
 
