@@ -6,6 +6,7 @@ https://github.com/DiamondLightSource/python-relion
 import functools
 import pathlib
 from relion._parser.ctffind import CTFFind
+from relion._parser.motioncorrection import MotionCorr
 
 __all__ = []
 __author__ = "Diamond Light Source - Scientific Software"
@@ -38,3 +39,8 @@ class Project:
     @functools.lru_cache(maxsize=1)
     def ctffind(self):
         return CTFFind(self.basepath / "CtfFind")
+
+    @property
+    @functools.lru_cache(maxsize=1)
+    def motioncorrection(self):
+        return MotionCorr(self.basepath / "MotionCorr")

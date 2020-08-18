@@ -1,28 +1,22 @@
 from gemmi import cif
+
+# from pathlib import Path
 import os
 import functools
 from collections import namedtuple
 
-CTFMicrograph = namedtuple(
-    "CTFMicrograph",
-    [
-        "astigmatism",
-        "defocus_u",
-        "defocus_v",
-        "defocus_angle",
-        "max_resolution",
-        "fig_of_merit",
-    ],
+MCMicrograph = namedtuple(
+    "MCMicrograph", ["total_motion", "early_motion", "late_motion"]
 )
 
 
-class CTFFind:
+class MotionCorr:
     def __init__(self, path):
         self._basepath = path
         self._jobcache = {}
 
     def __str__(self):
-        return f"I'm a CTFFind instance at {self._basepath}"
+        return f"I'm a MotionCorr instance at {self._basepath}"
 
     @property
     def jobs(self):
@@ -41,28 +35,16 @@ class CTFFind:
         return self._jobcache[key]
 
     @property
-    def astigmatism(self):
-        return self._find_values("_rlnCtfAstigmatism")
+    def accum_motion_total(self):
+        return self._find_values("_rlnAccumMotionTotal")
 
     @property
-    def defocus_u(self):
-        return self._find_values("_rlnDefocusU")
+    def accum_motion_late(self):
+        return self._find_values("_rlnAccumMotionLate")
 
     @property
-    def defocus_v(self):
-        return self._find_values("_rlnDefocusV")
-
-    @property
-    def defocus_angle(self):
-        return self._find_values("_rlnDefocusAngle")
-
-    @property
-    def max_resolution(self):
-        return self._find_values("_rlnCtfMaxResolution")
-
-    @property
-    def fig_of_merit(self):
-        return self._find_values("_rlnCtfFigureOfMerit")
+    def accum_motion_early(self):
+        return self._find_values("_rlnAccumMotionEarly")
 
     @property
     def micrograph_name(self):
@@ -81,14 +63,15 @@ class CTFFind:
         for x in self._basepath.iterdir():
             if "job" in x.name:
                 job = x.name
-                doc = self._read_star_file(job)
-                val_list = list(self.parse_star_file(value, doc, 1))
-                final_list.extend(val_list)
+                if x.name not in self._jobcache:
+                    doc = self._read_star_file(job)
+                    val_list = list(self.parse_star_file(value, doc, 1))
+                    final_list.extend(val_list)
         return final_list
 
     @functools.lru_cache(maxsize=None)
     def _read_star_file(self, job_num):
-        full_path = self._basepath / job_num / "micrographs_ctf.star"
+        full_path = self._basepath / job_num / "corrected_micrographs.star"
         gemmi_readable_path = os.fspath(full_path)
         star_doc = cif.read_file(gemmi_readable_path)
         return star_doc
@@ -96,21 +79,13 @@ class CTFFind:
     def construct_dict(
         self,
         micrograph_name_list,
-        astigmatism_list,
-        defocus_u_list,
-        defocus_v_list,
-        defocus_angle_list,
-        max_res_list,
-        fig_of_merit_list,
+        total_motion_list,
+        early_motion_list,
+        late_motion_list,
     ):  # *args):
         final_dict = {
-            name: CTFMicrograph(
-                astigmatism_list[i],
-                defocus_u_list[i],
-                defocus_v_list[i],
-                defocus_angle_list[i],
-                max_res_list[i],
-                fig_of_merit_list[i],
+            name: MCMicrograph(
+                total_motion_list[i], early_motion_list[i], late_motion_list[i]
             )
             for i, name in enumerate(micrograph_name_list)
         }
