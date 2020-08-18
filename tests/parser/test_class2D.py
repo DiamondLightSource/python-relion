@@ -47,6 +47,7 @@ def test_all_keys_are_different(input):
         overall_fourier,
     )
 
+    # print(class2d_dict)
     key_list = list(class2d_dict.keys())
     for i in range(1, len(key_list) - 1):
         assert key_list[i] != key_list[i - 1]
