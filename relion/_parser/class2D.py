@@ -7,6 +7,7 @@ from collections import Counter
 Class2DMicrograph = namedtuple(
     "Class2DMicrograph",
     [
+        "reference_image",
         "class_distribution",
         "accuracy_rotations",
         "accuracy_translations_angst",
@@ -39,6 +40,11 @@ class Class2D:
                 )
             self._jobcache[key] = job_path
         return self._jobcache[key]
+
+    @property
+    def job_number(self):
+        jobs = [x.name for x in self._basepath.iterdir()]
+        return jobs
 
     @property
     def class_number(self):
@@ -77,11 +83,12 @@ class Class2D:
         for x in self._basepath.iterdir():
             if "job" in x.name:
                 job = x.name
+                val_list = []
                 if x.name not in self._jobcache:
                     file = self.find_last_iteration(data_or_model)
                     doc = self._read_star_file(job, file)
                     val_list = list(self.parse_star_file(value, doc, 1))
-                    final_list.extend(val_list)
+                final_list.append(val_list)
         return final_list
 
     def find_last_iteration(self, type):
@@ -129,6 +136,7 @@ class Class2D:
 
     def construct_dict(
         self,
+        job_nums,
         ref_image_list,
         class_dist_list,
         accuracy_rotation_list,
@@ -136,16 +144,23 @@ class Class2D:
         estimated_res_list,
         overall_fourier_list,
     ):  # *args):
-        final_dict = {
-            name: Class2DMicrograph(
-                class_dist_list[i],
-                accuracy_rotation_list[i],
-                accuracy_translation_list[i],
-                estimated_res_list[i],
-                overall_fourier_list[i],
-            )
-            for i, name in enumerate(ref_image_list)
-        }
+        final_dict = {}
+        for j in range(len(job_nums)):
+            micrographs_list = []
+            for i in range(len(ref_image_list)):
+                micrographs_list.append(
+                    [
+                        Class2DMicrograph(
+                            ref_image_list[i],
+                            class_dist_list[i],
+                            accuracy_rotation_list[i],
+                            accuracy_translation_list[i],
+                            estimated_res_list[i],
+                            overall_fourier_list[i],
+                        )
+                    ]
+                )
+            final_dict = {job_nums[j]: micrographs_list}
         return final_dict
 
     def _count_all(self, list):
@@ -182,3 +197,6 @@ class Class2D:
         for x in top_twenty:
             percent_list.append(((x[0], (x[1] / sum_top_twenty_particles) * 100)))
         return percent_list
+
+    def separate_jobs(self):
+        pass
