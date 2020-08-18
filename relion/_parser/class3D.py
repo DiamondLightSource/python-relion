@@ -7,7 +7,8 @@ from collections import Counter
 Class3DMicrograph = namedtuple(
     "Class3DMicrograph",
     [
-        "reference_image" "class_distribution",
+        "reference_image",
+        "class_distribution",
         "accuracy_rotations",
         "accuracy_translations_angst",
         "estimated_resolution",
@@ -144,21 +145,22 @@ class Class3D:
         overall_fourier_list,
     ):  # *args):
         final_dict = {}
-        for j in range(len(job_nums)):
+        for i in range(len(job_nums)):
             micrographs_list = []
-            for i in range(len(ref_image_list)):
+            for j in range(len(ref_image_list[i])):
                 micrographs_list.append(
                     [
                         Class3DMicrograph(
-                            class_dist_list[i],
-                            accuracy_rotation_list[i],
-                            accuracy_translation_list[i],
-                            estimated_res_list[i],
-                            overall_fourier_list[i],
+                            ref_image_list[i][j],
+                            class_dist_list[i][j],
+                            accuracy_rotation_list[i][j],
+                            accuracy_translation_list[i][j],
+                            estimated_res_list[i][j],
+                            overall_fourier_list[i][j],
                         )
                     ]
                 )
-            final_dict = {job_nums[j]: micrographs_list}
+            final_dict[job_nums[i]] = micrographs_list
         return final_dict
 
     def _count_all(self, list):
