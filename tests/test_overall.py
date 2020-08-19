@@ -29,8 +29,11 @@ def test_motion_correction_stage(mc_input):
     early_motion = mc_object.accum_motion_early
     late_motion = mc_object.accum_motion_late
     total_motion = mc_object.accum_motion_total
+    jobs = mc_object.job_number
     names = mc_object.micrograph_name
-    mc_dict = mc_object.construct_dict(names, total_motion, early_motion, late_motion)
+    mc_dict = mc_object.construct_dict(
+        jobs, names, total_motion, early_motion, late_motion
+    )
     pprint(mc_dict)
 
 
@@ -44,8 +47,16 @@ def test_ctf_find_stage(ctf_input):
     max_res = ctf_object.max_resolution
     fig_of_merit = ctf_object.fig_of_merit
     names = ctf_object.micrograph_name
+    jobs = ctf_object.job_number
     ctf_dict = ctf_object.construct_dict(
-        names, astigmatism, defocus_u, defocus_v, defocus_angle, max_res, fig_of_merit
+        jobs,
+        names,
+        astigmatism,
+        defocus_u,
+        defocus_v,
+        defocus_angle,
+        max_res,
+        fig_of_merit,
     )
     pprint(ctf_dict)
 
