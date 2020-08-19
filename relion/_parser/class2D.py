@@ -46,7 +46,7 @@ class Class2D(collections.abc.Mapping):
                 raise KeyError(
                     f"no job directory present for {key} in {self._basepath}"
                 )
-            self._jobcache[key] = job_path
+            self._jobcache[key] = self._load_job_directory(key)
         return self._jobcache[key]
 
     @property
@@ -98,6 +98,45 @@ class Class2D(collections.abc.Mapping):
                     val_list = list(self.parse_star_file(value, doc, 1))
                 final_list.append(val_list)
         return final_list
+
+    def _load_job_directory(self, jobdir):
+        # these are independent of jobdir, ie. this is a bug
+        dfile = self.find_last_iteration("data")
+        mfile = self.find_last_iteration("model")
+        print(dfile, mfile)
+
+        sdfile = self._read_star_file(jobdir, dfile)
+        smfile = self._read_star_file(jobdir, mfile)
+        print(sdfile, smfile)
+
+        class_distribution = self.parse_star_file("_rlnClassDistribution", smfile, 1)
+        accuracy_rotations = self.parse_star_file("_rlnAccuracyRotations", smfile, 1)
+        accuracy_translations_angst = self.parse_star_file(
+            "_rlnAccuracyTranslationsAngst", smfile, 1
+        )
+        estimated_resolution = self.parse_star_file(
+            "_rlnEstimatedResolution", smfile, 1
+        )
+        overall_fourier_completeness = self.parse_star_file(
+            "_rlnOverallFourierCompleteness", smfile, 1
+        )
+        reference_image = self.parse_star_file("_rlnReferenceImage", smfile, 1)
+
+        micrographs_list = []
+        for j in range(len(reference_image)):
+            micrographs_list.append(
+                [
+                    Class2DMicrograph(
+                        reference_image[j],
+                        class_distribution[j],
+                        accuracy_rotations[j],
+                        accuracy_translations_angst[j],
+                        estimated_resolution[j],
+                        overall_fourier_completeness[j],
+                    )
+                ]
+            )
+        return micrographs_list
 
     def find_last_iteration(self, type):
         file_list = list(self._basepath.glob("**/*.star"))

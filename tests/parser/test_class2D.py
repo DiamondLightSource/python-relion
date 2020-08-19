@@ -30,6 +30,15 @@ def test_class2d_behaves_like_a_dictionary(class2d):
     assert list(dc.values()) == list(class2d.values())
 
 
+def test_class2d_dictionary_is_identical_to_construct_dict(class2d):
+    original_class2d_dict = class2d.construct_dict()
+    assert list(original_class2d_dict) == list(class2d)
+    from pprint import pprint
+
+    pprint(dict(class2d))
+    assert dict(original_class2d_dict) == dict(class2d)
+
+
 def test_job_num(input):
     class2d_object = input
     assert class2d_object.job_number[0] == "job008"
