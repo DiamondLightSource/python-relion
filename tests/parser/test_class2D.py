@@ -103,9 +103,7 @@ def test_twenty_sum(input):
 def test_sum_all(input):
     class2d_object = input
     class_numbers = class2d_object.class_number
-    total = []
-    for i in range(len(class_numbers)):
-        total.append(class2d_object._sum_all_particles(class_numbers[i]))
+    total = [class2d_object._sum_all_particles(class) for class in class_numbers.values()]
     assert sum(total) == 10640
 
 
