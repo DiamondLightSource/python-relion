@@ -1,9 +1,10 @@
-from gemmi import cif
+import collections.abc
 import os
 import functools
 from collections import namedtuple
 from collections import Counter
 
+from gemmi import cif
 
 Class2DMicrograph = namedtuple(
     "Class2DMicrograph",
@@ -18,10 +19,16 @@ Class2DMicrograph = namedtuple(
 )
 
 
-class Class2D:
+class Class2D(collections.abc.Mapping):
     def __init__(self, path):
         self._basepath = path
         self._jobcache = {}
+
+    def __iter__(self):
+        return (x.name for x in self._basepath.iterdir())
+
+    def __len__(self):
+        return len(self._basepath.iterdir())
 
     def __str__(self):
         return f"I'm a Class2D instance at {self._basepath}"
