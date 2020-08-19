@@ -47,13 +47,6 @@ def test_all_keys_are_different(input):
         assert key_list[i] != key_list[i - 1]
 
 
-def test_counter(input):
-    class3d_object = input
-    class_numbers = class3d_object.class_number
-    for i in range(len(class_numbers)):
-        class3d_object._count_all(class_numbers[i])
-
-
 def test_percentage(input):
     class3d_object = input
     class_numbers = class3d_object.class_number
@@ -62,8 +55,8 @@ def test_percentage(input):
     for i in range(len(job_numbers)):
         percentage = class3d_object.percent_all_particles_per_class(class_numbers[i])
         print("Percent of particles from all data in each class:", percentage)
-    assert percentage[0][1] == 83.86435625116452
-    assert round(sum(x[1] for x in percentage), 10) == 100
+    assert percentage[0][1] == pytest.approx(83.8643)
+    assert sum(x[1] for x in percentage) == pytest.approx(100)
 
 
 def test_sum_all(input):

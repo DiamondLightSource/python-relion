@@ -53,13 +53,6 @@ def test_all_keys_are_different(input):
         assert key_list[i] != key_list[i - 1]
 
 
-def test_counter(input):
-    class2d_object = input
-    class_numbers = class2d_object.class_number
-    for i in range(len(class_numbers)):
-        class2d_object._count_all(class_numbers[i])
-
-
 def test_percentage(input):
     class2d_object = input
     class_numbers = class2d_object.class_number
@@ -117,10 +110,9 @@ def test_percentage_top_twenty_each(input):
         for i in range(len(class_numbers))
     ]
 
-    for i in range(len(class_numbers)):
+    for p in percentages_of_twenty:
         print(
-            "Percent of the particles from the top twenty classes in each class:",
-            percentages_of_twenty[i],
+            "Percent of the particles from the top twenty classes in each class:", p,
         )
     assert round(sum(x[1] for x in percentages_of_twenty[0]), 10) == 100
     assert round(sum(x[1] for x in percentages_of_twenty[1]), 10) == 100
