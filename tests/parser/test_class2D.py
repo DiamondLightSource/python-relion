@@ -68,15 +68,15 @@ def test_percentage(input):
             sum(x[1] for x in percentage),
             "%",
         )
-    assert percentage[0][1] == 19.9430499894537
+    assert percentage[0][1] == pytest.approx(19.94305)
 
 
 def test_top_twenty_list(input):
     class2d_object = input
     class_numbers = class2d_object.class_number
     twenty_list = []
-    for i in range(len(class_numbers)):
-        twenty_list = class2d_object.top_twenty_most_populated(class_numbers[i])
+    for class in class_numbers.values():
+        twenty_list = class2d_object.top_twenty_most_populated(class)
         print("20 most populated classes:", twenty_list)
     assert len(twenty_list) == 20
     assert twenty_list[0][0] == "16"  # this is the second list
@@ -96,9 +96,7 @@ def test_twenty_sum(input):
 def test_sum_all(input):
     class2d_object = input
     class_numbers = class2d_object.class_number
-    total = []
-    for i in range(len(class_numbers)):
-        total.append(class2d_object._sum_all_particles(class_numbers[i]))
+    total = [class2d_object._sum_all_particles(class) for class in class_numbers.values()]
     assert sum(total) == 10640
 
 
