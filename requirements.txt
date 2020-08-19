@@ -1,1 +1,1 @@
-gemmi==0.4.0.post1
+gemmi==0.4.1
