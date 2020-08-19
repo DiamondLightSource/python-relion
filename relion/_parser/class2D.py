@@ -20,6 +20,14 @@ Class2DMicrograph = namedtuple(
 
 
 class Class2D(collections.abc.Mapping):
+    def __eq__(self, other):
+        if isinstance(other, Class2D):
+            return self._basepath == other._basepath
+        return False
+
+    def __hash__(self):
+        return hash(("relion._parser.Class2D", self._basepath))
+
     def __init__(self, path):
         self._basepath = path
         self._jobcache = {}
@@ -30,8 +38,11 @@ class Class2D(collections.abc.Mapping):
     def __len__(self):
         return len(self._basepath.iterdir())
 
+    def __repr__(self):
+        return f"Class2D({repr(str(self._basepath))})"
+
     def __str__(self):
-        return f"I'm a Class2D instance at {self._basepath}"
+        return f"<Class2D parser at {self._basepath}>"
 
     @property
     def jobs(self):
