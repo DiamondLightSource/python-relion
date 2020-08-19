@@ -60,43 +60,6 @@ class Class2D(collections.abc.Mapping):
             self._jobcache[key] = self._load_job_directory(key)
         return self._jobcache[key]
 
-    @property
-    def job_number(self):
-        jobs = sorted(x.name for x in self._basepath.iterdir())
-        return jobs
-
-    @property
-    def class_number(self):
-        return self._find_values("_rlnClassNumber", "data")
-
-    @property
-    def class_distribution(self):
-        return self._find_values("_rlnClassDistribution", "model")
-
-    @property
-    def accuracy_rotations(self):
-        return self._find_values("_rlnAccuracyRotations", "model")
-
-    @property
-    def accuracy_translations_angst(self):
-        return self._find_values("_rlnAccuracyTranslationsAngst", "model")
-
-    @property
-    def estimated_resolution(self):
-        return self._find_values("_rlnEstimatedResolution", "model")
-
-    @property
-    def overall_fourier_completeness(self):
-        return self._find_values("_rlnOverallFourierCompleteness", "model")
-
-    @property
-    def micrograph_name(self):
-        return self._find_values("_rlnMicrographName", "data")
-
-    @property
-    def reference_image(self):
-        return self._find_values("_rlnReferenceImage", "model")
-
     def _find_values(self, value, data_or_model):
         final_list = []
         for x in self._basepath.iterdir():
@@ -116,9 +79,9 @@ class Class2D(collections.abc.Mapping):
         mfile = self.find_last_iteration("model")
         print(dfile, mfile)
 
-        sdfile = self._read_star_file(jobdir, dfile)
+        # sdfile = self._read_star_file(jobdir, dfile)
         smfile = self._read_star_file(jobdir, mfile)
-        print(sdfile, smfile)
+        print(smfile)
 
         class_distribution = self.parse_star_file("_rlnClassDistribution", smfile, 1)
         accuracy_rotations = self.parse_star_file("_rlnAccuracyRotations", smfile, 1)
@@ -191,26 +154,6 @@ class Class2D(collections.abc.Mapping):
 
     def has_numbers(self, input_string):
         return any(char.isdigit() for char in input_string)
-
-    def construct_dict(self):  # *args):
-        final_dict = {}
-        for i in range(len(self.job_number)):
-            micrographs_list = []
-            for j in range(len(self.reference_image[i])):
-                micrographs_list.append(
-                    [
-                        Class2DMicrograph(
-                            self.reference_image[i][j],
-                            self.class_distribution[i][j],
-                            self.accuracy_rotations[i][j],
-                            self.accuracy_translations_angst[i][j],
-                            self.estimated_resolution[i][j],
-                            self.overall_fourier_completeness[i][j],
-                        )
-                    ]
-                )
-            final_dict[self.job_number[i]] = micrographs_list
-        return final_dict
 
     def _count_all(self, list):
         count = Counter(list)
