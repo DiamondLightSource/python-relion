@@ -6,6 +6,7 @@ from collections import namedtuple
 CTFMicrograph = namedtuple(
     "CTFMicrograph",
     [
+        "micrograph_name",
         "astigmatism",
         "defocus_u",
         "defocus_v",
@@ -39,6 +40,11 @@ class CTFFind:
                 )
             self._jobcache[key] = job_path
         return self._jobcache[key]
+
+    @property
+    def job_number(self):
+        jobs = [x.name for x in self._basepath.iterdir()]
+        return jobs
 
     @property
     def astigmatism(self):
@@ -83,7 +89,7 @@ class CTFFind:
                 job = x.name
                 doc = self._read_star_file(job)
                 val_list = list(self.parse_star_file(value, doc, 1))
-                final_list.extend(val_list)
+                final_list.append(val_list)
         return final_list
 
     @functools.lru_cache(maxsize=None)
@@ -95,6 +101,7 @@ class CTFFind:
 
     def construct_dict(
         self,
+        job_nums,
         micrograph_name_list,
         astigmatism_list,
         defocus_u_list,
@@ -103,15 +110,22 @@ class CTFFind:
         max_res_list,
         fig_of_merit_list,
     ):  # *args):
-        final_dict = {
-            name: CTFMicrograph(
-                astigmatism_list[i],
-                defocus_u_list[i],
-                defocus_v_list[i],
-                defocus_angle_list[i],
-                max_res_list[i],
-                fig_of_merit_list[i],
-            )
-            for i, name in enumerate(micrograph_name_list)
-        }
+        final_dict = {}
+        for i in range(len(job_nums)):
+            micrographs_list = []
+            for j in range(len(micrograph_name_list[i])):
+                micrographs_list.append(
+                    [
+                        CTFMicrograph(
+                            micrograph_name_list[i][j],
+                            astigmatism_list[i][j],
+                            defocus_u_list[i][j],
+                            defocus_v_list[i][j],
+                            defocus_angle_list[i][j],
+                            max_res_list[i][j],
+                            fig_of_merit_list[i][j],
+                        )
+                    ]
+                )
+            final_dict[job_nums[i]] = micrographs_list
         return final_dict

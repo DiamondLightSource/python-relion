@@ -5,7 +5,7 @@ import functools
 from collections import namedtuple
 
 MCMicrograph = namedtuple(
-    "MCMicrograph", ["total_motion", "early_motion", "late_motion"]
+    "MCMicrograph", ["micrograph_name", "total_motion", "early_motion", "late_motion"]
 )
 
 
@@ -32,6 +32,11 @@ class MotionCorr:
                 )
             self._jobcache[key] = job_path
         return self._jobcache[key]
+
+    @property
+    def job_number(self):
+        jobs = [x.name for x in self._basepath.iterdir()]
+        return jobs
 
     @property
     def accum_motion_total(self):
@@ -65,7 +70,7 @@ class MotionCorr:
                 if x.name not in self._jobcache:
                     doc = self._read_star_file(job)
                     val_list = list(self.parse_star_file(value, doc, 1))
-                    final_list.extend(val_list)
+                    final_list.append(val_list)
         return final_list
 
     @functools.lru_cache(maxsize=None)
@@ -77,15 +82,25 @@ class MotionCorr:
 
     def construct_dict(
         self,
+        job_nums,
         micrograph_name_list,
         total_motion_list,
         early_motion_list,
         late_motion_list,
     ):  # *args):
-        final_dict = {
-            name: MCMicrograph(
-                total_motion_list[i], early_motion_list[i], late_motion_list[i]
-            )
-            for i, name in enumerate(micrograph_name_list)
-        }
+        final_dict = {}
+        for i in range(len(job_nums)):
+            micrographs_list = []
+            for j in range(len(micrograph_name_list[i])):
+                micrographs_list.append(
+                    [
+                        MCMicrograph(
+                            micrograph_name_list[i][j],
+                            total_motion_list[i][j],
+                            early_motion_list[i][j],
+                            late_motion_list[i][j],
+                        )
+                    ]
+                )
+            final_dict[job_nums[i]] = micrographs_list
         return final_dict

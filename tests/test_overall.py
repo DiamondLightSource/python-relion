@@ -29,8 +29,12 @@ def test_motion_correction_stage(mc_input):
     early_motion = mc_object.accum_motion_early
     late_motion = mc_object.accum_motion_late
     total_motion = mc_object.accum_motion_total
+    jobs = mc_object.job_number
     names = mc_object.micrograph_name
-    mc_dict = mc_object.construct_dict(names, total_motion, early_motion, late_motion)
+    mc_dict = mc_object.construct_dict(
+        jobs, names, total_motion, early_motion, late_motion
+    )
+
     pprint(mc_dict)
 
 
@@ -44,8 +48,17 @@ def test_ctf_find_stage(ctf_input):
     max_res = ctf_object.max_resolution
     fig_of_merit = ctf_object.fig_of_merit
     names = ctf_object.micrograph_name
+    jobs = ctf_object.job_number
     ctf_dict = ctf_object.construct_dict(
-        names, astigmatism, defocus_u, defocus_v, defocus_angle, max_res, fig_of_merit
+        jobs,
+        names,
+        astigmatism,
+        defocus_u,
+        defocus_v,
+        defocus_angle,
+        max_res,
+        fig_of_merit,
+
     )
     pprint(ctf_dict)
 
@@ -85,6 +98,7 @@ def test_class_2d_stage(class2d_input):
     # overall_fourier_20 = [overall_fourier[int(item) - 1] for item in twenty_class_nums]
     # reference_image_20 = [reference_image[int(item) - 1] for item in twenty_class_nums]
 
+
     # print('ref', reference_image)
     # print(reference_image[96])
     # print('ref20', reference_image_20)
@@ -100,6 +114,7 @@ def test_class_2d_stage(class2d_input):
     # )
     class2d_dict = class2d_object.construct_dict(
         job_nums,
+
         reference_image,
         class_dist,
         accuracy_rot,
@@ -109,6 +124,7 @@ def test_class_2d_stage(class2d_input):
     )
     pprint(class2d_dict)
     # print(class2d_dict_20)
+
 
 
 def test_class_3d_stage(class3d_input):
@@ -124,6 +140,7 @@ def test_class_3d_stage(class3d_input):
     job_nums = class3d_object.job_number
     class3d_dict = class3d_object.construct_dict(
         job_nums,
+
         reference_image,
         class_dist,
         accuracy_rot,
