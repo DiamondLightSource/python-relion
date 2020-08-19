@@ -75,7 +75,7 @@ def test_percentage(input):
             sum(x[1] for x in percentage),
             "%",
         )
-    assert percentage[0][1] == 19.9430499894537
+    assert percentage[0][1] == pytest.approx(19.94305)
 
 
 def test_top_twenty_list(input):
