@@ -6,7 +6,7 @@ def test_basic_Project_object_behaviour(tmp_path):
     rp1 = relion.Project(tmp_path)
     assert rp1
     assert str(tmp_path) in str(rp1)
-    assert str(tmp_path) in repr(rp1)
+    assert tmp_path.name in repr(rp1)
 
     rp2 = relion.Project(str(tmp_path))
     assert rp2
