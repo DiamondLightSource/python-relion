@@ -43,7 +43,7 @@ class Class2D:
 
     @property
     def job_number(self):
-        jobs = [x.name for x in self._basepath.iterdir()]
+        jobs = sorted([x.name for x in self._basepath.iterdir()])
         return jobs
 
     @property

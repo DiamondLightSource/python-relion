@@ -75,7 +75,7 @@ def test_top_twenty_list(input):
     class2d_object = input
     class_numbers = class2d_object.class_number
     twenty_list = []
-    for class_item in class_numbers.values():
+    for class_item in class_numbers:
         twenty_list = class2d_object.top_twenty_most_populated(class_item)
         print("20 most populated classes:", twenty_list)
     assert len(twenty_list) == 20
@@ -97,8 +97,7 @@ def test_sum_all(input):
     class2d_object = input
     class_numbers = class2d_object.class_number
     total = [
-        class2d_object._sum_all_particles(class_item)
-        for class_item in class_numbers.values()
+        class2d_object._sum_all_particles(class_item) for class_item in class_numbers
     ]
     assert sum(total) == 10640
 
