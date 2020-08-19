@@ -4,6 +4,7 @@ import functools
 from collections import namedtuple
 from collections import Counter
 
+
 Class2DMicrograph = namedtuple(
     "Class2DMicrograph",
     [
@@ -134,33 +135,24 @@ class Class2D:
     def has_numbers(self, input_string):
         return any(char.isdigit() for char in input_string)
 
-    def construct_dict(
-        self,
-        job_nums,
-        ref_image_list,
-        class_dist_list,
-        accuracy_rotation_list,
-        accuracy_translation_list,
-        estimated_res_list,
-        overall_fourier_list,
-    ):  # *args):
+    def construct_dict(self):  # *args):
         final_dict = {}
-        for i in range(len(job_nums)):
+        for i in range(len(self.job_number)):
             micrographs_list = []
-            for j in range(len(ref_image_list[i])):
+            for j in range(len(self.reference_image[i])):
                 micrographs_list.append(
                     [
                         Class2DMicrograph(
-                            ref_image_list[i][j],
-                            class_dist_list[i][j],
-                            accuracy_rotation_list[i][j],
-                            accuracy_translation_list[i][j],
-                            estimated_res_list[i][j],
-                            overall_fourier_list[i][j],
+                            self.reference_image[i][j],
+                            self.class_distribution[i][j],
+                            self.accuracy_rotations[i][j],
+                            self.accuracy_translations_angst[i][j],
+                            self.estimated_resolution[i][j],
+                            self.overall_fourier_completeness[i][j],
                         )
                     ]
                 )
-            final_dict[job_nums[i]] = micrographs_list
+            final_dict[self.job_number[i]] = micrographs_list
         return final_dict
 
     def _count_all(self, list):

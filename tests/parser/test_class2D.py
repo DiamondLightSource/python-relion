@@ -1,6 +1,7 @@
 import pytest
 import relion
 from pathlib import Path
+from pprint import pprint
 
 
 @pytest.fixture
@@ -30,27 +31,13 @@ def test_output_is_serialisable(input):
 
 def test_all_keys_are_different(input):
     class2d_object = input
-    class_dist = class2d_object.class_distribution
-    accuracy_rot = class2d_object.accuracy_rotations
-    accuracy_trans = class2d_object.accuracy_translations_angst
-    estimated_res = class2d_object.estimated_resolution
-    overall_fourier = class2d_object.overall_fourier_completeness
-    reference_image = class2d_object.reference_image
-    job_num = class2d_object.job_number
-    class2d_dict = class2d_object.construct_dict(
-        job_num,
-        reference_image,
-        class_dist,
-        accuracy_rot,
-        accuracy_trans,
-        estimated_res,
-        overall_fourier,
-    )
+    class2d_dict = class2d_object.construct_dict()
 
-    # print(class2d_dict)
+    pprint(class2d_dict)
     key_list = list(class2d_dict.keys())
     for i in range(1, len(key_list) - 1):
         assert key_list[i] != key_list[i - 1]
+
 
 def test_percentage(input):
     class2d_object = input
@@ -114,11 +101,9 @@ def test_percentage_top_twenty_each(input):
         for i in range(len(class_numbers))
     ]
 
-
     for p in percentages_of_twenty:
         print(
             "Percent of the particles from the top twenty classes in each class:", p,
-
         )
     assert round(sum(x[1] for x in percentages_of_twenty[0]), 10) == 100
     assert round(sum(x[1] for x in percentages_of_twenty[1]), 10) == 100
