@@ -5,8 +5,29 @@ from pprint import pprint
 
 
 @pytest.fixture
-def input(dials_data):
+def class2d(dials_data):
     return relion.Project(dials_data("relion_tutorial_data")).class2D
+
+
+input = class2d
+
+
+def test_list_all_jobs_in_class2d_directory(class2d):
+    """
+    When used in an iterator context the Class2D instance returns
+    all known job and alias names.
+    """
+    assert sorted(class2d) == ["job008", "job013"]
+
+
+def test_class2d_behaves_like_a_dictionary(class2d):
+    """
+    Class2D implements the Mapping abstract baseclass,
+    in other words it behaves like a fancy dictionary.
+    """
+    dc = dict(class2d)
+    assert list(dc) == list(class2d.keys()) == list(class2d)
+    assert list(dc.values()) == list(class2d.values())
 
 
 def test_job_num(input):
