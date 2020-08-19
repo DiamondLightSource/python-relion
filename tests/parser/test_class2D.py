@@ -47,17 +47,10 @@ def test_all_keys_are_different(input):
         overall_fourier,
     )
 
+    # print(class2d_dict)
     key_list = list(class2d_dict.keys())
     for i in range(1, len(key_list) - 1):
         assert key_list[i] != key_list[i - 1]
-
-
-def test_counter(input):
-    class2d_object = input
-    class_numbers = class2d_object.class_number
-    for i in range(len(class_numbers)):
-        class2d_object._count_all(class_numbers[i])
-
 
 def test_percentage(input):
     class2d_object = input
@@ -74,15 +67,18 @@ def test_percentage(input):
             sum(x[1] for x in percentage),
             "%",
         )
-    assert percentage[0][1] == 19.9430499894537
+
+    assert percentage[0][1] == pytest.approx(19.94305)
 
 
 def test_top_twenty_list(input):
     class2d_object = input
     class_numbers = class2d_object.class_number
     twenty_list = []
-    for i in range(len(class_numbers)):
-        twenty_list = class2d_object.top_twenty_most_populated(class_numbers[i])
+
+    for class_item in class_numbers:
+        twenty_list = class2d_object.top_twenty_most_populated(class_item)
+
         print("20 most populated classes:", twenty_list)
     assert len(twenty_list) == 20
     assert twenty_list[0][0] == "16"  # this is the second list
@@ -102,9 +98,11 @@ def test_twenty_sum(input):
 def test_sum_all(input):
     class2d_object = input
     class_numbers = class2d_object.class_number
-    total = []
-    for i in range(len(class_numbers)):
-        total.append(class2d_object._sum_all_particles(class_numbers[i]))
+
+    total = [
+        class2d_object._sum_all_particles(class_item) for class_item in class_numbers
+    ]
+
     assert sum(total) == 10640
 
 
@@ -116,10 +114,11 @@ def test_percentage_top_twenty_each(input):
         for i in range(len(class_numbers))
     ]
 
-    for i in range(len(class_numbers)):
+
+    for p in percentages_of_twenty:
         print(
-            "Percent of the particles from the top twenty classes in each class:",
-            percentages_of_twenty[i],
+            "Percent of the particles from the top twenty classes in each class:", p,
+
         )
     assert round(sum(x[1] for x in percentages_of_twenty[0]), 10) == 100
     assert round(sum(x[1] for x in percentages_of_twenty[1]), 10) == 100

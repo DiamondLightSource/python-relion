@@ -4,8 +4,8 @@ import functools
 from collections import namedtuple
 from collections import Counter
 
-Class2DMicrograph = namedtuple(
-    "Class2DMicrograph",
+Class3DMicrograph = namedtuple(
+    "Class3DMicrograph",
     [
         "reference_image",
         "class_distribution",
@@ -17,13 +17,13 @@ Class2DMicrograph = namedtuple(
 )
 
 
-class Class2D:
+class Class3D:
     def __init__(self, path):
         self._basepath = path
         self._jobcache = {}
 
     def __str__(self):
-        return f"I'm a Class2D instance at {self._basepath}"
+        return f"I'm a Class3D instance at {self._basepath}"
 
     @property
     def jobs(self):
@@ -51,6 +51,10 @@ class Class2D:
         return self._find_values("_rlnClassNumber", "data")
 
     @property
+    def micrograph_name(self):
+        return self._find_values("_rlnMicrographName", "data")
+
+    @property
     def class_distribution(self):
         return self._find_values("_rlnClassDistribution", "model")
 
@@ -71,10 +75,6 @@ class Class2D:
         return self._find_values("_rlnOverallFourierCompleteness", "model")
 
     @property
-    def micrograph_name(self):
-        return self._find_values("_rlnMicrographName", "data")
-
-    @property
     def reference_image(self):
         return self._find_values("_rlnReferenceImage", "model")
 
@@ -88,7 +88,7 @@ class Class2D:
                     file = self.find_last_iteration(data_or_model)
                     doc = self._read_star_file(job, file)
                     val_list = list(self.parse_star_file(value, doc, 1))
-                final_list.append(val_list)
+                    final_list.append(val_list)
         return final_list
 
     def find_last_iteration(self, type):
@@ -150,7 +150,7 @@ class Class2D:
             for j in range(len(ref_image_list[i])):
                 micrographs_list.append(
                     [
-                        Class2DMicrograph(
+                        Class3DMicrograph(
                             ref_image_list[i][j],
                             class_dist_list[i][j],
                             accuracy_rotation_list[i][j],
@@ -171,15 +171,6 @@ class Class2D:
         counted = self._count_all(list)
         return sum(counted.values())
 
-    def _sum_top_twenty_particles(self, list):
-        top_twenty_list = self.top_twenty_most_populated(list)
-        sum_twenty = sum(x[1] for x in top_twenty_list)
-        return sum_twenty
-
-    def top_twenty_most_populated(self, list):
-        counted = self._count_all(list)
-        return counted.most_common(20)
-
     def percent_all_particles_per_class(self, list):
         top_twenty = self._count_all(list).most_common(20)
         sum_all = self._sum_all_particles(list)
@@ -187,16 +178,3 @@ class Class2D:
         for x in top_twenty:
             percent_list.append(((x[0], (x[1] / sum_all) * 100)))
         return percent_list
-
-    def percent_all_particles_in_top_twenty_classes(
-        self, list,
-    ):
-        top_twenty = self._count_all(list).most_common(20)
-        sum_top_twenty_particles = self._sum_top_twenty_particles(list)
-        percent_list = []
-        for x in top_twenty:
-            percent_list.append(((x[0], (x[1] / sum_top_twenty_particles) * 100)))
-        return percent_list
-
-    def separate_jobs(self):
-        pass
