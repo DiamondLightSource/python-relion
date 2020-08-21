@@ -1,3 +1,4 @@
+import collections.abc
 from gemmi import cif
 import os
 import functools
@@ -17,13 +18,30 @@ CTFMicrograph = namedtuple(
 )
 
 
-class CTFFind:
+class CTFFind(collections.abc.Mapping):
+    def __eq__(self, other):
+        if isinstance(other, CTFFind):
+            return self._basepath == other._basepath
+        return False
+
+    def __hash__(self):
+        return hash(("relion._parser.CTFFind", self._basepath))
+
     def __init__(self, path):
         self._basepath = path
         self._jobcache = {}
 
+    def __iter__(self):
+        return (x.name for x in self._basepath.iterdir())
+
+    def __len__(self):
+        return len(self._basepath.iterdir())
+
+    def __repr__(self):
+        return f"CTFFind({repr(str(self._basepath))})"
+
     def __str__(self):
-        return f"I'm a CTFFind instance at {self._basepath}"
+        return f"<CTFFind parser at {self._basepath}>"
 
     @property
     def jobs(self):
@@ -38,7 +56,7 @@ class CTFFind:
                 raise KeyError(
                     f"no job directory present for {key} in {self._basepath}"
                 )
-            self._jobcache[key] = job_path
+            self._jobcache[key] = self._load_job_directory(key)
         return self._jobcache[key]
 
     @property
@@ -48,31 +66,60 @@ class CTFFind:
 
     @property
     def astigmatism(self):
-        return self._find_values("_rlnCtfAstigmatism")
+        return self._find_values("")
 
     @property
     def defocus_u(self):
-        return self._find_values("_rlnDefocusU")
+        return self._find_values("")
 
     @property
     def defocus_v(self):
-        return self._find_values("_rlnDefocusV")
+        return self._find_values("")
 
     @property
     def defocus_angle(self):
-        return self._find_values("_rlnDefocusAngle")
+        return self._find_values("")
 
     @property
     def max_resolution(self):
-        return self._find_values("_rlnCtfMaxResolution")
+        return self._find_values("")
 
     @property
     def fig_of_merit(self):
-        return self._find_values("_rlnCtfFigureOfMerit")
+        return self._find_values("")
 
     @property
     def micrograph_name(self):
-        return self._find_values("_rlnMicrographName")
+        return self._find_values("")
+
+    def _load_job_directory(self, jobdir):
+        # these are independent of jobdir, ie. this is a bug
+
+        file = self._read_star_file(jobdir)
+
+        astigmatism = self.parse_star_file("_rlnCtfAstigmatism", file, 1)
+        defocus_u = self.parse_star_file("_rlnDefocusU", file, 1)
+        defocus_v = self.parse_star_file("_rlnDefocusV", file, 1)
+        defocus_angle = self.parse_star_file("_rlnDefocusAngle", file, 1)
+        max_resolution = self.parse_star_file("_rlnCtfMaxResolution", file, 1)
+        fig_of_merit = self.parse_star_file("_rlnCtfFigureOfMerit", file, 1)
+
+        micrograph_name = self.parse_star_file("_rlnMicrographName", file, 1)
+
+        micrograph_list = []
+        for j in range(len(micrograph_name)):
+            micrograph_list.append(
+                CTFMicrograph(
+                    micrograph_name[j],
+                    astigmatism[j],
+                    defocus_u[j],
+                    defocus_v[j],
+                    defocus_angle[j],
+                    max_resolution[j],
+                    fig_of_merit[j],
+                )
+            )
+        return micrograph_list
 
     def parse_star_file(self, loop_name, star_doc, block_number):
         data_block = star_doc[block_number]
@@ -98,34 +145,3 @@ class CTFFind:
         gemmi_readable_path = os.fspath(full_path)
         star_doc = cif.read_file(gemmi_readable_path)
         return star_doc
-
-    def construct_dict(
-        self,
-        job_nums,
-        micrograph_name_list,
-        astigmatism_list,
-        defocus_u_list,
-        defocus_v_list,
-        defocus_angle_list,
-        max_res_list,
-        fig_of_merit_list,
-    ):  # *args):
-        final_dict = {}
-        for i in range(len(job_nums)):
-            micrographs_list = []
-            for j in range(len(micrograph_name_list[i])):
-                micrographs_list.append(
-                    [
-                        CTFMicrograph(
-                            micrograph_name_list[i][j],
-                            astigmatism_list[i][j],
-                            defocus_u_list[i][j],
-                            defocus_v_list[i][j],
-                            defocus_angle_list[i][j],
-                            max_res_list[i][j],
-                            fig_of_merit_list[i][j],
-                        )
-                    ]
-                )
-            final_dict[job_nums[i]] = micrographs_list
-        return final_dict
