@@ -1,3 +1,4 @@
+import collections.abc
 from gemmi import cif
 
 import os
@@ -9,13 +10,30 @@ MCMicrograph = namedtuple(
 )
 
 
-class MotionCorr:
+class MotionCorr(collections.abc.Mapping):
+    def __eq__(self, other):
+        if isinstance(other, MotionCorr):
+            return self._basepath == other._basepath
+        return False
+
+    def __hash__(self):
+        return hash(("relion._parser.MotionCorr", self._basepath))
+
     def __init__(self, path):
         self._basepath = path
         self._jobcache = {}
 
+    def __iter__(self):
+        return (x.name for x in self._basepath.iterdir())
+
+    def __len__(self):
+        return len(self._basepath.iterdir())
+
+    def __repr__(self):
+        return f"MotionCorr({repr(str(self._basepath))})"
+
     def __str__(self):
-        return f"I'm a MotionCorr instance at {self._basepath}"
+        return f"<MotionCorr parser at {self._basepath}>"
 
     @property
     def jobs(self):
@@ -30,29 +48,8 @@ class MotionCorr:
                 raise KeyError(
                     f"no job directory present for {key} in {self._basepath}"
                 )
-            self._jobcache[key] = job_path
+            self._jobcache[key] = self._load_job_directory(key)
         return self._jobcache[key]
-
-    @property
-    def job_number(self):
-        jobs = [x.name for x in self._basepath.iterdir()]
-        return jobs
-
-    @property
-    def accum_motion_total(self):
-        return self._find_values("_rlnAccumMotionTotal")
-
-    @property
-    def accum_motion_late(self):
-        return self._find_values("_rlnAccumMotionLate")
-
-    @property
-    def accum_motion_early(self):
-        return self._find_values("_rlnAccumMotionEarly")
-
-    @property
-    def micrograph_name(self):
-        return self._find_values("_rlnMicrographName")
 
     def parse_star_file(self, loop_name, star_doc, block_number):
         data_block = star_doc[block_number]
@@ -80,27 +77,24 @@ class MotionCorr:
         star_doc = cif.read_file(gemmi_readable_path)
         return star_doc
 
-    def construct_dict(
-        self,
-        job_nums,
-        micrograph_name_list,
-        total_motion_list,
-        early_motion_list,
-        late_motion_list,
-    ):  # *args):
-        final_dict = {}
-        for i in range(len(job_nums)):
-            micrographs_list = []
-            for j in range(len(micrograph_name_list[i])):
-                micrographs_list.append(
-                    [
-                        MCMicrograph(
-                            micrograph_name_list[i][j],
-                            total_motion_list[i][j],
-                            early_motion_list[i][j],
-                            late_motion_list[i][j],
-                        )
-                    ]
+    def _load_job_directory(self, jobdir):
+        # these are independent of jobdir, ie. this is a bug
+
+        file = self._read_star_file(jobdir)
+
+        accum_motion_total = self.parse_star_file("_rlnAccumMotionTotal", file, 1)
+        accum_motion_late = self.parse_star_file("_rlnAccumMotionLate", file, 1)
+        accum_motion_early = self.parse_star_file("_rlnAccumMotionEarly", file, 1)
+        micrograph_name = self.parse_star_file("_rlnMicrographName", file, 1)
+
+        micrograph_list = []
+        for j in range(len(micrograph_name)):
+            micrograph_list.append(
+                MCMicrograph(
+                    micrograph_name[j],
+                    accum_motion_total[j],
+                    accum_motion_early[j],
+                    accum_motion_late[j],
                 )
-            final_dict[job_nums[i]] = micrographs_list
-        return final_dict
+            )
+        return micrograph_list
