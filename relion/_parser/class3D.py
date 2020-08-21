@@ -1,12 +1,14 @@
+import collections.abc
 from gemmi import cif
 import os
 import functools
 from collections import namedtuple
 from collections import Counter
 
-Class3DMicrograph = namedtuple(
-    "Class3DMicrograph",
+Class3DParticleClass = namedtuple(
+    "Class3DParticleClass",
     [
+        "particle_sum",
         "reference_image",
         "class_distribution",
         "accuracy_rotations",
@@ -17,13 +19,30 @@ Class3DMicrograph = namedtuple(
 )
 
 
-class Class3D:
+class Class3D(collections.abc.Mapping):
+    def __eq__(self, other):
+        if isinstance(other, Class3D):
+            return self._basepath == other._basepath
+        return False
+
+    def __hash__(self):
+        return hash(("relion._parser.Class3D", self._basepath))
+
     def __init__(self, path):
         self._basepath = path
         self._jobcache = {}
 
+    def __iter__(self):
+        return (x.name for x in self._basepath.iterdir())
+
+    def __len__(self):
+        return len(self._basepath.iterdir())
+
+    def __repr__(self):
+        return f"Class3D({repr(str(self._basepath))})"
+
     def __str__(self):
-        return f"I'm a Class3D instance at {self._basepath}"
+        return f"<Class3D parser at {self._basepath}>"
 
     @property
     def jobs(self):
@@ -38,7 +57,7 @@ class Class3D:
                 raise KeyError(
                     f"no job directory present for {key} in {self._basepath}"
                 )
-            self._jobcache[key] = job_path
+            self._jobcache[key] = self._load_job_directory(key)
         return self._jobcache[key]
 
     @property
@@ -54,29 +73,50 @@ class Class3D:
     def micrograph_name(self):
         return self._find_values("_rlnMicrographName", "data")
 
-    @property
-    def class_distribution(self):
-        return self._find_values("_rlnClassDistribution", "model")
+    def _load_job_directory(self, jobdir):
+        # these are independent of jobdir, ie. this is a bug
+        dfile = self.find_last_iteration("data")
+        mfile = self.find_last_iteration("model")
+        # print(dfile, mfile)
 
-    @property
-    def accuracy_rotations(self):
-        return self._find_values("_rlnAccuracyRotations", "model")
+        sdfile = self._read_star_file(jobdir, dfile)
+        smfile = self._read_star_file(jobdir, mfile)
+        # print(smfile)
 
-    @property
-    def accuracy_translations_angst(self):
-        return self._find_values("_rlnAccuracyTranslationsAngst", "model")
+        class_distribution = self.parse_star_file("_rlnClassDistribution", smfile, 1)
+        accuracy_rotations = self.parse_star_file("_rlnAccuracyRotations", smfile, 1)
+        accuracy_translations_angst = self.parse_star_file(
+            "_rlnAccuracyTranslationsAngst", smfile, 1
+        )
+        estimated_resolution = self.parse_star_file(
+            "_rlnEstimatedResolution", smfile, 1
+        )
+        overall_fourier_completeness = self.parse_star_file(
+            "_rlnOverallFourierCompleteness", smfile, 1
+        )
+        reference_image = self.parse_star_file("_rlnReferenceImage", smfile, 1)
 
-    @property
-    def estimated_resolution(self):
-        return self._find_values("_rlnEstimatedResolution", "model")
+        class_numbers = self.parse_star_file("_rlnClassNumber", sdfile, 1)
+        particle_sum = self._sum_all_particles(class_numbers)
+        int_particle_sum = [(int(name), value) for name, value in particle_sum.items()]
+        checked_particle_list = self._class_checker(
+            sorted(int_particle_sum), len(reference_image)
+        )
 
-    @property
-    def overall_fourier_completeness(self):
-        return self._find_values("_rlnOverallFourierCompleteness", "model")
-
-    @property
-    def reference_image(self):
-        return self._find_values("_rlnReferenceImage", "model")
+        particle_class_list = []
+        for j in range(len(reference_image)):
+            particle_class_list.append(
+                Class3DParticleClass(
+                    checked_particle_list[j],
+                    reference_image[j],
+                    float(class_distribution[j]),
+                    accuracy_rotations[j],
+                    accuracy_translations_angst[j],
+                    estimated_resolution[j],
+                    overall_fourier_completeness[j],
+                )
+            )
+        return particle_class_list
 
     def _find_values(self, value, data_or_model):
         final_list = []
@@ -134,34 +174,14 @@ class Class3D:
     def has_numbers(self, input_string):
         return any(char.isdigit() for char in input_string)
 
-    def construct_dict(
-        self,
-        job_nums,
-        ref_image_list,
-        class_dist_list,
-        accuracy_rotation_list,
-        accuracy_translation_list,
-        estimated_res_list,
-        overall_fourier_list,
-    ):  # *args):
-        final_dict = {}
-        for i in range(len(job_nums)):
-            micrographs_list = []
-            for j in range(len(ref_image_list[i])):
-                micrographs_list.append(
-                    [
-                        Class3DMicrograph(
-                            ref_image_list[i][j],
-                            class_dist_list[i][j],
-                            accuracy_rotation_list[i][j],
-                            accuracy_translation_list[i][j],
-                            estimated_res_list[i][j],
-                            overall_fourier_list[i][j],
-                        )
-                    ]
-                )
-            final_dict[job_nums[i]] = micrographs_list
-        return final_dict
+    def _class_checker(
+        self, tuple_list, length
+    ):  # Makes sure every class has a number of associated particles
+        for i in range(1, length):
+            if i not in tuple_list[i - 1]:
+                tuple_list.insert(i - 1, (i, 0))
+                print("No values found for class", i)
+        return tuple_list
 
     def _count_all(self, list):
         count = Counter(list)
@@ -169,7 +189,7 @@ class Class3D:
 
     def _sum_all_particles(self, list):
         counted = self._count_all(list)
-        return sum(counted.values())
+        return counted
 
     def percent_all_particles_per_class(self, list):
         top_twenty = self._count_all(list).most_common(20)
