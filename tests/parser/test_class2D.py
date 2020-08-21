@@ -2,6 +2,7 @@ import pytest
 import relion
 from pathlib import Path
 from pprint import pprint
+from operator import attrgetter
 
 
 @pytest.fixture
@@ -25,122 +26,65 @@ def test_class2d_behaves_like_a_dictionary(class2d):
     Class2D implements the Mapping abstract baseclass,
     in other words it behaves like a fancy dictionary.
     """
-    pprint(class2d)
-    # dc = dict(class2d)
-    # assert list(dc) == list(class2d.keys()) == list(class2d)
-    # assert list(dc.values()) == list(class2d.values())
+    # pprint(class2d)
+    dc = dict(class2d)
+    assert list(dc) == list(class2d.keys()) == list(class2d)
+    assert list(dc.values()) == list(class2d.values())
     # pprint(list(dc))
 
 
 def test_job_num(input):
     class2d_object = input
-    # for item in ["job008", "job013"]:
-    #    print('here', class2d_object[item])
-
-    # pprint(class2d_object.items())
-    pprint(dict(class2d_object))
+    # pprint(dict(class2d_object))
     assert list(dict(class2d_object).keys())[0] == "job008"
-
-
-# def test_class_number(input):
-#    class2d_object = input
-#    assert class2d_object["job008"][0].class_number == "24"
 
 
 def test_class_distribution(input):
     class2d_object = input
-    assert class2d_object["job008"][0][0].class_distribution == "0.016487"
+    assert class2d_object["job008"][0].class_distribution == 0.016487
 
 
 def test_output_is_serialisable(input):
     object = input
-    assert object["job008"][0][0].class_distribution == eval(
-        repr(object["job008"][0][0].class_distribution)
+    assert object["job008"][0].class_distribution == eval(
+        repr(object["job008"][0].class_distribution)
     )
 
 
 def test_all_keys_are_different(input):
     class2d_object = input
-
-    # pprint(class2d_object.keys())
-    # pprint(class2d_object["job008"])
-
     dictionary = dict(class2d_object)
     key_list = list(dictionary.keys())
     for i in range(1, len(key_list) - 1):
         assert key_list[i] != key_list[i - 1]
 
 
-def test_percentage(input):
-    class2d_object = input
-    class_numbers = class2d_object.class_number
-    job_numbers = class2d_object.job_number
-    percentage = None
-    for i in range(len(job_numbers)):
-        percentage = class2d_object.percent_all_particles_per_class(class_numbers[i])
-        print("Percent of particles from all data in each class:", percentage)
-        print(
-            "Percent of all particles included in the 20 most populated classes for",
-            job_numbers[i],
-            ":",
-            sum(x[1] for x in percentage),
-            "%",
-        )
-
-    assert percentage[0][1] == pytest.approx(19.94305)
-
-
 def test_top_twenty_list(input):
     class2d_object = input
-    class_numbers = class2d_object.class_number
     twenty_list = []
-
-    for class_item in class_numbers:
-        twenty_list = class2d_object.top_twenty_most_populated(class_item)
-
-        print("20 most populated classes:", twenty_list)
-    assert len(twenty_list) == 20
-    assert twenty_list[0][0] == "16"  # this is the second list
-
-
-def test_twenty_sum(input):
-    class2d_object = input
-    class_numbers = class2d_object.class_number
-    job_numbers = class2d_object.job_number
-    total = []
-    for i in range(len(job_numbers)):
-        total.append(class2d_object._sum_top_twenty_particles(class_numbers[i]))
-        print(job_numbers[i], total[i], "particles")
-    assert sum(total) == 8599
+    for item in dict(class2d_object):
+        temp_list = sorted(class2d_object[item], key=attrgetter("class_distribution"))[
+            -20:
+        ]
+        temp_list.reverse()
+        twenty_list.append(temp_list)
+    pprint(twenty_list)
+    assert len(twenty_list[0]) == 20
+    assert len(twenty_list[1]) == 20
+    assert (
+        twenty_list[1][0].reference_image
+        == "000016@Class2D/job013/run_it025_classes.mrcs"
+    )
 
 
 def test_sum_all(input):
     class2d_object = input
-    class_numbers = class2d_object.class_number
 
-    total = [
-        class2d_object._sum_all_particles(class_item) for class_item in class_numbers
-    ]
-
-    assert sum(total) == 10640
-
-
-def test_percentage_top_twenty_each(input):
-    class2d_object = input
-    class_numbers = class2d_object.class_number
-    percentages_of_twenty = [
-        class2d_object.percent_all_particles_in_top_twenty_classes(class_numbers[i])
-        for i in range(len(class_numbers))
-    ]
-
-    for p in percentages_of_twenty:
-        print(
-            "Percent of the particles from the top twenty classes in each class:", p,
-        )
-    assert round(sum(x[1] for x in percentages_of_twenty[0]), 10) == 100
-    assert round(sum(x[1] for x in percentages_of_twenty[1]), 10) == 100
-    assert len(percentages_of_twenty[0]) == 20
-    assert len(percentages_of_twenty[1]) == 20
+    sum_list = []
+    for item in dict(class2d_object):
+        for i in range(len(class2d_object[item])):
+            sum_list.append(class2d_object[item][i].particle_sum[1])
+    assert sum(sum_list) == 10640
 
 
 @pytest.fixture

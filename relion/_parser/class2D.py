@@ -6,9 +6,10 @@ from collections import Counter
 
 from gemmi import cif
 
-Class2DMicrograph = namedtuple(
-    "Class2DMicrograph",
+Class2DParticleClass = namedtuple(
+    "Class2DParticleClass",
     [
+        "particle_sum",
         "reference_image",
         "class_distribution",
         "accuracy_rotations",
@@ -31,6 +32,7 @@ class Class2D(collections.abc.Mapping):
     def __init__(self, path):
         self._basepath = path
         self._jobcache = {}
+        self.particle_sum = 0
 
     def __iter__(self):
         return (x.name for x in self._basepath.iterdir())
@@ -79,7 +81,7 @@ class Class2D(collections.abc.Mapping):
         mfile = self.find_last_iteration("model")
         print(dfile, mfile)
 
-        # sdfile = self._read_star_file(jobdir, dfile)
+        sdfile = self._read_star_file(jobdir, dfile)
         smfile = self._read_star_file(jobdir, mfile)
         print(smfile)
 
@@ -96,21 +98,27 @@ class Class2D(collections.abc.Mapping):
         )
         reference_image = self.parse_star_file("_rlnReferenceImage", smfile, 1)
 
-        micrographs_list = []
+        class_numbers = self.parse_star_file("_rlnClassNumber", sdfile, 1)
+        particle_sum = self._sum_all_particles(class_numbers)
+        int_particle_sum = [(int(name), value) for name, value in particle_sum.items()]
+        checked_particle_list = self._class_checker(
+            sorted(int_particle_sum), len(reference_image)
+        )
+
+        particle_class_list = []
         for j in range(len(reference_image)):
-            micrographs_list.append(
-                [
-                    Class2DMicrograph(
-                        reference_image[j],
-                        class_distribution[j],
-                        accuracy_rotations[j],
-                        accuracy_translations_angst[j],
-                        estimated_resolution[j],
-                        overall_fourier_completeness[j],
-                    )
-                ]
+            particle_class_list.append(
+                Class2DParticleClass(
+                    checked_particle_list[j],
+                    reference_image[j],
+                    float(class_distribution[j]),
+                    accuracy_rotations[j],
+                    accuracy_translations_angst[j],
+                    estimated_resolution[j],
+                    overall_fourier_completeness[j],
+                )
             )
-        return micrographs_list
+        return particle_class_list
 
     def find_last_iteration(self, type):
         file_list = list(self._basepath.glob("**/*.star"))
@@ -160,8 +168,20 @@ class Class2D(collections.abc.Mapping):
         return count
 
     def _sum_all_particles(self, list):
-        counted = self._count_all(list)
-        return sum(counted.values())
+        counted = self._count_all(
+            list
+        )  # This sorts them into classes and the number of associated particles before summing them all
+        return counted
+        # return sum(counted.values())
+
+    def _class_checker(
+        self, tuple_list, length
+    ):  # Makes sure every class has a number of associated particles
+        for i in range(1, length):
+            if i not in tuple_list[i - 1]:
+                tuple_list.insert(i - 1, (i, 0))
+                print("No values found for class", i)
+        return tuple_list
 
     def _sum_top_twenty_particles(self, list):
         top_twenty_list = self.top_twenty_most_populated(list)
