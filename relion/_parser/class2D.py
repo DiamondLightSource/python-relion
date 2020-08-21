@@ -32,7 +32,6 @@ class Class2D(collections.abc.Mapping):
     def __init__(self, path):
         self._basepath = path
         self._jobcache = {}
-        self.particle_sum = 0
 
     def __iter__(self):
         return (x.name for x in self._basepath.iterdir())
@@ -79,11 +78,11 @@ class Class2D(collections.abc.Mapping):
         # these are independent of jobdir, ie. this is a bug
         dfile = self.find_last_iteration("data")
         mfile = self.find_last_iteration("model")
-        print(dfile, mfile)
+        # print(dfile, mfile)
 
         sdfile = self._read_star_file(jobdir, dfile)
         smfile = self._read_star_file(jobdir, mfile)
-        print(smfile)
+        # print(smfile)
 
         class_distribution = self.parse_star_file("_rlnClassDistribution", smfile, 1)
         accuracy_rotations = self.parse_star_file("_rlnAccuracyRotations", smfile, 1)
