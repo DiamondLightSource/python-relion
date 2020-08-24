@@ -9,6 +9,7 @@ def ctffind(dials_data):
 
 def test_list_ctffind_jobs(ctffind):
     assert ctffind
+    assert len(ctffind) == 1
     assert list(ctffind.jobs) == ["job003"]
     assert ctffind["job003"]
 
