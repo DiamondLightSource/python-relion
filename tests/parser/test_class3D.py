@@ -32,10 +32,12 @@ def test_all_keys_are_different(class3d_object):
         assert key_list[i] != key_list[i - 1]
 
 
-def test_sum_all(input):
-    class3d_object = input
-    total = []
-    for item in dict(class3d_object):
-        for i in range(len(class3d_object[item])):
-            total.append(class3d_object[item][i].particle_sum[1])
-    assert sum(total) == 5367
+def test_sum_all(class3d_object):
+    assert (
+        sum(
+            class3d.particle_sum[1]
+            for job_output in class3d_object.values()
+            for class3d in job_output
+        )
+        == 5367
+    )
