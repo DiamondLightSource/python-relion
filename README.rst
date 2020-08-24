@@ -1,6 +1,6 @@
-======
-relion
-======
+=========================
+Python bindings to RELION
+=========================
 
 
 .. image:: https://img.shields.io/pypi/v/relion.svg
@@ -19,7 +19,6 @@ relion
         :target: https://github.com/ambv/black
         :alt: Code style: black
 
-Python bindings to RELION
 
 * Free software: BSD license
 * Documentation: https://python-relion.readthedocs.io.
