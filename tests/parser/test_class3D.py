@@ -4,33 +4,28 @@ from pprint import pprint
 
 
 @pytest.fixture
-def input(dials_data):
+def class3d_object(dials_data):
     return relion.Project(dials_data("relion_tutorial_data")).class3D
 
 
-def test_job_num(input):
-    class3d_object = input
+def test_job_num(class3d_object):
     pprint(dict(class3d_object))
     assert list(dict(class3d_object).keys())[0] == "job016"
 
 
-def test_class_number(input):
-    class3d_object = input
+def test_class_number(class3d_object):
     assert class3d_object["job016"][3].particle_sum[1] == 4501
 
 
-def test_class_distribution(input):
-    class3d_object = input
+def test_class_distribution(class3d_object):
     assert class3d_object["job016"][0].class_distribution == 0.055685
 
 
-def test_output_is_serialisable(input):
-    object = input
-    assert object.class_number == eval(repr(object.class_number))
+def test_output_is_serialisable(class3d_object):
+    assert class3d_object.class_number == eval(repr(class3d_object.class_number))
 
 
-def test_all_keys_are_different(input):
-    class3d_object = input
+def test_all_keys_are_different(class3d_object):
     dictionary = dict(class3d_object)
     key_list = list(dictionary.keys())
     for i in range(1, len(key_list) - 1):
