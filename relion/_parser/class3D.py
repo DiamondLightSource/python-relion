@@ -137,9 +137,6 @@ class Class3D(collections.abc.Mapping):
             print("Warning - no values found for", loop_name)
         return values_list
 
-    def has_numbers(self, input_string):
-        return any(char.isdigit() for char in input_string)
-
     def _class_checker(
         self, tuple_list, length
     ):  # Makes sure every class has a number of associated particles
@@ -156,11 +153,3 @@ class Class3D(collections.abc.Mapping):
     def _sum_all_particles(self, list):
         counted = self._count_all(list)
         return counted
-
-    def percent_all_particles_per_class(self, list):
-        top_twenty = self._count_all(list).most_common(20)
-        sum_all = self._sum_all_particles(list)
-        percent_list = []
-        for x in top_twenty:
-            percent_list.append(((x[0], (x[1] / sum_all) * 100)))
-        return percent_list

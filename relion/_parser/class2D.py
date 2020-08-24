@@ -133,9 +133,6 @@ class Class2D(collections.abc.Mapping):
             print("Warning - no values found for", loop_name)
         return values_list
 
-    def has_numbers(self, input_string):
-        return any(char.isdigit() for char in input_string)
-
     def _count_all(self, list):
         count = Counter(list)
         return count
@@ -155,33 +152,6 @@ class Class2D(collections.abc.Mapping):
                 tuple_list.insert(i - 1, (i, 0))
                 print("No values found for class", i)
         return tuple_list
-
-    def _sum_top_twenty_particles(self, list):
-        top_twenty_list = self.top_twenty_most_populated(list)
-        sum_twenty = sum(x[1] for x in top_twenty_list)
-        return sum_twenty
-
-    def top_twenty_most_populated(self, list):
-        counted = self._count_all(list)
-        return counted.most_common(20)
-
-    def percent_all_particles_per_class(self, list):
-        top_twenty = self._count_all(list).most_common(20)
-        sum_all = self._sum_all_particles(list)
-        percent_list = []
-        for x in top_twenty:
-            percent_list.append(((x[0], (x[1] / sum_all) * 100)))
-        return percent_list
-
-    def percent_all_particles_in_top_twenty_classes(
-        self, list,
-    ):
-        top_twenty = self._count_all(list).most_common(20)
-        sum_top_twenty_particles = self._sum_top_twenty_particles(list)
-        percent_list = []
-        for x in top_twenty:
-            percent_list.append(((x[0], (x[1] / sum_top_twenty_particles) * 100)))
-        return percent_list
 
     def top_twenty(self, dictionary):
         return_dict = {}
