@@ -28,8 +28,9 @@ def test_class2d_behaves_like_a_dictionary(class2d):
     assert list(dc.values()) == list(class2d.values())
 
 
-def test_job_num(class2d):
-    assert list(dict(class2d).keys())[0] == "job008"
+def test_jobs_are_in_correct_order_and_unique(class2d):
+    assert list(class2d) == ["job008", "job013"]
+    assert len(set(class2d)) == len(class2d)
 
 
 def test_class_distribution(class2d):
@@ -40,13 +41,6 @@ def test_output_is_serialisable(class2d):
     assert class2d["job008"][0].class_distribution == eval(
         repr(class2d["job008"][0].class_distribution)
     )
-
-
-def test_all_keys_are_different(class2d):
-    dictionary = dict(class2d)
-    key_list = list(dictionary.keys())
-    for i in range(1, len(key_list) - 1):
-        assert key_list[i] != key_list[i - 1]
 
 
 def test_top_twenty_list(class2d):
