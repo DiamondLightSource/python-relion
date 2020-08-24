@@ -3,7 +3,7 @@ import os
 import functools
 from collections import namedtuple
 from collections import Counter
-
+from operator import attrgetter
 from gemmi import cif
 
 Class2DParticleClass = namedtuple(
@@ -209,5 +209,12 @@ class Class2D(collections.abc.Mapping):
             percent_list.append(((x[0], (x[1] / sum_top_twenty_particles) * 100)))
         return percent_list
 
-    def separate_jobs(self):
-        pass
+    def top_twenty(self, dictionary):
+        return_dict = {}
+        for item in dictionary:
+            temp_list = sorted(dictionary[item], key=attrgetter("class_distribution"))[
+                -20:
+            ]
+            temp_list.reverse()
+            return_dict[item] = temp_list
+        return return_dict

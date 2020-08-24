@@ -2,7 +2,6 @@ import pytest
 import relion
 from pathlib import Path
 from pprint import pprint
-from operator import attrgetter
 
 
 @pytest.fixture
@@ -44,16 +43,13 @@ def test_output_is_serialisable(class2d):
 
 
 def test_top_twenty_list(class2d):
-    twenty_list = []
-    for item in dict(class2d):
-        temp_list = sorted(class2d[item], key=attrgetter("class_distribution"))[-20:]
-        temp_list.reverse()
-        twenty_list.append(temp_list)
-    pprint(twenty_list)
-    assert len(twenty_list[0]) == 20
-    assert len(twenty_list[1]) == 20
+    dictionary = dict(class2d)
+    final_dictionary = class2d.top_twenty(dictionary)
+    pprint(final_dictionary)
+    assert len(final_dictionary["job008"]) == 20
+    assert len(final_dictionary["job013"]) == 20
     assert (
-        twenty_list[1][0].reference_image
+        final_dictionary["job013"][0].reference_image
         == "000016@Class2D/job013/run_it025_classes.mrcs"
     )
 
