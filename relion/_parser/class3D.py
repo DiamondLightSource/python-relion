@@ -67,14 +67,11 @@ class Class3D(collections.abc.Mapping):
         return jobs
 
     def _load_job_directory(self, jobdir):
-        # these are independent of jobdir, ie. this is a bug
-        dfile = self.find_last_iteration(self._basepath / jobdir, "data")
-        mfile = self.find_last_iteration(self._basepath / jobdir, "model")
-        # print(dfile, mfile)
+        dfile = self._final_data_and_model(self._basepath / jobdir)[0]
+        mfile = self._final_data_and_model(self._basepath / jobdir)[1]
 
         sdfile = self._read_star_file(jobdir, dfile)
         smfile = self._read_star_file(jobdir, mfile)
-        # print(smfile)
 
         class_distribution = self.parse_star_file("_rlnClassDistribution", smfile, 1)
         accuracy_rotations = self.parse_star_file("_rlnAccuracyRotations", smfile, 1)
@@ -111,18 +108,19 @@ class Class3D(collections.abc.Mapping):
             )
         return particle_class_list
 
-    def find_last_iteration(self, job_path, typename):
-        filename = None
-        for file_candidate in job_path.glob("run*.star"):
-            if typename in file_candidate.name:
-                number_list = []
-                if self.has_numbers(file_candidate.name):
-                    number = int(file_candidate.name[6:9])
-                    number_list.append(number)
-                number_list.sort()
-                last_iteration_number = number_list[-1]
-                filename = f"run_it{last_iteration_number:03d}_{typename}.star"
-        return filename
+    def _final_data_and_model(self, job_path):
+        number_list = [entry.stem[6:9] for entry in job_path.glob("run_it*.star")]
+        last_iteration_number = max(
+            (int(n) for n in number_list if n.isnumeric()), default=0
+        )
+        if not last_iteration_number:
+            raise ValueError(f"No result files found in {job_path}")
+        data_file = job_path / f"run_it{last_iteration_number:03d}_data.star"
+        model_file = job_path / f"run_it{last_iteration_number:03d}_model.star"
+        for check_file in (data_file, model_file):
+            if not check_file.exists():
+                raise ValueError(f"File {check_file} missing from job directory")
+        return data_file, model_file
 
     @functools.lru_cache(maxsize=None)
     def _read_star_file(self, job_num, file_name):

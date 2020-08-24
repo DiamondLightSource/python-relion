@@ -67,10 +67,7 @@ class MotionCorr(collections.abc.Mapping):
         return star_doc
 
     def _load_job_directory(self, jobdir):
-        # these are independent of jobdir, ie. this is a bug
-
         file = self._read_star_file(jobdir)
-
         accum_motion_total = self.parse_star_file("_rlnAccumMotionTotal", file, 1)
         accum_motion_late = self.parse_star_file("_rlnAccumMotionLate", file, 1)
         accum_motion_early = self.parse_star_file("_rlnAccumMotionEarly", file, 1)

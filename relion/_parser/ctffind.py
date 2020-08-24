@@ -65,8 +65,6 @@ class CTFFind(collections.abc.Mapping):
         return jobs
 
     def _load_job_directory(self, jobdir):
-        # these are independent of jobdir, ie. this is a bug
-
         file = self._read_star_file(jobdir)
 
         astigmatism = self.parse_star_file("_rlnCtfAstigmatism", file, 1)
