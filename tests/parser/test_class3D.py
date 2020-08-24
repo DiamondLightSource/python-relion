@@ -22,7 +22,10 @@ def test_class_distribution(class3d_object):
 
 
 def test_output_is_serialisable(class3d_object):
-    assert class3d_object.class_number == eval(repr(class3d_object.class_number))
+    assert class3d_object["job016"][0].class_distribution == eval(
+        repr(class3d_object["job016"][0].class_distribution)
+    )
+    # assert class3d_object.class_number == eval(repr(class3d_object.class_number))
 
 
 def test_all_keys_are_different(class3d_object):

@@ -5,6 +5,7 @@ import functools
 from collections import namedtuple
 from collections import Counter
 
+
 Class3DParticleClass = namedtuple(
     "Class3DParticleClass",
     [
@@ -67,8 +68,8 @@ class Class3D(collections.abc.Mapping):
 
     def _load_job_directory(self, jobdir):
         # these are independent of jobdir, ie. this is a bug
-        dfile = self.find_last_iteration("data")
-        mfile = self.find_last_iteration("model")
+        dfile = self.find_last_iteration(self._basepath / jobdir, "data")
+        mfile = self.find_last_iteration(self._basepath / jobdir, "model")
         # print(dfile, mfile)
 
         sdfile = self._read_star_file(jobdir, dfile)
@@ -110,29 +111,17 @@ class Class3D(collections.abc.Mapping):
             )
         return particle_class_list
 
-    def find_last_iteration(self, type):
-        file_list = list(self._basepath.glob("**/*.star"))
-        filename_list = [x.name for x in file_list]
+    def find_last_iteration(self, job_path, typename):
         filename = None
-        for x in filename_list:
-            if "run" in x:
-                if type in x:
-                    if self.has_numbers(x):
-                        nlist = []
-                        nlist.append(x)
-                        number_list = []
-                        number = int(x[6:9])
-                        number_list.append(number)
-                        number_list.sort()
-                        last_iteration_number = number_list[-1]
-
-                        filename = (
-                            "run_it"
-                            + str(last_iteration_number).zfill(3)
-                            + "_"
-                            + type
-                            + ".star"
-                        )
+        for file_candidate in job_path.glob("run*.star"):
+            if typename in file_candidate.name:
+                number_list = []
+                if self.has_numbers(file_candidate.name):
+                    number = int(file_candidate.name[6:9])
+                    number_list.append(number)
+                number_list.sort()
+                last_iteration_number = number_list[-1]
+                filename = f"run_it{last_iteration_number:03d}_{typename}.star"
         return filename
 
     @functools.lru_cache(maxsize=None)
