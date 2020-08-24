@@ -99,6 +99,7 @@ class CTFFind(collections.abc.Mapping):
         values_list = list(values)
         if not values_list:
             print("Warning - no values found for", loop_name)
+        return values_list
 
     @functools.lru_cache(maxsize=None)
     def _read_star_file(self, job_num):
