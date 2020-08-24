@@ -34,10 +34,10 @@ class Class2D(collections.abc.Mapping):
         self._jobcache = {}
 
     def __iter__(self):
-        return (x.name for x in self._basepath.iterdir())
+        return iter(self.jobs)
 
     def __len__(self):
-        return len(list(self._basepath.iterdir()))
+        return sum(1 for d in self._basepath.iterdir() if d.is_dir())
 
     def __repr__(self):
         return f"Class2D({repr(str(self._basepath))})"
@@ -47,7 +47,7 @@ class Class2D(collections.abc.Mapping):
 
     @property
     def jobs(self):
-        return sorted(d.stem for d in self._basepath.iterdir() if d.is_dir())
+        return sorted(d.name for d in self._basepath.iterdir() if d.is_dir())
 
     def __getitem__(self, key):
         if not isinstance(key, str):
