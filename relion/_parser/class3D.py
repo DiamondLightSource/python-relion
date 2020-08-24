@@ -65,14 +65,6 @@ class Class3D(collections.abc.Mapping):
         jobs = sorted(x.name for x in self._basepath.iterdir())
         return jobs
 
-    @property
-    def class_number(self):
-        return self._find_values("_rlnClassNumber", "data")
-
-    @property
-    def micrograph_name(self):
-        return self._find_values("_rlnMicrographName", "data")
-
     def _load_job_directory(self, jobdir):
         # these are independent of jobdir, ie. this is a bug
         dfile = self.find_last_iteration("data")
@@ -117,19 +109,6 @@ class Class3D(collections.abc.Mapping):
                 )
             )
         return particle_class_list
-
-    def _find_values(self, value, data_or_model):
-        final_list = []
-        for x in self._basepath.iterdir():
-            if "job" in x.name:
-                job = x.name
-                val_list = []
-                if x.name not in self._jobcache:
-                    file = self.find_last_iteration(data_or_model)
-                    doc = self._read_star_file(job, file)
-                    val_list = list(self.parse_star_file(value, doc, 1))
-                    final_list.append(val_list)
-        return final_list
 
     def find_last_iteration(self, type):
         file_list = list(self._basepath.glob("**/*.star"))
