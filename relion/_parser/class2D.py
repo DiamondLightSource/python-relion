@@ -61,19 +61,6 @@ class Class2D(collections.abc.Mapping):
             self._jobcache[key] = self._load_job_directory(key)
         return self._jobcache[key]
 
-    def _find_values(self, value, data_or_model):
-        final_list = []
-        for x in self._basepath.iterdir():
-            if "job" in x.name:
-                job = x.name
-                val_list = []
-                if x.name not in self._jobcache:
-                    file = self.find_last_iteration(data_or_model)
-                    doc = self._read_star_file(job, file)
-                    val_list = list(self.parse_star_file(value, doc, 1))
-                final_list.append(val_list)
-        return final_list
-
     def _load_job_directory(self, jobdir):
         # these are independent of jobdir, ie. this is a bug
         dfile = self.find_last_iteration("data")
@@ -134,14 +121,7 @@ class Class2D(collections.abc.Mapping):
                         number_list.append(number)
                         number_list.sort()
                         last_iteration_number = number_list[-1]
-
-                        filename = (
-                            "run_it"
-                            + str(last_iteration_number).zfill(3)
-                            + "_"
-                            + type
-                            + ".star"
-                        )
+                        filename = f"run_it{last_iteration_number:03d}_{type}.star"
         return filename
 
     @functools.lru_cache(maxsize=None)

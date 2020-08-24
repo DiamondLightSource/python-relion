@@ -59,17 +59,6 @@ class MotionCorr(collections.abc.Mapping):
             print("Warning - no values found for", loop_name)
         return values_list
 
-    def _find_values(self, value):
-        final_list = []
-        for x in self._basepath.iterdir():
-            if "job" in x.name:
-                job = x.name
-                if x.name not in self._jobcache:
-                    doc = self._read_star_file(job)
-                    val_list = list(self.parse_star_file(value, doc, 1))
-                    final_list.append(val_list)
-        return final_list
-
     @functools.lru_cache(maxsize=None)
     def _read_star_file(self, job_num):
         full_path = self._basepath / job_num / "corrected_micrographs.star"
