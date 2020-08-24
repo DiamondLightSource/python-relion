@@ -64,34 +64,6 @@ class CTFFind(collections.abc.Mapping):
         jobs = [x.name for x in self._basepath.iterdir()]
         return jobs
 
-    @property
-    def astigmatism(self):
-        return self._find_values("")
-
-    @property
-    def defocus_u(self):
-        return self._find_values("")
-
-    @property
-    def defocus_v(self):
-        return self._find_values("")
-
-    @property
-    def defocus_angle(self):
-        return self._find_values("")
-
-    @property
-    def max_resolution(self):
-        return self._find_values("")
-
-    @property
-    def fig_of_merit(self):
-        return self._find_values("")
-
-    @property
-    def micrograph_name(self):
-        return self._find_values("")
-
     def _load_job_directory(self, jobdir):
         file = self._read_star_file(jobdir)
 
@@ -126,16 +98,6 @@ class CTFFind(collections.abc.Mapping):
         if not values_list:
             print("Warning - no values found for", loop_name)
         return values_list
-
-    def _find_values(self, value):
-        final_list = []
-        for x in self._basepath.iterdir():
-            if "job" in x.name:
-                job = x.name
-                doc = self._read_star_file(job)
-                val_list = list(self.parse_star_file(value, doc, 1))
-                final_list.append(val_list)
-        return final_list
 
     @functools.lru_cache(maxsize=None)
     def _read_star_file(self, job_num):
