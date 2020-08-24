@@ -63,8 +63,7 @@ class Class2D(collections.abc.Mapping):
 
     def _load_job_directory(self, jobdir):
 
-        dfile = self._final_data_and_model(self._basepath / jobdir)[0]
-        mfile = self._final_data_and_model(self._basepath / jobdir)[1]
+        dfile, mfile = self._final_data_and_model(self._basepath / jobdir)
 
         sdfile = self._read_star_file(jobdir, dfile)
         smfile = self._read_star_file(jobdir, mfile)
