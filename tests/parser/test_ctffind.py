@@ -8,7 +8,7 @@ def ctffind(dials_data):
 
 
 def test_list_ctffind_jobs(ctffind):
-    # assert ctffind  Not sure why but including this causes the test to fail with 'TypeError: object of type 'generator' has no len()'
+    assert ctffind
     assert list(ctffind.jobs) == ["job003"]
     assert ctffind["job003"]
 

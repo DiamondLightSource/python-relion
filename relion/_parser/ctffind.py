@@ -35,7 +35,7 @@ class CTFFind(collections.abc.Mapping):
         return (x.name for x in self._basepath.iterdir())
 
     def __len__(self):
-        return len(self._basepath.iterdir())
+        return len(list(self._basepath.iterdir()))
 
     def __repr__(self):
         return f"CTFFind({repr(str(self._basepath))})"
