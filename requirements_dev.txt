@@ -4,7 +4,7 @@ gemmi==0.4.1
 mock==3.0.5
 pip==20.2.2
 pytest==6.0.1
-pytest-cov==2.10.0
+pytest-cov==2.10.1
 tox==3.19.0
 twine==1.15.0
 wheel==0.34.2
