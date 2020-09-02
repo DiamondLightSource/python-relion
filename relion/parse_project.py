@@ -1,8 +1,11 @@
 import sys
 from optparse import SUPPRESS_HELP, OptionParser
 
-import workflows
+# import workflows
 from workflows.transport.stomp_transport import StompTransport
+import relion
+from pprint import pprint
+from pathlib import Path
 
 
 def run():
@@ -35,7 +38,8 @@ def run():
     stomp.connect()
 
     # create the project object based on the current directory
-    project = ...
+    current_directory = Path.cwd()
+    project = relion.Project(current_directory)
 
     # find out what sort of messages we could send
 
@@ -43,13 +47,26 @@ def run():
 
     # print them instead
 
-    pprint(something_motioncorr(project))
+    pprint(collect_ctffind(project))
 
 
-def something_motioncorr(project):
-    ...
-
-    return [ { ... }, ... ]
+def collect_ctffind(project):
+    ctf_dictionary_list = []
+    for job in project.ctffind.values():
+        for item in job:
+            ctf_dictionary_list.append(
+                {
+                    "ispyb_command": "insert_ctf",
+                    "max_resolution": item.max_resolution,
+                    "astigmatism": item.astigmatism,
+                    "astigmatism_angle": item.defocus_angle,
+                    "estimated_resolution": item.max_resolution,
+                    "estimated_defocus": (float(item.defocus_u) + float(item.defocus_v))
+                    / 2,
+                    "cc_value": item.fig_of_merit,
+                }
+            )
+    return ctf_dictionary_list
 
 
 if __name__ == "__main__":
