@@ -1,11 +1,9 @@
 import sys
 from optparse import SUPPRESS_HELP, OptionParser
 
-# import workflows
 from workflows.transport.stomp_transport import StompTransport
 import relion
 from pprint import pprint
-from pathlib import Path
 
 
 def run():
@@ -26,6 +24,15 @@ def run():
         help="Run in ActiveMQ live namespace (zocalo)",
     )
 
+    parser.add_option(
+        "--d",
+        "--dir",
+        "--directory",
+        action="store",
+        dest="relion_directory",
+        help="Path to directory containing Relion data. Defaults to current directory",
+        default=".",
+    )
     # change settings when in live mode
     default_configuration = "/dls_sw/apps/zocalo/secrets/credentials-testing.cfg"
     if "--live" in sys.argv:
@@ -37,17 +44,12 @@ def run():
     stomp = StompTransport()
     stomp.connect()
 
-    # create the project object based on the current directory
-    current_directory = Path.cwd()
-    project = relion.Project(current_directory)
-
-    # find out what sort of messages we could send
-
-    # ideally every message is created in a separate function
-
-    # print them instead
-
-    pprint(collect_ctffind(project))
+    project = relion.Project(options.relion_directory)
+    result = collect_ctffind(project)
+    for item in result:
+        message = {"parameters": item, "content": "dummy_content"}
+        pprint(message)
+        stomp.send("ispyb_connector", message)
 
 
 def collect_ctffind(project):
@@ -57,7 +59,6 @@ def collect_ctffind(project):
             ctf_dictionary_list.append(
                 {
                     "ispyb_command": "insert_ctf",
-                    "max_resolution": item.max_resolution,
                     "astigmatism": item.astigmatism,
                     "astigmatism_angle": item.defocus_angle,
                     "estimated_resolution": item.max_resolution,
