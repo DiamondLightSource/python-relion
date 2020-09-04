@@ -51,6 +51,26 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
                     }
                 )
 
+        for job in project.class2D.values():
+            for class_entry in job:
+                ispyb_command_list.append(
+                    {
+                        "ispyb_command": "insert_class2d",
+                        "reference_image": class_entry.reference_image
+                        # fields not yet in ISPyB
+                    }
+                )
+
+        for job in project.class3D.values():
+            for class_entry in job:
+                ispyb_command_list.append(
+                    {
+                        "ispyb_command": "insert_class2d",
+                        "reference_image": class_entry.reference_image
+                        # fields not yet in ISPyB
+                    }
+                )
+
         logger.info("Sending %s", str(ispyb_command_list))
         self.recwrap.send_to("ispyb", {"ispyb_command_list": ispyb_command_list})
         logger.info("Sent %d commands to ISPyB", len(ispyb_command_list))
