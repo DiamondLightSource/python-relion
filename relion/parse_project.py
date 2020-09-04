@@ -61,13 +61,33 @@ def collect_ctffind(project):
                     "ispyb_command": "insert_ctf",
                     "astigmatism": item.astigmatism,
                     "astigmatism_angle": item.defocus_angle,
-                    "estimated_resolution": item.max_resolution,
+                    "max_estimated_resolution": item.max_resolution,
                     "estimated_defocus": (float(item.defocus_u) + float(item.defocus_v))
                     / 2,
+                    "micrograph_name": item.micrograph_name,
                     "cc_value": item.fig_of_merit,
                 }
             )
     return ctf_dictionary_list
+
+
+def collect_motion_correction(project):
+    motion_corr_dictionary_list = []
+    for job in project.motioncorrection.values():
+        for item in job:
+            motion_corr_dictionary_list.append(
+                {
+                    "ispyb_command": "insert_motion_corr",
+                    "micrograph_name": item.micrograph_name,
+                    "total_motion": item.accum_motion_total,
+                    "early_motion": item.accum_motion_early,
+                    "late_motion": item.accum_motion_late,
+                    "average_motion_per_frame": (
+                        float(item.accum_motion_total)
+                    ),  # / number of frames
+                }
+            )
+    return motion_corr_dictionary_list
 
 
 if __name__ == "__main__":
