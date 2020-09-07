@@ -1,6 +1,5 @@
 import pytest
 import relion
-from pathlib import Path
 from pprint import pprint
 
 
@@ -54,16 +53,26 @@ def test_top_twenty_list(class2d):
     )
 
 
+def test_sum_top_twenty(class2d):
+    dictionary = dict(class2d)
+    final_dictionary = class2d.top_twenty(dictionary)
+    job_sum_list = []
+    for item in final_dictionary:
+        sum_list = []
+        for i in range(len(final_dictionary[item])):
+            sum_list.append(final_dictionary[item][i].particle_sum[1])
+        job_sum_list.append(sum(sum_list))
+    assert job_sum_list[0] == 900
+    assert job_sum_list[1] == 7699
+
+
 def test_sum_all(class2d):
-    sum_list = []
+    job_sum_list = []
     for item in dict(class2d):
+        sum_list = []
         for i in range(len(class2d[item])):
             sum_list.append(class2d[item][i].particle_sum[1])
-    assert sum(sum_list) == 10640
-
-
-@pytest.fixture
-def bigger_data():
-    return Path(
-        "/dls/ebic/data/staff-scratch/colin/EMPIAR-10264/Refine3D"
-    )  # /job005/run_it018_data.star')
+        job_sum_list.append(sum(sum_list))
+    assert sum(job_sum_list) == 10640
+    assert job_sum_list[0] == 1158
+    assert job_sum_list[1] == 9482
