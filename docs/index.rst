@@ -1,1 +1,9 @@
 .. include:: ../README.rst
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Contents:
+
+   usage
+   authors
+   api
