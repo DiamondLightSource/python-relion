@@ -16,6 +16,8 @@ CTFMicrograph = namedtuple(
         "fig_of_merit",
     ],
 )
+CTFMicrograph.__doc__ = "Some text goes here"
+CTFMicrograph.astigmatism.__doc__ = "Something more helpful"
 
 
 class CTFFind(collections.abc.Mapping):
