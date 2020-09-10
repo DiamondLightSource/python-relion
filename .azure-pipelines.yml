@@ -7,8 +7,8 @@ trigger:
     - '*'
 
 stages:
-- stage: tests
-  displayName: Tests
+- stage: static
+  displayName: Static Analysis
   jobs:
   - job: checks
     displayName: static code analysis
@@ -29,28 +29,8 @@ stages:
           python .azure-pipelines/flake8-validation.py
         displayName: Flake8 validation
 
-  - template: .azure-pipelines/tox.yml
-    parameters:
-      name: linux
-      python: 3.6
-      vmImage: ubuntu-latest
-
-  - template: .azure-pipelines/tox.yml
-    parameters:
-      name: macOS
-      python: 3.6
-      vmImage: macOS-latest
-
-  - template: .azure-pipelines/tox.yml
-    parameters:
-      name: windows
-      python: 3.6
-      vmImage: windows-latest
-
-- stage: platform_tests
-  displayName: Full platform checks
-  dependsOn: tests
-  condition: False
+- stage: tests
+  displayName: Run unit tests
   jobs:
   - job: linux
     pool:
@@ -63,8 +43,6 @@ stages:
           PYTHON_VERSION: 3.7
         python38:
           PYTHON_VERSION: 3.8
-      maxParallel: 2
-
     steps:
     - template: .azure-pipelines/ci-unix.yml
 
@@ -75,12 +53,11 @@ stages:
       matrix:
         python36:
           PYTHON_VERSION: 3.6
-        python37:
-          PYTHON_VERSION: 3.7
-        python38:
-          PYTHON_VERSION: 3.8
-      maxParallel: 2
-
+#       python37:
+#         PYTHON_VERSION: 3.7
+#       python38:
+#         PYTHON_VERSION: 3.8
+################################# Waiting on gemmi wheels for multi-version builds
     steps:
     - template: .azure-pipelines/ci-unix.yml
 
@@ -95,7 +72,45 @@ stages:
           PYTHON_VERSION: 3.7
         python38:
           PYTHON_VERSION: 3.8
-      maxParallel: 2
-
     steps:
     - template: .azure-pipelines/ci-windows.yml
+
+- stage: deploy
+  displayName: Publish release
+  dependsOn:
+  - tests
+  - static
+  condition: and(succeeded(), startsWith(variables['Build.SourceBranch'], 'refs/tags/'))
+  jobs:
+  - job: pypi
+    displayName: Publish pypi release
+    pool:
+      vmImage: ubuntu-latest
+    steps:
+      - task: UsePythonVersion@0
+        displayName: Set up python
+        inputs:
+          versionSpec: 3.8
+
+      - bash: |
+          python -m pip install -r requirements_dev.txt
+        displayName: Install dependencies
+
+      - bash: |
+          python setup.py sdist bdist_wheel
+          ls -la dist
+        displayName: Build python package
+
+      - task: PublishBuildArtifacts@1
+        inputs:
+          pathToPublish: dist/
+          artifactName: python-release
+
+      - task: TwineAuthenticate@1
+        displayName: Set up credentials
+        inputs:
+          pythonUploadServiceConnection: pypi-relion
+
+      - bash: |
+          python -m twine upload -r pypi-relion --config-file $(PYPIRC_PATH) dist/*.tar.gz dist/*.whl
+        displayName: Publish package

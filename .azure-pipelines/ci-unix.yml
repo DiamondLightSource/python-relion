@@ -5,13 +5,16 @@ steps:
   displayName: 'Use Python $(PYTHON_VERSION)'
 
 - script: |
-    python -m pip install --upgrade pip
-    pip install -r requirements_dev.txt
+    python -m pip install -r requirements_dev.txt pytest-azurepipelines
   displayName: Install dependencies
 
 - script: |
+    pip install --no-deps --disable-pip-version-check -e .
+  displayName: Install relion package
+
+- script: |
     pytest -v -ra --regression \
-        --cov=relion --cov-report=html --cov-report=xml --cov-branch \
+        --cov=relion --cov-report=xml --cov-branch --no-coverage-upload \
         || echo "##vso[task.complete result=Failed;]Some tests failed"
   displayName: Run tests
 
