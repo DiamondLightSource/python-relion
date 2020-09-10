@@ -5,5 +5,6 @@
    :caption: Contents:
 
    usage
-   authors
    api
+   authors
+
