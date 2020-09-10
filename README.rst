@@ -19,7 +19,7 @@ Python bindings to RELION
         :target: https://python-relion.readthedocs.io/en/latest/?badge=latest
         :alt: Documentation Status
 
-.. image:: https://codecov.io/gh/DiamondLightSource/python-relion/branch/master/graph/badge.svg
+.. image:: https://codecov.io/gh/DiamondLightSource/python-relion/branch/main/graph/badge.svg
         :target: https://codecov.io/gh/DiamondLightSource/python-relion
         :alt: Test coverage
 
