@@ -1,6 +1,8 @@
-=================================
-Test page for code autogeneration
-=================================
+===
+API
+===
 
 .. autoclass:: relion.Project
     :members:
+
+The stage accessors `.ctffind`, ``.class2D``, etc.
