@@ -2,8 +2,6 @@
 API
 ===
 
-.. _relion-project-object:
-
 .. autoclass:: relion.Project
     :members:
 

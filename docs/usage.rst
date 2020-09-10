@@ -2,7 +2,7 @@
 Usage
 =====
 
-To access a Relion project folder you first need to create a :ref:`relion-project-object` ``relion.Project`` object::
+To access a Relion project folder you first need to create a ``relion.Project`` object (c.f. :doc:`api` for more information)::
 
      import relion
      proj = relion.Project("/path/to/relion/project/directory")
