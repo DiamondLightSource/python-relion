@@ -40,19 +40,23 @@ class Project:
     @property
     @functools.lru_cache(maxsize=1)
     def ctffind(self):
+        """access the CTFFind stage of the project"""
         return CTFFind(self.basepath / "CtfFind")
 
     @property
     @functools.lru_cache(maxsize=1)
     def motioncorrection(self):
+        """access the motion correction stage of the project"""
         return MotionCorr(self.basepath / "MotionCorr")
 
     @property
     @functools.lru_cache(maxsize=1)
     def class2D(self):
+        """access the 2D classification stage of the project"""
         return Class2D(self.basepath / "Class2D")
 
     @property
     @functools.lru_cache(maxsize=1)
     def class3D(self):
+        """access the 3D classification stage of the project"""
         return Class3D(self.basepath / "Class3D")
