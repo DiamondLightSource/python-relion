@@ -2,6 +2,5 @@
 Test page for code autogeneration
 =================================
 
-.. automodule:: relion
+.. autoclass:: relion.Project
     :members:
-    :show-inheritance:
