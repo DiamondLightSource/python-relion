@@ -50,23 +50,31 @@ class Project:
     @property
     @functools.lru_cache(maxsize=1)
     def ctffind(self):
-        """access the CTFFind stage of the project"""
+        """access the CTFFind stage of the project.
+        Returns a dictionary-like object with job names as keys,
+        and lists of CTFMicrograph namedtuples as values."""
         return CTFFind(self.basepath / "CtfFind")
 
     @property
     @functools.lru_cache(maxsize=1)
     def motioncorrection(self):
-        """access the motion correction stage of the project"""
+        """access the motion correction stage of the project.
+        Returns a dictionary-like object with job names as keys,
+        and lists of MCMicrograph namedtuples as values."""
         return MotionCorr(self.basepath / "MotionCorr")
 
     @property
     @functools.lru_cache(maxsize=1)
     def class2D(self):
-        """access the 2D classification stage of the project"""
+        """access the 2D classification stage of the project.
+        Returns a dictionary-like object with job names as keys,
+        and lists of Class2DParticleClass namedtuples as values."""
         return Class2D(self.basepath / "Class2D")
 
     @property
     @functools.lru_cache(maxsize=1)
     def class3D(self):
-        """access the 3D classification stage of the project"""
+        """access the 3D classification stage of the project.
+        Returns a dictionary-like object with job names as keys,
+        and lists of Class3DParticleClass namedtuples as values."""
         return Class3D(self.basepath / "Class3D")
