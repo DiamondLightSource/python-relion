@@ -19,6 +19,21 @@ Class3DParticleClass = namedtuple(
     ],
 )
 
+Class3DParticleClass.__doc__ = "3D Classification stage."
+Class3DParticleClass.particle_sum.__doc__ = "Sum of all particles in the class. Gives a tuple with the class number first, then the particle sum."
+Class3DParticleClass.reference_image.__doc__ = "Reference image."
+Class3DParticleClass.class_distribution.__doc__ = (
+    "Class Distribution. Proportional to the number of particles per class."
+)
+Class3DParticleClass.accuracy_rotations.__doc__ = "Accuracy rotations."
+Class3DParticleClass.accuracy_translations_angst.__doc__ = (
+    "Accuracy translations angst."
+)
+Class3DParticleClass.estimated_resolution.__doc__ = "Estimated resolution."
+Class3DParticleClass.overall_fourier_completeness.__doc__ = (
+    "Overall Fourier completeness."
+)
+
 
 class Class3D(collections.abc.Mapping):
     def __eq__(self, other):

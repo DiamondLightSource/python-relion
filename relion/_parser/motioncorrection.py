@@ -9,6 +9,14 @@ MCMicrograph = namedtuple(
     "MCMicrograph", ["micrograph_name", "total_motion", "early_motion", "late_motion"]
 )
 
+MCMicrograph.__doc__ = "Motion Correction stage."
+MCMicrograph.micrograph_name.__doc__ = "Micrograph name. Useful for reference."
+MCMicrograph.total_motion.__doc__ = (
+    "Total motion. The amount the sample moved during exposure. Units angstrom (A)."
+)
+MCMicrograph.early_motion.__doc__ = "Early motion."
+MCMicrograph.late_motion.__doc__ = "Late motion."
+
 
 class MotionCorr(collections.abc.Mapping):
     def __eq__(self, other):

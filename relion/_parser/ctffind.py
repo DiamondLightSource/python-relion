@@ -16,8 +16,22 @@ CTFMicrograph = namedtuple(
         "fig_of_merit",
     ],
 )
-CTFMicrograph.__doc__ = "Some text goes here"
-CTFMicrograph.astigmatism.__doc__ = "Something more helpful"
+CTFMicrograph.__doc__ = "Contrast Transfer Function stage."
+CTFMicrograph.astigmatism.__doc__ = "Estimated astigmatism. Units angstrom (A)."
+CTFMicrograph.micrograph_name.__doc__ = "Micrograph name. Useful for reference."
+CTFMicrograph.defocus_u.__doc__ = (
+    "Averaged with Defocus V to give estimated defocus. Units angstrom (A)."
+)
+CTFMicrograph.defocus_v.__doc__ = (
+    "Averaged with Defocus U to give estimated defocus. Units angstrom (A)."
+)
+CTFMicrograph.defocus_angle.__doc__ = "Estimated angle of astigmatism."
+CTFMicrograph.max_resolution.__doc__ = (
+    "Maximum resolution that the software can detect. Units angstrom (A)."
+)
+CTFMicrograph.fig_of_merit.__doc__ = (
+    "Figure of merit/CC/correlation value. Confidence of the defocus estimation."
+)
 
 
 class CTFFind(collections.abc.Mapping):

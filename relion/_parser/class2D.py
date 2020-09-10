@@ -19,6 +19,21 @@ Class2DParticleClass = namedtuple(
     ],
 )
 
+Class2DParticleClass.__doc__ = "2D Classification stage."
+Class2DParticleClass.particle_sum.__doc__ = "Sum of all particles in the class. Gives a tuple with the class number first, then the particle sum."
+Class2DParticleClass.reference_image.__doc__ = "Reference image."
+Class2DParticleClass.class_distribution.__doc__ = (
+    "Class Distribution. Proportional to the number of particles per class."
+)
+Class2DParticleClass.accuracy_rotations.__doc__ = "Accuracy rotations."
+Class2DParticleClass.accuracy_translations_angst.__doc__ = (
+    "Accuracy translations angst."
+)
+Class2DParticleClass.estimated_resolution.__doc__ = "Estimated resolution."
+Class2DParticleClass.overall_fourier_completeness.__doc__ = (
+    "Overall Fourier completeness."
+)
+
 
 class Class2D(collections.abc.Mapping):
     def __eq__(self, other):
