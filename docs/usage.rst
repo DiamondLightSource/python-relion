@@ -2,7 +2,7 @@
 Usage
 =====
 
-To access a Relion project folder you first need to create a ``relion.Project`` object::
+To access a Relion project folder you first need to create a :ref:`relion-project-object` ``relion.Project`` object::
 
      import relion
      proj = relion.Project("/path/to/relion/project/directory")
@@ -11,7 +11,7 @@ To access a Relion project folder you first need to create a ``relion.Project`` 
 
 The directory structure inside a Relion directory is built up of stages and jobs.
 Each stage folder will contain one or more job folders.
-The job folder(s) contain files related to the stage, including the ``\*.star`` files from which values can be read::
+The job folder(s) contain files related to the stage, including the ``*.star`` files from which values can be read::
 
     project_root
     │
