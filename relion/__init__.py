@@ -18,7 +18,17 @@ __version_tuple__ = tuple(int(x) for x in __version__.split("."))
 
 
 class Project:
+    """
+    Reads information from a Relion project directory and makes it available in
+    a structured, object-oriented, and pythonic fashion.
+    """
+
     def __init__(self, path):
+        """
+        Create an object representing a Relion project.
+        :param path: A string or file system path object pointing to the root
+                     directory of an existing Relion project.
+        """
         self.basepath = pathlib.Path(path)
         if not self.basepath.is_dir():
             raise ValueError(f"path {self.basepath} is not a directory")

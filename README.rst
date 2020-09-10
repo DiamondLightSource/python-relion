@@ -23,5 +23,6 @@ Python bindings to RELION
 * Free software: BSD license
 * Documentation: https://python-relion.readthedocs.io.
 
-This package provides a way of extracting specific data from Relion output files.
+This package provides a python interface to the information contained in a Relion project folder. It does not run Relion itself.
+
 Currently it caters for specific fields from the Motion Correction, CTF Find, 2D Classification and 3D Classification stages of the Relion pipeline, but this could readily be expanded to more stages and fields.
