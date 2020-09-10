@@ -7,13 +7,21 @@ Python bindings to RELION
         :target: https://pypi.python.org/pypi/relion
         :alt: PyPI release
 
+.. image:: https://img.shields.io/pypi/pyversions/relion.svg
+        :target: https://pypi.python.org/pypi/relion
+        :alt: Supported Python versions
+
+.. image:: https://img.shields.io/lgtm/alerts/g/DiamondLightSource/python-relion.svg?logo=lgtm&logoWidth=18
+        :target: https://lgtm.com/projects/g/DiamondLightSource/python-relion/alerts/
+        :alt: Total alerts
+
 .. image:: https://readthedocs.org/projects/python-relion/badge/?version=latest
         :target: https://python-relion.readthedocs.io/en/latest/?badge=latest
         :alt: Documentation Status
 
-.. image:: https://img.shields.io/pypi/pyversions/relion.svg
-        :target: https://pypi.python.org/pypi/relion
-        :alt: Supported Python versions
+.. image:: https://codecov.io/gh/DiamondLightSource/python-relion/branch/master/graph/badge.svg
+        :target: https://codecov.io/gh/DiamondLightSource/python-relion
+        :alt: Test coverage
 
 .. image:: https://img.shields.io/badge/code%20style-black-000000.svg
         :target: https://github.com/ambv/black
