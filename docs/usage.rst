@@ -2,7 +2,7 @@
 Usage
 =====
 
-To access a Relion project folder you first need to create a relion.Project object::
+To access a Relion project folder you first need to create a ``relion.Project`` object::
 
      import relion
      proj = relion.Project("/path/to/relion/project/directory")
@@ -11,39 +11,32 @@ To access a Relion project folder you first need to create a relion.Project obje
 
 The directory structure inside a Relion directory is built up of stages and jobs.
 Each stage folder will contain one or more job folders.
-The job folder(s) contain files related to the stage, including the \*.star files from which values are extracted.
+The job folder(s) contain files related to the stage, including the ``\*.star`` files from which values can be read::
 
-Relion test data can be found at https://github.com/dials/data/blob/master/dials_data/definitions/relion_tutorial_data.yml
-or /dls/science/groups/scisoft/DIALS/dials_data/relion_tutorial_data
-
-The directory structure for the test data is shown below, with the \*.star files specified::
-
-    relion_tutorial_data
+    project_root
     │
     ├── MotionCorr
     │   └── job002
     │       └── corrected_micrographs.star
-    │       └── other files
+    │       └── ...
     ├── CTFFind
     │   └── job003
     │       └── micrographs_ctf.star
-    │       └── other files
+    │       └── ...
     ├── Class2D
     │   ├── job008
     │   │   └── run_it025_data.star
     │   │   └── run_it025_model.star
-    │   │   └── other files
+    │   │   └── ...
     │   └── job013
     │       └── run_it_025_data.star
     │       └── run_it_025_model.star
-    │       └── other files
+    │       └── ...
     └── Class3D
         └── job016
             └── run_it_025_data.star
             └── run_it_025_model.star
-            └── other files
-
-
+            └── ...
 
 
 The desired EM values are extracted from \*.star files. A snippet from MotionCorr/job002/corrected_micrographs.star is shown below::
