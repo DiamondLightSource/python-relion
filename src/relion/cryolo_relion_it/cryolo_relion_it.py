@@ -3325,12 +3325,9 @@ def main():
 
     # Make sure no other version of this script are running...
     if os.path.isfile(RUNNING_FILE):
-        print(
-            " RELION_IT: ERROR:",
-            RUNNING_FILE,
-            "is already present: delete this file and make sure no other copy of this script is running. Exiting now ...",
-        )
-        return
+        msg = f" RELION_IT: ERROR: {RUNNING_FILE} is already present: delete this file and make sure no other copy of this script is running. Exiting now ..."
+        print(msg)
+        raise RuntimeError(msg)
 
     # Also make sure the preprocessing pipeliners are stopped before re-starting this script
     for checkfile in (
@@ -3338,12 +3335,9 @@ def main():
         "RUNNING_PIPELINER_" + PREPROCESS_SCHEDULE_PASS2,
     ):
         if os.path.isfile(checkfile):
-            print(
-                " RELION_IT: ERROR:",
-                checkfile,
-                "is already present: delete this file and make sure no relion_pipeliner job is still running. Exiting now ...",
-            )
-            return
+            msg = f" RELION_IT: ERROR: {checkfile} is already present: delete this file and make sure no other copy of this script is running. Exiting now ..."
+            print(msg)
+            raise RuntimeError(msg)
 
     if args.continue_:
         print(
