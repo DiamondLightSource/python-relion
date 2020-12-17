@@ -1998,8 +1998,9 @@ def WaitForJob(wait_for_this_job, seconds_wait):
             if jobname == wait_for_this_job:
                 myjobnr = jobnr
         if myjobnr < 0:
-            print(" ERROR: cannot find ", wait_for_this_job, " in ", PIPELINE_STAR)
-            sys.exit(1)
+            msg = f" ERROR: cannot find {wait_for_this_job} in {PIPELINE_STAR}"
+            print(msg)
+            raise ValueError(msg)
 
         status = int(
             pipeline["pipeline_processes"]["rlnPipeLineProcessStatus"][myjobnr]
