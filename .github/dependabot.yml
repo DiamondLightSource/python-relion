@@ -9,10 +9,3 @@ updates:
     directory: "/" # Location of package manifests
     schedule:
       interval: "monthly"
-    ignore:
-      - dependency-name: "mock"
-        # mock 4 requires Python 3.6+
-        versions: [">=4"]
-      - dependency-name: "twine"
-        # twine 2 requires Python 3.6+
-        versions: [">=2"]
