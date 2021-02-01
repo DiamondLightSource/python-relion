@@ -3,6 +3,6 @@ dials_data==2.1.36
 gemmi==0.4.4
 pip==21.0.1
 pytest==6.2.2
-pytest-cov==2.10.1
+pytest-cov==2.11.1
 twine==3.3.0
 wheel==0.35.1
