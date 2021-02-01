@@ -3,7 +3,7 @@ dials_data==2.1.26
 gemmi==0.4.2
 mock==3.0.5
 pip==20.2.3
-pytest==6.1.0
+pytest==6.2.2
 pytest-cov==2.10.1
 tox==3.20.0
 twine==1.15.0
