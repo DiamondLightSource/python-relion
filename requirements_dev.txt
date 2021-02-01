@@ -5,4 +5,4 @@ pip==21.0.1
 pytest==6.2.2
 pytest-cov==2.10.1
 twine==3.3.0
-wheel==0.35.1
+wheel==0.36.2
