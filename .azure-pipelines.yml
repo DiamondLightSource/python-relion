@@ -13,7 +13,7 @@ stages:
   - job: checks
     displayName: static code analysis
     pool:
-      vmImage: ubuntu-latest
+      vmImage: ubuntu-20.04
     steps:
       - task: UsePythonVersion@0
         displayName: Set up python
@@ -34,7 +34,7 @@ stages:
   jobs:
   - job: linux
     pool:
-      vmImage: ubuntu-latest
+      vmImage: ubuntu-20.04
     strategy:
       matrix:
         python36:
@@ -90,7 +90,7 @@ stages:
   - job: pypi
     displayName: Publish pypi release
     pool:
-      vmImage: ubuntu-latest
+      vmImage: ubuntu-20.04
     steps:
       - task: UsePythonVersion@0
         displayName: Set up python
