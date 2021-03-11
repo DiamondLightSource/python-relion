@@ -3,7 +3,7 @@ import os
 import pathlib
 from pprint import pprint
 
-from . import util_symlink
+from . import cryolo_relion_it, dls_options, util_symlink
 import zocalo.wrapper
 
 logger = logging.getLogger("relion_yolo_it.relion_zocalo_wrapper")
@@ -62,55 +62,28 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
                     pass
         pprint(params["ispyb_parameters"])
 
-        options_file = working_directory / "processing_options.py"
-        logger.info(f"Writing options to {options_file}")
-        with open(options_file, "w") as opts_file:
-            for key, value in params["ispyb_parameters"].items():
-                print(f"{key} = {value !r}", file=opts_file)
+        # Prepare options object
+        opts = cryolo_relion_it.RelionItOptions()
+        opts.update_from(vars(dls_options))
+        opts.update_from(params["ispyb_parameters"])
 
-        # TODO: find a better way to configure these values
-        relion_pipeline_python = "/dls_sw/apps/EM/relion_cryolo/relion-yolo-it-dev-env/bin/wrappers/conda/python"
-        relion_pipeline_home = pathlib.Path(
-            "/dls_sw/apps/EM/relion_cryolo/python-relion-yolo-it_relion3.1_dev/relion_yolo_it"
-        )
+        # Write options to disk for a record of parameters used
+        options_file = working_directory / cryolo_relion_it.OPTIONS_FILE
+        logger.info(f"Writing all options to {options_file}")
+        if os.path.isfile(options_file):
+            logger.info(
+                f"File {options_file} already exists; renaming old copy to {options_file}~"
+            )
+            os.rename(options_file, f"{options_file}~")
+        with open(options_file, "w") as optfile:
+            opts.print_options(optfile)
 
-        # Find relion_it.py script and standard DLS options
-        relion_it = relion_pipeline_home / "cryolo_relion_it.py"
-        dls_options = relion_pipeline_home / "dls_options.py"
-
-        # construct relion command line
-        relion_command = [relion_pipeline_python, relion_it, dls_options, options_file]
-
-        # TEMP make a shell script to set up the necessary environment and run relion_it
-        commands = [
-            "#!/bin/bash",
-            "source /etc/profile.d/modules.sh",
-            "module load hamilton",
-            "module load EM/yolo_relion_it/relion_3.1.1_cryolo_1.7.6",
-            " ".join(["exec"] + [str(item) for item in relion_command]),
-        ]
-        script_file = working_directory / "run_script.sh"
-        logger.info(f"Writing job commands to {script_file}")
-        script_file.write_text("\n".join(commands))
-
-        # run relion
-        # (environment_override is necessary because the libtbx dispatcher sets LD_LIBRARY_PATH and PYTHONPATH)
-        result = procrunner.run(
-            ["bash", script_file],
-            working_directory=working_directory,
-            environment_override={
-                "LD_LIBRARY_PATH": "",
-                "_LMFILES_": "",
-                "LOADEDMODULES": "",
-                "PYTHONPATH": "",
-                "PYTHONUNBUFFERED": "1",
-            },
-        )
-        logger.info("command: %s", " ".join(result["command"]))
-        logger.info("exitcode: %s", result["exitcode"])
-        logger.debug(result["stdout"])
-        logger.debug(result["stderr"])
-        success = result["exitcode"] == 0
+        success = False
+        try:
+            cryolo_relion_it.run_pipeline(opts)
+            success = True
+        except Exception as ex:
+            logger.error(ex)
 
         # copy output files to result directory
         # results_directory.mkdir(parents=True, exist_ok=True)
