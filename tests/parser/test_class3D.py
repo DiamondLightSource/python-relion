@@ -35,6 +35,19 @@ def test_len(class3d_object):
     assert len(class3d_object) == 1
 
 
+@pytest.mark.skipif(sys.platform == "win32", reason="does not run on windows")
+def test_len_symlink(proj):
+    """
+    Test that __len__ has the correct behaviour when symlinks
+    are present
+    """
+    symlink = pathlib.Path(proj.basepath / "Class3D/first_exhaustive")
+    symlink.symlink_to(proj.basepath / "Class3D/job016/")
+    sym_class3d = proj.class3D
+    assert len(sym_class3d) == 1
+    symlink.unlink()
+
+
 def test_job_num(class3d_object):
     pprint(dict(class3d_object))
     assert list(dict(class3d_object).keys())[0] == "job016"

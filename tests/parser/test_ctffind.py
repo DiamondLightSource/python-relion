@@ -41,6 +41,19 @@ def test_len(ctffind):
     assert len(ctffind) == 1
 
 
+@pytest.mark.skipif(sys.platform == "win32", reason="does not run on windows")
+def test_len_symlink(proj):
+    """
+    Test that __len__ has the correct behaviour when symlinks
+    are present
+    """
+    symlink = pathlib.Path(proj.basepath / "CtfFind/ctffind4")
+    symlink.symlink_to(proj.basepath / "CtfFind/job003/")
+    sym_ctffind = proj.ctffind
+    assert len(sym_ctffind) == 1
+    symlink.unlink()
+
+
 def test_all_keys_are_different(ctffind):
     dictionary = dict(ctffind)
     key_list = list(dictionary.keys())

@@ -51,7 +51,7 @@ class CTFFind(collections.abc.Mapping):
         return iter(self.jobs)
 
     def __len__(self):
-        return len(list(self._basepath.iterdir()))
+        return sum(1 for d in self.jobs)
 
     def __repr__(self):
         return f"CTFFind({repr(str(self._basepath))})"

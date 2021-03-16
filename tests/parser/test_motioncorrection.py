@@ -40,6 +40,19 @@ def test_len(input):
     assert len(input) == 1
 
 
+@pytest.mark.skipif(sys.platform == "win32", reason="does not run on windows")
+def test_len_symlink(proj):
+    """
+    Test that __len__ has the correct behaviour when symlinks
+    are present
+    """
+    symlink = pathlib.Path(proj.basepath / "MotionCorr/relioncor2")
+    symlink.symlink_to(proj.basepath / "MotionCorr/job002/")
+    sym_motioncorr = proj.motioncorrection
+    assert len(sym_motioncorr) == 1
+    symlink.unlink()
+
+
 def test_job_num(input):
     mc_object = input
     pprint(dict(mc_object))

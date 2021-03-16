@@ -46,6 +46,19 @@ def test_class2d_behaves_like_a_dictionary(class2d):
     assert list(dc.values()) == list(class2d.values())
 
 
+@pytest.mark.skipif(sys.platform == "win32", reason="does not run on windows")
+def test_len_symlink(proj):
+    """
+    Test that __len__ has the correct behaviour when symlinks
+    are present
+    """
+    symlink = pathlib.Path(proj.basepath / "Class2D/LoG")
+    symlink.symlink_to(proj.basepath / "Class2D/job008/")
+    sym_class2d = proj.class2D
+    assert len(sym_class2d) == 2
+    symlink.unlink()
+
+
 def test_len(class2d):
     """
     Test that __len__ has the correct behaviour
