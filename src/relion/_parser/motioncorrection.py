@@ -45,7 +45,11 @@ class MotionCorr(collections.abc.Mapping):
 
     @property
     def jobs(self):
-        return sorted(d.stem for d in self._basepath.iterdir() if d.is_dir())
+        return sorted(
+            d.stem
+            for d in self._basepath.iterdir()
+            if d.is_dir() and not d.is_symlink()
+        )
 
     def __getitem__(self, key):
         if not isinstance(key, str):
