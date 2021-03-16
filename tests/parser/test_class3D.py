@@ -28,6 +28,13 @@ def test_list_all_jobs_in_class3d_directory_symlink(proj):
     symlink.unlink()
 
 
+def test_len(class3d_object):
+    """
+    Test that __len__ has the correct behaviour
+    """
+    assert len(class3d_object) == 1
+
+
 def test_job_num(class3d_object):
     pprint(dict(class3d_object))
     assert list(dict(class3d_object).keys())[0] == "job016"

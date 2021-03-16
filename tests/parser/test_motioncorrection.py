@@ -33,6 +33,13 @@ def test_list_all_jobs_in_motioncorr_directory_symlink(proj):
     symlink.unlink()
 
 
+def test_len(input):
+    """
+    Test that __len__ has the correct behaviour
+    """
+    assert len(input) == 1
+
+
 def test_job_num(input):
     mc_object = input
     pprint(dict(mc_object))

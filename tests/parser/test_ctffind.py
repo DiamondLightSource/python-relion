@@ -34,6 +34,13 @@ def test_list_all_jobs_in_ctffind_directory_symlink(proj):
     symlink.unlink()
 
 
+def test_len(ctffind):
+    """
+    Test that __len__ has the correct behaviour
+    """
+    assert len(ctffind) == 1
+
+
 def test_all_keys_are_different(ctffind):
     dictionary = dict(ctffind)
     key_list = list(dictionary.keys())

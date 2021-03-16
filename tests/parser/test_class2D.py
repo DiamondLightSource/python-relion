@@ -46,6 +46,13 @@ def test_class2d_behaves_like_a_dictionary(class2d):
     assert list(dc.values()) == list(class2d.values())
 
 
+def test_len(class2d):
+    """
+    Test that __len__ has the correct behaviour
+    """
+    assert len(class2d) == 2
+
+
 def test_jobs_are_in_correct_order_and_unique(class2d):
     assert list(class2d) == ["job008", "job013"]
     assert len(set(class2d)) == len(class2d)
