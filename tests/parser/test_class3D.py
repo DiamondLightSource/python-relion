@@ -1,11 +1,31 @@
 import pytest
 import relion
+import pathlib
+import sys
 from pprint import pprint
 
 
 @pytest.fixture
-def class3d_object(dials_data):
-    return relion.Project(dials_data("relion_tutorial_data")).class3D
+def proj(dials_data):
+    return relion.Project(dials_data("relion_tutorial_data"))
+
+
+@pytest.fixture
+def class3d_object(proj):
+    return proj.class3D
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="does not run on windows")
+def test_list_all_jobs_in_class3d_directory_symlink(proj):
+    """
+    Test that aliases are dropped so that jobs aren't double
+    counted when iterated over
+    """
+    symlink = pathlib.Path(proj.basepath / "Class3D/first_exhaustive")
+    symlink.symlink_to(proj.basepath / "Class3D/job016/")
+    sym_class3d = proj.class3D
+    assert sorted(sym_class3d) == ["job016"]
+    symlink.unlink()
 
 
 def test_job_num(class3d_object):

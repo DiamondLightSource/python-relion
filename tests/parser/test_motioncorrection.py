@@ -1,16 +1,36 @@
 import pytest
 import relion
+import pathlib
+import sys
 from pprint import pprint
 
 
 @pytest.fixture
-def input(dials_data):
-    return relion.Project(dials_data("relion_tutorial_data")).motioncorrection
+def proj(dials_data):
+    return relion.Project(dials_data("relion_tutorial_data"))
+
+
+@pytest.fixture
+def input(proj):
+    return proj.motioncorrection
 
 
 @pytest.fixture
 def invalid_input(dials_data):
     return relion.Project(dials_data("relion_tutorial_data"))
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="does not run on windows")
+def test_list_all_jobs_in_motioncorr_directory_symlink(proj):
+    """
+    Test that aliases are dropped so that jobs aren't double
+    counted when iterated over
+    """
+    symlink = pathlib.Path(proj.basepath / "MotionCorr/relioncor2")
+    symlink.symlink_to(proj.basepath / "MotionCorr/job002/")
+    sym_motioncorr = proj.motioncorrection
+    assert sorted(sym_motioncorr) == ["job002"]
+    symlink.unlink()
 
 
 def test_job_num(input):

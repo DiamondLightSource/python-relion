@@ -49,7 +49,7 @@ class Class3D(collections.abc.Mapping):
         self._jobcache = {}
 
     def __iter__(self):
-        return (x.name for x in self._basepath.iterdir())
+        return iter(self.jobs)
 
     def __len__(self):
         return len(list(self._basepath.iterdir()))

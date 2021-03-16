@@ -1,19 +1,39 @@
 import pytest
 import relion
+import pathlib
+import sys
 from pprint import pprint
 
 
 @pytest.fixture
-def class2d(dials_data):
-    return relion.Project(dials_data("relion_tutorial_data")).class2D
+def proj(dials_data):
+    return relion.Project(dials_data("relion_tutorial_data"))
+
+
+@pytest.fixture
+def class2d(proj):
+    return proj.class2D
 
 
 def test_list_all_jobs_in_class2d_directory(class2d):
     """
     When used in an iterator context the Class2D instance returns
-    all known job and alias names.
+    all known job (dropping alias names).
     """
     assert sorted(class2d) == ["job008", "job013"]
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="does not run on windows")
+def test_list_all_jobs_in_class2d_directory_symlink(proj):
+    """
+    Test that aliases are dropped so that jobs aren't double
+    counted when iterated over
+    """
+    symlink = pathlib.Path(proj.basepath / "Class2D/LoG")
+    symlink.symlink_to(proj.basepath / "Class2D/job008/")
+    sym_class2d = proj.class2D
+    assert sorted(sym_class2d) == ["job008", "job013"]
+    symlink.unlink()
 
 
 def test_class2d_behaves_like_a_dictionary(class2d):
