@@ -48,10 +48,10 @@ class CTFFind(collections.abc.Mapping):
         self._jobcache = {}
 
     def __iter__(self):
-        return (x.name for x in self._basepath.iterdir())
+        return iter(self.jobs)
 
     def __len__(self):
-        return len(list(self._basepath.iterdir()))
+        return len(self.jobs)
 
     def __repr__(self):
         return f"CTFFind({repr(str(self._basepath))})"
@@ -61,7 +61,11 @@ class CTFFind(collections.abc.Mapping):
 
     @property
     def jobs(self):
-        return sorted(d.stem for d in self._basepath.iterdir() if d.is_dir())
+        return sorted(
+            d.stem
+            for d in self._basepath.iterdir()
+            if d.is_dir() and not d.is_symlink()
+        )
 
     def __getitem__(self, key):
         if not isinstance(key, str):

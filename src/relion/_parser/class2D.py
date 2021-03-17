@@ -52,7 +52,7 @@ class Class2D(collections.abc.Mapping):
         return iter(self.jobs)
 
     def __len__(self):
-        return sum(1 for d in self._basepath.iterdir() if d.is_dir())
+        return len(self.jobs)
 
     def __repr__(self):
         return f"Class2D({repr(str(self._basepath))})"
@@ -62,7 +62,11 @@ class Class2D(collections.abc.Mapping):
 
     @property
     def jobs(self):
-        return sorted(d.name for d in self._basepath.iterdir() if d.is_dir())
+        return sorted(
+            d.name
+            for d in self._basepath.iterdir()
+            if d.is_dir() and not d.is_symlink()
+        )
 
     def __getitem__(self, key):
         if not isinstance(key, str):

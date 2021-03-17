@@ -1,16 +1,55 @@
 import pytest
 import relion
+import sys
 from pprint import pprint
 
 
 @pytest.fixture
-def input(dials_data):
-    return relion.Project(dials_data("relion_tutorial_data")).motioncorrection
+def proj(dials_data):
+    return relion.Project(dials_data("relion_tutorial_data"))
+
+
+@pytest.fixture
+def input(proj):
+    return proj.motioncorrection
 
 
 @pytest.fixture
 def invalid_input(dials_data):
     return relion.Project(dials_data("relion_tutorial_data"))
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="does not run on windows")
+def test_aliases_are_dropped_on_iterating_so_jobs_arent_double_counted(proj):
+    """
+    Test that aliases are dropped so that jobs aren't double
+    counted when iterated over
+    """
+    symlink = proj.basepath / "MotionCorr" / "relioncor2"
+    symlink.symlink_to(proj.basepath / "MotionCorr" / "job002")
+    sym_motioncorr = proj.motioncorrection
+    assert sorted(sym_motioncorr) == ["job002"]
+    symlink.unlink()
+
+
+def test_len_returns_correct_number_of_jobs(input):
+    """
+    Test that __len__ has the correct behaviour
+    """
+    assert len(input) == 1
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="does not run on windows")
+def test_len_drops_symlinks_from_the_job_count_to_avoid_double_counting(proj):
+    """
+    Test that __len__ has the correct behaviour when symlinks
+    are present
+    """
+    symlink = proj.basepath / "MotionCorr" / "relioncor2"
+    symlink.symlink_to(proj.basepath / "MotionCorr" / "job002")
+    sym_motioncorr = proj.motioncorrection
+    assert len(sym_motioncorr) == 1
+    symlink.unlink()
 
 
 def test_job_num(input):
