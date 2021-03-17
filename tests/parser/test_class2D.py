@@ -14,6 +14,16 @@ def class2d(proj):
     return proj.class2D
 
 
+def test_result_of_casting_to_string(class2d, proj):
+    class2d_path = proj.basepath / "Class2D"
+    assert str(class2d) == f"<Class2D parser at {class2d_path}>"
+
+
+def test_class2D_representation(class2d, proj):
+    class2d_path = proj.basepath / "Class2D"
+    assert repr(class2d) == f"Class2D({repr(str(class2d_path))})"
+
+
 def test_list_all_jobs_in_class2d_directory(class2d):
     """
     When used in an iterator context the Class2D instance returns

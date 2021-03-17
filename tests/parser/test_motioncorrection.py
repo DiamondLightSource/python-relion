@@ -19,6 +19,16 @@ def invalid_input(dials_data):
     return relion.Project(dials_data("relion_tutorial_data"))
 
 
+def test_result_of_casting_to_string(input, proj):
+    motioncorr_path = proj.basepath / "MotionCorr"
+    assert str(input) == f"<MotionCorr parser at {motioncorr_path}>"
+
+
+def test_motioncorr_representation(input, proj):
+    motioncorr_path = proj.basepath / "MotionCorr"
+    assert repr(input) == f"MotionCorr({repr(str(motioncorr_path))})"
+
+
 @pytest.mark.skipif(sys.platform == "win32", reason="does not run on windows")
 def test_aliases_are_dropped_on_iterating_so_jobs_arent_double_counted(proj):
     """
