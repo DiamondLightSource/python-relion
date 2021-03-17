@@ -14,6 +14,16 @@ def class3d_object(proj):
     return proj.class3D
 
 
+def test_result_of_casting_to_string(class3d_object, proj):
+    class3d_path = proj.basepath / "Class3D"
+    assert str(class3d_object) == f"<Class3D parser at {class3d_path}>"
+
+
+def test_class3D_representation(class3d_object, proj):
+    class3d_path = proj.basepath / "Class3D"
+    assert repr(class3d_object) == f"Class3D({repr(str(class3d_path))})"
+
+
 @pytest.mark.skipif(sys.platform == "win32", reason="does not run on windows")
 def test_aliases_are_dropped_on_iterating_so_jobs_arent_double_counted(proj):
     """

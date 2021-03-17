@@ -13,6 +13,16 @@ def ctffind(proj):
     return proj.ctffind
 
 
+def test_result_of_casting_to_string(ctffind, proj):
+    ctffind_path = proj.basepath / "CtfFind"
+    assert str(ctffind) == f"<CTFFind parser at {ctffind_path}>"
+
+
+def test_ctffind_representation(ctffind, proj):
+    ctffind_path = proj.basepath / "CtfFind"
+    assert repr(ctffind) == f"CTFFind({repr(str(ctffind_path))})"
+
+
 def test_list_ctffind_jobs(ctffind):
     assert ctffind
     assert len(ctffind) == 1
