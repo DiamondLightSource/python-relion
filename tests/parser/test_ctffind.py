@@ -1,5 +1,4 @@
 import pytest
-import pathlib
 import sys
 import relion
 
@@ -22,19 +21,19 @@ def test_list_ctffind_jobs(ctffind):
 
 
 @pytest.mark.skipif(sys.platform == "win32", reason="does not run on windows")
-def test_list_all_jobs_in_ctffind_directory_symlink(proj):
+def test_aliases_are_dropped_on_iterating_so_jobs_arent_double_counted(proj):
     """
     Test that aliases are dropped so that jobs aren't double
     counted when iterated over
     """
-    symlink = pathlib.Path(proj.basepath / "CtfFind/ctffind4")
-    symlink.symlink_to(proj.basepath / "Class2D/job003/")
+    symlink = proj.basepath / "CtfFind" / "ctffind4"
+    symlink.symlink_to(proj.basepath / "Class2D" / "job003")
     sym_ctffind = proj.ctffind
     assert sorted(sym_ctffind) == ["job003"]
     symlink.unlink()
 
 
-def test_len(ctffind):
+def test_len_returns_correct_number_of_jobs(ctffind):
     """
     Test that __len__ has the correct behaviour
     """
@@ -42,13 +41,13 @@ def test_len(ctffind):
 
 
 @pytest.mark.skipif(sys.platform == "win32", reason="does not run on windows")
-def test_len_symlink(proj):
+def test_len_drops_symlinks_from_the_job_count_to_avoid_double_counting(proj):
     """
     Test that __len__ has the correct behaviour when symlinks
     are present
     """
-    symlink = pathlib.Path(proj.basepath / "CtfFind/ctffind4")
-    symlink.symlink_to(proj.basepath / "CtfFind/job003/")
+    symlink = proj.basepath / "CtfFind" / "ctffind4"
+    symlink.symlink_to(proj.basepath / "CtfFind" / "job003")
     sym_ctffind = proj.ctffind
     assert len(sym_ctffind) == 1
     symlink.unlink()

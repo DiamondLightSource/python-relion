@@ -35,7 +35,7 @@ class MotionCorr(collections.abc.Mapping):
         return iter(self.jobs)
 
     def __len__(self):
-        return sum(1 for d in self.jobs)
+        return len(self.jobs)
 
     def __repr__(self):
         return f"MotionCorr({repr(str(self._basepath))})"

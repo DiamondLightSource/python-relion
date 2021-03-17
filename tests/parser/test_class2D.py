@@ -1,6 +1,5 @@
 import pytest
 import relion
-import pathlib
 import sys
 from pprint import pprint
 
@@ -24,13 +23,13 @@ def test_list_all_jobs_in_class2d_directory(class2d):
 
 
 @pytest.mark.skipif(sys.platform == "win32", reason="does not run on windows")
-def test_list_all_jobs_in_class2d_directory_symlink(proj):
+def test_aliases_are_dropped_on_iterating_so_jobs_arent_double_counted(proj):
     """
     Test that aliases are dropped so that jobs aren't double
     counted when iterated over
     """
-    symlink = pathlib.Path(proj.basepath / "Class2D/LoG")
-    symlink.symlink_to(proj.basepath / "Class2D/job008/")
+    symlink = proj.basepath / "Class2D" / "LoG"
+    symlink.symlink_to(proj.basepath / "Class2D" / "job008")
     sym_class2d = proj.class2D
     assert sorted(sym_class2d) == ["job008", "job013"]
     symlink.unlink()
@@ -47,19 +46,19 @@ def test_class2d_behaves_like_a_dictionary(class2d):
 
 
 @pytest.mark.skipif(sys.platform == "win32", reason="does not run on windows")
-def test_len_symlink(proj):
+def test_len_drops_symlinks_from_the_job_count_to_avoid_double_counting(proj):
     """
     Test that __len__ has the correct behaviour when symlinks
     are present
     """
-    symlink = pathlib.Path(proj.basepath / "Class2D/LoG")
-    symlink.symlink_to(proj.basepath / "Class2D/job008/")
+    symlink = proj.basepath / "Class2D" / "LoG"
+    symlink.symlink_to(proj.basepath / "Class2D" / "job008")
     sym_class2d = proj.class2D
     assert len(sym_class2d) == 2
     symlink.unlink()
 
 
-def test_len(class2d):
+def test_len_returns_correct_number_of_jobs(class2d):
     """
     Test that __len__ has the correct behaviour
     """
