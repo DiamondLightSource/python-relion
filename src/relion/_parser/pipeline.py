@@ -2,6 +2,7 @@ from gemmi import cif
 import numpy as np
 import os
 import pathlib
+from graphviz import Digraph
 
 
 class RelionNode:
@@ -186,3 +187,15 @@ class Pipeline:
             self._nodes[self._nodes.index(f)].link_to(self._nodes[self._nodes.index(t)])
         self._split_connected()
         self._traverse_and_count()
+        for key in self._connected.keys():
+            self._pconnected[key].sort()
+
+    def show_all_nodes(self):
+        digraph = Digraph()
+        digraph.attr(rankdir="LR")
+        for node in self._nodes:
+            digraph.node(name=str(node._path))  # , str(node._path))
+            for next_node in node:
+                digraph.edge(str(node._path), str(next_node._path))
+        # print(digraph.source)
+        digraph.render("relion_pipeline.gv", view=True)
