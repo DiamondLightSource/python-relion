@@ -9,6 +9,7 @@ from relion._parser.ctffind import CTFFind
 from relion._parser.motioncorrection import MotionCorr
 from relion._parser.class2D import Class2D
 from relion._parser.class3D import Class3D
+from relion._parser.pipeline import Pipeline, RelionNode
 
 __all__ = []
 __author__ = "Diamond Light Source - Scientific Software"
@@ -32,6 +33,7 @@ class Project:
         self.basepath = pathlib.Path(path)
         if not self.basepath.is_dir():
             raise ValueError(f"path {self.basepath} is not a directory")
+        self.pipeline = Pipeline(self.basepath / "Movies", RelionNode("Import/job001"))
 
     def __eq__(self, other):
         if isinstance(other, Project):
@@ -78,3 +80,6 @@ class Project:
         Returns a dictionary-like object with job names as keys,
         and lists of Class3DParticleClass namedtuples as values."""
         return Class3D(self.basepath / "Class3D")
+
+    def _load_pipeline(self):
+        self.pipeline.load_nodes_from_star(self.basepath / "default_pipeline.star")
