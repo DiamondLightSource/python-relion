@@ -3,12 +3,15 @@ import numpy as np
 import os
 import pathlib
 from graphviz import Digraph
+import copy
 
 
 class RelionNode:
-    def __init__(self, path):
+    def __init__(self, path, **kwargs):
         self._path = pathlib.Path(path)
         self._out = []
+        self.attributes = {}
+        self.attributes["status"] = kwargs.get("status")
 
     def __eq__(self, other):
         if isinstance(other, RelionNode):
@@ -21,9 +24,16 @@ class RelionNode:
     def __iter__(self):
         return iter(self._out)
 
+    def __len__(self):
+        return len(self._out)
+
     def link_to(self, next_node):
         if next_node not in self._out:
             self._out.append(next_node)
+
+    def unlink_from(self, next_node):
+        if next_node in self._out:
+            self._out.remove(next_node)
 
 
 class PipelineNode(RelionNode):
@@ -78,6 +88,20 @@ class Pipeline:
             explored.append(node)
         for next_node in node:
             self._node_explore(next_node, explored)
+
+    @staticmethod
+    def _remove_node_from_graph(graph, node):
+        behind_nodes = []
+        for currnode in graph:
+            if node in currnode:
+                behind_nodes.append(currnode)
+                currnode.unlink_from(node)
+        for bnode in behind_nodes:
+            # print("should be linking")
+            for next_node in graph[graph.index(node)]:
+                bnode.link_to(next_node)
+        graph.remove(node)
+        return graph
 
     @staticmethod
     def _find_an_origin(node_list):
@@ -143,22 +167,22 @@ class Pipeline:
         return list(values)
 
     def _load_file_nodes_from_star(self, star_path):
-        self._file_nodes = [
+        return [
             RelionNode(pathlib.Path(p))
             for p in self._request_star_values(star_path, "_rlnPipeLineNodeName")
         ]
 
     def _load_job_nodes_from_star(self, star_path):
-        self._job_nodes = [
+        return [
             RelionNode(pathlib.Path(p))
             for p in self._request_star_values(star_path, "_rlnPipeLineProcessName")
         ]
 
     def load_nodes_from_star(self, star_path):
-        self._load_file_nodes_from_star(star_path)
-        self._load_job_nodes_from_star(star_path)
-        self._nodes.extend(self._file_nodes)
-        self._nodes.extend(self._job_nodes)
+        file_nodes = self._load_file_nodes_from_star(star_path)
+        job_nodes = self._load_job_nodes_from_star(star_path)
+        self._nodes.extend(file_nodes)
+        self._nodes.extend(job_nodes)
         binding_pairs = [
             (RelionNode(p1), RelionNode(p2))
             for p1, p2 in zip(
@@ -189,13 +213,51 @@ class Pipeline:
         self._traverse_and_count()
         for key in self._connected.keys():
             self._pconnected[key].sort()
+        self._set_job_nodes(star_path)
+
+    def check_job_node_statuses(self, basepath):
+        for node in self._job_nodes:
+            success = basepath / node._path / "RELION_JOB_EXIT_SUCCESS"
+            failure = basepath / node._path / "RELION_JOB_EXIT_FAILURE"
+            if failure.is_file():
+                node.attributes["status"] = False
+            elif success.is_file():
+                node.attributes["status"] = True
+            else:
+                node.attributes["status"] = None
+
+    def _set_job_nodes(self, star_path):
+        self._job_nodes = copy.deepcopy(self._nodes)
+        file_nodes = self._load_file_nodes_from_star(star_path)
+        for fnode in file_nodes:
+            self._job_nodes = self._remove_node_from_graph(self._job_nodes, fnode)
 
     def show_all_nodes(self):
-        digraph = Digraph()
+        digraph = Digraph(format="svg")
         digraph.attr(rankdir="LR")
         for node in self._nodes:
-            digraph.node(name=str(node._path))  # , str(node._path))
+            digraph.node(name=str(node._path))
             for next_node in node:
                 digraph.edge(str(node._path), str(next_node._path))
-        # print(digraph.source)
-        digraph.render("relion_pipeline.gv", view=True)
+        digraph.render("relion_pipeline.gv")
+
+    def show_job_nodes(self):
+        digraph = Digraph(format="svg")
+        digraph.attr(rankdir="LR")
+        for node in self._job_nodes:
+            if node.attributes["status"]:
+                node_colour = "mediumseagreen"
+            elif node.attributes["status"] is None:
+                node_colour = "lightgray"
+            else:
+                node_colour = "orangered"
+            digraph.node(
+                name=str(node._path),
+                shape="hexagon",
+                style="filled",
+                fillcolor=node_colour,
+                color="purple",
+            )
+            for next_node in node:
+                digraph.edge(str(node._path), str(next_node._path))
+        digraph.render("relion_pipeline_jobs.gv")
