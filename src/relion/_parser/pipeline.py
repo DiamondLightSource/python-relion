@@ -4,6 +4,8 @@ import os
 import pathlib
 from graphviz import Digraph
 import copy
+import datetime
+import calendar
 
 
 class RelionNode:
@@ -12,6 +14,7 @@ class RelionNode:
         self._out = []
         self.attributes = {}
         self.attributes["status"] = kwargs.get("status")
+        self.attributes["start_time"] = kwargs.get("start_time")
 
     def __eq__(self, other):
         if isinstance(other, RelionNode):
@@ -259,5 +262,41 @@ class Pipeline:
                 color="purple",
             )
             for next_node in node:
-                digraph.edge(str(node._path), str(next_node._path))
+                if next_node.attributes["start_time"] is not None:
+                    digraph.edge(
+                        str(node._path),
+                        str(next_node._path),
+                        label=str(next_node.attributes["start_time"]),
+                    )
+                else:
+                    digraph.edge(str(node._path), str(next_node._path))
         digraph.render("relion_pipeline_jobs.gv")
+
+    def collect_job_times(self, schedule_logs):
+        for job in self._job_nodes:
+            jtime = self._lookup_job_time(schedule_logs, job)
+            job.attributes["start_time"] = jtime
+
+    def _lookup_job_time(self, schedule_logs, job):
+        # schedule_log = self.basepath / f"pipeline_{jobtype.schedules[0]}.log"
+        time = None
+        job_found = False
+        for log in schedule_logs:
+            with open(log, "r") as slf:
+                lines = slf.readlines()
+                for lindex, line in enumerate(lines):
+                    if "Executing" in line and str(job._path) in line and not job_found:
+                        split_line = lines[lindex - 1].split()
+                        time_split = split_line[4].split(":")
+                        dtime = datetime.datetime(
+                            int(split_line[5]),
+                            list(calendar.month_abbr).index(split_line[2]),
+                            int(split_line[3]),
+                            int(time_split[0]),
+                            int(time_split[1]),
+                            int(time_split[2]),
+                        )
+                        time = dtime
+                        job_found = True
+                        # break
+        return time

@@ -84,3 +84,8 @@ class Project:
     def _load_pipeline(self):
         self.pipeline.load_nodes_from_star(self.basepath / "default_pipeline.star")
         self.pipeline.check_job_node_statuses(self.basepath)
+        self.pipeline.collect_job_times(list(self.schedule_files))
+
+    @property
+    def schedule_files(self):
+        return self.basepath.glob("pipeline*.log")
