@@ -14,7 +14,10 @@ class RelionNode:
         self._out = []
         self.attributes = {}
         self.attributes["status"] = kwargs.get("status")
+        self.attributes["start_time_stamp"] = kwargs.get("start_time_stamp")
+        self.attributes["end_time_stamp"] = kwargs.get("end_time_stamp")
         self.attributes["start_time"] = kwargs.get("start_time")
+        self.attributes["end_time"] = kwargs.get("end_time")
 
     def __eq__(self, other):
         if isinstance(other, RelionNode):
@@ -181,7 +184,16 @@ class Pipeline:
             for p in self._request_star_values(star_path, "_rlnPipeLineProcessName")
         ]
 
+    def _wipe_nodes(self):
+        self._nodes = []
+        self._pnodes = []
+        self._job_nodes = []
+        self._job_pnodes = []
+        self._connected = {}
+        self._pconnected = {}
+
     def load_nodes_from_star(self, star_path):
+        self._wipe_nodes()
         file_nodes = self._load_file_nodes_from_star(star_path)
         job_nodes = self._load_job_nodes_from_star(star_path)
         self._nodes.extend(file_nodes)
@@ -224,8 +236,14 @@ class Pipeline:
             failure = basepath / node._path / "RELION_JOB_EXIT_FAILURE"
             if failure.is_file():
                 node.attributes["status"] = False
+                node.attributes["end_time_stamp"] = datetime.datetime.fromtimestamp(
+                    failure.stat().st_mtime
+                )
             elif success.is_file():
                 node.attributes["status"] = True
+                node.attributes["end_time_stamp"] = datetime.datetime.fromtimestamp(
+                    success.stat().st_mtime
+                )
             else:
                 node.attributes["status"] = None
 
@@ -244,7 +262,7 @@ class Pipeline:
                 digraph.edge(str(node._path), str(next_node._path))
         digraph.render("relion_pipeline.gv")
 
-    def show_job_nodes(self):
+    def show_job_nodes(self, basepath):
         digraph = Digraph(format="svg")
         digraph.attr(rankdir="LR")
         for node in self._job_nodes:
@@ -254,31 +272,74 @@ class Pipeline:
                 node_colour = "lightgray"
             else:
                 node_colour = "orangered"
+            if node.attributes["start_time_stamp"] is not None:
+                sstamp = node.attributes["start_time_stamp"]
+            else:
+                sstamp = "???"
+            if node.attributes["end_time_stamp"] is not None:
+                estamp = node.attributes["end_time_stamp"]
+            else:
+                estamp = "???"
             digraph.node(
                 name=str(node._path),
                 shape="hexagon",
                 style="filled",
                 fillcolor=node_colour,
                 color="purple",
+                tooltip=f"Start: {sstamp} &#013; End: {estamp}",
             )
             for next_node in node:
-                if next_node.attributes["start_time"] is not None:
+                stime = next_node.attributes["start_time"]
+                etime = next_node.attributes["end_time"]
+
+                if stime is not None and etime is not None:
                     digraph.edge(
                         str(node._path),
                         str(next_node._path),
-                        label=str(next_node.attributes["start_time"]),
+                        label=f"{stime} / {etime}",
+                    )
+                elif stime is not None:
+                    digraph.edge(
+                        str(node._path),
+                        str(next_node._path),
+                        label=f"{stime} / ???",
+                    )
+                elif etime is not None:
+                    digraph.edge(
+                        str(node._path),
+                        str(next_node._path),
+                        label=f"??? / {etime}",
                     )
                 else:
-                    digraph.edge(str(node._path), str(next_node._path))
-        digraph.render("relion_pipeline_jobs.gv")
+                    digraph.edge(
+                        str(node._path), str(next_node._path), label="??? / ???"
+                    )
+        digraph.render(basepath / "Pipeline" / "relion_pipeline_jobs.gv")
 
     def collect_job_times(self, schedule_logs):
         for job in self._job_nodes:
             jtime = self._lookup_job_time(schedule_logs, job)
-            job.attributes["start_time"] = jtime
+            job.attributes["start_time_stamp"] = jtime
+        self._calculate_relative_job_times()
+
+    def _calculate_relative_job_times(self):
+        times = [j.attributes["start_time_stamp"] for j in self._job_nodes]
+        etimes = [j.attributes["end_time_stamp"] for j in self._job_nodes]
+        already_started_times = [t for t in times if t is not None]
+        origin = sorted(already_started_times)[0]
+        relative_times = [(t - origin).total_seconds() for t in times if t is not None]
+        just_seconds = lambda tdelta: tdelta - datetime.timedelta(
+            microseconds=tdelta.microseconds
+        )
+        for node, rt in zip(self._job_nodes, relative_times):
+            node.attributes["start_time"] = just_seconds(datetime.timedelta(seconds=rt))
+        relative_etimes = [
+            (t - origin).total_seconds() for t in etimes if t is not None
+        ]
+        for node, rt in zip(self._job_nodes, relative_etimes):
+            node.attributes["end_time"] = just_seconds(datetime.timedelta(seconds=rt))
 
     def _lookup_job_time(self, schedule_logs, job):
-        # schedule_log = self.basepath / f"pipeline_{jobtype.schedules[0]}.log"
         time = None
         job_found = False
         for log in schedule_logs:
