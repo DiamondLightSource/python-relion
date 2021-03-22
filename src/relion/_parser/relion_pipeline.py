@@ -207,5 +207,9 @@ class RelionPipeline(Pipeline):
                 node.attributes["start_time_stamp"] is not None
                 and node.attributes["status"] is None
             ):
-                return node._path
+                for next_node in node:
+                    if next_node.attributes["start_time_stamp"] is not None:
+                        break
+                    else:
+                        return node._path
         return None
