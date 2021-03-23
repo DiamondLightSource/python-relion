@@ -97,6 +97,10 @@ class ProcessGraph(collections.abc.Sequence):
         return self._node_list.index(node)
 
     def node_explore(self, node, explored):
+        if not isinstance(node, ProcessNode):
+            raise ValueError(
+                "ProcessGraph.node_explore must be called with a ProcessNode as the starting point; a string or similar is insufficient"
+            )
         if node not in explored:
             explored.append(node)
         for next_node in node:
