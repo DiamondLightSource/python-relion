@@ -5,7 +5,7 @@ import collections.abc
 
 class ProcessNode:
     def __init__(self, path, **kwargs):
-        self._path = pathlib.Path(path)
+        self._path = pathlib.PurePosixPath(path)
         self._out = []
         self.attributes = {}
         for key, value in kwargs.items():
