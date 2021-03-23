@@ -5,14 +5,13 @@ from graphviz import Digraph
 import copy
 import datetime
 import calendar
-from relion._parser.pipeline import Pipeline, ProcessNode
+from relion._parser.pipeline import Pipeline, ProcessNode, ProcessGraph
 
 
 class RelionPipeline(Pipeline):
-    def __init__(self, image_path, origin):
-        super().__init__(image_path, origin)
+    def __init__(self, origin):
+        super().__init__(origin)
         self._job_nodes = []
-        self._job_pnodes = []
 
     @staticmethod
     def _request_star_values(star_path, column, search=None):
@@ -28,19 +27,23 @@ class RelionPipeline(Pipeline):
         return list(values)
 
     def _load_file_nodes_from_star(self, star_path):
-        return [
-            ProcessNode(pathlib.Path(p))
-            for p in self._request_star_values(star_path, "_rlnPipeLineNodeName")
-        ]
+        return ProcessGraph(
+            [
+                ProcessNode(pathlib.Path(p))
+                for p in self._request_star_values(star_path, "_rlnPipeLineNodeName")
+            ]
+        )
 
     def _load_job_nodes_from_star(self, star_path):
-        return [
-            ProcessNode(pathlib.Path(p))
-            for p in self._request_star_values(star_path, "_rlnPipeLineProcessName")
-        ]
+        return ProcessGraph(
+            [
+                ProcessNode(pathlib.Path(p))
+                for p in self._request_star_values(star_path, "_rlnPipeLineProcessName")
+            ]
+        )
 
     def load_nodes_from_star(self, star_path):
-        self._wipe_nodes()
+        self._nodes.wipe()
         file_nodes = self._load_file_nodes_from_star(star_path)
         job_nodes = self._load_job_nodes_from_star(star_path)
         self._nodes.extend(file_nodes)
@@ -70,12 +73,12 @@ class RelionPipeline(Pipeline):
             ]
         )
         for f, t in binding_pairs:
-            self._nodes[self._nodes.index(f)].link_to(self._nodes[self._nodes.index(t)])
+            self._nodes[self._nodes.index(f._path)].link_to(
+                self._nodes[self._nodes.index(t._path)]
+            )
         self._split_connected()
-        self._traverse_and_count()
-        for key in self._connected.keys():
-            self._pconnected[key].sort()
         self._set_job_nodes(star_path)
+        print([(p, p._out) for p in self._nodes])
 
     def check_job_node_statuses(self, basepath):
         for node in self._job_nodes:
@@ -98,7 +101,7 @@ class RelionPipeline(Pipeline):
         self._job_nodes = copy.deepcopy(self._nodes)
         file_nodes = self._load_file_nodes_from_star(star_path)
         for fnode in file_nodes:
-            self._job_nodes = self._remove_node_from_graph(self._job_nodes, fnode)
+            self._job_nodes.remove_node(fnode._path)
 
     def show_job_nodes(self, basepath):
         digraph = Digraph(format="svg")
@@ -197,7 +200,6 @@ class RelionPipeline(Pipeline):
                         )
                         time = dtime
                         job_found = True
-                        # break
         return time
 
     @property

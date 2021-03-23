@@ -34,9 +34,7 @@ class Project:
         self.basepath = pathlib.Path(path)
         if not self.basepath.is_dir():
             raise ValueError(f"path {self.basepath} is not a directory")
-        self.pipeline = RelionPipeline(
-            self.basepath / "Movies", ProcessNode("Import/job001")
-        )
+        self.pipeline = RelionPipeline(ProcessNode("Import/job001"))
 
     def __eq__(self, other):
         if isinstance(other, Project):
@@ -92,6 +90,7 @@ class Project:
     def show_job_nodes(self):
         self._load_pipeline()
         self.pipeline.show_job_nodes(self.basepath)
+        # self.pipeline.show_all_nodes()
 
     @property
     def schedule_files(self):

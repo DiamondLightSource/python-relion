@@ -1,6 +1,6 @@
-import numpy as np
 import pathlib
 from graphviz import Digraph
+import collections.abc
 
 
 class ProcessNode:
@@ -18,8 +18,16 @@ class ProcessNode:
 
     def __eq__(self, other):
         if isinstance(other, ProcessNode):
-            return self._path == other._path
+            return self._path == other._path and self._out == other._out
+        else:
+            try:
+                return str(self._path) == str(other)
+            except Exception:
+                return False
         return False
+
+    def __hash__(self):
+        return hash(("relion._parser.pipeline.ProcessNode", self._path))
 
     def __repr__(self):
         return f"Node({repr(str(self._path))})"
@@ -30,6 +38,11 @@ class ProcessNode:
     def __len__(self):
         return len(self._out)
 
+    def __lt__(self, other):
+        if self._is_child(other):
+            return True
+        return False
+
     def link_to(self, next_node):
         if next_node not in self._out:
             self._out.append(next_node)
@@ -38,123 +51,129 @@ class ProcessNode:
         if next_node in self._out:
             self._out.remove(next_node)
 
+    def _is_child_checker(self, possible_child, checks=[]):
+        if self == possible_child:
+            checks.extend([True])
+        for child in self:
+            checks.extend(child._is_child_checker(possible_child, checks=checks))
+        return checks
 
-class PipelineNode(ProcessNode):
-    def __init__(self, in_node, origin_distance):
-        super().__init__(in_node._path)
-        self._out = in_node._out
-        self.odist = origin_distance
+    def _is_child(self, possible_child):
+        if True in self._is_child_checker(possible_child):
+            return True
+        else:
+            return False
+
+
+class ProcessGraph(collections.abc.Sequence):
+    def __init__(self, node_list):
+        self._node_list = node_list
 
     def __eq__(self, other):
-        if isinstance(other, PipelineNode):
-            return self.odist == other.odist
+        if isinstance(other, ProcessGraph):
+            return self._node_list == other._node_list
         return False
 
-    def __repr__(self):
-        return f"Node({repr(str(self._path))}, {self.odist})"
+    def __hash__(self):
+        return hash(("relion._parser.pipeline.ProcessGraph", iter(self._node_list)))
 
-    def __lt__(self, other):
-        if isinstance(other, PipelineNode):
-            return self.odist < other.odist
-        raise ValueError(
-            "Attempted to compare a PipelineNode with something other than a PipelineNode"
-        )
+    def __iter__(self):
+        return iter(self._node_list)
 
+    def __len__(self):
+        return len(self._node_list)
 
-class Pipeline:
-    def __init__(self, image_path, origin):
-        self._image_path = image_path
-        self.origin = origin
-        self._nodes = []
-        self._pnodes = []
-        self._connected = {}
-        self._pconnected = {}
-        self.origins = {}
+    def __getitem__(self, index):
+        if not isinstance(index, int):
+            raise ValueError("Index of ProcessGraph must be an integer")
+        return self._node_list[index]
 
-    def _add_node(self, new_node):
-        if isinstance(new_node, ProcessNode):
-            self._nodes.append(new_node)
-            return True
-        elif isinstance(new_node, PipelineNode):
-            self._pnodes.append(new_node)
-            return True
-        raise ValueError("Attempted to add a node that was not a ProcessNode")
+    def extend(self, other):
+        if not isinstance(other, ProcessGraph):
+            raise ValueError("Can only extend a ProcessGraph with another ProcessGraph")
+        self._node_list.extend(other._node_list)
 
-    def _node_explore(self, node, explored):
+    def index(self, node):
+        return self._node_list.index(node)
+
+    def node_explore(self, node, explored):
         if node not in explored:
             explored.append(node)
         for next_node in node:
-            self._node_explore(next_node, explored)
+            self.node_explore(next_node, explored)
 
-    @staticmethod
-    def _remove_node_from_graph(graph, node):
+    def add_node(self, new_node):
+        if isinstance(new_node, ProcessNode):
+            self._node_list.append(new_node)
+        else:
+            raise ValueError("Attempted to add a node that was not a ProcessNode")
+
+    def remove_node(self, node_name):
         behind_nodes = []
-        for currnode in graph:
-            if node in currnode:
+        for currnode in self:
+            if node_name in currnode:
+                print("check passed")
                 behind_nodes.append(currnode)
-                currnode.unlink_from(node)
+                currnode.unlink_from(node_name)
         for bnode in behind_nodes:
-            for next_node in graph[graph.index(node)]:
+            for next_node in self._node_list[self._node_list.index(node_name)]:
                 bnode.link_to(next_node)
-        graph.remove(node)
-        return graph
+        self._node_list.remove(node_name)
 
-    @staticmethod
-    def _find_an_origin(node_list):
+    def find_origins(self):
         child_nodes = []
-        for node in node_list:
+        for node in self:
             child_nodes.extend([next_node for next_node in node])
-        origins = [p for p in node_list if p not in child_nodes]
-        return origins[0]
+        origins = [p for p in self if p not in child_nodes]
+        return origins
+
+    def merge(self, other):
+        if len(set(self).intersection(set(other))) > 0:
+            for new_node in other:
+                if new_node not in self:
+                    self.add_node(new_node)
+            return True
+        else:
+            return False
+
+    def split_connected(self):
+        connected_graphs = []
+        for origin in self.find_origins():
+            curr_graph = []
+            self.node_explore(origin, curr_graph)
+            connected_graphs.append(ProcessGraph(curr_graph))
+        for_removal = []
+        for i, g in enumerate(connected_graphs):
+            for ng in connected_graphs[i + 1 :]:
+                if g.merge(connected_graphs[i + 1 :]):
+                    if ng not in for_removal:
+                        for_removal.append(ng)
+        for r in for_removal:
+            connected_graphs.remove(r)
+        return connected_graphs
+
+    def wipe(self):
+        self._node_list = []
+
+
+class Pipeline:
+    def __init__(self, origin):
+        self.origin = origin
+        self._nodes = ProcessGraph([])
+        self._connected = {}
+        self.origins = {}
 
     def _split_connected(self):
-        self._connected["main"] = []
-        self.origins["main"] = self._nodes[self._nodes.index(self.origin)]
-        self._node_explore(self.origins["main"], self._connected["main"])
-        unexplored = [p for p in self._nodes if p not in self._connected["main"]]
-        while_counter = 1
-        while len(unexplored) > 0:
-            self._connected[f"ancillary:{while_counter}"] = []
-            next_origin = self._find_an_origin(unexplored)
-            self.origins[f"ancillary:{while_counter}"] = next_origin
-            self._node_explore(
-                next_origin, self._connected[f"ancillary:{while_counter}"]
-            )
-
-            for p in self._connected[f"ancillary:{while_counter}"]:
-                if p in unexplored:
-                    unexplored.remove(p)
-            while_counter += 1
-
-    def _traverse_and_count(self):
-        # Use Dijkstra's to get node distances from the origin node
-        for key in self._connected.keys():
-            visited = []
-            dists = [np.inf for _ in self._connected[key]]
-            dists[0] = 0
-            for i in range(len(self._connected[key]) - 1):
-                curr_d = np.inf
-                min_index = np.inf
-                for dindex, d in enumerate(dists):
-                    if d < curr_d and self._connected[key][dindex] not in visited:
-                        curr_d = d
-                        min_index = dindex
-                visited.append(self._connected[key][min_index])
-                for next_node in self._connected[key][min_index]:
-                    alt = dists[min_index] + 1
-                    if alt < dists[self._connected[key].index(next_node)]:
-                        dists[self._connected[key].index(next_node)] = alt
-            self._pconnected[key] = [
-                PipelineNode(node, dist)
-                for node, dist in zip(self._connected[key], dists)
-            ]
-
-    def _wipe_nodes(self):
-        self._nodes = []
-        self._pnodes = []
-        self._connected = {}
-        self._pconnected = {}
-        self._origins = {}
+        connected_graphs = self._nodes.split_connected()
+        ancillary_count = 1
+        for cg in connected_graphs:
+            if self.origin in cg:
+                self._connected["main"] = cg
+                self.origins["main"] = self._nodes[self._nodes.index(self.origin)]
+            else:
+                self._connected[f"ancillary:{ancillary_count}"] = cg
+                self.origins[f"ancillary:{ancillary_count}"] = cg.find_origins()[0]
+                ancillary_count += 1
 
     def show_all_nodes(self):
         digraph = Digraph(format="svg")

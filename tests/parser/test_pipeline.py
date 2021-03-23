@@ -1,5 +1,5 @@
 import pytest
-from relion._parser.pipeline import ProcessNode, PipelineNode
+from relion._parser.pipeline import ProcessNode
 import pathlib
 
 
@@ -33,27 +33,11 @@ def test_process_node_removal_of_a_linked_node(node_with_links):
     assert len(node_with_links) == 1
 
 
-@pytest.fixture
-def pnode_with_links(node_with_links):
-    return PipelineNode(node_with_links, 1)
-
-
-@pytest.fixture
-def pnode_with_links_02(node_with_links):
-    return PipelineNode(node_with_links, 2)
-
-
-def test_pipeline_node_inheritance_of_links(pnode_with_links):
+def test_process_node_child_checking_behaviour(node_with_links):
     next_node_01 = ProcessNode(pathlib.Path("Project/MotionCorr/job002"))
-    next_node_02 = ProcessNode(pathlib.Path("Project/CtfFind/job003"))
-    assert next_node_01 in pnode_with_links
-    assert next_node_02 in pnode_with_links
-    assert len(pnode_with_links) == 2
+    assert node_with_links._is_child(next_node_01)
 
 
-def test_pipeline_node_less_than_behaviour(pnode_with_links, pnode_with_links_02):
-    """
-    For a PipelineNode the origin_distance (designed to be used as the distance from
-    the node without any parent nodes) is used to define the ordering of nodes
-    """
-    assert pnode_with_links < pnode_with_links_02
+def test_process_node_less_than_behaviour(node_with_links):
+    next_node_01 = ProcessNode(pathlib.Path("Project/MotionCorr/job002"))
+    assert node_with_links < next_node_01
