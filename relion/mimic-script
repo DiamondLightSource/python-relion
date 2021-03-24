@@ -1,0 +1,21 @@
+#!/bin/bash
+# A simple script to mimic the behaviour of the Relion pipeline.
+
+if [ -d "temp/relion" ]
+then
+rm -r temp/relion
+fi
+mkdir -p temp/relion
+cd temp/relion
+echo "Relion directory created"
+sleep 5
+
+echo "Starting Motion Correction"
+cp -r /dls/science/groups/scisoft/DIALS/dials_data/relion_tutorial_data/MotionCorr ./
+sleep 10
+
+echo "Starting CTFFind"
+cp -r /dls/science/groups/scisoft/DIALS/dials_data/relion_tutorial_data/CtfFind ./
+sleep 10
+
+echo "Finished"
