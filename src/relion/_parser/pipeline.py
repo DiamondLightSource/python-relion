@@ -18,7 +18,11 @@ class ProcessNode:
 
     def __eq__(self, other):
         if isinstance(other, ProcessNode):
-            return self._path == other._path and self._out == other._out
+            if self._path == other._path and len(self._out) == len(other._out):
+                for n in self._out:
+                    if n not in other._out:
+                        return False
+                return True
         else:
             try:
                 return str(self._path) == str(other)
@@ -71,7 +75,11 @@ class ProcessGraph(collections.abc.Sequence):
 
     def __eq__(self, other):
         if isinstance(other, ProcessGraph):
-            return self._node_list == other._node_list
+            if len(self) == len(other):
+                for n in self:
+                    if n not in other:
+                        return False
+                return True
         return False
 
     def __hash__(self):
@@ -96,6 +104,9 @@ class ProcessGraph(collections.abc.Sequence):
     def index(self, node):
         return self._node_list.index(node)
 
+    def link_from_to(self, from_node, to_node):
+        self[self.index(from_node)].link_to(to_node)
+
     def node_explore(self, node, explored):
         if not isinstance(node, ProcessNode):
             raise ValueError(
@@ -116,7 +127,6 @@ class ProcessGraph(collections.abc.Sequence):
         behind_nodes = []
         for currnode in self:
             if node_name in currnode:
-                print("check passed")
                 behind_nodes.append(currnode)
                 currnode.unlink_from(node_name)
         for bnode in behind_nodes:
@@ -132,10 +142,16 @@ class ProcessGraph(collections.abc.Sequence):
         return origins
 
     def merge(self, other):
-        if len(set(self).intersection(set(other))) > 0:
+        node_names = [p._path for p in self]
+        other_names = [p._path for p in other]
+        if len(set(node_names).intersection(set(other_names))) > 0:
             for new_node in other:
-                if new_node not in self:
+                if new_node._path not in self:
                     self.add_node(new_node)
+                else:
+                    for next_node in new_node:
+                        if next_node._path not in self[self.index(new_node._path)]:
+                            self[self.index(new_node._path)].link_to(next_node)
             return True
         else:
             return False
@@ -149,7 +165,7 @@ class ProcessGraph(collections.abc.Sequence):
         for_removal = []
         for i, g in enumerate(connected_graphs):
             for ng in connected_graphs[i + 1 :]:
-                if g.merge(connected_graphs[i + 1 :]):
+                if g.merge(ng):
                     if ng not in for_removal:
                         for_removal.append(ng)
         for r in for_removal:
