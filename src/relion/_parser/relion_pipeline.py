@@ -11,7 +11,15 @@ from relion._parser.pipeline import Pipeline, ProcessNode, ProcessGraph
 class RelionPipeline(Pipeline):
     def __init__(self, origin):
         super().__init__(origin)
-        self._job_nodes = []
+        self._job_nodes = ProcessGraph([])
+        self._connected_jobs = {}
+        self.job_origins = {}
+        self._jobs_collapsed = False
+
+    def __iter__(self):
+        if not self._jobs_collapsed:
+            self._collapse_jobs_to_jobtypes()
+        return iter(self._jobtype_nodes)
 
     @staticmethod
     def _request_star_values(star_path, column, search=None):
@@ -76,9 +84,8 @@ class RelionPipeline(Pipeline):
             self._nodes[self._nodes.index(f._path)].link_to(
                 self._nodes[self._nodes.index(t._path)]
             )
-        self._split_connected()
+        self._split_connected(self._nodes, self._connected, self.origin, self.origins)
         self._set_job_nodes(star_path)
-        print([(p, p._out) for p in self._nodes])
 
     def check_job_node_statuses(self, basepath):
         for node in self._job_nodes:
@@ -102,6 +109,19 @@ class RelionPipeline(Pipeline):
         file_nodes = self._load_file_nodes_from_star(star_path)
         for fnode in file_nodes:
             self._job_nodes.remove_node(fnode._path)
+        self._split_connected(
+            self._job_nodes, self._connected_jobs, self.origin, self.job_origins
+        )
+
+    def _collapse_jobs_to_jobtypes(self):
+        ordered_graph = []
+        self._job_nodes.node_explore(
+            self._job_nodes[self._job_nodes.index(self.origin)], ordered_graph
+        )
+        self._jobtype_nodes = ProcessGraph(copy.deepcopy(ordered_graph))
+        for node in self._jobtype_nodes:
+            node._path = node._path.parent
+        self._jobs_collapsed = True
 
     def show_job_nodes(self, basepath):
         digraph = Digraph(format="svg")

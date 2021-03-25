@@ -2,6 +2,11 @@ import pytest
 import relion
 
 
+@pytest.fixture
+def proj(dials_data):
+    return relion.Project(dials_data("relion_tutorial_data"))
+
+
 def test_basic_Project_object_behaviour(tmp_path):
     rp1 = relion.Project(tmp_path)
     assert rp1
@@ -23,3 +28,6 @@ def test_basic_Project_object_behaviour(tmp_path):
 def test_create_Project_on_inaccessible_path_fails(tmp_path):
     with pytest.raises(ValueError):
         relion.Project(tmp_path / "does_not_exist")
+
+
+# def test_Project_current_job_property(proj):

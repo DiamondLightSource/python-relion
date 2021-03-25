@@ -177,23 +177,36 @@ class ProcessGraph(collections.abc.Sequence):
 
 
 class Pipeline:
-    def __init__(self, origin):
+    def __init__(self, origin, graphin=ProcessGraph([])):
         self.origin = origin
-        self._nodes = ProcessGraph([])
+        self._nodes = graphin
         self._connected = {}
         self.origins = {}
 
-    def _split_connected(self):
-        connected_graphs = self._nodes.split_connected()
+    @staticmethod
+    def _split_connected(nodes, connected_dict, origin, origins_dict):
+        connected_graphs = nodes.split_connected()
         ancillary_count = 1
         for cg in connected_graphs:
-            if self.origin in cg:
-                self._connected["main"] = cg
-                self.origins["main"] = self._nodes[self._nodes.index(self.origin)]
+            if origin in cg:
+                connected_dict["main"] = cg
+                origins_dict["main"] = nodes[nodes.index(origin)]
             else:
-                self._connected[f"ancillary:{ancillary_count}"] = cg
-                self.origins[f"ancillary:{ancillary_count}"] = cg.find_origins()[0]
+                connected_dict[f"ancillary:{ancillary_count}"] = cg
+                origins_dict[f"ancillary:{ancillary_count}"] = cg.find_origins()[0]
                 ancillary_count += 1
+
+    # def _split_connected(self):
+    #    connected_graphs = self._nodes.split_connected()
+    #    ancillary_count = 1
+    #    for cg in connected_graphs:
+    #        if self.origin in cg:
+    #            self._connected["main"] = cg
+    #            self.origins["main"] = self._nodes[self._nodes.index(self.origin)]
+    #        else:
+    #            self._connected[f"ancillary:{ancillary_count}"] = cg
+    #            self.origins[f"ancillary:{ancillary_count}"] = cg.find_origins()[0]
+    #            ancillary_count += 1
 
     def show_all_nodes(self):
         digraph = Digraph(format="svg")

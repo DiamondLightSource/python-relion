@@ -10,7 +10,6 @@ from relion._parser.motioncorrection import MotionCorr
 from relion._parser.class2D import Class2D
 from relion._parser.class3D import Class3D
 from relion._parser.relion_pipeline import RelionPipeline
-from relion._parser.pipeline import ProcessNode
 
 __all__ = []
 __author__ = "Diamond Light Source - Scientific Software"
@@ -34,7 +33,7 @@ class Project:
         self.basepath = pathlib.Path(path)
         if not self.basepath.is_dir():
             raise ValueError(f"path {self.basepath} is not a directory")
-        self.pipeline = RelionPipeline(ProcessNode("Import/job001"))
+        self.pipeline = RelionPipeline("Import/job001")
 
     def __eq__(self, other):
         if isinstance(other, Project):
