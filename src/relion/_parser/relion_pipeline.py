@@ -5,7 +5,9 @@ from graphviz import Digraph
 import copy
 import datetime
 import calendar
-from relion._parser.pipeline import Pipeline, ProcessNode, ProcessGraph
+from relion._parser.pipeline import Pipeline
+from relion._parser.processnode import ProcessNode
+from relion._parser.processgraph import ProcessGraph
 
 
 class RelionPipeline(Pipeline):
