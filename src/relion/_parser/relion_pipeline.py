@@ -49,8 +49,11 @@ class RelionPipeline:
     def _load_job_nodes_from_star(self, star_path):
         return ProcessGraph(
             [
-                ProcessNode(pathlib.Path(p))
-                for p in self._request_star_values(star_path, "_rlnPipeLineProcessName")
+                ProcessNode(pathlib.Path(p), alias=al)
+                for p, al in zip(
+                    self._request_star_values(star_path, "_rlnPipeLineProcessName"),
+                    self._request_star_values(star_path, "_rlnPipeLineProcessAlias"),
+                )
             ]
         )
 
@@ -148,47 +151,60 @@ class RelionPipeline:
                 estamp = node.attributes["end_time_stamp"]
             else:
                 estamp = "???"
+            if (
+                node.attributes.get("alias") is not None
+                and node.attributes.get("alias") != "None"
+            ):
+                nodename = node.attributes.get("alias")
+            else:
+                nodename = str(node._path)
             digraph.node(
-                name=str(node._path),
+                name=nodename,
                 shape="hexagon",
                 style="filled",
                 fillcolor=node_colour,
                 color="purple",
-                tooltip=f"Start: {sstamp}&#013;End: {estamp}",
+                tooltip=f"Start: {sstamp}&#013;End: {estamp}&#013;Path: {node._path}",
             )
             for next_node in node:
                 stime = next_node.attributes["start_time"]
                 etime = next_node.attributes["end_time"]
                 jcount = next_node.attributes["job_count"]
 
+                if (
+                    next_node.attributes.get("alias") is not None
+                    and next_node.attributes.get("alias") != "None"
+                ):
+                    next_nodename = next_node.attributes.get("alias")
+                else:
+                    next_nodename = str(next_node._path)
+
                 if stime is not None and etime is not None and jcount != 1:
                     digraph.edge(
-                        str(node._path),
-                        str(next_node._path),
+                        nodename,
+                        next_nodename,
                         label=f"{stime} / {etime} [{jcount}]",
                     )
                 elif stime is not None and etime is not None:
                     digraph.edge(
-                        str(node._path),
-                        str(next_node._path),
+                        nodename,
+                        next_nodename,
                         label=f"{stime} / {etime}",
                     )
                 elif stime is not None:
                     digraph.edge(
-                        str(node._path),
-                        str(next_node._path),
+                        nodename,
+                        next_nodename,
                         label=f"{stime} / ???",
                     )
                 elif etime is not None:
                     digraph.edge(
-                        str(node._path),
-                        str(next_node._path),
+                        nodename,
+                        next_nodename,
                         label=f"??? / {etime}",
                     )
                 else:
-                    digraph.edge(
-                        str(node._path), str(next_node._path), label="??? / ???"
-                    )
+                    digraph.edge(nodename, next_nodename, label="??? / ???")
         digraph.render(basepath / "Pipeline" / "relion_pipeline_jobs.gv")
 
     def collect_job_times(self, schedule_logs):
@@ -217,15 +233,12 @@ class RelionPipeline:
 
     def _lookup_job_time(self, schedule_logs, job):
         time = None
-        # job_found = False
         jobcount = 0
         for log in schedule_logs:
             with open(log, "r") as slf:
                 lines = slf.readlines()
                 for lindex, line in enumerate(lines):
-                    if (
-                        "Executing" in line and str(job._path) in line
-                    ):  # and not job_found:
+                    if "Executing" in line and str(job._path) in line:
 
                         split_line = lines[lindex - 1].split()
                         time_split = split_line[4].split(":")
@@ -240,7 +253,6 @@ class RelionPipeline:
                         if time is None or dtime < time:
                             time = dtime
                         jobcount += 1
-                        # job_found = True
         return time, jobcount
 
     @property
