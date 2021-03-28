@@ -159,8 +159,15 @@ class RelionPipeline:
             for next_node in node:
                 stime = next_node.attributes["start_time"]
                 etime = next_node.attributes["end_time"]
+                jcount = next_node.attributes["job_count"]
 
-                if stime is not None and etime is not None:
+                if stime is not None and etime is not None and jcount != 1:
+                    digraph.edge(
+                        str(node._path),
+                        str(next_node._path),
+                        label=f"{stime} / {etime} [{jcount}]",
+                    )
+                elif stime is not None and etime is not None:
                     digraph.edge(
                         str(node._path),
                         str(next_node._path),
@@ -186,8 +193,9 @@ class RelionPipeline:
 
     def collect_job_times(self, schedule_logs):
         for job in self._job_nodes:
-            jtime = self._lookup_job_time(schedule_logs, job)
+            jtime, jcount = self._lookup_job_time(schedule_logs, job)
             job.attributes["start_time_stamp"] = jtime
+            job.attributes["job_count"] = jcount
         self._calculate_relative_job_times()
 
     def _calculate_relative_job_times(self):
@@ -209,25 +217,30 @@ class RelionPipeline:
 
     def _lookup_job_time(self, schedule_logs, job):
         time = None
-        job_found = False
+        # job_found = False
+        jobcount = 0
         for log in schedule_logs:
             with open(log, "r") as slf:
                 lines = slf.readlines()
                 for lindex, line in enumerate(lines):
-                    if "Executing" in line and str(job._path) in line and not job_found:
-                        split_line = lines[lindex - 1].split()
-                        time_split = split_line[4].split(":")
-                        dtime = datetime.datetime(
-                            int(split_line[5]),
-                            list(calendar.month_abbr).index(split_line[2]),
-                            int(split_line[3]),
-                            int(time_split[0]),
-                            int(time_split[1]),
-                            int(time_split[2]),
-                        )
-                        time = dtime
-                        job_found = True
-        return time
+                    if (
+                        "Executing" in line and str(job._path) in line
+                    ):  # and not job_found:
+                        if jobcount == 0:
+                            split_line = lines[lindex - 1].split()
+                            time_split = split_line[4].split(":")
+                            dtime = datetime.datetime(
+                                int(split_line[5]),
+                                list(calendar.month_abbr).index(split_line[2]),
+                                int(split_line[3]),
+                                int(time_split[0]),
+                                int(time_split[1]),
+                                int(time_split[2]),
+                            )
+                            time = dtime
+                        jobcount += 1
+                        # job_found = True
+        return time, jobcount
 
     @property
     def current_job(self):
