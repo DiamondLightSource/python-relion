@@ -136,7 +136,12 @@ class RelionPipeline:
     def show_job_nodes(self, basepath):
         digraph = Digraph(format="svg")
         digraph.attr(rankdir="LR")
+        running_node = self.current_job
         for node in self._job_nodes:
+            if node._path == running_node:
+                bordercolour = "teal"
+            else:
+                bordercolour = "purple"
             if node.attributes["status"]:
                 node_colour = "mediumseagreen"
             elif node.attributes["status"] is None:
@@ -163,7 +168,7 @@ class RelionPipeline:
                 shape="hexagon",
                 style="filled",
                 fillcolor=node_colour,
-                color="purple",
+                color=bordercolour,
                 tooltip=f"Start: {sstamp}&#013;End: {estamp}&#013;Path: {node._path}",
             )
             for next_node in node:
@@ -262,9 +267,12 @@ class RelionPipeline:
                 node.attributes["start_time_stamp"] is not None
                 and node.attributes["status"] is None
             ):
+                next_node_running = False
                 for next_node in node:
                     if next_node.attributes["start_time_stamp"] is not None:
+                        next_node_running = True
                         break
-                    else:
-                        return node._path
+                if not next_node_running:
+                    return node._path
+
         return None
