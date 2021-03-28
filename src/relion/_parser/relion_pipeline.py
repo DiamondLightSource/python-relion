@@ -5,14 +5,16 @@ from graphviz import Digraph
 import copy
 import datetime
 import calendar
-from relion._parser.pipeline import Pipeline
 from relion._parser.processnode import ProcessNode
 from relion._parser.processgraph import ProcessGraph
 
 
-class RelionPipeline(Pipeline):
-    def __init__(self, origin):
-        super().__init__(origin)
+class RelionPipeline:
+    def __init__(self, origin, graphin=ProcessGraph([])):
+        self.origin = origin
+        self._nodes = graphin
+        self._connected = {}
+        self.origins = {}
         self._job_nodes = ProcessGraph([])
         self._connected_jobs = {}
         self.job_origins = {}
@@ -86,7 +88,7 @@ class RelionPipeline(Pipeline):
             self._nodes[self._nodes.index(f._path)].link_to(
                 self._nodes[self._nodes.index(t._path)]
             )
-        self._split_connected(self._nodes, self._connected, self.origin, self.origins)
+        self._nodes._split_connected(self._connected, self.origin, self.origins)
         self._set_job_nodes(star_path)
 
     def check_job_node_statuses(self, basepath):
@@ -111,8 +113,8 @@ class RelionPipeline(Pipeline):
         file_nodes = self._load_file_nodes_from_star(star_path)
         for fnode in file_nodes:
             self._job_nodes.remove_node(fnode._path)
-        self._split_connected(
-            self._job_nodes, self._connected_jobs, self.origin, self.job_origins
+        self._job_nodes._split_connected(
+            self._connected_jobs, self.origin, self.job_origins
         )
 
     def _collapse_jobs_to_jobtypes(self):
@@ -124,6 +126,9 @@ class RelionPipeline(Pipeline):
         for node in self._jobtype_nodes:
             node._path = node._path.parent
         self._jobs_collapsed = True
+
+    def show_all_nodes(self):
+        self._nodes.show_all_nodes()
 
     def show_job_nodes(self, basepath):
         digraph = Digraph(format="svg")

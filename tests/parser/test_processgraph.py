@@ -2,6 +2,7 @@ import pytest
 from relion._parser.processnode import ProcessNode
 from relion._parser.processgraph import ProcessGraph
 import copy
+from unittest import mock
 
 
 @pytest.fixture
@@ -177,6 +178,25 @@ def test_process_graph_split_connected(graph, new_origin_graph):
     connected = graph.split_connected()
     assert len(connected) == 2
     assert connected == [graph_snapshot, ProcessGraph([new_node])]
+
+
+@mock.patch("relion._parser.processgraph.Digraph")
+def test_process_graph_show_all_nodes(mock_Digraph, graph):
+    graph.show_all_nodes()
+    mock_Digraph.assert_called_once()
+    mock_Digraph.return_value.attr.assert_called_once()
+    nodecalls = [
+        mock.call(name="Project/Import/job001"),
+        mock.call(name="Project/MotionCorr/job002"),
+        mock.call(name="Project/CtfFind/job003"),
+    ]
+    mock_Digraph.return_value.node.assert_has_calls(nodecalls)
+    edgecalls = [
+        mock.call("Project/Import/job001", "Project/MotionCorr/job002"),
+        mock.call("Project/Import/job001", "Project/CtfFind/job003"),
+    ]
+    mock_Digraph.return_value.edge.assert_has_calls(edgecalls)
+    mock_Digraph.return_value.render.assert_called_once()
 
 
 def test_process_graph_wipe(graph):
