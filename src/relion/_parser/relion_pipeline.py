@@ -226,17 +226,18 @@ class RelionPipeline:
                     if (
                         "Executing" in line and str(job._path) in line
                     ):  # and not job_found:
-                        if jobcount == 0:
-                            split_line = lines[lindex - 1].split()
-                            time_split = split_line[4].split(":")
-                            dtime = datetime.datetime(
-                                int(split_line[5]),
-                                list(calendar.month_abbr).index(split_line[2]),
-                                int(split_line[3]),
-                                int(time_split[0]),
-                                int(time_split[1]),
-                                int(time_split[2]),
-                            )
+
+                        split_line = lines[lindex - 1].split()
+                        time_split = split_line[4].split(":")
+                        dtime = datetime.datetime(
+                            int(split_line[5]),
+                            list(calendar.month_abbr).index(split_line[2]),
+                            int(split_line[3]),
+                            int(time_split[0]),
+                            int(time_split[1]),
+                            int(time_split[2]),
+                        )
+                        if time is None or dtime < time:
                             time = dtime
                         jobcount += 1
                         # job_found = True
