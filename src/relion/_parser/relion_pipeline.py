@@ -1,7 +1,11 @@
 from gemmi import cif
 import os
 import pathlib
-from graphviz import Digraph
+
+try:
+    from graphviz import Digraph
+except ImportError:
+    pass
 import copy
 import datetime
 import calendar
@@ -16,6 +20,7 @@ class RelionPipeline:
         self._connected = {}
         self.origins = {}
         self._job_nodes = ProcessGraph([])
+        self._jobtype_nodes = ProcessGraph([])
         self._connected_jobs = {}
         self.job_origins = {}
         self._jobs_collapsed = False

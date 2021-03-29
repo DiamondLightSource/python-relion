@@ -1,5 +1,11 @@
 import collections.abc
-from graphviz import Digraph
+
+try:
+    from graphviz import Digraph
+except ImportError:
+    raise ImportWarning(
+        "Unable to import graphviz: functionality for displaying ProcessGraphs will be unavailable"
+    )
 from relion._parser.processnode import ProcessNode
 
 

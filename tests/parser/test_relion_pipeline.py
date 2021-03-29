@@ -1,0 +1,49 @@
+import pytest
+from relion._parser.processnode import ProcessNode
+from relion._parser.processgraph import ProcessGraph
+from relion._parser.relion_pipeline import RelionPipeline
+
+
+@pytest.fixture
+def next_node_01():
+    return ProcessNode("MotionCorr/job002")
+
+
+@pytest.fixture
+def next_node_02():
+    return ProcessNode("CtfFind/job003")
+
+
+@pytest.fixture
+def node_with_links(next_node_01, next_node_02):
+    node = ProcessNode("Import/job001")
+    node.link_to(next_node_01)
+    node.link_to(next_node_02)
+    return node
+
+
+@pytest.fixture
+def graph(node_with_links, next_node_01, next_node_02):
+    node_links = [node_with_links, next_node_01, next_node_02]
+    return ProcessGraph(node_links)
+
+
+@pytest.fixture
+def pipeline(graph):
+    rpipeline = RelionPipeline("Import/job001", graph)
+    rpipeline._job_nodes = rpipeline._nodes
+    return rpipeline
+
+
+def test_relion_pipeline_iterator_with_preprepared_pipeline(
+    pipeline, node_with_links, next_node_01, next_node_02
+):
+    assert list(pipeline) == ["Import", "MotionCorr", "CtfFind"]
+
+
+def test_relion_pipeline_load_files_from_star(dials_data):
+    pipeline = RelionPipeline("Import/job001")
+    pipeline.load_nodes_from_star(
+        dials_data("relion_tutorial_data") / "default_pipeline.star"
+    )
+    assert "Extract/job018" in pipeline._nodes
