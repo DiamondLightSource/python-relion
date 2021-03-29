@@ -2,6 +2,7 @@ import pytest
 from relion._parser.processnode import ProcessNode
 from relion._parser.processgraph import ProcessGraph
 from relion._parser.relion_pipeline import RelionPipeline
+import pathlib
 
 
 @pytest.fixture
@@ -47,3 +48,31 @@ def test_relion_pipeline_load_files_from_star(dials_data):
         dials_data("relion_tutorial_data") / "default_pipeline.star"
     )
     assert "Extract/job018" in pipeline._nodes
+    assert "Class2D/job008/run_it025_model.star" in pipeline._nodes
+    assert "Extract/job018" in pipeline._job_nodes
+    assert "Class2D/job008/run_it025_model.star" not in pipeline._job_nodes
+
+
+def test_relion_pipeline_check_job_node_statuses(dials_data):
+    pipeline = RelionPipeline("Import/job001")
+    pipeline.load_nodes_from_star(
+        dials_data("relion_tutorial_data") / "default_pipeline.star"
+    )
+    pipeline.check_job_node_statuses(pathlib.Path(dials_data("relion_tutorial_data")))
+    assert pipeline._job_nodes[pipeline._job_nodes.index("Extract/job018")].attributes[
+        "status"
+    ]
+    assert pipeline._job_nodes[pipeline._job_nodes.index("Class2D/job008")].attributes[
+        "status"
+    ]
+
+
+def test_relion_pipeline_current_job_property_without_any_start_time_information(
+    dials_data,
+):
+    pipeline = RelionPipeline("Import/job001")
+    pipeline.load_nodes_from_star(
+        dials_data("relion_tutorial_data") / "default_pipeline.star"
+    )
+    pipeline.check_job_node_statuses(pathlib.Path(dials_data("relion_tutorial_data")))
+    assert pipeline.current_job is None

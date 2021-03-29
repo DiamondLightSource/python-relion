@@ -28,6 +28,3 @@ def test_basic_Project_object_behaviour(tmp_path):
 def test_create_Project_on_inaccessible_path_fails(tmp_path):
     with pytest.raises(ValueError):
         relion.Project(tmp_path / "does_not_exist")
-
-
-# def test_Project_current_job_property(proj):
