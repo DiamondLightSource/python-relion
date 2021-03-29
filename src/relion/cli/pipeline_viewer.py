@@ -1,13 +1,17 @@
-import sys
 import webbrowser
 import platform
 import pathlib
 import subprocess
 from relion import Project
+import argparse
 
 
 def run():
-    relion_dir = pathlib.Path(sys.argv[1])
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-p", "--project", required=True, dest="project")
+    parser.add_argument("-a", "--all", action="store_true", dest="all_flag")
+    args = parser.parse_args()
+    relion_dir = pathlib.Path(args.project)
     proj = Project(relion_dir)
     proj.show_job_nodes()
     if platform.system() == "Linux" and "WSL" in platform.release():

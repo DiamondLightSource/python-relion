@@ -6,19 +6,25 @@ from unittest import mock
 
 
 @pytest.fixture
-def node_with_links():
+def next_node_01():
+    return ProcessNode("Project/MotionCorr/job002")
+
+
+@pytest.fixture
+def next_node_02():
+    return ProcessNode("Project/CtfFind/job003")
+
+
+@pytest.fixture
+def node_with_links(next_node_01, next_node_02):
     node = ProcessNode("Project/Import/job001")
-    next_node_01 = ProcessNode("Project/MotionCorr/job002")
-    next_node_02 = ProcessNode("Project/CtfFind/job003")
     node.link_to(next_node_01)
     node.link_to(next_node_02)
     return node
 
 
 @pytest.fixture
-def graph(node_with_links):
-    next_node_01 = ProcessNode("Project/MotionCorr/job002")
-    next_node_02 = ProcessNode("Project/CtfFind/job003")
+def graph(node_with_links, next_node_01, next_node_02):
     node_links = [node_with_links, next_node_01, next_node_02]
     return ProcessGraph(node_links)
 
@@ -42,10 +48,8 @@ def new_origin_graph():
 
 
 @pytest.fixture
-def no_link_graph():
+def no_link_graph(next_node_01, next_node_02):
     node = ProcessNode("Project/Import/job001")
-    next_node_01 = ProcessNode("Project/MotionCorr/job002")
-    next_node_02 = ProcessNode("Project/CtfFind/job003")
     node_links = [node, next_node_01, next_node_02]
     return ProcessGraph(node_links)
 
@@ -61,8 +65,7 @@ def test_process_graph_length(graph):
     assert len(graph) == 3
 
 
-def test_process_graph_access_to_elements_via_index(graph):
-    next_node_01 = ProcessNode("Project/MotionCorr/job002")
+def test_process_graph_access_to_elements_via_index(graph, next_node_01):
     assert graph[1] == next_node_01
 
 
@@ -75,17 +78,14 @@ def test_process_graph_extend_behaves_like_a_list_extend(graph):
     assert graph._node_list == old_node_list
 
 
-def test_process_graph_can_get_the_index_of_a_provided_element(graph):
-    next_node_01 = ProcessNode("Project/MotionCorr/job002")
+def test_process_graph_can_get_the_index_of_a_provided_element(graph, next_node_01):
     assert graph.index(next_node_01) == 1
     assert graph.index("Project/MotionCorr/job002") == 1
 
 
 def test_process_graph_node_explore_collects_all_nodes_from_provided_node_onwards(
-    graph, node_with_links
+    graph, node_with_links, next_node_01, next_node_02
 ):
-    next_node_01 = ProcessNode("Project/MotionCorr/job002")
-    next_node_02 = ProcessNode("Project/CtfFind/job003")
     explored = []
     graph.node_explore(next_node_01, explored)
     assert explored == [next_node_01]
@@ -97,35 +97,34 @@ def test_process_graph_node_explore_collects_all_nodes_from_provided_node_onward
         graph.node_explore("Project/Import/job001", explored)
 
 
-def test_process_graph_add_node(graph, node_with_links):
-    next_node_01 = ProcessNode("Project/MotionCorr/job002")
-    next_node_02 = ProcessNode("Project/CtfFind/job003")
+def test_process_graph_add_node(graph, node_with_links, next_node_01, next_node_02):
     new_node = ProcessNode("Project/External/job004")
     graph.add_node(new_node)
     assert graph._node_list == [node_with_links, next_node_01, next_node_02, new_node]
 
 
-def test_process_graph_remove_node_without_any_links(graph, node_with_links):
-    next_node_01 = ProcessNode("Project/MotionCorr/job002")
-    next_node_02 = ProcessNode("Project/CtfFind/job003")
+def test_process_graph_remove_node_without_any_links(
+    graph, node_with_links, next_node_01, next_node_02
+):
     graph.remove_node(next_node_01)
     assert list(graph) == [node_with_links, next_node_02]
     graph.remove_node("Project/CtfFind/job003")
     assert list(graph) == [node_with_links]
 
 
-def test_process_graph_link_from_to_does_the_linking_correctly(no_link_graph):
+def test_process_graph_link_from_to_does_the_linking_correctly(
+    no_link_graph, next_node_01
+):
     node = ProcessNode("Project/Import/job001")
-    next_node_01 = ProcessNode("Project/MotionCorr/job002")
     no_link_graph.link_from_to(node, next_node_01)
     assert list(no_link_graph[0])[0] == next_node_01
 
 
-def test_process_graph_remove_node_and_check_links_still_work(graph):
+def test_process_graph_remove_node_and_check_links_still_work(
+    graph, next_node_01, next_node_02
+):
     # Can't use graph fixture here as linking a child node to a new node wouldn't change the parent node in the way required for a fixture
     node = ProcessNode("Project/Import/job001")
-    next_node_01 = ProcessNode("Project/MotionCorr/job002")
-    next_node_02 = ProcessNode("Project/CtfFind/job003")
     node.link_to(next_node_01)
     node.link_to(next_node_02)
     new_graph = ProcessGraph([node, next_node_01, next_node_02])
