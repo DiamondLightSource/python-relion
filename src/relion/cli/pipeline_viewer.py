@@ -9,7 +9,6 @@ import argparse
 def run():
     parser = argparse.ArgumentParser()
     parser.add_argument("-p", "--project", required=True, dest="project")
-    parser.add_argument("-a", "--all", action="store_true", dest="all_flag")
     args = parser.parse_args()
     relion_dir = pathlib.Path(args.project)
     proj = Project(relion_dir)
