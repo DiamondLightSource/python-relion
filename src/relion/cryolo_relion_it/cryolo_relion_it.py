@@ -555,6 +555,11 @@ import gemmi
 
 from relion_yolo_it import cryolo_external_job, cryolo_fine_tune_job
 
+from relion_yolo_it import mask_soft_edge_external_job
+from relion_yolo_it import select_and_split_external_job
+from relion_yolo_it import reconstruct_halves_external_job
+from relion_yolo_it import fsc_fitting_external_job
+
 try:
     import tkinter as tk
     import tkinter.messagebox
@@ -920,6 +925,8 @@ class RelionItOptions(object):
     inimodel_sigmafudge_halflife = -1
     # Additional arguments to pass to relion_refine (skip annealing to get rid of outlier particles)
     inimodel_other_args = " --sgd_skip_anneal "
+    # Option to use FSC based criterion for selecting the best SGD initial model
+    use_fsc_criterion = False
 
     ### Cluster submission settings
     # Name of the queue to which to submit the job
@@ -2080,6 +2087,130 @@ def findBestClass(model_star_file, use_resol=True):
     return best_class, best_resol, model_star["model_general"]["rlnPixelSize"]
 
 
+# the model star file is used to find the number of classes, the data star file is passed to the
+# select_and_split External job
+def scheduleJobsFSC(
+    model_star_file, data_star_file, inimodel_job, opts, curr_angpix, curr_boxsize
+):
+    model_star = safe_load_star(model_star_file)
+    outjobs = []
+
+    fsc_files = ""
+
+    # calculate a mask radius that is 0.98 of that used in the reconstruct_halves job
+    mask_outer_radius = math.floor(0.98 * opts.mask_diameter / (2 * curr_angpix))
+
+    job_name = f"mask_soft_edge"
+    options = [
+        f"External executable: == {mask_soft_edge_external_job.__file__}",
+        f"Param1 - label: == out_dir",
+        f"Param1 - value: == External/MaskSoftEdge",
+        f"Param2 - label: == box_size",
+        f"Param2 - value: == {curr_boxsize}",
+        f"Param3 - label: == angpix",
+        f"Param3 - value: == {curr_angpix}",
+        f"Param4 - label: == outer_radius",
+        f"Param4 - value: == {mask_outer_radius}",
+    ]
+    mask_soft_job, already_had_it = addJob(
+        "External", job_name, SETUP_CHECK_FILE, options, alias=f"MaskSoftEdge"
+    )
+
+    outjobs.append(mask_soft_job)
+
+    for iclass in range(0, len(model_star["model_classes"]["rlnReferenceImage"])):
+        job_name = f"select_and_split_{iclass+1}"
+        options = [
+            f"External executable: == {select_and_split_external_job.__file__}",
+            f"Input micrographs:  == {data_star_file}",
+            f"Param1 - label: == in_dir",
+            f"Param1 - value: == {inimodel_job}",
+            f"Param2 - label: == out_dir",
+            f"Param2 - value: == External/SelectAndSplit_{iclass+1}",
+            f"Param3 - label: == outfile",
+            f"Param3 - value: == particles_class{iclass+1}.star",
+            f"Param4 - label: == class_number",
+            f"Param4 - value: == {iclass+1}",
+        ]
+        select_split_job, already_had_it = addJob(
+            "External",
+            job_name,
+            SETUP_CHECK_FILE,
+            options,
+            alias=f"SelectAndSplit_{iclass+1}",
+        )
+
+        job_name = f"reconstruct_halves_{iclass+1}"
+        options = [
+            f"External executable: == {reconstruct_halves_external_job.__file__}",
+            f"Input micrographs:  == External/SelectAndSplit_{iclass+1}/particles_class{iclass+1}.star",
+            f"Param1 - label: == in_dir",
+            f"Param1 - value: == External/SelectAndSplit_{iclass+1}",
+            f"Param2 - label: == out_dir",
+            f"Param2 - value: == External/ReconstructHalves_{iclass+1}",
+            f"Param3 - label: == i",
+            f"Param3 - value: == particles_class{iclass+1}.star",
+            f"Param4 - label: == mask_diameter",
+            f"Param4 - value: == {opts.mask_diameter}",
+            f"Param5 - label: == class_number",
+            f"Param5 - value: == {iclass+1}",
+        ]
+        reconstruct_halves_job, already_had_it = addJob(
+            "External",
+            job_name,
+            SETUP_CHECK_FILE,
+            options,
+            alias=f"ReconstructHalves_{iclass+1}",
+        )
+
+        job_name = f"postprocessing_{iclass+1}"
+        options = [
+            f"Solvent mask: == External/MaskSoftEdge/mask.mrc",
+            f"One of the 2 unfiltered half-maps: == External/ReconstructHalves_{iclass+1}/3d_half1_model{iclass+1}.mrc",
+            f"Calibrated pixel size (A) == {curr_angpix}",
+            f"Estimate B-factor automatically? == Yes",
+            f"Lowest resolution for auto-B fit (A): == 10",
+        ]
+
+        postprocess_job, already_had_it = addJob(
+            "PostProcess",
+            job_name,
+            SETUP_CHECK_FILE,
+            options,
+            alias=f"GetFSC_{iclass+1}",
+        )
+
+        outjobs.extend([select_split_job, reconstruct_halves_job, postprocess_job])
+
+        fsc_files += f" PostProcess/GetFSC_{iclass+1}/postprocess.star"
+
+    job_name = "fsc_fitting"
+    options = [
+        f"External executable: == {fsc_fitting_external_job.__file__}",
+        f"Param1 - label: == i",
+        f"Param1 - value: == {fsc_files}",
+        f"Param2 - label: == out_dir",
+        f"Param2 - value: == External/FSCFitting",
+    ]
+    fsc_fitting_job, already_had_it = addJob(
+        "External", job_name, SETUP_CHECK_FILE, options, alias="FSCFitting"
+    )
+    outjobs.append(fsc_fitting_job)
+
+    return outjobs
+
+
+def findBestClassFSC(best_class_file, model_star_file):
+    with open(best_class_file, "r") as f:
+        class_index = int(f.readline())
+    model_star = safe_load_star(model_star_file)
+    best_class = model_star["model_classes"]["rlnReferenceImage"][class_index]
+    best_resol = float(
+        model_star["model_classes"]["rlnEstimatedResolution"][class_index]
+    )
+    return best_class, best_resol, model_star["model_general"]["rlnPixelSize"]
+
+
 def findOutputModelStar(job_dir):
     found = None
     try:
@@ -2091,7 +2222,24 @@ def findOutputModelStar(job_dir):
             if output_file.endswith("_model.star"):
                 found = output_file
                 break
-    except:
+    except Exception:
+        pass
+
+    return found
+
+
+def findOutputDataStar(job_dir):
+    found = None
+    try:
+        job_star = safe_load_star(
+            job_dir + "job_pipeline.star",
+            expected=["pipeline_output_edges", "rlnPipeLineEdgeToNode"],
+        )
+        for output_file in job_star["pipeline_output_edges"]["rlnPipeLineEdgeToNode"]:
+            if output_file.endswith("_data.star"):
+                found = output_file
+                break
+    except Exception:
         pass
 
     return found
@@ -2470,6 +2618,15 @@ def run_pipeline(opts):
                             opts.extract_small_boxsize
                         )
                     )
+                    curr_angpix = (
+                        opts.angpix
+                        * opts.motioncor_binning
+                        * (opts.extract_boxsize / opts.extract_small_boxsize)
+                    )
+                    curr_boxsize = opts.extract_small_boxsize
+                else:
+                    curr_angpix = opts.angpix * opts.motioncor_binning
+                    curr_boxsize = bin_corrected_box_even
             else:
                 if opts.extract2_downscale:
                     extract_options.append("Rescale particles? == Yes")
@@ -2478,6 +2635,15 @@ def run_pipeline(opts):
                             opts.extract2_small_boxsize
                         )
                     )
+                    curr_angpix = (
+                        opts.angpix
+                        * opts.motioncor_binning
+                        * (opts.extract_boxsize / opts.extract2_small_boxsize)
+                    )
+                    curr_boxsize = opts.extract2_small_boxsize
+                else:
+                    curr_angpix = opts.angpix * opts.motioncor_binning
+                    curr_boxsize = bin_corrected_box_even
 
             if opts.extract_submit_to_queue:
                 extract_options.extend(queue_options)
@@ -3017,6 +3183,7 @@ def run_pipeline(opts):
                                     return
 
                             sgd_model_star = findOutputModelStar(inimodel_job)
+                            sgd_data_star = findOutputDataStar(inimodel_job)
                             if sgd_model_star is None:
                                 print(
                                     " RELION_IT: Initial model generation "
@@ -3036,11 +3203,36 @@ def run_pipeline(opts):
                                 + opts.inimodel_nr_iter_inbetween
                                 + opts.inimodel_nr_iter_final
                             )
-                            (
-                                best_inimodel_class,
-                                best_inimodel_resol,
-                                best_inimodel_angpix,
-                            ) = findBestClass(sgd_model_star, use_resol=True)
+
+                            if opts.use_fsc_criterion:
+                                ini_choose_jobs = scheduleJobsFSC(
+                                    sgd_model_star,
+                                    sgd_data_star,
+                                    inimodel_job,
+                                    opts,
+                                    curr_angpix,
+                                    curr_boxsize,
+                                )
+                                if not already_had_it:
+                                    RunJobs(ini_choose_jobs, 1, 1, "INIMODEL")
+                                    WaitForJob(ini_choose_jobs[-1], 30)
+
+                                (
+                                    best_inimodel_class,
+                                    best_inimodel_resol,
+                                    best_inimodel_angpix,
+                                ) = findBestClassFSC(
+                                    os.path.join(ini_choose_jobs[-1], "BestClass.txt"),
+                                    sgd_model_star,
+                                )
+
+                            else:
+                                (
+                                    best_inimodel_class,
+                                    best_inimodel_resol,
+                                    best_inimodel_angpix,
+                                ) = findBestClass(sgd_model_star, use_resol=True)
+
                             opts.class3d_reference = best_inimodel_class
                             opts.class3d_ref_is_correct_greyscale = True
                             opts.class3d_ref_is_ctf_corrected = True
@@ -3182,6 +3374,7 @@ def run_pipeline(opts):
                                     return
 
                             class3d_model_star = findOutputModelStar(class3d_job)
+                            class3d_data_star = findOutputDataStar(class3d_job)
                             if class3d_model_star is None:
                                 print(
                                     " RELION_IT: 3D Classification "

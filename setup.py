@@ -30,6 +30,10 @@ setup(
         "relion_yolo_it/cryolo_relion_it.py",
         "relion_yolo_it/cryolo_external_job.py",
         "relion_yolo_it/cryolo_fine_tune_job.py",
+        "relion_yolo_it/select_and_split_external_job.py",
+        "relion_yolo_it/mask_soft_edge_external_job.py",
+        "relion_yolo_it/reconstruct_halves_external_job.py",
+        "relion_yolo_it/fsc_fitting_external_job.py",
     ],
     entry_points={
         "zocalo.wrappers": [
