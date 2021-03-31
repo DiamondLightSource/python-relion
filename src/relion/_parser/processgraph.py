@@ -3,9 +3,7 @@ import collections.abc
 try:
     from graphviz import Digraph
 except ImportError:
-    raise ImportWarning(
-        "Unable to import graphviz: functionality for displaying ProcessGraphs will be unavailable"
-    )
+    pass
 from relion._parser.processnode import ProcessNode
 
 
@@ -125,13 +123,18 @@ class ProcessGraph(collections.abc.Sequence):
                 ancillary_count += 1
 
     def show_all_nodes(self):
-        digraph = Digraph(format="svg")
-        digraph.attr(rankdir="LR")
-        for node in self:
-            digraph.node(name=str(node._path))
-            for next_node in node:
-                digraph.edge(str(node._path), str(next_node._path))
-        digraph.render("pipeline.gv")
+        try:
+            digraph = Digraph(format="svg")
+            digraph.attr(rankdir="LR")
+            for node in self:
+                digraph.node(name=str(node._path))
+                for next_node in node:
+                    digraph.edge(str(node._path), str(next_node._path))
+            digraph.render("pipeline.gv")
+        except Exception:
+            raise Warning(
+                "Failed to create nodes display. Your environment may not have graphviz available."
+            )
 
     def wipe(self):
         self._node_list = []

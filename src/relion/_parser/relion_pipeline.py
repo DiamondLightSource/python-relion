@@ -139,7 +139,13 @@ class RelionPipeline:
         self._nodes.show_all_nodes()
 
     def show_job_nodes(self, basepath):
-        digraph = Digraph(format="svg")
+        try:
+            digraph = Digraph(format="svg")
+        except Exception:
+            raise Warning(
+                "Failed to create nodes display. Your environment may not have graphviz avaliable."
+            )
+            return
         digraph.attr(rankdir="LR")
         running_node = self.current_job
         for node in self._job_nodes:
