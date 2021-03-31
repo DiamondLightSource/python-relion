@@ -49,14 +49,16 @@ class CTFFind(JobType):
     def _load_job_directory(self, jobdir):
         file = self._read_star_file(jobdir, "micrographs_ctf.star")
 
-        astigmatism = self.parse_star_file("_rlnCtfAstigmatism", file, 1)
-        defocus_u = self.parse_star_file("_rlnDefocusU", file, 1)
-        defocus_v = self.parse_star_file("_rlnDefocusV", file, 1)
-        defocus_angle = self.parse_star_file("_rlnDefocusAngle", file, 1)
-        max_resolution = self.parse_star_file("_rlnCtfMaxResolution", file, 1)
-        fig_of_merit = self.parse_star_file("_rlnCtfFigureOfMerit", file, 1)
+        info_table = self._find_table_from_column_name("_rlnCtfAstigmatism", file)
 
-        micrograph_name = self.parse_star_file("_rlnMicrographName", file, 1)
+        astigmatism = self.parse_star_file("_rlnCtfAstigmatism", file, info_table)
+        defocus_u = self.parse_star_file("_rlnDefocusU", file, info_table)
+        defocus_v = self.parse_star_file("_rlnDefocusV", file, info_table)
+        defocus_angle = self.parse_star_file("_rlnDefocusAngle", file, info_table)
+        max_resolution = self.parse_star_file("_rlnCtfMaxResolution", file, info_table)
+        fig_of_merit = self.parse_star_file("_rlnCtfFigureOfMerit", file, info_table)
+
+        micrograph_name = self.parse_star_file("_rlnMicrographName", file, info_table)
 
         micrograph_list = []
         for j in range(len(micrograph_name)):
