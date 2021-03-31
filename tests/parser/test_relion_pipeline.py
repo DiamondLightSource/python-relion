@@ -78,18 +78,41 @@ def test_relion_pipeline_current_job_property_without_any_start_time_information
     assert pipeline.current_job is None
 
 
+@pytest.mark.skip(reason="Required files not currently in dials_data")
 def test_relion_pipeline_collect_job_times_from_dials_data_logs(dials_data):
     pipeline = RelionPipeline("Import/job001")
     pipeline.load_nodes_from_star(
         dials_data("relion_tutorial_data") / "default_pipeline.star"
     )
-    logs = dials_data("relion_tutorial_data").glob("pipeline*.log")
+    logs = list(pathlib.Path(dials_data("relion_tutorial_data")).glob("pipeline*.log"))
+    assert dials_data("relion_tutorial_data") / "pipeline_PREPROCESS.log" in logs
     pipeline.collect_job_times(logs)
+    for job in pipeline._job_nodes:
+        assert job.attributes.get("start_time_stamp") is not None
     assert (
         pipeline._job_nodes[pipeline._job_nodes.index("MotionCorr/job002")].attributes[
             "job_count"
         ]
         == 2
     )
-    for job in pipeline._job_nodes:
-        assert job.attributes.get("start_time_stamp") is not None
+    assert (
+        pipeline._job_nodes[pipeline._job_nodes.index("Class2D/job008")].attributes[
+            "job_count"
+        ]
+        == 1
+    )
+
+
+@pytest.mark.skip(reason="Required files not currently in dials_data")
+def test_relion_pipeline_current_job_property_with_timing_info(dials_data):
+    pipeline = RelionPipeline("Import/job001")
+    pipeline.load_nodes_from_star(
+        dials_data("relion_tutorial_data") / "default_pipeline.star"
+    )
+    logs = list(pathlib.Path(dials_data("relion_tutorial_data")).glob("pipeline*.log"))
+    pipeline.collect_job_times(logs)
+    pipeline.check_job_node_statuses(pathlib.Path(dials_data("relion_tutorial_data")))
+    pipeline._job_nodes[pipeline._job_nodes.index("LocalRes/job031")].attributes[
+        "status"
+    ] = None
+    assert str(pipeline.current_job) == "LocalRes/job031"
