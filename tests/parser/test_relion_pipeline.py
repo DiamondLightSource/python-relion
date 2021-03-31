@@ -76,3 +76,20 @@ def test_relion_pipeline_current_job_property_without_any_start_time_information
     )
     pipeline.check_job_node_statuses(pathlib.Path(dials_data("relion_tutorial_data")))
     assert pipeline.current_job is None
+
+
+def test_relion_pipeline_collect_job_times_from_dials_data_logs(dials_data):
+    pipeline = RelionPipeline("Import/job001")
+    pipeline.load_nodes_from_star(
+        dials_data("relion_tutorial_data") / "default_pipeline.star"
+    )
+    logs = dials_data("relion_tutorial_data").glob("pipeline*.log")
+    pipeline.collect_job_times(logs)
+    assert (
+        pipeline._job_nodes[pipeline._job_nodes.index("MotionCorr/job002")].attributes[
+            "job_count"
+        ]
+        == 2
+    )
+    for job in pipeline._job_nodes:
+        assert job.attributes.get("start_time_stamp") is not None
