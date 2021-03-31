@@ -49,25 +49,31 @@ class Class3D(JobType):
 
     def _load_job_directory(self, jobdir):
 
-        dfile, mfile = self._final_data_and_model(self._basepath / jobdir)
+        dfile, mfile = self._final_data_and_model(jobdir)
 
         sdfile = self._read_star_file(jobdir, dfile)
         smfile = self._read_star_file(jobdir, mfile)
 
-        class_distribution = self.parse_star_file("_rlnClassDistribution", smfile, 1)
-        accuracy_rotations = self.parse_star_file("_rlnAccuracyRotations", smfile, 1)
+        info_table = self._find_table_from_column_name("_rlnClassDistribution", smfile)
+
+        class_distribution = self.parse_star_file(
+            "_rlnClassDistribution", smfile, info_table
+        )
+        accuracy_rotations = self.parse_star_file(
+            "_rlnAccuracyRotations", smfile, info_table
+        )
         accuracy_translations_angst = self.parse_star_file(
-            "_rlnAccuracyTranslationsAngst", smfile, 1
+            "_rlnAccuracyTranslationsAngst", smfile, info_table
         )
         estimated_resolution = self.parse_star_file(
-            "_rlnEstimatedResolution", smfile, 1
+            "_rlnEstimatedResolution", smfile, info_table
         )
         overall_fourier_completeness = self.parse_star_file(
-            "_rlnOverallFourierCompleteness", smfile, 1
+            "_rlnOverallFourierCompleteness", smfile, info_table
         )
-        reference_image = self.parse_star_file("_rlnReferenceImage", smfile, 1)
+        reference_image = self.parse_star_file("_rlnReferenceImage", smfile, info_table)
 
-        class_numbers = self.parse_star_file("_rlnClassNumber", sdfile, 1)
+        class_numbers = self.parse_star_file("_rlnClassNumber", sdfile, info_table)
         particle_sum = self._sum_all_particles(class_numbers)
         int_particle_sum = [(int(name), value) for name, value in particle_sum.items()]
         checked_particle_list = self._class_checker(
@@ -90,15 +96,21 @@ class Class3D(JobType):
         return particle_class_list
 
     def _final_data_and_model(self, job_path):
-        number_list = [entry.stem[6:9] for entry in job_path.glob("run_it*.star")]
+        number_list = [
+            entry.stem[6:9]
+            for entry in (self._basepath / job_path).glob("run_it*.star")
+        ]
         last_iteration_number = max(
             (int(n) for n in number_list if n.isnumeric()), default=0
         )
         if not last_iteration_number:
             raise ValueError(f"No result files found in {job_path}")
-        data_file = job_path / f"run_it{last_iteration_number:03d}_data.star"
-        model_file = job_path / f"run_it{last_iteration_number:03d}_model.star"
-        for check_file in (data_file, model_file):
+        data_file = f"run_it{last_iteration_number:03d}_data.star"
+        model_file = f"run_it{last_iteration_number:03d}_model.star"
+        for check_file in (
+            self._basepath / job_path / data_file,
+            self._basepath / job_path / model_file,
+        ):
             if not check_file.exists():
                 raise ValueError(f"File {check_file} missing from job directory")
         return data_file, model_file

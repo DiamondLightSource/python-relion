@@ -26,10 +26,19 @@ class MotionCorr(JobType):
 
     def _load_job_directory(self, jobdir):
         file = self._read_star_file(jobdir, "corrected_micrographs.star")
-        accum_motion_total = self.parse_star_file("_rlnAccumMotionTotal", file, 1)
-        accum_motion_late = self.parse_star_file("_rlnAccumMotionLate", file, 1)
-        accum_motion_early = self.parse_star_file("_rlnAccumMotionEarly", file, 1)
-        micrograph_name = self.parse_star_file("_rlnMicrographName", file, 1)
+
+        info_table = self._find_table_from_column_name("_rlnAccumMotionTotal", file)
+
+        accum_motion_total = self.parse_star_file(
+            "_rlnAccumMotionTotal", file, info_table
+        )
+        accum_motion_late = self.parse_star_file(
+            "_rlnAccumMotionLate", file, info_table
+        )
+        accum_motion_early = self.parse_star_file(
+            "_rlnAccumMotionEarly", file, info_table
+        )
+        micrograph_name = self.parse_star_file("_rlnMicrographName", file, info_table)
 
         micrograph_list = []
         for j in range(len(micrograph_name)):
