@@ -3,6 +3,8 @@
 import setuptools
 
 console_scripts = ["relipy.show=relion.cli.pipeline_viewer:run"]
-setuptools.setup(
-    entry_points={"console_scripts": console_scripts},
-)
+
+if __name__ == "__main__":
+    setuptools.setup(
+        entry_points={"console_scripts": console_scripts},
+    )
