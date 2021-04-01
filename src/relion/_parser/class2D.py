@@ -34,7 +34,7 @@ Class2DParticleClass.overall_fourier_completeness.__doc__ = (
 
 class Class2D(JobType):
     def __eq__(self, other):
-        if isinstance(other, JobType):  # check this
+        if isinstance(other, Class2D):  # check this
             return self._basepath == other._basepath
         return False
 

@@ -16,7 +16,7 @@ MCMicrograph.late_motion.__doc__ = "Late motion."
 
 class MotionCorr(JobType):
     def __eq__(self, other):
-        if isinstance(other, JobType):  # check this
+        if isinstance(other, MotionCorr):  # check this
             return self._basepath == other._basepath
         return False
 

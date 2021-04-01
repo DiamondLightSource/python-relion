@@ -33,7 +33,7 @@ CTFMicrograph.fig_of_merit.__doc__ = (
 
 class CTFFind(JobType):
     def __eq__(self, other):
-        if isinstance(other, JobType):  # check this
+        if isinstance(other, CTFFind):  # check this
             return self._basepath == other._basepath
         return False
 
