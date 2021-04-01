@@ -97,7 +97,6 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
                         logger.info("Sending %s results for %s", item[0], item[1])
                         self.send_results(item[0], item[1])
                         # self.send_motioncorrection_results_to_ispyb(item[0], item[1])
-                        # pass
             except FileNotFoundError:
                 logger.info("No files found for Motion Correction")
 
@@ -114,7 +113,6 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
                         # self.send_ctffind_results_to_ispyb(item[0], item[1])
             except FileNotFoundError:
                 logger.info("No files found for CTFFind")
-                # pass
 
             poll = relion_process.poll()  # None value -> process is still running
             print("POLL RELION_RUNNING:", poll)
