@@ -15,6 +15,11 @@ MCMicrograph.late_motion.__doc__ = "Late motion."
 
 
 class MotionCorr(JobType):
+    def __eq__(self, other):
+        if isinstance(other, MotionCorr):  # check this
+            return self._basepath == other._basepath
+        return False
+
     def __hash__(self):
         return hash(("relion._parser.MotionCorr", self._basepath))
 
