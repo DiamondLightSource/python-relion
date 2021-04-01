@@ -1,6 +1,5 @@
 import collections.abc
 import os
-import functools
 from gemmi import cif
 
 
@@ -52,7 +51,6 @@ class JobType(collections.abc.Mapping):
     def _load_job_directory(self, jobdir):
         raise NotImplementedError("Load job directory not implemented")
 
-    @functools.lru_cache(maxsize=None)
     def _read_star_file(self, job_num, file_name):
         full_path = self._basepath / job_num / file_name
         gemmi_readable_path = os.fspath(full_path)
