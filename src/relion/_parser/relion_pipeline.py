@@ -271,7 +271,8 @@ class RelionPipeline:
         return time, jobcount
 
     @property
-    def current_job(self):
+    def current_jobs(self):
+        running_jobs = []
         for node in self._job_nodes:
             if (
                 node.attributes["start_time_stamp"] is not None
@@ -283,6 +284,9 @@ class RelionPipeline:
                         next_node_running = True
                         break
                 if not next_node_running:
-                    return node._path
-
-        return None
+                    running_jobs.append(node)
+                    # return node
+        if len(running_jobs) == 0:
+            return None
+        else:
+            return running_jobs
