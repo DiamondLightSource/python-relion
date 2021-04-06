@@ -278,14 +278,7 @@ class RelionPipeline:
                 node.attributes["start_time_stamp"] is not None
                 and node.attributes["status"] is None
             ):
-                next_node_running = False
-                for next_node in node:
-                    if next_node.attributes["start_time_stamp"] is not None:
-                        next_node_running = True
-                        break
-                if not next_node_running:
-                    running_jobs.append(node)
-                    # return node
+                running_jobs.append(node)
         if len(running_jobs) == 0:
             return None
         else:

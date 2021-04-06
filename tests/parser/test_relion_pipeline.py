@@ -67,7 +67,7 @@ def test_relion_pipeline_check_job_node_statuses(dials_data):
     ]
 
 
-def test_relion_pipeline_current_job_property_without_any_start_time_information(
+def test_relion_pipeline_current_jobs_property_without_any_start_time_information(
     dials_data,
 ):
     pipeline = RelionPipeline("Import/job001")
@@ -102,7 +102,7 @@ def test_relion_pipeline_collect_job_times_from_dials_data_logs(dials_data):
     )
 
 
-def test_relion_pipeline_current_job_property_with_timing_info(dials_data):
+def test_relion_pipeline_current_jobs_property_with_timing_info(dials_data):
     pipeline = RelionPipeline("Import/job001")
     pipeline.load_nodes_from_star(
         dials_data("relion_tutorial_data") / "default_pipeline.star"
@@ -114,3 +114,25 @@ def test_relion_pipeline_current_job_property_with_timing_info(dials_data):
         "status"
     ] = None
     assert str(pipeline.current_jobs[0]._path) == "LocalRes/job031"
+
+
+def test_relion_pipeline_current_jobs_property_with_timing_info_multiple_jobs(
+    dials_data,
+):
+    pipeline = RelionPipeline("Import/job001")
+    pipeline.load_nodes_from_star(
+        dials_data("relion_tutorial_data") / "default_pipeline.star"
+    )
+    logs = list(pathlib.Path(dials_data("relion_tutorial_data")).glob("pipeline*.log"))
+    pipeline.collect_job_times(logs)
+    pipeline.check_job_node_statuses(pathlib.Path(dials_data("relion_tutorial_data")))
+    pipeline._job_nodes[pipeline._job_nodes.index("LocalRes/job031")].attributes[
+        "status"
+    ] = None
+    pipeline._job_nodes[pipeline._job_nodes.index("MotionCorr/job002")].attributes[
+        "status"
+    ] = None
+    assert [str(cj._path) for cj in pipeline.current_jobs] == [
+        "MotionCorr/job002",
+        "LocalRes/job031",
+    ]
