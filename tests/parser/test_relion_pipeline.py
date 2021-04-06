@@ -75,7 +75,7 @@ def test_relion_pipeline_current_job_property_without_any_start_time_information
         dials_data("relion_tutorial_data") / "default_pipeline.star"
     )
     pipeline.check_job_node_statuses(pathlib.Path(dials_data("relion_tutorial_data")))
-    assert pipeline.current_job is None
+    assert pipeline.current_jobs is None
 
 
 def test_relion_pipeline_collect_job_times_from_dials_data_logs(dials_data):
@@ -113,4 +113,4 @@ def test_relion_pipeline_current_job_property_with_timing_info(dials_data):
     pipeline._job_nodes[pipeline._job_nodes.index("LocalRes/job031")].attributes[
         "status"
     ] = None
-    assert str(pipeline.current_job) == "LocalRes/job031"
+    assert str(pipeline.current_jobs[0]._path) == "LocalRes/job031"

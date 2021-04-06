@@ -96,6 +96,8 @@ class Project:
         return self.basepath.glob("pipeline*.log")
 
     @property
-    def current_job(self):
+    def current_jobs(self):
         self._load_pipeline()
-        return self.pipeline.current_job()
+        # current_node = self.pipeline.current_job
+        return self.pipeline.current_jobs
+        # return (current_node._path, current_node.attributes["start_time_stamp"], current_node.attributes["job_count"])
