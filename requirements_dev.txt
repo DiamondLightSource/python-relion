@@ -1,5 +1,5 @@
 bump2version==1.0.1
-dials_data==2.1.36
+dials_data==2.1.40
 gemmi==0.4.4
 pip==21.0.1
 pytest==6.2.2

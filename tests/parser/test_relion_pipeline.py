@@ -78,7 +78,6 @@ def test_relion_pipeline_current_job_property_without_any_start_time_information
     assert pipeline.current_job is None
 
 
-@pytest.mark.skip(reason="Required files not currently in dials_data")
 def test_relion_pipeline_collect_job_times_from_dials_data_logs(dials_data):
     pipeline = RelionPipeline("Import/job001")
     pipeline.load_nodes_from_star(
@@ -103,7 +102,6 @@ def test_relion_pipeline_collect_job_times_from_dials_data_logs(dials_data):
     )
 
 
-@pytest.mark.skip(reason="Required files not currently in dials_data")
 def test_relion_pipeline_current_job_property_with_timing_info(dials_data):
     pipeline = RelionPipeline("Import/job001")
     pipeline.load_nodes_from_star(

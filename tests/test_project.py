@@ -31,7 +31,6 @@ def test_create_Project_on_inaccessible_path_fails(tmp_path):
         relion.Project(tmp_path / "does_not_exist")
 
 
-@pytest.mark.skip(reason="log files not yet in dials_data")
 def test_Project_schedule_files_property_contains_the_correct_files(dials_data, proj):
     assert (
         pathlib.Path(dials_data("relion_tutorial_data")) / "pipeline_PREPROCESS.log"
