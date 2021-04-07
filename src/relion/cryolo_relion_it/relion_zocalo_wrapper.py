@@ -3,7 +3,8 @@ import os
 import pathlib
 from pprint import pprint
 
-from . import cryolo_relion_it, dls_options, util_symlink
+from . import cryolo_relion_it, dls_options
+from zocalo.util.symlink import create_parent_symlink
 import zocalo.wrapper
 
 logger = logging.getLogger("relion.cryolo_relion_it.relion_zocalo_wrapper")
@@ -25,9 +26,7 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
         working_directory.mkdir(parents=True, exist_ok=True)
         if params.get("create_symlink"):
             # Create symbolic link above working directory
-            util_symlink.create_parent_symlink(
-                str(working_directory), params["create_symlink"]
-            )
+            create_parent_symlink(str(working_directory), params["create_symlink"])
 
         # Create a symbolic link in the working directory to the image directory
         movielink = "Movies"
@@ -90,7 +89,7 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
 
         # if params.get("create_symlink"):
         #     # Create symbolic link above results directory
-        #     util_symlink.create_parent_symlink(
+        #     create_parent_symlink(
         #         str(results_directory), params["create_symlink"]
         #     )
 
