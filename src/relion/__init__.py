@@ -37,7 +37,7 @@ class Project(RelionPipeline):
             raise ValueError(f"path {self.basepath} is not a directory")
         try:
             self.load()
-        except Exception:
+        except FileNotFoundError:
             pass
             # raise RuntimeWarning(
             #    f"Relion Project was unable to load the relion pipeline from {self.basepath}/default_pipeline.star"
