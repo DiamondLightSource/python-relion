@@ -151,7 +151,7 @@ def main():
         os.remove(RELION_JOB_SUCCESS_FILENAME)
     try:
         run_job(project_dir, known_args.out_dir, other_args)
-    except:
+    except Exception:
         open(RELION_JOB_FAILURE_FILENAME, "w").close()
         raise
     else:

@@ -2,7 +2,6 @@ import unittest
 import os
 import tempfile
 import gemmi
-import sys
 import shutil
 
 from relion.cryolo_relion_it import fsc_fitting_external_job

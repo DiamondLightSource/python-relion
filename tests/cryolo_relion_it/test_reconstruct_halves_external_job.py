@@ -20,7 +20,9 @@ class ReconstructHalvesExternalJobTest(unittest.TestCase):
         os.chdir(self.orig_dir)
         shutil.rmtree(self.test_dir)
 
-    @unittest.mock.patch("relion.cryolo_relion_it.reconstruct_halves_external_job.subprocess")
+    @unittest.mock.patch(
+        "relion.cryolo_relion_it.reconstruct_halves_external_job.subprocess"
+    )
     def test_main(self, mock_subprocess):
         # Prepare things
         config_file = "example_config.json"

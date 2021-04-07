@@ -545,15 +545,10 @@ import math
 import os
 import time
 import traceback
-import sys
 import subprocess
-import json
-import numpy as np
 import grp
 
-import gemmi
-
-from . import cryolo_external_job, cryolo_fine_tune_job
+from . import cryolo_external_job
 
 from . import mask_soft_edge_external_job
 from . import select_and_split_external_job
@@ -1484,7 +1479,7 @@ class RelionItGui(object):
                     small_boxsize = calculate_downscaled_box_size(int(box_size), angpix)
                     self.extract_small_boxsize_entry.delete(0, tk.END)
                     self.extract_small_boxsize_entry.insert(0, str(small_boxsize))
-                except:
+                except Exception:
                     # Ignore errors - they will be picked up if the user tries to save the options
                     pass
                 self.mask_diameter_entry.config(state=tk.DISABLED)
@@ -1824,7 +1819,7 @@ def safe_load_star(filename, max_try=5, wait=10, expected=[]):
             for key in expected:
                 entry = entry[key]
             return star
-        except:
+        except Exception:
             print(
                 "safe_load_star is retrying to read: ",
                 filename,
@@ -2254,7 +2249,7 @@ def run_pipeline(opts):
     """
 
     # if this really necessary? dont think so...
-    if os.path.isfile(PIPELINE_STAR) == False:
+    if os.path.isfile(PIPELINE_STAR) is False:
         g = open(PIPELINE_STAR, "w")
         g.write("data_pipeline_general\n")
         g.write("_rlnPipeLineJobCounter 1\n")
@@ -3198,11 +3193,11 @@ def run_pipeline(opts):
                                 )  # TODO: MAKE MORE ROBUST
 
                             # Use the model of the largest class for the 3D classification below
-                            total_iter = (
-                                opts.inimodel_nr_iter_initial
-                                + opts.inimodel_nr_iter_inbetween
-                                + opts.inimodel_nr_iter_final
-                            )
+                            # total_iter = (
+                            #    opts.inimodel_nr_iter_initial
+                            #    + opts.inimodel_nr_iter_inbetween
+                            #    + opts.inimodel_nr_iter_final
+                            # )
 
                             if opts.use_fsc_criterion:
                                 ini_choose_jobs = scheduleJobsFSC(
@@ -3374,7 +3369,7 @@ def run_pipeline(opts):
                                     return
 
                             class3d_model_star = findOutputModelStar(class3d_job)
-                            class3d_data_star = findOutputDataStar(class3d_job)
+                            # class3d_data_star = findOutputDataStar(class3d_job)
                             if class3d_model_star is None:
                                 print(
                                     " RELION_IT: 3D Classification "

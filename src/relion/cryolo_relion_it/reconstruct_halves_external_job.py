@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-External job for running relion_reconstruct on each random half from select_and_split 
-External job 
+External job for running relion_reconstruct on each random half from select_and_split
+External job
 """
 
 import argparse
@@ -112,7 +112,7 @@ def main():
             known_args.starin,
             other_args,
         )
-    except:
+    except Exception:
         if os.getcwd() == project_dir:
             os.chdir(known_args.out_dir)
         open(RELION_JOB_FAILURE_FILENAME, "w").close()
