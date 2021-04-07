@@ -46,9 +46,9 @@ def run_job(project_dir, job_dir, in_dir, starin, args_list):
     command = [
         "relion_reconstruct",
         "--i",
-        f"{pathlib.PurePosixPath(os.path.join(in_dir, splitname1))}",
+        f"{pathlib.PurePosixPath(in_dir) / splitname1}",
         "--o",
-        f"{pathlib.PurePosixPath(os.path.join(job_dir, model_half1))}",
+        f"{pathlib.PurePosixPath(job_dir) / model_half1}",
         "--ctf",
         "true",
         "--mask_diameter",
@@ -60,9 +60,9 @@ def run_job(project_dir, job_dir, in_dir, starin, args_list):
     command = [
         "relion_reconstruct",
         "--i",
-        f"{pathlib.PurePosixPath(os.path.join(in_dir, splitname2))}",
+        f"{pathlib.PurePosixPath(in_dir) / splitname2}",
         "--o",
-        f"{pathlib.PurePosixPath(os.path.join(job_dir, model_half2))}",
+        f"{pathlib.PurePosixPath(job_dir) / model_half2}",
         "--ctf",
         "true",
         "--mask_diameter",
