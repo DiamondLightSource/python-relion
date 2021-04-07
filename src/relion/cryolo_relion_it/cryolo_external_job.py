@@ -19,6 +19,7 @@ import platform
 import shutil
 import subprocess
 import sys
+import pathlib
 
 import gemmi
 
@@ -108,9 +109,9 @@ def run_job(project_dir, job_dir, args_list):
             "--conf",
             "config.json",
             "-i",
-            os.path.join(project_dir, job_dir, "cryolo_input"),
+            f"{pathlib.PurePosixPath(project_dir) / job_dir / 'cryolo_input'}",
             "-o",
-            os.path.join(project_dir, job_dir, "gen_pick"),
+            f"{pathlib.PurePosixPath(project_dir) / job_dir / 'gen_pick'}",
             "--weights",
             model,
             "--gpu",
