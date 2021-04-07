@@ -70,3 +70,7 @@ class JobType(collections.abc.Mapping):
             if list(block.find_loop(cname)):
                 return block_index
         return None
+
+    @staticmethod
+    def for_cache(element):
+        return None

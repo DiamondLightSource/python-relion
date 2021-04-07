@@ -56,3 +56,7 @@ class MotionCorr(JobType):
                 )
             )
         return micrograph_list
+
+    @staticmethod
+    def for_cache(mcmicrograph):
+        return str(mcmicrograph.micrograph_name)

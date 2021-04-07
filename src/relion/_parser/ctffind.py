@@ -79,3 +79,7 @@ class CTFFind(JobType):
                 )
             )
         return micrograph_list
+
+    @staticmethod
+    def for_cache(ctfmicrograph):
+        return str(ctfmicrograph.micrograph_name)

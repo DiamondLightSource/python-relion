@@ -45,6 +45,13 @@ class ProcessNode:
             return True
         return False
 
+    @property
+    def name(self):
+        return str(self._path)
+
+    def change_name(self, new_name):
+        self._path = new_name
+
     def link_to(self, next_node):
         if next_node not in self._out:
             self._out.append(next_node)
