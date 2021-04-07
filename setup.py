@@ -11,7 +11,7 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 setup(
-    name="relion_yolo_it",
+    name="cryolo_relion_it",
     author="Donovan Webb",
     author_email="donovan.webb@diamond.ac.uk",
     classifiers=[
@@ -27,17 +27,17 @@ setup(
     include_package_data=True,
     packages=find_packages(),
     scripts=[
-        "relion_yolo_it/cryolo_relion_it.py",
-        "relion_yolo_it/cryolo_external_job.py",
-        "relion_yolo_it/cryolo_fine_tune_job.py",
-        "relion_yolo_it/select_and_split_external_job.py",
-        "relion_yolo_it/mask_soft_edge_external_job.py",
-        "relion_yolo_it/reconstruct_halves_external_job.py",
-        "relion_yolo_it/fsc_fitting_external_job.py",
+        "src/relion/cryolo_relion_it/cryolo_relion_it.py",
+        "src/relion/cryolo_relion_it/cryolo_external_job.py",
+        "src/relion/cryolo_relion_it/cryolo_fine_tune_job.py",
+        "src/relion/cryolo_relion_it/select_and_split_external_job.py",
+        "src/relion/cryolo_relion_it/mask_soft_edge_external_job.py",
+        "src/relion/cryolo_relion_it/reconstruct_halves_external_job.py",
+        "src/relion/cryolo_relion_it/fsc_fitting_external_job.py",
     ],
     entry_points={
         "zocalo.wrappers": [
-            "relion = relion_yolo_it.relion_zocalo_wrapper:RelionWrapper"
+            "relion = relion.cryolo_relion_it.relion_zocalo_wrapper:RelionWrapper"
         ]
     },
     python_requires=">=3.6",

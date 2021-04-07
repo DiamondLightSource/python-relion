@@ -6,7 +6,7 @@ from pprint import pprint
 from . import cryolo_relion_it, dls_options, util_symlink
 import zocalo.wrapper
 
-logger = logging.getLogger("relion_yolo_it.relion_zocalo_wrapper")
+logger = logging.getLogger("relion.cryolo_relion_it.relion_zocalo_wrapper")
 
 
 class RelionWrapper(zocalo.wrapper.BaseWrapper):

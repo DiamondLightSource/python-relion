@@ -553,12 +553,12 @@ import grp
 
 import gemmi
 
-from relion_yolo_it import cryolo_external_job, cryolo_fine_tune_job
+from . import cryolo_external_job, cryolo_fine_tune_job
 
-from relion_yolo_it import mask_soft_edge_external_job
-from relion_yolo_it import select_and_split_external_job
-from relion_yolo_it import reconstruct_halves_external_job
-from relion_yolo_it import fsc_fitting_external_job
+from . import mask_soft_edge_external_job
+from . import select_and_split_external_job
+from . import reconstruct_halves_external_job
+from . import fsc_fitting_external_job
 
 try:
     import tkinter as tk

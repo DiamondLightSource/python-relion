@@ -7,7 +7,7 @@ import unittest
 
 import gemmi
 
-from relion_yolo_it import mask_soft_edge_external_job
+from relion.cryolo_relion_it import mask_soft_edge_external_job
 
 
 class MaskSoftEdgeExternalJobTest(unittest.TestCase):
@@ -20,7 +20,7 @@ class MaskSoftEdgeExternalJobTest(unittest.TestCase):
         os.chdir(self.orig_dir)
         shutil.rmtree(self.test_dir)
 
-    @unittest.mock.patch("relion_yolo_it.mask_soft_edge_external_job.subprocess")
+    @unittest.mock.patch("relion.cryolo_relion_it.mask_soft_edge_external_job.subprocess")
     def test_main(self, mock_subprocess):
         # Prepare things
         config_file = "example_config.json"

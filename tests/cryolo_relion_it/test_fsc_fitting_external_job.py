@@ -5,8 +5,8 @@ import gemmi
 import sys
 import shutil
 
-from relion_yolo_it import fsc_fitting_external_job
-from relion_yolo_it.cryolo_relion_it import findBestClassFSC
+from relion.cryolo_relion_it import fsc_fitting_external_job
+from relion.cryolo_relion_it.cryolo_relion_it import findBestClassFSC
 
 
 class FSCFittingExternalJobTest(unittest.TestCase):
