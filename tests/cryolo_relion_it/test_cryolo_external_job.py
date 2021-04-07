@@ -2,6 +2,7 @@ import json
 import os
 import sys
 from unittest import mock
+import pathlib
 
 import gemmi
 
@@ -15,16 +16,12 @@ def test_cryolo_external_job_main(mock_subprocess, tmpdir):
     config_file = tmpdir.join("example_config.json")
     with open(config_file, "w") as f:
         json.dump({"model": {}}, f)
-    # with open(config_file, "w") as f:
-    #    json.dump({"model": {}}, f)
 
     mic_job_dir = "CtfFind/job001"
     mic_job_dir = tmpdir.mkdir("CtfFind").mkdir("job001")
     mic_dir = mic_job_dir.mkdir("Micrographs")
-    # os.makedirs(mic_dir)
     mic_file = mic_dir.join("micrograph_1.mrc")
     mic_file.write("")
-    # open(mic_file, "w").close()
 
     mic_star_file = mic_job_dir.join("example_mics.star")
     mics_doc = gemmi.cif.Document()
@@ -36,10 +33,8 @@ def test_cryolo_external_job_main(mock_subprocess, tmpdir):
     job_dir = tmpdir.mkdir("External").mkdir("job002")
 
     cryolo_star_dir = job_dir.mkdir("gen_pick").mkdir("STAR")
-    # os.makedirs(cryolo_star_dir)
     cryolo_file = cryolo_star_dir.join("micrograph_1.mrc")
     cryolo_file.write("")
-    # open(os.path.join(cryolo_star_dir, os.path.basename(mic_file)), "w").close()
 
     # Run the job
     orig_sys_argv = sys.argv[:]
@@ -104,7 +99,8 @@ def test_cryolo_external_job_main(mock_subprocess, tmpdir):
     block = doc.sole_block()
     table = block.find("_rlnPipeLineNode", ["Name", "Type"])
     assert len(table) == 1
-    assert list(table[0]) == ["External/job002/coords_suffix_autopick.star", "2"]
+    table_list = [str(pathlib.PurePosixPath(table[0][0])), table[0][1]]
+    assert table_list == ["External/job002/coords_suffix_autopick.star", "2"]
 
     # Restore state
     sys.argv = orig_sys_argv
