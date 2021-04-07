@@ -72,6 +72,7 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
         #    )
 
         relion_process = subprocess.Popen(["/home/slg25752/relion/mimic-relion-script"])
+        self.start_relion()
 
         global RELION_RUNNING
         while RELION_RUNNING:
@@ -124,6 +125,9 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
 
         logger.info("Done.")
         return success
+
+    def start_relion(self):
+        pass
 
     def create_synchweb_stop_file(self, path_to_desired_file_location):
         pathlib.Path(path_to_desired_file_location / "stopfile.txt").touch()
