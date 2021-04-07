@@ -1,13 +1,12 @@
 #!/bin/bash
 # A simple script to mimic the behaviour of the Relion pipeline.
 
-if [ -d "temp/relion" ]
-then
-rm -r temp/relion
+echo "Relion starting up"
+
+if [ ! -e Movies ]; then
+  echo "No movies directory found"
+  exit 1
 fi
-mkdir -p temp/relion
-cd temp/relion
-echo "Relion directory created"
 sleep 5
 
 echo "Starting Motion Correction"
