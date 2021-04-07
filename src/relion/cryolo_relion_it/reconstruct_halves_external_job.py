@@ -8,6 +8,7 @@ import argparse
 import os
 import os.path
 import subprocess
+import pathlib
 
 RELION_JOB_FAILURE_FILENAME = "RELION_JOB_EXIT_FAILURE"
 RELION_JOB_SUCCESS_FILENAME = "RELION_JOB_EXIT_SUCCESS"
@@ -45,9 +46,9 @@ def run_job(project_dir, job_dir, in_dir, starin, args_list):
     command = [
         "relion_reconstruct",
         "--i",
-        f"{os.path.join(in_dir, splitname1)}",
+        f"{pathlib.PurePosixPath(os.path.join(in_dir, splitname1))}",
         "--o",
-        f"{os.path.join(job_dir, model_half1)}",
+        f"{pathlib.PurePosixPath(os.path.join(job_dir, model_half1))}",
         "--ctf",
         "true",
         "--mask_diameter",
@@ -59,9 +60,9 @@ def run_job(project_dir, job_dir, in_dir, starin, args_list):
     command = [
         "relion_reconstruct",
         "--i",
-        f"{os.path.join(in_dir, splitname2)}",
+        f"{pathlib.PurePosixPath(os.path.join(in_dir, splitname2))}",
         "--o",
-        f"{os.path.join(job_dir, model_half2)}",
+        f"{pathlib.PurePosixPath(os.path.join(job_dir, model_half2))}",
         "--ctf",
         "true",
         "--mask_diameter",
