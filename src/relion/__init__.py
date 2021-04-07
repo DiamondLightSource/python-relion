@@ -9,6 +9,7 @@ from relion._parser.ctffind import CTFFind
 from relion._parser.motioncorrection import MotionCorr
 from relion._parser.class2D import Class2D
 from relion._parser.class3D import Class3D
+from relion._parser.relion_pipeline import RelionPipeline
 
 __all__ = []
 __author__ = "Diamond Light Source - Scientific Software"
@@ -32,6 +33,7 @@ class Project:
         self.basepath = pathlib.Path(path)
         if not self.basepath.is_dir():
             raise ValueError(f"path {self.basepath} is not a directory")
+        self.pipeline = RelionPipeline("Import/job001")
 
     def __eq__(self, other):
         if isinstance(other, Project):
@@ -78,3 +80,24 @@ class Project:
         Returns a dictionary-like object with job names as keys,
         and lists of Class3DParticleClass namedtuples as values."""
         return Class3D(self.basepath / "Class3D")
+
+    def _load_pipeline(self):
+        self.pipeline.load_nodes_from_star(self.basepath / "default_pipeline.star")
+        self.pipeline.check_job_node_statuses(self.basepath)
+        self.pipeline.collect_job_times(list(self.schedule_files))
+
+    def show_job_nodes(self):
+        self._load_pipeline()
+        self.pipeline.show_job_nodes(self.basepath)
+        # self.pipeline.show_all_nodes()
+
+    @property
+    def schedule_files(self):
+        return self.basepath.glob("pipeline*.log")
+
+    @property
+    def current_jobs(self):
+        self._load_pipeline()
+        # current_node = self.pipeline.current_job
+        return self.pipeline.current_jobs
+        # return (current_node._path, current_node.attributes["start_time_stamp"], current_node.attributes["job_count"])
