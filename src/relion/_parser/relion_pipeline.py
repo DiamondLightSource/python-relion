@@ -132,6 +132,7 @@ class RelionPipeline:
         )
         self._jobtype_nodes = ProcessGraph(copy.deepcopy(ordered_graph))
         for node in self._jobtype_nodes:
+            node.attributes["job"] = node._path.name
             node._path = node._path.parent
         self._jobs_collapsed = True
 
