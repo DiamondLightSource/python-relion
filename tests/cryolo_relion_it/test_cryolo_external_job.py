@@ -99,7 +99,7 @@ def test_cryolo_external_job_main(mock_subprocess, tmpdir):
     block = doc.sole_block()
     table = block.find("_rlnPipeLineNode", ["Name", "Type"])
     assert len(table) == 1
-    table_list = [str(pathlib.PurePosixPath(table[0][0])), table[0][1]]
+    table_list = [str(pathlib.PurePosixPath(pathlib.Path(table[0][0]))), table[0][1]]
     assert table_list == ["External/job002/coords_suffix_autopick.star", "2"]
 
     # Restore state
