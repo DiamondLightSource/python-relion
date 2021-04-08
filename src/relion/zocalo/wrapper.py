@@ -121,7 +121,7 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
         success = True
         return success
 
-    def start_relion(self):
+    def start_pseudo_relion(self):
         logger.info("Starting 'Relion'")
         result = procrunner.run(
             (
@@ -136,6 +136,8 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
         logger.info("exitcode: %s", result["exitcode"])
         logger.debug(result["stdout"])
         logger.debug(result["stderr"])
+
+    def start_relion(self):
         pass
 
     def create_synchweb_stop_file(self, path_to_desired_file_location):
