@@ -1,132 +1,143 @@
+import threading
 import logging
 import os
 import pathlib
-
-# import dlstbx.util.symlink
+import procrunner
+import zocalo.util.symlink
 import relion
 import enum
 import zocalo.wrapper
 from pprint import pprint
 import time
-import subprocess
 from . import cryolo_relion_it, dls_options
 from zocalo.util.symlink import create_parent_symlink
 
-# import functools
+import functools
 
 logger = logging.getLogger("dlstbx.wrap.relion")
 
-RelionStatus = enum.Enum("RelionStatus", "RUNNING EXIT_SUCCESS FAILURE")
-RELION_RUNNING = True
+RelionStatus = enum.Enum("RelionStatus", "RUNNING SUCCESS FAILURE")
+
+# to test:
+# - create an empty directory
+# - run following command to generate a recipe-wrapper:
+#   dlstbx.find_in_ispyb -p 6844019 -f ~/zocalo/recipes/ispyb-relion.json --recipe-pointer=2 --out=rw ; replace "/dls/m12/data/2021/cm28212-1/processed" "$(pwd)/processed" "/dls/m12/data/2021/cm28212-1/tmp" "$(pwd)/tmp" < rw > rw-local
+# - run the wrapper:
+#   dlstbx.wrap --recipewrapper=rw-local --wrap=relion --offline -v
 
 
 class RelionWrapper(zocalo.wrapper.BaseWrapper):
     def run(self):
         assert hasattr(self, "recwrap"), "No recipewrapper object found"
 
-        params = self.recwrap.recipe_step["job_parameters"]
-        # self.working_directory = pathlib.Path(params["working_directory"])
-        # self.working_directory = pathlib.Path(
-        #    "/dls/science/groups/scisoft/DIALS/dials_data/relion_tutorial_data"
-        # )
-        self.working_directory = pathlib.Path("/home/slg25752/temp/relion")
-        self.results_directory = pathlib.Path(params["results_directory"])
-        # create working directory
-        # self.working_directory.mkdir(parents=True, exist_ok=True)
-        # if params.get("create_symlink"):
-        # Create symbolic link above working directory
-        #    dlstbx.util.symlink.create_parent_symlink(
-        #        str(self.working_directory), params["create_symlink"]
-        #    )
+        self.params = self.recwrap.recipe_step["job_parameters"]
+        self.working_directory = pathlib.Path(self.params["working_directory"])
+        self.results_directory = pathlib.Path(self.params["results_directory"])
 
-        # Create a symbolic link in the working directory to the image directory
+        # Here we cheat. Ultimately we want to run the processing inside the
+        # 'working' directory, and then copy relevant output into the 'results'
+        # directory as we go along. In the first instance we will just run Relion
+        # inside the 'results' directory, and ignore the 'working' directory
+        # completely.
+        self.working_directory = self.results_directory
+
+        # Create working and results directory
+        self.working_directory.mkdir(parents=True, exist_ok=True)
+        self.results_directory.mkdir(parents=True, exist_ok=True)
+        if self.params.get("create_symlink"):
+            # Create symbolic link above directories
+            # We want users to go to the most recent execution, as they can stop
+            # and restart processing from SynchWeb. Thus we overwrite symlinks.
+            zocalo.util.symlink.create_parent_symlink(
+                self.working_directory,
+                self.params["create_symlink"],
+                overwrite_symlink=True,
+            )
+            zocalo.util.symlink.create_parent_symlink(
+                self.results_directory,
+                self.params["create_symlink"],
+                overwrite_symlink=True,
+            )
+
+        # Relion needs to have a 'Movies' link inside the working directory
+        # pointing to the image files
         movielink = "Movies"
-        # os.symlink(params["image_directory"], self.working_directory / movielink)
-        params["ispyb_parameters"]["import_images"] = os.path.join(
-            movielink, params["file_template"]
+        os.symlink(self.params["image_directory"], self.working_directory / movielink)
+        self.params["ispyb_parameters"]["import_images"] = os.path.join(
+            movielink, self.params["file_template"]
         )
-        pprint(params["ispyb_parameters"])
 
-        # construct relion command line
-        # command = ["relion", params["screen-selection"]]
+        # Debug output
+        pprint(self.params)
 
-        # run relion
-        # result = procrunner.run(
-        #    command,
-        #    timeout=params.get("timeout"),
-        #    working_directory=working_directory.strpath,
-        #    environment_override={"PYTHONIOENCODING": "UTF-8"},
-        # )
-        # logger.info("command: %s", " ".join(result["command"]))
-        # logger.info("exitcode: %s", result["exitcode"])
-        # logger.debug(result["stdout"])
-        # logger.debug(result["stderr"])
-        # success = result["exitcode"] == 0
-        success = True
+        # Start Relion
+        self._relion_subthread = threading.Thread(
+            target=self.start_relion, name="relion_subprocess_runner", daemon=True
+        )
+        self._relion_subthread.start()
 
-        # copy output files to result directory
-        # self.results_directory.mkdir(parents=True, exist_ok=True)
-
-        # if params.get("create_symlink"):
-        # Create symbolic link above results directory
-        #    dlstbx.util.symlink.create_parent_symlink(
-        #       str(self.results_directory), params["create_symlink"]
-        #    )
-
-        relion_process = subprocess.Popen(["/home/slg25752/relion/mimic-relion-script"])
-        self.start_relion()
-
-        global RELION_RUNNING
-        while RELION_RUNNING:
-
-            time.sleep(10)
-
-            relion_object = relion.Project(self.working_directory)
+        relion_prj = relion.Project(self.working_directory)
+        while self._relion_subthread.is_alive():
+            time.sleep(1)
             logger.info("Looking for results")
 
+            ispyb_command_list = []
             try:
                 motion_corr_status = self.get_job_status_dictionary(
-                    relion_object.motioncorrection
+                    relion_prj.motioncorrection
                 )
                 for item in motion_corr_status:
                     if all(
-                        x == RelionStatus.EXIT_SUCCESS
-                        for x in motion_corr_status.values()
+                        x == RelionStatus.SUCCESS for x in motion_corr_status.values()
                     ):
                         logger.info("Motion Correction finished")
                         # break
                     # elif
-                    if motion_corr_status[item] == RelionStatus.EXIT_SUCCESS:
-                        logger.info("Sending %s results for %s", item[0], item[1])
-                        self.send_results(item[0], item[1])
-                        # self.send_motioncorrection_results_to_ispyb(item[0], item[1])
+                    if motion_corr_status[item] == RelionStatus.SUCCESS:
+                        ispyb_command_list.extend(ispyb_results(item[0], item[1]))
             except FileNotFoundError:
                 logger.info("No files found for Motion Correction")
 
             try:
-                ctf_status = self.get_job_status_dictionary(relion_object.ctffind)
+                ctf_status = self.get_job_status_dictionary(relion_prj.ctffind)
                 for item in ctf_status:
-                    if all(x == RelionStatus.EXIT_SUCCESS for x in ctf_status.values()):
+                    if all(x == RelionStatus.SUCCESS for x in ctf_status.values()):
                         logger.info("CTFFind finished")
                         # break
                     # elif
-                    if ctf_status[item] == RelionStatus.EXIT_SUCCESS:
-                        logger.info("Sending %s results for %s", item[0], item[1])
-                        self.send_results(item[0], item[1])
-                        # self.send_ctffind_results_to_ispyb(item[0], item[1])
+                    if ctf_status[item] == RelionStatus.SUCCESS:
+                        ispyb_command_list.extend(ispyb_results(item[0], item[1]))
             except FileNotFoundError:
                 logger.info("No files found for CTFFind")
 
-            poll = relion_process.poll()  # None value -> process is still running
-            print("POLL RELION_RUNNING:", poll)
-            if poll is not None:
-                print("Relion stopped")
-                RELION_RUNNING = False
-
-            time.sleep(10)
+            if ispyb_command_list:
+                logger.info(
+                    "Sending commands like this: %s", str(ispyb_command_list[0])
+                )
+                self.recwrap.send_to(
+                    "ispyb", {"ispyb_command_list": ispyb_command_list}
+                )
+                logger.info("Sent %d commands to ISPyB", len(ispyb_command_list))
 
         logger.info("Done.")
+        success = True
         return success
+
+    def start_pseudo_relion(self):
+        logger.info("Starting 'Relion'")
+        result = procrunner.run(
+            (
+                "/bin/bash",
+                "/home/wra62962/python-relion/relion/mimic-script",
+            ),
+            timeout=self.params.get("timeout"),
+            working_directory=self.working_directory,
+            environment_override={"PYTHONIOENCODING": "UTF-8"},
+        )
+        logger.info("command: %s", " ".join(result["command"]))
+        logger.info("exitcode: %s", result["exitcode"])
+        logger.debug(result["stdout"])
+        logger.debug(result["stderr"])
 
     def start_relion(self):
         print("Running RELION wrapper - stdout")
@@ -213,7 +224,7 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
         # job_finished_files = [relion job finished files]
         for item in relion_stop_files:
             if (job_path / item).is_file():  # or synchweb_stop_file exists:
-                return RelionStatus.EXIT_SUCCESS
+                return RelionStatus.SUCCESS
             else:
                 return RelionStatus.RUNNING
             # if job_finished_file exists:
@@ -227,69 +238,53 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
             dictionary[x] = status
         return dictionary
 
-    def send_ctffind_results_to_ispyb(self, stage_object, job_string):
-        logger.info("Sending results to ISPyB for %s ", job_string)
-        ispyb_command_list = []
-        for ctf_micrograph in stage_object[job_string]:
-            ispyb_command_list.append(
-                {
-                    "ispyb_command": "insert_ctf",
-                    "astigmatism": ctf_micrograph.astigmatism,
-                    "astigmatism_angle": ctf_micrograph.defocus_angle,
-                    "max_estimated_resolution": ctf_micrograph.max_resolution,
-                    "estimated_defocus": (
-                        float(ctf_micrograph.defocus_u)
-                        + float(ctf_micrograph.defocus_v)
-                    )
-                    / 2,
-                    "cc_value": ctf_micrograph.fig_of_merit,
-                }
-            )
-        logger.info("Sending commands like this: %s", str(ispyb_command_list[0]))
-        self.recwrap.send_to("ispyb", {"ispyb_command_list": ispyb_command_list})
-        logger.info("Sent %d commands to ISPyB", len(ispyb_command_list))
 
-    def send_motioncorrection_results_to_ispyb(self, stage_object, job_string):
-        logger.info("Sending results to ISPyB for %s ", job_string)
-        ispyb_command_list = []
-        for motion_corr_micrograph in stage_object[job_string]:
-            ispyb_command_list.append(
-                {
-                    "ispyb_command": "insert_motion_correction",
-                    "micrograph_name": motion_corr_micrograph.micrograph_name,
-                    "total_motion": motion_corr_micrograph.total_motion,
-                    "early_motion": motion_corr_micrograph.early_motion,
-                    "late_motion": motion_corr_micrograph.late_motion,
-                    "average_motion_per_frame": (
-                        float(motion_corr_micrograph.total_motion)
-                    ),  # / number of frames
-                }
-            )
-        logger.info("Sending commands like this: %s", str(ispyb_command_list[0]))
-        self.recwrap.send_to("ispyb", {"ispyb_command_list": ispyb_command_list})
-        logger.info("Sent %d commands to ISPyB", len(ispyb_command_list))
-
-    # @functools.singledispatch
-    def send_results(self, relion_stage_object, job_string):
-        """
-        A generic send function that takes a Relion
-        object and uses the corresponding send_results function.
-        """
-        if isinstance(relion_stage_object, relion.CTFFind):
-            self.send_ctffind_results_to_ispyb(relion_stage_object, job_string)
-
-        elif isinstance(relion_stage_object, relion.MotionCorr):
-            self.send_motioncorrection_results_to_ispyb(relion_stage_object, job_string)
-
-        else:
-            raise ValueError(f"{relion_stage_object!r} is not a known Relion object")
+@functools.singledispatch
+def ispyb_results(relion_stage_object, job_string: str):
+    """
+    A function that takes Relion stage objects and job names (together
+    representing a single job directory) and translates them into ISPyB
+    service commands.
+    """
+    raise ValueError(f"{relion_stage_object!r} is not a known Relion object")
 
 
-# @send_results.register(relion.CTFFind)
-# def _(relionobject: relion.CTFFind, job_string):
-#    RelionWrapper.send_ctffind_results_to_ispyb(relion.CTFFind, job_string)
+@ispyb_results.register(relion.CTFFind)
+def _(stage_object: relion.CTFFind, job_string: str):
+    logger.info("Generating ISPyB commands for %s ", job_string)
+    ispyb_command_list = []
+    for ctf_micrograph in stage_object[job_string]:
+        ispyb_command_list.append(
+            {
+                "ispyb_command": "insert_ctf",
+                "astigmatism": ctf_micrograph.astigmatism,
+                "astigmatism_angle": ctf_micrograph.defocus_angle,
+                "max_estimated_resolution": ctf_micrograph.max_resolution,
+                "estimated_defocus": (
+                    float(ctf_micrograph.defocus_u) + float(ctf_micrograph.defocus_v)
+                )
+                / 2,
+                "cc_value": ctf_micrograph.fig_of_merit,
+            }
+        )
+    return ispyb_command_list
 
 
-# @send_results.register(relion.MotionCorr)
-# def _(relionobject: relion.MotionCorr, job_string):
-#    RelionWrapper.send_motioncorrection_results_to_ispyb(relion.MotionCorr, job_string)
+@ispyb_results.register(relion.MotionCorr)
+def _(stage_object: relion.MotionCorr, job_string: str):
+    logger.info("Generating ISPyB commands for %s ", job_string)
+    ispyb_command_list = []
+    for motion_corr_micrograph in stage_object[job_string]:
+        ispyb_command_list.append(
+            {
+                "ispyb_command": "insert_motion_correction",
+                "micrograph_name": motion_corr_micrograph.micrograph_name,
+                "total_motion": motion_corr_micrograph.total_motion,
+                "early_motion": motion_corr_micrograph.early_motion,
+                "late_motion": motion_corr_micrograph.late_motion,
+                "average_motion_per_frame": (
+                    float(motion_corr_micrograph.total_motion)
+                ),  # / number of frames
+            }
+        )
+    return ispyb_command_list
