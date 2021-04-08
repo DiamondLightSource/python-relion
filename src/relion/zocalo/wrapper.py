@@ -77,36 +77,18 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
         relion_prj = relion.Project(self.working_directory)
         while self._relion_subthread.is_alive():
             time.sleep(1)
+
+            self.check_synchweb_stop()
+
             logger.info("Looking for results")
 
             ispyb_command_list = []
-            try:
-                motion_corr_status = self.get_job_status_dictionary(
-                    relion_prj.motioncorrection
-                )
-                for item in motion_corr_status:
-                    if all(
-                        x == RelionStatus.SUCCESS for x in motion_corr_status.values()
-                    ):
-                        logger.info("Motion Correction finished")
-                        # break
-                    # elif
-                    if motion_corr_status[item] == RelionStatus.SUCCESS:
-                        ispyb_command_list.extend(ispyb_results(item[0], item[1]))
-            except FileNotFoundError:
-                logger.info("No files found for Motion Correction")
 
-            try:
-                ctf_status = self.get_job_status_dictionary(relion_prj.ctffind)
-                for item in ctf_status:
-                    if all(x == RelionStatus.SUCCESS for x in ctf_status.values()):
-                        logger.info("CTFFind finished")
-                        # break
-                    # elif
-                    if ctf_status[item] == RelionStatus.SUCCESS:
-                        ispyb_command_list.extend(ispyb_results(item[0], item[1]))
-            except FileNotFoundError:
-                logger.info("No files found for CTFFind")
+            relion_prj.load()
+            # Should only return results that have not previously been sent
+            for fr in relion_prj.results.fresh:
+                ispyb_command_list.extend(ispyb_results(fr[0], fr[1]))
+                logger.info(f"Fresh results found for {fr[1]}")
 
             if ispyb_command_list:
                 logger.info(
@@ -184,6 +166,13 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
     def create_synchweb_stop_file(self):
         pathlib.Path(self.params["stop_file"]).touch()
 
+    def check_synchweb_stop(self):
+        if pathlib.Path(self.params["stop_file"]).is_file():
+            self.stop_relion()
+
+    def stop_relion(self):
+        pass
+
     def get_status(self, job_path):
         relion_stop_files = [
             "RELION_JOB_EXIT_SUCCESS",
@@ -199,15 +188,6 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
             else:
                 return RelionStatus.RUNNING
             # if job_finished_file exists:
-
-    def get_job_status_dictionary(self, stage_object):
-        dictionary = {}
-        job_set = {(stage_object, job) for job in stage_object}
-        for x in job_set:
-            path = stage_object._basepath / x[1]
-            status = self.get_status(path)
-            dictionary[x] = status
-        return dictionary
 
 
 @functools.singledispatch
