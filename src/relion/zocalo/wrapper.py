@@ -197,7 +197,7 @@ def ispyb_results(relion_stage_object, job_string: str):
     representing a single job directory) and translates them into ISPyB
     service commands.
     """
-    raise ValueError(f"{relion_stage_object!r} is not a known Relion object")
+    return []
 
 
 @ispyb_results.register(relion.CTFFind)
