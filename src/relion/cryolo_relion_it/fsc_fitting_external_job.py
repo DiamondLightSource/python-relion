@@ -90,7 +90,7 @@ def main():
             os.path.join(project_dir, known_args.out_dir, "BestClass.txt"), "w"
         ) as f:
             f.write(str(class_index))
-    except:
+    except Exception:
         os.chdir(known_args.out_dir)
         open(RELION_JOB_FAILURE_FILENAME, "w").close()
         raise

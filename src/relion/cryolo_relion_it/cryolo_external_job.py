@@ -19,6 +19,7 @@ import platform
 import shutil
 import subprocess
 import sys
+import pathlib
 
 import gemmi
 
@@ -76,7 +77,7 @@ def run_job(project_dir, job_dir, args_list):
             ) as f:  # Done mics is to ensure that cryolo doesn't pick from already done mics
                 for micrograph in os.listdir("cryolo_input"):
                     f.write(micrograph + "\n")
-        except:
+        except Exception:
             pass
         shutil.rmtree("cryolo_input")
         os.mkdir("cryolo_input")
@@ -86,7 +87,7 @@ def run_job(project_dir, job_dir, args_list):
     try:
         with open("done_mics.txt", "r") as f:
             done_mics = f.read().splitlines()
-    except:
+    except Exception:
         done_mics = []
 
     # Count new micrographs because cryolo fails if its input directory is empty
@@ -108,9 +109,9 @@ def run_job(project_dir, job_dir, args_list):
             "--conf",
             "config.json",
             "-i",
-            os.path.join(project_dir, job_dir, "cryolo_input"),
+            f"{pathlib.PurePosixPath(project_dir) / job_dir / 'cryolo_input'}",
             "-o",
-            os.path.join(project_dir, job_dir, "gen_pick"),
+            f"{pathlib.PurePosixPath(project_dir) / job_dir / 'gen_pick'}",
             "--weights",
             model,
             "--gpu",
@@ -212,7 +213,7 @@ def main():
     os.chdir(job_dir)
     try:
         run_job(project_dir, job_dir, other_args)
-    except:
+    except Exception:
         open(failure_filename, "w").close()
         raise
     else:

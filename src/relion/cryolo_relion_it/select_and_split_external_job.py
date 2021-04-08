@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-External job to select the micrographs for a chosen class and then split 
+External job to select the micrographs for a chosen class and then split
 into two random halves
 """
 
@@ -89,7 +89,7 @@ def main():
             known_args.starout,
             other_args,
         )
-    except:
+    except Exception:
         os.chdir(known_args.out_dir)
         open(RELION_JOB_FAILURE_FILENAME, "w").close()
         raise

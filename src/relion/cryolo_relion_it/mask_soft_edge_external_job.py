@@ -64,7 +64,7 @@ def main():
     try:
         os.chdir("../..")
         run_job(project_dir, known_args.out_dir, other_args)
-    except:
+    except Exception:
         if os.getcwd() == project_dir:
             os.chdir(known_args.out_dir)
         open(RELION_JOB_FAILURE_FILENAME, "w").close()
