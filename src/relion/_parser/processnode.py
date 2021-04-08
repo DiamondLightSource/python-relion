@@ -1,6 +1,8 @@
 import pathlib
+import functools
 
 
+@functools.total_ordering
 class ProcessNode:
     def __init__(self, path, **kwargs):
         self._path = pathlib.PurePosixPath(path)
@@ -60,7 +62,7 @@ class ProcessNode:
         if next_node in self._out:
             self._out.remove(next_node)
 
-    def _is_child_checker(self, possible_child, checks=[]):
+    def _is_child_checker(self, possible_child, checks):
         if self == possible_child:
             checks.extend([True])
         for child in self:
@@ -68,7 +70,7 @@ class ProcessNode:
         return checks
 
     def _is_child(self, possible_child):
-        if True in self._is_child_checker(possible_child):
+        if True in self._is_child_checker(possible_child, checks=[]):
             return True
         else:
             return False
