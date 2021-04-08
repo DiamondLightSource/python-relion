@@ -1,6 +1,7 @@
 from gemmi import cif
 import os
 import pathlib
+import warnings
 
 try:
     from graphviz import Digraph
@@ -143,7 +144,7 @@ class RelionPipeline:
         try:
             digraph = Digraph(format="svg")
         except Exception:
-            raise Warning(
+            warnings.warn(
                 "Failed to create nodes display. Your environment may not have graphviz avaliable."
             )
             return
