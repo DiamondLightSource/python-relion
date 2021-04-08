@@ -74,9 +74,9 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
         )
         self._relion_subthread.start()
 
-        self.relion_prj = relion.Project(self.working_directory)
+        relion_prj = relion.Project(self.working_directory)
         while self._relion_subthread.is_alive() and False not in [
-            n.attributes["status"] for n in self.relion_prj
+            n.attributes["status"] for n in relion_prj
         ]:
             time.sleep(1)
 
@@ -84,9 +84,9 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
 
             ispyb_command_list = []
 
-            self.relion_prj.load()
+            relion_prj.load()
             # Should only return results that have not previously been sent
-            for fr in self.relion_prj.results.fresh:
+            for fr in relion_prj.results.fresh:
                 ispyb_command_list.extend(ispyb_results(fr[0], fr[1]))
                 logger.info(f"Fresh results found for {fr[1]}")
 
