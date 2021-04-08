@@ -10,7 +10,6 @@ import zocalo.wrapper
 from pprint import pprint
 import time
 from . import cryolo_relion_it, dls_options
-from zocalo.util.symlink import create_parent_symlink
 
 import functools
 
@@ -143,51 +142,24 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
         print("Running RELION wrapper - stdout")
         logger.info("Running RELION wrapper - logger.info")
 
-        params = self.recwrap.recipe_step["job_parameters"]
-
-        # create working directory
-        self.working_directory.mkdir(parents=True, exist_ok=True)
-        if params.get("create_symlink"):
-            # Create symbolic link above working directory
-            create_parent_symlink(str(self.working_directory), params["create_symlink"])
-
-        # Create a symbolic link in the working directory to the image directory
-        movielink = "Movies"
-        movielink_path = self.working_directory / movielink
-        movielink_target = params["image_directory"]
-        if os.path.islink(movielink_path):
-            current_target = os.readlink(movielink_path)
-            if current_target == movielink_target:
-                logger.info(f"Using existing link {movielink_path} -> {current_target}")
-            else:
-                raise ValueError(
-                    f"Trying to create link {movielink_path} -> {movielink_target} but a link already exists pointing to {current_target}"
-                )
-        else:
-            logger.info(f"Creating link {movielink_path} -> {movielink_target}")
-            os.symlink(movielink_target, movielink_path)
-
-        params["ispyb_parameters"]["import_images"] = os.path.join(
-            movielink, params["file_template"]
-        )
-        for k, v in params["ispyb_parameters"].items():
+        for k, v in self.params["ispyb_parameters"].items():
             if v.isnumeric():
-                params["ispyb_parameters"][k] = int(v)
+                self.params["ispyb_parameters"][k] = int(v)
             elif v.lower() == "true":
-                params["ispyb_parameters"][k] = True
+                self.params["ispyb_parameters"][k] = True
             elif v.lower() == "false":
-                params["ispyb_parameters"][k] = False
+                self.params["ispyb_parameters"][k] = False
             else:
                 try:
-                    params["ispyb_parameters"][k] = float(v)
+                    self.params["ispyb_parameters"][k] = float(v)
                 except ValueError:
                     pass
-        pprint(params["ispyb_parameters"])
+        pprint(self.params["ispyb_parameters"])
 
         # Prepare options object
         opts = cryolo_relion_it.RelionItOptions()
         opts.update_from(vars(dls_options))
-        opts.update_from(params["ispyb_parameters"])
+        opts.update_from(self.params["ispyb_parameters"])
 
         # Write options to disk for a record of parameters used
         options_file = self.working_directory / cryolo_relion_it.OPTIONS_FILE
