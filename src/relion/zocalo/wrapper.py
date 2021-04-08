@@ -80,8 +80,6 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
         ]:
             time.sleep(1)
 
-            self.check_synchweb_stop()
-
             logger.info("Looking for results")
 
             ispyb_command_list = []
@@ -167,18 +165,6 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
 
     def create_synchweb_stop_file(self):
         pathlib.Path(self.params["stop_file"]).touch()
-
-    def check_synchweb_stop(self):
-        if pathlib.Path(self.params["stop_file"]).is_file():
-            self.fail_relion()
-
-    def fail_relion(self):
-        for job in self.relion_prj.current_jobs:
-            try:
-                (job.name / "RELION_JOB_EXIT_SUCCESS").unlink()
-            except FileNotFoundError:
-                pass
-            (job.name / "RELION_JOB_EXIT_FAILURE").touch()
 
     def get_status(self, job_path):
         relion_stop_files = [
