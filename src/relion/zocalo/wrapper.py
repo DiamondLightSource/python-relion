@@ -1,17 +1,16 @@
-import threading
+import enum
+import functools
 import logging
 import os
 import pathlib
 import procrunner
-import zocalo.util.symlink
 import relion
-import enum
+import threading
+import time
+import zocalo.util.symlink
 import zocalo.wrapper
 from pprint import pprint
-import time
-from . import cryolo_relion_it, dls_options
-
-import functools
+from relion.cryolo_relion_it import cryolo_relion_it, dls_options
 
 logger = logging.getLogger("dlstbx.wrap.relion")
 
