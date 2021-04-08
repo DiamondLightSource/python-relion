@@ -181,8 +181,8 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
         logger.info("Done.")
         return success
 
-    def create_synchweb_stop_file(self, path_to_desired_file_location):
-        pathlib.Path(path_to_desired_file_location / "stopfile.txt").touch()
+    def create_synchweb_stop_file(self):
+        pathlib.Path(self.params["stop_file"]).touch()
 
     def get_status(self, job_path):
         relion_stop_files = [
