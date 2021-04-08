@@ -74,8 +74,10 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
         )
         self._relion_subthread.start()
 
-        relion_prj = relion.Project(self.working_directory)
-        while self._relion_subthread.is_alive():
+        self.relion_prj = relion.Project(self.working_directory)
+        while self._relion_subthread.is_alive() and False not in [
+            n.attributes["status"] for n in self.relion_prj
+        ]:
             time.sleep(1)
 
             self.check_synchweb_stop()
@@ -84,9 +86,9 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
 
             ispyb_command_list = []
 
-            relion_prj.load()
+            self.relion_prj.load()
             # Should only return results that have not previously been sent
-            for fr in relion_prj.results.fresh:
+            for fr in self.relion_prj.results.fresh:
                 ispyb_command_list.extend(ispyb_results(fr[0], fr[1]))
                 logger.info(f"Fresh results found for {fr[1]}")
 
@@ -168,10 +170,15 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
 
     def check_synchweb_stop(self):
         if pathlib.Path(self.params["stop_file"]).is_file():
-            self.stop_relion()
+            self.fail_relion()
 
-    def stop_relion(self):
-        pass
+    def fail_relion(self):
+        for job in self.relion_prj.current_jobs:
+            try:
+                (job.name / "RELION_JOB_EXIT_SUCCESS").unlink()
+            except FileNotFoundError:
+                pass
+            (job.name / "RELION_JOB_EXIT_FAILURE").touch()
 
     def get_status(self, job_path):
         relion_stop_files = [
