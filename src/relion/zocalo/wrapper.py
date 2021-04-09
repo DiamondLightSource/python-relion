@@ -190,7 +190,7 @@ def ispyb_results(relion_stage_object, job_string: str):
     representing a single job directory) and translates them into ISPyB
     service commands.
     """
-    return []
+    raise ValueError(f"{relion_stage_object!r} is not a known Relion object")
 
 
 @ispyb_results.register(relion.CTFFind)
@@ -231,4 +231,24 @@ def _(stage_object: relion.MotionCorr, job_string: str):
                 ),  # / number of frames
             }
         )
+    return ispyb_command_list
+
+
+@ispyb_results.register(relion.Class2D)
+def _(stage_object: relion.Class2D, job_string: str):
+    logger.warning(
+        "There are currently no ISPyB commands for the 2D classification stage %s ",
+        job_string,
+    )
+    ispyb_command_list = []
+    return ispyb_command_list
+
+
+@ispyb_results.register(relion.Class3D)
+def _(stage_object: relion.Class3D, job_string: str):
+    logger.warning(
+        "There are currently no ISPyB commands for the 3D classification stage %s ",
+        job_string,
+    )
+    ispyb_command_list = []
     return ispyb_command_list
