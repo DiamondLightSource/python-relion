@@ -19,7 +19,7 @@ RelionStatus = enum.Enum("RelionStatus", "RUNNING SUCCESS FAILURE")
 # to test:
 # - create an empty directory
 # - run following command to generate a recipe-wrapper:
-#   dlstbx.find_in_ispyb -p 6844019 -f ~/zocalo/recipes/ispyb-relion.json --recipe-pointer=2 --out=rw ; replace "/dls/m12/data/2021/cm28212-1/processed" "$(pwd)/processed" "/dls/m12/data/2021/cm28212-1/tmp" "$(pwd)/tmp" < rw > rw-local
+#   dlstbx.find_in_ispyb -p 6844019 -f /dls_sw/apps/zocalo/live/recipes/ispyb-relion.json --recipe-pointer=2 --out=rw ; replace "/dls/m12/data/2021/cm28212-1/processed" "$(pwd)/processed" "/dls/m12/data/2021/cm28212-1/tmp" "$(pwd)/tmp" < rw > rw-local
 # - run the wrapper:
 #   dlstbx.wrap --recipewrapper=rw-local --wrap=relion --offline -v
 
