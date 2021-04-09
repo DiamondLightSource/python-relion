@@ -154,11 +154,15 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
             opts.print_options(optfile)
 
         success = False
+        oldpwd = os.getcwd()
         try:
+            os.chdir(self.working_directory)
             cryolo_relion_it.run_pipeline(opts)
             success = True
         except Exception as ex:
             logger.error(ex)
+        finally:
+            os.chdir(oldpwd)
 
         logger.info("Done.")
         return success
