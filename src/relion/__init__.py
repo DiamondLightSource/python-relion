@@ -133,13 +133,15 @@ class Project(RelionPipeline):
         return self.res
 
     @property
-    def current_job(self):
+    def current_jobs(self):
         self.load()
-        currj = super().current_job
+        currj = super().current_jobs
         if currj is None:
             return None
         else:
-            return [n.change_name(self.basepath / n.name) for n in currj]
+            for n in currj:
+                n.change_name(self.basepath / n.name)
+            return currj
 
     @staticmethod
     def _clear_caches():

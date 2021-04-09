@@ -75,38 +75,20 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
         self._relion_subthread.start()
 
         relion_prj = relion.Project(self.working_directory)
-        while self._relion_subthread.is_alive():
+        while self._relion_subthread.is_alive() and False not in [
+            n.attributes["status"] for n in relion_prj
+        ]:
             time.sleep(1)
+
             logger.info("Looking for results")
 
             ispyb_command_list = []
-            try:
-                motion_corr_status = self.get_job_status_dictionary(
-                    relion_prj.motioncorrection
-                )
-                for item in motion_corr_status:
-                    if all(
-                        x == RelionStatus.SUCCESS for x in motion_corr_status.values()
-                    ):
-                        logger.info("Motion Correction finished")
-                        # break
-                    # elif
-                    if motion_corr_status[item] == RelionStatus.SUCCESS:
-                        ispyb_command_list.extend(ispyb_results(item[0], item[1]))
-            except FileNotFoundError:
-                logger.info("No files found for Motion Correction")
 
-            try:
-                ctf_status = self.get_job_status_dictionary(relion_prj.ctffind)
-                for item in ctf_status:
-                    if all(x == RelionStatus.SUCCESS for x in ctf_status.values()):
-                        logger.info("CTFFind finished")
-                        # break
-                    # elif
-                    if ctf_status[item] == RelionStatus.SUCCESS:
-                        ispyb_command_list.extend(ispyb_results(item[0], item[1]))
-            except FileNotFoundError:
-                logger.info("No files found for CTFFind")
+            relion_prj.load()
+            # Should only return results that have not previously been sent
+            for fr in relion_prj.results.fresh:
+                ispyb_command_list.extend(ispyb_results(fr[0], fr[1]))
+                logger.info(f"Fresh results found for {fr[1]}")
 
             if ispyb_command_list:
                 logger.info(
@@ -200,15 +182,6 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
                 return RelionStatus.RUNNING
             # if job_finished_file exists:
 
-    def get_job_status_dictionary(self, stage_object):
-        dictionary = {}
-        job_set = {(stage_object, job) for job in stage_object}
-        for x in job_set:
-            path = stage_object._basepath / x[1]
-            status = self.get_status(path)
-            dictionary[x] = status
-        return dictionary
-
 
 @functools.singledispatch
 def ispyb_results(relion_stage_object, job_string: str):
@@ -258,4 +231,24 @@ def _(stage_object: relion.MotionCorr, job_string: str):
                 ),  # / number of frames
             }
         )
+    return ispyb_command_list
+
+
+@ispyb_results.register(relion.Class2D)
+def _(stage_object: relion.Class2D, job_string: str):
+    logger.warning(
+        "There are currently no ISPyB commands for the 2D classification stage %s ",
+        job_string,
+    )
+    ispyb_command_list = []
+    return ispyb_command_list
+
+
+@ispyb_results.register(relion.Class3D)
+def _(stage_object: relion.Class3D, job_string: str):
+    logger.warning(
+        "There are currently no ISPyB commands for the 3D classification stage %s ",
+        job_string,
+    )
+    ispyb_command_list = []
     return ispyb_command_list
