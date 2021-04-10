@@ -75,6 +75,12 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
         self._relion_subthread.start()
 
         relion_prj = relion.Project(self.working_directory)
+
+        while self._relion_subthread.is_alive() and not relion_prj.origin_present():
+            time.sleep(0.5)
+
+        relion_prj.load()
+
         while self._relion_subthread.is_alive() and False not in [
             n.attributes["status"] for n in relion_prj
         ]:
@@ -85,6 +91,7 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
             ispyb_command_list = []
 
             relion_prj.load()
+
             # Should only return results that have not previously been sent
             for fr in relion_prj.results.fresh:
                 ispyb_command_list.extend(ispyb_results(fr[0], fr[1]))
@@ -101,6 +108,10 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
 
         logger.info("Done.")
         success = True
+
+        if (self.results_directory / "RUNNING_PIPELINER_PREPROCESS").is_file():
+            os.remove(self.results_directory / "RUNNING_PIPELINER_PREPROCESS")
+
         return success
 
     def start_pseudo_relion(self):
