@@ -104,10 +104,16 @@ class RelionPipeline:
         for node in self._job_nodes:
             success = basepath / node._path / "RELION_JOB_EXIT_SUCCESS"
             failure = basepath / node._path / "RELION_JOB_EXIT_FAILURE"
+            aborted = basepath / node._path / "RELION_JOB_EXIT_ABORTED"
             if failure.is_file():
                 node.attributes["status"] = False
                 node.attributes["end_time_stamp"] = datetime.datetime.fromtimestamp(
                     failure.stat().st_ctime
+                )
+            elif aborted.is_file():
+                node.attributes["status"] = False
+                node.attributes["end_time_stamp"] = datetime.datetime.fromtimestamp(
+                    aborted.stat().st_ctime
                 )
             elif success.is_file():
                 node.attributes["status"] = True
