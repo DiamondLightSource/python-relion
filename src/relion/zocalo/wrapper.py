@@ -84,6 +84,10 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
 
             ispyb_command_list = []
 
+            if pathlib.Path(self.params["stop_file"]).is_file():
+                for job_path in relion_prj.current_jobs:
+                    pathlib.Path(job_path / "RELION_EXIT_ABORTED").touch()
+
             relion_prj.load()
             # Should only return results that have not previously been sent
             for fr in relion_prj.results.fresh:
