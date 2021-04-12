@@ -85,6 +85,7 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
             ispyb_command_list = []
 
             if pathlib.Path(self.params["stop_file"]).is_file():
+                relion_prj.load()
                 for job_path in relion_prj._job_nodes:
                     pathlib.Path(job_path.name / "RELION_EXIT_ABORTED").touch()
 
