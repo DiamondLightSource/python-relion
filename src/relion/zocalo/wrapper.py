@@ -11,7 +11,7 @@ import zocalo.wrapper
 from pprint import pprint
 from relion.cryolo_relion_it import cryolo_relion_it, dls_options
 
-logger = logging.getLogger("dlstbx.wrap.relion")
+logger = logging.getLogger("relion.zocalo.wrapper")
 
 RelionStatus = enum.Enum("RelionStatus", "RUNNING SUCCESS FAILURE")
 
