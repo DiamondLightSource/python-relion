@@ -73,6 +73,8 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
         )
         self._relion_subthread.start()
 
+        relion_start_time = time.time()
+
         relion_prj = relion.Project(self.working_directory)
 
         while self._relion_subthread.is_alive() and not relion_prj.origin_present():
@@ -115,6 +117,11 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
                     "ispyb", {"ispyb_command_list": ispyb_command_list}
                 )
                 logger.info("Sent %d commands to ISPyB", len(ispyb_command_list))
+
+            # if Relion has been running too long stop loop of preprocessing jobs
+            # setting this time to 2 minutes for testing - will need to change
+            if time.time() - relion_start_time > 2 * 60:
+                preprocess_check.unlink()
 
         logger.info("Done.")
         success = True
