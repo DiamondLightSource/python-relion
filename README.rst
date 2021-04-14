@@ -28,7 +28,7 @@ Python bindings to RELION
         :alt: Code style: black
 
 
-* Free software: GPLv2 and BSD, see the license file for details
+* Free software: GPLv2 and BSD, `see the license file for details <https://github.com/DiamondLightSource/python-relion/blob/main/LICENSE>`_
 * Documentation: https://python-relion.readthedocs.io.
 
 This package provides a python interface to the information contained in a Relion project folder. It does not run Relion itself.
