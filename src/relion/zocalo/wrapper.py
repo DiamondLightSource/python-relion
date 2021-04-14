@@ -97,6 +97,8 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
                 relion_prj.load()
                 for job_path in relion_prj._job_nodes:
                     pathlib.Path(job_path.name / "RELION_EXIT_ABORTED").touch()
+                for p in self.results_directory.glob("RUNNING_*"):
+                    p.unlink()
 
             relion_prj.load()
 
