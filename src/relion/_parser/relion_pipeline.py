@@ -37,6 +37,7 @@ class RelionPipeline:
             search = column
         gemmi_readable_path = os.fspath(star_path)
         star_doc = cif.read_file(gemmi_readable_path)
+        block_number = None
         for block_index, block in enumerate(star_doc):
             if list(block.find_loop(search)):
                 block_number = block_index
