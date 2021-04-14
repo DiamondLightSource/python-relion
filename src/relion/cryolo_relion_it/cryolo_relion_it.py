@@ -2701,15 +2701,6 @@ def run_pipeline(opts):
 
         RunJobs(
             runjobs,
-            1,
-            1,
-            preprocess_schedule_name,
-        )
-
-        WaitForJob(runjobs[-1], 30)
-
-        RunJobs(
-            runjobs,
             opts.preprocess_repeat_times,
             opts.preprocess_repeat_wait,
             preprocess_schedule_name,
