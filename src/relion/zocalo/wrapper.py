@@ -3,7 +3,6 @@ import functools
 import logging
 import os
 import pathlib
-import procrunner
 import relion
 import threading
 import time
@@ -118,22 +117,6 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
             os.remove(self.results_directory / "RUNNING_PIPELINER_PREPROCESS")
 
         return success
-
-    def start_pseudo_relion(self):
-        logger.info("Starting 'Relion'")
-        result = procrunner.run(
-            (
-                "/bin/bash",
-                "/home/wra62962/python-relion/relion/mimic-script",
-            ),
-            timeout=self.params.get("timeout"),
-            working_directory=self.working_directory,
-            environment_override={"PYTHONIOENCODING": "UTF-8"},
-        )
-        logger.info("command: %s", " ".join(result["command"]))
-        logger.info("exitcode: %s", result["exitcode"])
-        logger.debug(result["stdout"])
-        logger.debug(result["stderr"])
 
     def start_relion(self):
         print("Running RELION wrapper - stdout")
