@@ -100,7 +100,11 @@ class Project(RelionPipeline):
         and lists of Class3DParticleClass namedtuples as values."""
         return Class3D(self.basepath / "Class3D")
 
+    def origin_present(self):
+        return (self.basepath / self.origin).is_dir()
+
     def load(self):
+        self._jobs_collapsed = False
         self.load_nodes_from_star(self.basepath / "default_pipeline.star")
         self.check_job_node_statuses(self.basepath)
         self.collect_job_times(list(self.schedule_files))
@@ -177,10 +181,13 @@ class RelionResults:
                 if (r[1], r[2]) not in self._seen_before:
                     current_job_results = list(r[0][r[1]])
                     for single_res in current_job_results:
+                        if self._cache.get(r[1]) is None:
+                            self._cache[r[1]] = []
                         if r[0].for_cache(single_res) in self._cache[r[1]]:
                             r[0][r[1]].remove(single_res)
                         else:
                             self._cache[r[1]].append(r[0].for_cache(single_res))
+
                     self._fresh_results.append((r[0], r[1]))
                     self._seen_before.append((r[1], r[2]))
 

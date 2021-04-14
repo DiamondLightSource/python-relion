@@ -2698,6 +2698,16 @@ def run_pipeline(opts):
             preprocess_schedule_name = PREPROCESS_SCHEDULE_PASS1
         else:
             preprocess_schedule_name = PREPROCESS_SCHEDULE_PASS2
+
+        RunJobs(
+            runjobs,
+            1,
+            1,
+            preprocess_schedule_name,
+        )
+
+        WaitForJob(runjobs[-1], 30)
+
         RunJobs(
             runjobs,
             opts.preprocess_repeat_times,
