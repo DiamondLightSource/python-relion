@@ -85,10 +85,8 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
         preprocess_check = self.results_directory / "RUNNING_PIPELINER_PREPROCESS"
 
         while (
-            self._relion_subthread.is_alive()
-            and preprocess_check.is_file()
-            and False not in [n.attributes["status"] for n in relion_prj]
-        ):
+            self._relion_subthread.is_alive() or preprocess_check.is_file()
+        ) and False not in [n.attributes["status"] for n in relion_prj]:
             time.sleep(1)
 
             logger.info("Looking for results")
