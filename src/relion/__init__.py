@@ -101,6 +101,10 @@ class Project(RelionPipeline):
         return Class3D(self.basepath / "Class3D")
 
     def origin_present(self):
+        try:
+            self.load_nodes_from_star(self.basepath / "default_pipeline.star")
+        except TypeError:
+            return False
         return (self.basepath / self.origin).is_dir()
 
     def load(self):
