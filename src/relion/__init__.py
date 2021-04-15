@@ -105,7 +105,7 @@ class Project(RelionPipeline):
             self.load_nodes_from_star(self.basepath / "default_pipeline.star")
         except (TypeError, FileNotFoundError, RuntimeError):
             return False
-        return (self.basepath / self.origin).is_dir()
+        return (self.basepath / self.origin / "RELION_JOB_EXIT_SUCCESS").is_file()
 
     def load(self):
         self._jobs_collapsed = False
