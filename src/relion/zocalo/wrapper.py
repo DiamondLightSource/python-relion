@@ -25,6 +25,9 @@ RelionStatus = enum.Enum("RelionStatus", "RUNNING SUCCESS FAILURE")
 
 class RelionWrapper(zocalo.wrapper.BaseWrapper):
     def run(self):
+        # Enable log messages for relion.*
+        logging.getLogger("relion").setLevel(logging.INFO)
+
         assert hasattr(self, "recwrap"), "No recipewrapper object found"
 
         self.params = self.recwrap.recipe_step["job_parameters"]
