@@ -1956,9 +1956,8 @@ def addJob(jobtype, name_in_script, done_file, options, alias=None):
         jobname = pipeline["pipeline_processes"]["rlnPipeLineProcessName"][-1]
 
         # Now add the jobname to the done_file
-        f = open(done_file, "a")
-        f.write(name_in_script + " = " + jobname + "\n")
-        f.close()
+        with open(done_file, "a") as f:
+            f.write(name_in_script + " = " + jobname + "\n")
 
     # return the name of the job in the RELION pipeline, e.g. 'Import/job001/'
     return jobname, already_had_it
