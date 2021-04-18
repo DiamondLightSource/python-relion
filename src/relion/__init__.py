@@ -10,6 +10,7 @@ from relion._parser.motioncorrection import MotionCorr
 from relion._parser.class2D import Class2D
 from relion._parser.class3D import Class3D
 from relion._parser.relion_pipeline import RelionPipeline
+import time
 import copy
 
 __all__ = []
@@ -17,6 +18,8 @@ __author__ = "Diamond Light Source - Scientific Software"
 __email__ = "scientificsoftware@diamond.ac.uk"
 __version__ = "0.3.3"
 __version_tuple__ = tuple(int(x) for x in __version__.split("."))
+
+pipeline_lock = ".relion_lock"
 
 
 class Project(RelionPipeline):
@@ -31,8 +34,10 @@ class Project(RelionPipeline):
         :param path: A string or file system path object pointing to the root
                      directory of an existing Relion project.
         """
-        super().__init__("Import/job001")
         self.basepath = pathlib.Path(path)
+        super().__init__(
+            "Import/job001", locklist=[str(self.basepath / "default_pipeline.star")]
+        )
         if not self.basepath.is_dir():
             raise ValueError(f"path {self.basepath} is not a directory")
         try:
@@ -43,6 +48,10 @@ class Project(RelionPipeline):
             #    f"Relion Project was unable to load the relion pipeline from {self.basepath}/default_pipeline.star"
             # )
         self.res = RelionResults()
+
+    @property
+    def plock(self):
+        return PipelineLock(self.basepath)
 
     def __eq__(self, other):
         if isinstance(other, Project):
@@ -104,6 +113,8 @@ class Project(RelionPipeline):
         try:
             self.load_nodes_from_star(self.basepath / "default_pipeline.star")
         except (TypeError, FileNotFoundError, RuntimeError):
+            return False
+        if len(self._nodes) == 0:
             return False
         return (self.basepath / self.origin / "RELION_JOB_EXIT_SUCCESS").is_file()
 
@@ -202,3 +213,28 @@ class RelionResults:
     def fresh(self):
         self._fresh_called = True
         return iter(self._fresh_results)
+
+
+# helper class for dealing with the default_pipeline.star lock
+class PipelineLock:
+    def __init__(self, projpath):
+        self.projpath = projpath
+        self.fail_count = 0
+        self.failed = False
+
+    def __enter__(self):
+        while self.fail_count < 20:
+            try:
+                (self.projpath / pipeline_lock).mkdir()
+                break
+            except FileExistsError:
+                time.sleep(0.1)
+                self.fail_count += 1
+        if self.fail_count == 20:
+            self.failed = True
+        return self
+
+    def __exit__(self, exc_type, exc_value, exc_traceback):
+        if not self.failed:
+            (self.projpath / pipeline_lock).rmdir()
+        self.failed = False

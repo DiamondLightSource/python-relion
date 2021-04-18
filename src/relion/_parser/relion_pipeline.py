@@ -15,7 +15,7 @@ from relion._parser.processgraph import ProcessGraph
 
 
 class RelionPipeline:
-    def __init__(self, origin, graphin=ProcessGraph([])):
+    def __init__(self, origin, graphin=ProcessGraph([]), locklist=[]):
         self.origin = origin
         self._nodes = graphin
         self._connected = {}
@@ -25,22 +25,39 @@ class RelionPipeline:
         self._connected_jobs = {}
         self.job_origins = {}
         self._jobs_collapsed = False
+        self.locklist = locklist
 
     def __iter__(self):
         if not self._jobs_collapsed:
             self._collapse_jobs_to_jobtypes()
         return iter(self._jobtype_nodes)
 
-    @staticmethod
-    def _request_star_values(star_path, column, search=None):
+    @property
+    def plock(self):
+        return DummyLock()
+
+    def _star_doc(self, gemmi_readable_path):
+        if str(gemmi_readable_path) in self.locklist:
+            with self.plock as pl:
+                if not pl.failed:
+                    star_doc = cif.read_file(gemmi_readable_path)
+                else:
+                    star_doc = cif.Document()  # effectively return an empty star file
+            return star_doc
+        return cif.read_file(gemmi_readable_path)
+
+    def _request_star_values(self, star_path, column, search=None):
         if search is None:
             search = column
         gemmi_readable_path = os.fspath(star_path)
-        star_doc = cif.read_file(gemmi_readable_path)
+        star_doc = self._star_doc(gemmi_readable_path)
         block_number = None
         for block_index, block in enumerate(star_doc):
             if list(block.find_loop(search)):
                 block_number = block_index
+                break
+        else:
+            return []
         data_block = star_doc[block_number]
         values = data_block.find_loop(column)
         return list(values)
@@ -292,3 +309,16 @@ class RelionPipeline:
             return None
         else:
             return running_jobs
+
+
+class DummyLock:
+    def __init__(self):
+        pass
+
+    def __enter__(self):
+        pass
+
+    def __exit__(self, exc_type, exc_value, exc_traceback):
+        raise NotImplementedError(
+            "A dummy pipeline lock is being used. An actual pipeline lock should be implemented"
+        )
