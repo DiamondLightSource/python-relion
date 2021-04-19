@@ -41,6 +41,9 @@ class RelionPipeline:
         for block_index, block in enumerate(star_doc):
             if list(block.find_loop(search)):
                 block_number = block_index
+                break
+        else:
+            return []
         data_block = star_doc[block_number]
         values = data_block.find_loop(column)
         return list(values)
