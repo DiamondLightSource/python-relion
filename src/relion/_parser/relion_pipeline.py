@@ -313,10 +313,10 @@ class RelionPipeline:
 
 class DummyLock:
     def __init__(self):
-        pass
+        self.failed = True
 
     def __enter__(self):
-        pass
+        return self
 
     def __exit__(self, exc_type, exc_value, exc_traceback):
         raise NotImplementedError(
