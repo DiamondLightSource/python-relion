@@ -36,7 +36,7 @@ class Project(RelionPipeline):
         """
         self.basepath = pathlib.Path(path)
         super().__init__(
-            "Import/job001", locklist=[str(self.basepath / "default_pipeline.star")]
+            "Import/job001", locklist=[self.basepath / "default_pipeline.star"]
         )
         if not self.basepath.is_dir():
             raise ValueError(f"path {self.basepath} is not a directory")
@@ -50,8 +50,8 @@ class Project(RelionPipeline):
         self.res = RelionResults()
 
     @property
-    def plock(self):
-        return PipelineLock(self.basepath)
+    def _plock(self):
+        return PipelineLock(self.basepath / pipeline_lock)
 
     def __eq__(self, other):
         if isinstance(other, Project):
@@ -134,7 +134,6 @@ class Project(RelionPipeline):
 
     @property
     def results(self):
-        # Project.motioncorrection.fget.cache_clear()
         self._clear_caches()
         res = []
         for jtnode in self:
@@ -217,24 +216,23 @@ class RelionResults:
 
 # helper class for dealing with the default_pipeline.star lock
 class PipelineLock:
-    def __init__(self, projpath):
-        self.projpath = projpath
+    def __init__(self, lockdir):
+        self.lockdir = lockdir
         self.fail_count = 0
-        self.failed = False
+        self.obtained = False
 
     def __enter__(self):
         while self.fail_count < 20:
             try:
-                (self.projpath / pipeline_lock).mkdir()
+                self.lockdir.mkdir()
+                self.obtained = True
                 break
             except FileExistsError:
                 time.sleep(0.1)
                 self.fail_count += 1
-        if self.fail_count == 20:
-            self.failed = True
         return self
 
     def __exit__(self, exc_type, exc_value, exc_traceback):
-        if not self.failed:
-            (self.projpath / pipeline_lock).rmdir()
-        self.failed = False
+        if self.obtained:
+            self.lockdir.rmdir()
+        self.obtained = False

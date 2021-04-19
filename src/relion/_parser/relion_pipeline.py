@@ -15,7 +15,7 @@ from relion._parser.processgraph import ProcessGraph
 
 
 class RelionPipeline:
-    def __init__(self, origin, graphin=ProcessGraph([]), locklist=[]):
+    def __init__(self, origin, graphin=ProcessGraph([]), locklist=None):
         self.origin = origin
         self._nodes = graphin
         self._connected = {}
@@ -25,7 +25,7 @@ class RelionPipeline:
         self._connected_jobs = {}
         self.job_origins = {}
         self._jobs_collapsed = False
-        self.locklist = locklist
+        self.locklist = locklist or []
 
     def __iter__(self):
         if not self._jobs_collapsed:
@@ -33,24 +33,25 @@ class RelionPipeline:
         return iter(self._jobtype_nodes)
 
     @property
-    def plock(self):
+    def _plock(self):
         return DummyLock()
 
-    def _star_doc(self, gemmi_readable_path):
-        if str(gemmi_readable_path) in self.locklist:
-            with self.plock as pl:
-                if not pl.failed:
+    def _star_doc(self, star_path):
+        gemmi_readable_path = os.fspath(star_path)
+        if star_path in self.locklist:
+            with self._plock as pl:
+                if pl.obtained:
                     star_doc = cif.read_file(gemmi_readable_path)
                 else:
-                    star_doc = cif.Document()  # effectively return an empty star file
+                    # effectively return an empty star file
+                    star_doc = cif.Document()
             return star_doc
         return cif.read_file(gemmi_readable_path)
 
     def _request_star_values(self, star_path, column, search=None):
         if search is None:
             search = column
-        gemmi_readable_path = os.fspath(star_path)
-        star_doc = self._star_doc(gemmi_readable_path)
+        star_doc = self._star_doc(star_path)
         block_number = None
         for block_index, block in enumerate(star_doc):
             if list(block.find_loop(search)):
@@ -313,7 +314,7 @@ class RelionPipeline:
 
 class DummyLock:
     def __init__(self):
-        self.failed = True
+        self.obtained = False
 
     def __enter__(self):
         return self
