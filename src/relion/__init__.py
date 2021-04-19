@@ -10,6 +10,7 @@ from relion._parser.motioncorrection import MotionCorr
 from relion._parser.class2D import Class2D
 from relion._parser.class3D import Class3D
 from relion._parser.relion_pipeline import RelionPipeline
+import time
 import copy
 
 __all__ = []
@@ -17,6 +18,8 @@ __author__ = "Diamond Light Source - Scientific Software"
 __email__ = "scientificsoftware@diamond.ac.uk"
 __version__ = "0.3.3"
 __version_tuple__ = tuple(int(x) for x in __version__.split("."))
+
+pipeline_lock = ".relion_lock"
 
 
 class Project(RelionPipeline):
@@ -31,8 +34,10 @@ class Project(RelionPipeline):
         :param path: A string or file system path object pointing to the root
                      directory of an existing Relion project.
         """
-        super().__init__("Import/job001")
         self.basepath = pathlib.Path(path)
+        super().__init__(
+            "Import/job001", locklist=[self.basepath / "default_pipeline.star"]
+        )
         if not self.basepath.is_dir():
             raise ValueError(f"path {self.basepath} is not a directory")
         try:
@@ -43,6 +48,10 @@ class Project(RelionPipeline):
             #    f"Relion Project was unable to load the relion pipeline from {self.basepath}/default_pipeline.star"
             # )
         self.res = RelionResults()
+
+    @property
+    def _plock(self):
+        return PipelineLock(self.basepath / pipeline_lock)
 
     def __eq__(self, other):
         if isinstance(other, Project):
@@ -125,7 +134,6 @@ class Project(RelionPipeline):
 
     @property
     def results(self):
-        # Project.motioncorrection.fget.cache_clear()
         self._clear_caches()
         res = []
         for jtnode in self:
@@ -204,3 +212,27 @@ class RelionResults:
     def fresh(self):
         self._fresh_called = True
         return iter(self._fresh_results)
+
+
+# helper class for dealing with the default_pipeline.star lock
+class PipelineLock:
+    def __init__(self, lockdir):
+        self.lockdir = lockdir
+        self.fail_count = 0
+        self.obtained = False
+
+    def __enter__(self):
+        while self.fail_count < 20:
+            try:
+                self.lockdir.mkdir()
+                self.obtained = True
+                break
+            except FileExistsError:
+                time.sleep(0.1)
+                self.fail_count += 1
+        return self
+
+    def __exit__(self, exc_type, exc_value, exc_traceback):
+        if self.obtained:
+            self.lockdir.rmdir()
+        self.obtained = False
