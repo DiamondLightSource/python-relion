@@ -88,9 +88,11 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
 
         relion_prj.load()
 
-        while self._relion_subthread.is_alive() and False not in [
-            n.attributes["status"] for n in relion_prj
-        ]:
+        preprocess_check = self.results_directory / "RUNNING_PIPELINER_PREPROCESS"
+
+        while (
+            self._relion_subthread.is_alive() or preprocess_check.is_file()
+        ) and False not in [n.attributes["status"] for n in relion_prj]:
             time.sleep(1)
 
             logger.info("Looking for results")
@@ -101,6 +103,8 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
                 relion_prj.load()
                 for job_path in relion_prj._job_nodes:
                     pathlib.Path(job_path.name / "RELION_EXIT_ABORTED").touch()
+                for p in self.results_directory.glob("RUNNING_*"):
+                    p.unlink()
 
             relion_prj.load()
 
@@ -118,11 +122,22 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
                 )
                 logger.info("Sent %d commands to ISPyB", len(ispyb_command_list))
 
+            # if Relion has been running too long stop loop of preprocessing jobs
+            # setting this time to 2 minutes for testing - will need to change
+            most_recent_movie = max(
+                [
+                    p.stat().st_mtime
+                    for p in pathlib.Path(self.params["image_directory"]).glob("**/*")
+                ]
+            )
+            if time.time() - most_recent_movie > 30 * 60:
+                preprocess_check.unlink()
+
         logger.info("Done.")
         success = True
 
-        if (self.results_directory / "RUNNING_PIPELINER_PREPROCESS").is_file():
-            os.remove(self.results_directory / "RUNNING_PIPELINER_PREPROCESS")
+        if preprocess_check.is_file():
+            preprocess_check.unlink()
 
         return success
 
