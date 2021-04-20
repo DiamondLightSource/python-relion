@@ -129,7 +129,7 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
         success = True
 
         if preprocess_check.is_file():
-            os.remove(preprocess_check)
+            preprocess_check.unlink()
 
         return success
 
