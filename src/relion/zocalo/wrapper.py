@@ -70,6 +70,11 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
         # Debug output
         pprint(self.params)
 
+        # Select specific Cryolo version if so desired
+        if self.params.get("cryolo_version"):
+            os.environ["CRYOLO_VERSION"] = self.params["cryolo_version"]
+            logger.info("Selected cryolo version %s", self.params["cryolo_version"])
+
         # Start Relion
         self._relion_subthread = threading.Thread(
             target=self.start_relion, name="relion_subprocess_runner", daemon=True
