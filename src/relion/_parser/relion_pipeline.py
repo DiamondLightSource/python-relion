@@ -48,10 +48,9 @@ class RelionPipeline:
             return star_doc
         return cif.read_file(gemmi_readable_path)
 
-    def _request_star_values(self, star_path, column, search=None):
+    def _request_star_values(self, star_doc, column, search=None):
         if search is None:
             search = column
-        star_doc = self._star_doc(star_path)
         block_number = None
         for block_index, block in enumerate(star_doc):
             if list(block.find_loop(search)):
@@ -63,37 +62,40 @@ class RelionPipeline:
         values = data_block.find_loop(column)
         return list(values)
 
-    def _load_file_nodes_from_star(self, star_path):
+    def _load_file_nodes_from_star(self, star_doc):
         return ProcessGraph(
             [
                 ProcessNode(pathlib.Path(p))
-                for p in self._request_star_values(star_path, "_rlnPipeLineNodeName")
+                for p in self._request_star_values(star_doc, "_rlnPipeLineNodeName")
             ]
         )
 
-    def _load_job_nodes_from_star(self, star_path):
+    def _load_job_nodes_from_star(self, star_doc):
         return ProcessGraph(
             [
                 ProcessNode(pathlib.Path(p), alias=al)
                 for p, al in zip(
-                    self._request_star_values(star_path, "_rlnPipeLineProcessName"),
-                    self._request_star_values(star_path, "_rlnPipeLineProcessAlias"),
+                    self._request_star_values(star_doc, "_rlnPipeLineProcessName"),
+                    self._request_star_values(star_doc, "_rlnPipeLineProcessAlias"),
                 )
             ]
         )
 
     def load_nodes_from_star(self, star_path):
         self._nodes.wipe()
-        file_nodes = self._load_file_nodes_from_star(star_path)
-        job_nodes = self._load_job_nodes_from_star(star_path)
+        star_doc_from_path = self._star_doc(star_path)
+        file_nodes = self._load_file_nodes_from_star(star_doc_from_path)
+        job_nodes = self._load_job_nodes_from_star(star_doc_from_path)
         self._nodes.extend(file_nodes)
         self._nodes.extend(job_nodes)
         binding_pairs = [
             (ProcessNode(p1), ProcessNode(p2))
             for p1, p2 in zip(
-                self._request_star_values(star_path, "_rlnPipeLineEdgeFromNode"),
                 self._request_star_values(
-                    star_path,
+                    star_doc_from_path, "_rlnPipeLineEdgeFromNode"
+                ),
+                self._request_star_values(
+                    star_doc_from_path,
                     "_rlnPipeLineEdgeProcess",
                     search="_rlnPipeLineEdgeFromNode",
                 ),
@@ -104,11 +106,13 @@ class RelionPipeline:
                 (ProcessNode(p1), ProcessNode(p2))
                 for p1, p2 in zip(
                     self._request_star_values(
-                        star_path,
+                        star_doc_from_path,
                         "_rlnPipeLineEdgeProcess",
                         search="_rlnPipeLineEdgeToNode",
                     ),
-                    self._request_star_values(star_path, "_rlnPipeLineEdgeToNode"),
+                    self._request_star_values(
+                        star_doc_from_path, "_rlnPipeLineEdgeToNode"
+                    ),
                 )
             ]
         )
@@ -117,7 +121,7 @@ class RelionPipeline:
                 self._nodes[self._nodes.index(t._path)]
             )
         self._nodes._split_connected(self._connected, self.origin, self.origins)
-        self._set_job_nodes(star_path)
+        self._set_job_nodes(star_doc_from_path)
 
     def check_job_node_statuses(self, basepath):
         for node in self._job_nodes:
@@ -142,9 +146,9 @@ class RelionPipeline:
             else:
                 node.attributes["status"] = None
 
-    def _set_job_nodes(self, star_path):
+    def _set_job_nodes(self, star_doc):
         self._job_nodes = copy.deepcopy(self._nodes)
-        file_nodes = self._load_file_nodes_from_star(star_path)
+        file_nodes = self._load_file_nodes_from_star(star_doc)
         for fnode in file_nodes:
             self._job_nodes.remove_node(fnode._path)
         self._job_nodes._split_connected(
@@ -261,7 +265,10 @@ class RelionPipeline:
         times = [j.attributes["start_time_stamp"] for j in self._job_nodes]
         etimes = [j.attributes["end_time_stamp"] for j in self._job_nodes]
         already_started_times = [t for t in times if t is not None]
-        origin = sorted(already_started_times)[0]
+        try:
+            origin = sorted(already_started_times)[0]
+        except IndexError:
+            return
         relative_times = [(t - origin).total_seconds() for t in times if t is not None]
         just_seconds = lambda tdelta: tdelta - datetime.timedelta(
             microseconds=tdelta.microseconds
