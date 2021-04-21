@@ -81,6 +81,8 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
         )
         self._relion_subthread.start()
 
+        relion_started = time.time()
+
         relion_prj = relion.Project(self.working_directory)
 
         while self._relion_subthread.is_alive() and not relion_prj.origin_present():
@@ -130,7 +132,11 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
                     for p in pathlib.Path(self.params["image_directory"]).glob("**/*")
                 ]
             )
-            if time.time() - most_recent_movie > 30 * 60:
+            currtime = time.time()
+            if (
+                currtime - most_recent_movie > 30 * 60
+                and currtime - relion_started > 10 * 60
+            ):
                 preprocess_check.unlink()
 
         logger.info("Done.")
