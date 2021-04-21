@@ -179,6 +179,12 @@ def test_process_graph_split_connected(graph, new_origin_graph):
     assert connected == [graph_snapshot, ProcessGraph([new_node])]
 
 
+def test_process_graph_split_connected_without_any_nodes():
+    empty_graph = ProcessGraph([])
+    connected = empty_graph.split_connected()
+    assert len(connected) == 0
+
+
 @mock.patch("relion._parser.processgraph.Digraph")
 def test_process_graph_show_all_nodes(mock_Digraph, graph):
     graph.show_all_nodes()
