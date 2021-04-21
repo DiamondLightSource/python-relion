@@ -95,6 +95,8 @@ class ProcessGraph(collections.abc.Sequence):
             return False
 
     def split_connected(self):
+        if len(self._node_list) == 0:
+            return []
         connected_graphs = []
         for origin in self.find_origins():
             curr_graph = []

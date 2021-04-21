@@ -157,6 +157,9 @@ class RelionPipeline:
 
     def _collapse_jobs_to_jobtypes(self):
         ordered_graph = []
+        if len(self._nodes) == 0:
+            self._jobtype_nodes = ProcessGraph([])
+            return
         self._job_nodes.node_explore(
             self._job_nodes[self._job_nodes.index(self.origin)], ordered_graph
         )
