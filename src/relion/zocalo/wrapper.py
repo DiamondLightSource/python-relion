@@ -136,6 +136,7 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
             if (
                 currtime - most_recent_movie > 30 * 60
                 and currtime - relion_started > 10 * 60
+                and preprocess_check.is_file()
             ):
                 preprocess_check.unlink()
 
