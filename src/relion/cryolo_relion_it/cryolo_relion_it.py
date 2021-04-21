@@ -2084,7 +2084,13 @@ def findBestClass(model_star_file, use_resol=True):
 # the model star file is used to find the number of classes, the data star file is passed to the
 # select_and_split External job
 def scheduleJobsFSC(
-    model_star_file, data_star_file, inimodel_job, opts, curr_angpix, curr_boxsize
+    model_star_file,
+    data_star_file,
+    inimodel_job,
+    opts,
+    curr_angpix,
+    curr_boxsize,
+    queue_opts,
 ):
     model_star = safe_load_star(model_star_file)
     outjobs = []
@@ -2149,6 +2155,7 @@ def scheduleJobsFSC(
             f"Param5 - label: == class_number",
             f"Param5 - value: == {iclass+1}",
         ]
+        options.extend(queue_opts)
         reconstruct_halves_job, already_had_it = addJob(
             "External",
             job_name,
@@ -2165,6 +2172,7 @@ def scheduleJobsFSC(
             f"Estimate B-factor automatically? == Yes",
             f"Lowest resolution for auto-B fit (A): == 10",
         ]
+        options.extend(queue_opts)
 
         postprocess_job, already_had_it = addJob(
             "PostProcess",
@@ -3207,6 +3215,7 @@ def run_pipeline(opts):
                                     opts,
                                     curr_angpix,
                                     curr_boxsize,
+                                    queue_options,
                                 )
                                 if not already_had_it:
                                     RunJobs(ini_choose_jobs, 1, 1, "INIMODEL")
