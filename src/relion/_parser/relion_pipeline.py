@@ -275,7 +275,9 @@ class RelionPipeline:
                         print(line.split()[1])
                         joblist.append(
                             self._job_nodes[
-                                self._job_nodes.index(pathlib.Path(line.split()[1]))
+                                self._job_nodes.index(
+                                    pathlib.PurePosixPath(line.split()[1])
+                                )
                             ]
                         )
         return joblist
