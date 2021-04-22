@@ -136,3 +136,14 @@ def test_relion_pipeline_current_jobs_property_with_timing_info_multiple_jobs(
         "MotionCorr/job002",
         "LocalRes/job031",
     ]
+
+
+def test_get_pipeline_jobs_from_preprocess_log_file(dials_data):
+    pipeline = RelionPipeline("Import/job001")
+    pipeline.load_nodes_from_star(
+        dials_data("relion_tutorial_data") / "default_pipeline.star"
+    )
+    preproc_jobs = pipeline._get_pipeline_jobs(
+        dials_data("relion_tutorial_data") / "pipeline_PREPROCESS.log"
+    )
+    assert "MotionCorr/job002" in preproc_jobs

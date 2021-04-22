@@ -26,6 +26,7 @@ class RelionPipeline:
         self.job_origins = {}
         self._jobs_collapsed = False
         self.locklist = locklist or []
+        self.preprocess = []
 
     def __iter__(self):
         if not self._jobs_collapsed:
@@ -257,12 +258,27 @@ class RelionPipeline:
                     digraph.edge(nodename, next_nodename, label="??? / ???")
         digraph.render(basepath / "Pipeline" / "relion_pipeline_jobs.gv")
 
-    def collect_job_times(self, schedule_logs):
+    def collect_job_times(self, schedule_logs, preproc_log=None):
         for job in self._job_nodes:
             jtime, jcount = self._lookup_job_time(schedule_logs, job)
             job.attributes["start_time_stamp"] = jtime
             job.attributes["job_count"] = jcount
         self._calculate_relative_job_times()
+        self.preprocess = self._get_pipeline_jobs(preproc_log)
+
+    def _get_pipeline_jobs(self, logfile):
+        joblist = []
+        if logfile is not None:
+            with open(logfile, "r") as lfile:
+                for line in lfile.readlines():
+                    if line.startswith(" - "):
+                        print(line.split()[1])
+                        joblist.append(
+                            self._job_nodes[
+                                self._job_nodes.index(pathlib.Path(line.split()[1]))
+                            ]
+                        )
+        return joblist
 
     def _calculate_relative_job_times(self):
         times = [j.attributes["start_time_stamp"] for j in self._job_nodes]
