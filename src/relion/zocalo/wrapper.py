@@ -83,14 +83,16 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
 
         relion_started = time.time()
 
+        preprocess_check = self.results_directory / "RUNNING_PIPELINER_PREPROCESS"
+
         relion_prj = relion.Project(self.working_directory)
 
-        while self._relion_subthread.is_alive() and not relion_prj.origin_present():
+        while not relion_prj.origin_present() or not preprocess_check.is_file():
             time.sleep(0.5)
+            if time.time() - relion_started > 10 * 60:
+                break
 
         relion_prj.load()
-
-        preprocess_check = self.results_directory / "RUNNING_PIPELINER_PREPROCESS"
 
         while (
             self._relion_subthread.is_alive() or preprocess_check.is_file()
