@@ -48,3 +48,9 @@ def test_Project_schedule_files_property_contains_the_correct_files(dials_data, 
         pathlib.Path(dials_data("relion_tutorial_data")) / "pipeline_CLASS3D.log"
         in proj.schedule_files
     )
+
+
+def test_results_collection_does_not_crash_for_an_empty_project():
+    proj = relion.Project("./")
+    results = proj.results
+    assert results._results == []
