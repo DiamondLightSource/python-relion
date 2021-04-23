@@ -122,7 +122,9 @@ class Project(RelionPipeline):
         self._jobs_collapsed = False
         self.load_nodes_from_star(self.basepath / "default_pipeline.star")
         self.check_job_node_statuses(self.basepath)
-        self.collect_job_times(list(self.schedule_files))
+        self.collect_job_times(
+            list(self.schedule_files), self.basepath / "pipeline_PREPROCESS.log"
+        )
 
     def show_job_nodes(self):
         self.load()

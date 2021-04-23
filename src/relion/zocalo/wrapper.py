@@ -1,3 +1,4 @@
+import datetime
 import enum
 import functools
 import logging
@@ -94,6 +95,8 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
 
         relion_prj.load()
 
+        preproc_recently_run = False
+
         while (
             self._relion_subthread.is_alive() or preprocess_check.is_file()
         ) and False not in [n.attributes["status"] for n in relion_prj]:
@@ -134,11 +137,23 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
                     for p in pathlib.Path(self.params["image_directory"]).glob("**/*")
                 ]
             )
+
+            if len(relion_prj._job_nodes) != 0:
+                for job in relion_prj.preprocess:
+                    if (
+                        datetime.datetime.timestamp(job.attributes["start_time_stamp"])
+                        > most_recent_movie
+                        and job.attributes["job_count"] >= 1
+                    ):
+                        preproc_recently_run = True
+                        break
+
             currtime = time.time()
             if (
                 currtime - most_recent_movie > 30 * 60
                 and currtime - relion_started > 10 * 60
                 and preprocess_check.is_file()
+                and preproc_recently_run
             ):
                 preprocess_check.unlink()
 
