@@ -85,6 +85,7 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
         relion_started = time.time()
 
         preprocess_check = self.results_directory / "RUNNING_PIPELINER_PREPROCESS"
+        all_process_check = self.results_directory / "RUNNING_RELION_IT"
 
         relion_prj = relion.Project(self.working_directory)
 
@@ -165,6 +166,9 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
 
         if preprocess_check.is_file():
             preprocess_check.unlink()
+
+        if all_process_check.is_file():
+            all_process_check.unlink()
 
         return success
 
