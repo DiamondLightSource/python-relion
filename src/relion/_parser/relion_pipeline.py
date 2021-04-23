@@ -33,9 +33,6 @@ class RelionPipeline:
             self._collapse_jobs_to_jobtypes()
         return iter(self._jobtype_nodes)
 
-    def __len__(self):
-        return len(self._jobtype_nodes)
-
     @property
     def _plock(self):
         return DummyLock()

@@ -138,7 +138,7 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
                 ]
             )
 
-            if len(relion_prj) != 0:
+            if len(relion_prj._job_nodes) != 0:
                 for job in relion_prj.preprocess:
                     if (
                         datetime.datetime.timestamp(job.attributes["start_time_stamp"])
