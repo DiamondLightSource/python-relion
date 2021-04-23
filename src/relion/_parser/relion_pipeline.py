@@ -272,7 +272,6 @@ class RelionPipeline:
             with open(logfile, "r") as lfile:
                 for line in lfile.readlines():
                     if line.startswith(" - "):
-                        print(line.split()[1])
                         joblist.append(
                             self._job_nodes[
                                 self._job_nodes.index(
