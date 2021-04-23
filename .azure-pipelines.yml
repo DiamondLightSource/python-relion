@@ -25,7 +25,7 @@ stages:
         displayName: Syntax validation
 
       - bash: |
-          pip install flake8
+          pip install --disable-pip-version-check flake8
           python .azure-pipelines/flake8-validation.py
         displayName: Flake8 validation
 
@@ -44,8 +44,7 @@ stages:
           versionSpec: 3.9
 
       - bash: |
-          pip install -U pip
-          pip install collective.checkdocs wheel
+          pip install --disable-pip-version-check collective.checkdocs wheel
         displayName: Install dependencies
 
       - bash: |
@@ -125,7 +124,6 @@ stages:
   displayName: Publish release
   dependsOn:
   - tests
-  - static
   condition: and(succeeded(), startsWith(variables['Build.SourceBranch'], 'refs/tags/'))
   jobs:
   - job: pypi
@@ -133,24 +131,24 @@ stages:
     pool:
       vmImage: ubuntu-20.04
     steps:
+      - checkout: none
+
       - task: UsePythonVersion@0
         displayName: Set up python
         inputs:
           versionSpec: 3.8
 
-      - bash: |
-          python -m pip install -r requirements_dev.txt
-        displayName: Install dependencies
-
-      - bash: |
-          python setup.py sdist bdist_wheel
-          ls -la dist
-        displayName: Build python package
-
-      - task: PublishBuildArtifacts@1
+      - task: DownloadBuildArtifacts@0
+        displayName: Get pre-built package
         inputs:
-          pathToPublish: dist/
-          artifactName: python-release
+          buildType: 'current'
+          downloadType: 'single'
+          artifactName: 'package'
+          downloadPath: '$(System.ArtifactsDirectory)'
+
+      - script: |
+          pip install --disable-pip-version-check twine
+        displayName: Install twine
 
       - task: TwineAuthenticate@1
         displayName: Set up credentials
@@ -158,5 +156,5 @@ stages:
           pythonUploadServiceConnection: pypi-relion
 
       - bash: |
-          python -m twine upload -r pypi-relion --config-file $(PYPIRC_PATH) dist/*.tar.gz dist/*.whl
+          python -m twine upload -r pypi-relion --config-file $(PYPIRC_PATH) $(System.ArtifactsDirectory)/package/pypi/*.tar.gz $(System.ArtifactsDirectory)/package/pypi/*.whl
         displayName: Publish package

@@ -21,13 +21,13 @@ steps:
     destinationFolder: "$(Pipeline.Workspace)/src"
 
 - script: |
-    pip install --disable-pip-version-check -U pip
     pip install --disable-pip-version-check -r "$(Pipeline.Workspace)/src/requirements_dev.txt" pytest-azurepipelines
     pip install --no-deps --disable-pip-version-check -e "$(Pipeline.Workspace)/src"
   displayName: Install package
 
 - script: |
-    PYTHONDEVMODE=1 pytest -v -ra --regression ^
+    set PYTHONDEVMODE=1
+    pytest -v -ra --regression ^
         --cov=relion --cov-report=html --cov-branch --no-coverage-upload ^
         || echo "##vso[task.complete result=Failed;]Some tests failed"
   displayName: Run tests
