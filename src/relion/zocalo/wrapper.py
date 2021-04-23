@@ -142,11 +142,12 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
                 for job in relion_prj.preprocess:
                     if (
                         datetime.datetime.timestamp(job.attributes["start_time_stamp"])
-                        > most_recent_movie
-                        and job.attributes["job_count"] >= 1
+                        < most_recent_movie
+                        or job.attributes["job_count"] < 1
                     ):
-                        preproc_recently_run = True
                         break
+                else:
+                    preproc_recently_run = True
 
             currtime = time.time()
             if (
