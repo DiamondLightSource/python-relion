@@ -29,6 +29,44 @@ stages:
           python .azure-pipelines/flake8-validation.py
         displayName: Flake8 validation
 
+- stage: build
+  displayName: Build
+  dependsOn:
+  jobs:
+  - job: build
+    displayName: build package
+    pool:
+      vmImage: ubuntu-20.04
+    steps:
+      - task: UsePythonVersion@0
+        displayName: Set up python
+        inputs:
+          versionSpec: 3.9
+
+      - bash: |
+          pip install -U pip
+          pip install collective.checkdocs wheel
+        displayName: Install dependencies
+
+      - bash: |
+          set -ex
+          python setup.py sdist bdist_wheel
+          mkdir -p dist/pypi
+          shopt -s extglob
+          mv -v dist/!(pypi) dist/pypi
+          git archive HEAD | gzip > dist/repo-source.tar.gz
+          ls -laR dist
+        displayName: Build python package
+
+      - task: PublishBuildArtifacts@1
+        displayName: Store artifact
+        inputs:
+          pathToPublish: dist/
+          artifactName: package
+
+      - bash: python setup.py checkdocs
+        displayName: Check package description
+
 - stage: tests
   displayName: Run unit tests
   jobs:
