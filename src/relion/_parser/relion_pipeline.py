@@ -269,19 +269,18 @@ class RelionPipeline:
         self.preprocess = self._get_pipeline_jobs(preproc_log)
 
     def _get_pipeline_jobs(self, logfile):
-        joblist = []
-        if logfile is not None and logfile.is_file():
+        if logfile is None:
+            return []
+        if logfile.is_file():
             with open(logfile, "r") as lfile:
-                for line in lfile.readlines():
-                    if line.startswith(" - "):
-                        joblist.append(
-                            self._job_nodes[
-                                self._job_nodes.index(
-                                    pathlib.PurePosixPath(line.split()[1])
-                                )
-                            ]
-                        )
-        return joblist
+                return [
+                    self._job_nodes[
+                        self._job_nodes.index(pathlib.PurePosixPath(line.split()[1]))
+                    ]
+                    for line in lfile
+                    if line.startswith(" - ")
+                ]
+        return []
 
     def _calculate_relative_job_times(self):
         times = [j.attributes["start_time_stamp"] for j in self._job_nodes]
