@@ -3208,6 +3208,10 @@ def run_pipeline(opts):
                             # )
 
                             if opts.use_fsc_criterion:
+                                if opts.refine_submit_to_queue:
+                                    qopts = queue_options
+                                else:
+                                    qopts = []
                                 ini_choose_jobs = scheduleJobsFSC(
                                     sgd_model_star,
                                     sgd_data_star,
@@ -3215,7 +3219,7 @@ def run_pipeline(opts):
                                     opts,
                                     curr_angpix,
                                     curr_boxsize,
-                                    queue_options,
+                                    qopts,
                                 )
                                 if not already_had_it:
                                     RunJobs(ini_choose_jobs, 1, 1, "INIMODEL")
