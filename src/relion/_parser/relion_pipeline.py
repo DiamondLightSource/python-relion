@@ -258,7 +258,9 @@ class RelionPipeline:
                     digraph.edge(nodename, next_nodename, label="??? / ???")
         digraph.render(basepath / "Pipeline" / "relion_pipeline_jobs.gv")
 
-    def collect_job_times(self, schedule_logs, preproc_log=None):
+    def collect_job_times(
+        self, schedule_logs, preproc_log=None, class2d_log=None, class3d_log=None
+    ):
         for job in self._job_nodes:
             jtime, jcount = self._lookup_job_time(schedule_logs, job)
             job.attributes["start_time_stamp"] = jtime
@@ -268,7 +270,7 @@ class RelionPipeline:
 
     def _get_pipeline_jobs(self, logfile):
         joblist = []
-        if logfile is not None:
+        if logfile is not None and logfile.is_file():
             with open(logfile, "r") as lfile:
                 for line in lfile.readlines():
                     if line.startswith(" - "):

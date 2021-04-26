@@ -97,6 +97,7 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
         relion_prj.load()
 
         preproc_recently_run = False
+        processing_ended = False
 
         while (
             self._relion_subthread.is_alive() or preprocess_check.is_file()
@@ -161,6 +162,15 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
             ):
                 preprocess_check.unlink()
 
+            processing_ended = self.check_whether_ended(relion_prj)
+            if (
+                currtime - most_recent_movie > 30 * 60
+                and currtime - relion_started > 10 * 60
+                and all_process_check.is_file()
+                and processing_ended
+            ):
+                all_process_check.unlink()
+
         logger.info("Done.")
         success = True
 
@@ -195,6 +205,8 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
         opts.update_from(vars(dls_options))
         opts.update_from(self.params["ispyb_parameters"])
 
+        self.opts = opts
+
         # Write options to disk for a record of parameters used
         options_file = self.working_directory / cryolo_relion_it.OPTIONS_FILE
         logger.info(f"Writing all options to {options_file}")
@@ -219,6 +231,20 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
 
         logger.info("Done.")
         return success
+
+    def check_whether_ended(self, proj):
+        if len(proj._job_nodes) == 0 or None in [j.attributes["success"] for j in proj]:
+            return False
+        check_time = time.time()
+        if all(
+            [
+                datetime.datetime.timestamp(j.attributes["end_time_stamp"]) - check_time
+                > 10 * 60
+                for j in proj
+            ]
+        ):
+            return True
+        return False
 
     def create_synchweb_stop_file(self):
         pathlib.Path(self.params["stop_file"]).touch()
