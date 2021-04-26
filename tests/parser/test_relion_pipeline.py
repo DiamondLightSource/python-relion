@@ -145,7 +145,9 @@ def test_get_pipeline_jobs_from_preprocess_log_file(dials_data):
     )
     preproc_jobs = pipeline._get_pipeline_jobs(
         pathlib.PosixPath(
-            dials_data("relion_tutorial_data") / "pipeline_PREPROCESS.log"
+            pathlib.PurePosixPath(
+                dials_data("relion_tutorial_data") / "pipeline_PREPROCESS.log"
+            )
         )
     )
     assert "MotionCorr/job002" in preproc_jobs
