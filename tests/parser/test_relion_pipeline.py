@@ -3,6 +3,7 @@ from relion._parser.processnode import ProcessNode
 from relion._parser.processgraph import ProcessGraph
 from relion._parser.relion_pipeline import RelionPipeline
 import pathlib
+import sys
 
 
 @pytest.fixture
@@ -138,16 +139,13 @@ def test_relion_pipeline_current_jobs_property_with_timing_info_multiple_jobs(
     ]
 
 
+@pytest.mark.skipif(sys.platform == "win32", reason="does not run on windows")
 def test_get_pipeline_jobs_from_preprocess_log_file(dials_data):
     pipeline = RelionPipeline("Import/job001")
     pipeline.load_nodes_from_star(
         dials_data("relion_tutorial_data") / "default_pipeline.star"
     )
     preproc_jobs = pipeline._get_pipeline_jobs(
-        pathlib.PosixPath(
-            pathlib.PurePosixPath(
-                dials_data("relion_tutorial_data") / "pipeline_PREPROCESS.log"
-            )
-        )
+        pathlib.Path(dials_data("relion_tutorial_data") / "pipeline_PREPROCESS.log")
     )
     assert "MotionCorr/job002" in preproc_jobs
