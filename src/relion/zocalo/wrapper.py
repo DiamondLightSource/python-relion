@@ -233,12 +233,12 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
         return success
 
     def check_whether_ended(self, proj):
-        if len(proj._job_nodes) == 0 or None in [j.attributes["success"] for j in proj]:
+        if len(proj._job_nodes) == 0 or None in [j.attributes["status"] for j in proj]:
             return False
         check_time = time.time()
         if all(
             [
-                datetime.datetime.timestamp(j.attributes["end_time_stamp"]) - check_time
+                check_time - datetime.datetime.timestamp(j.attributes["end_time_stamp"])
                 > 10 * 60
                 for j in proj
             ]
