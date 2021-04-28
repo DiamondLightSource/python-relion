@@ -11,6 +11,7 @@ import zocalo.util.symlink
 import zocalo.wrapper
 from pprint import pprint
 from relion.cryolo_relion_it import cryolo_relion_it, dls_options
+from relion.cryolo_relion_it import RelionItOptions
 
 logger = logging.getLogger("relion.zocalo.wrapper")
 
@@ -326,7 +327,9 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
 
 
 @functools.singledispatch
-def ispyb_results(relion_stage_object, job_string: str):
+def ispyb_results(
+    relion_stage_object, job_string: str, relion_options: RelionItOptions
+):
     """
     A function that takes Relion stage objects and job names (together
     representing a single job directory) and translates them into ISPyB
@@ -336,7 +339,7 @@ def ispyb_results(relion_stage_object, job_string: str):
 
 
 @ispyb_results.register(relion.CTFFind)
-def _(stage_object: relion.CTFFind, job_string: str):
+def _(stage_object: relion.CTFFind, job_string: str, relion_options: RelionItOptions):
     logger.info("Generating ISPyB commands for %s ", job_string)
     ispyb_command_list = []
     for ctf_micrograph in stage_object[job_string]:
@@ -352,13 +355,23 @@ def _(stage_object: relion.CTFFind, job_string: str):
                 )
                 / 2,
                 "cc_value": ctf_micrograph.fig_of_merit,
+                "amplitude_contrast": ctf_micrograph.amp_contrast,
+                "box_size_x": relion_options.ctffind_boxsize,
+                "box_size_y": relion_options.ctffind_boxsize,
+                "min_resolution": relion_options.ctffind_minres,
+                "max_resolution": relion_options.ctffind_maxres,
+                "min_defocus": relion_options.ctffind_defocus_min,
+                "max_defocus": relion_options.ctffind_defocus_max,
+                "defocus_step_size": relion_options.ctffind_defocus_step,
             }
         )
     return ispyb_command_list
 
 
 @ispyb_results.register(relion.MotionCorr)
-def _(stage_object: relion.MotionCorr, job_string: str):
+def _(
+    stage_object: relion.MotionCorr, job_string: str, relion_options: RelionItOptions
+):
     logger.info("Generating ISPyB commands for %s ", job_string)
     ispyb_command_list = []
     for motion_corr_micrograph in stage_object[job_string]:
@@ -372,13 +385,16 @@ def _(stage_object: relion.MotionCorr, job_string: str):
                 "average_motion_per_frame": (
                     float(motion_corr_micrograph.total_motion)
                 ),  # / number of frames
+                "dose_per_frame": relion_options.motioncor_doseperframe,
+                "patches_used_x": relion_options.motioncor_patches_x,
+                "patches_used_y": relion_options.motioncor_patches_y,
             }
         )
     return ispyb_command_list
 
 
 @ispyb_results.register(relion.Class2D)
-def _(stage_object: relion.Class2D, job_string: str):
+def _(stage_object: relion.Class2D, job_string: str, relion_options: RelionItOptions):
     logger.warning(
         "There are currently no ISPyB commands for the 2D classification stage %s ",
         job_string,
@@ -388,7 +404,7 @@ def _(stage_object: relion.Class2D, job_string: str):
 
 
 @ispyb_results.register(relion.Class3D)
-def _(stage_object: relion.Class3D, job_string: str):
+def _(stage_object: relion.Class3D, job_string: str, relion_options: RelionItOptions):
     logger.warning(
         "There are currently no ISPyB commands for the 3D classification stage %s ",
         job_string,
