@@ -258,6 +258,7 @@ def _(stage_object: relion.CTFFind, job_string: str):
         ispyb_command_list.append(
             {
                 "ispyb_command": "insert_ctf",
+                "micrograph_name": ctf_micrograph.micrograph_name,
                 "astigmatism": ctf_micrograph.astigmatism,
                 "astigmatism_angle": ctf_micrograph.defocus_angle,
                 "max_estimated_resolution": ctf_micrograph.max_resolution,
