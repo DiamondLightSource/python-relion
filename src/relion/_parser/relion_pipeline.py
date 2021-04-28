@@ -258,9 +258,7 @@ class RelionPipeline:
                     digraph.edge(nodename, next_nodename, label="??? / ???")
         digraph.render(basepath / "Pipeline" / "relion_pipeline_jobs.gv")
 
-    def collect_job_times(
-        self, schedule_logs, preproc_log=None, class2d_log=None, class3d_log=None
-    ):
+    def collect_job_times(self, schedule_logs, preproc_log=None):
         for job in self._job_nodes:
             jtime, jcount = self._lookup_job_time(schedule_logs, job)
             job.attributes["start_time_stamp"] = jtime
