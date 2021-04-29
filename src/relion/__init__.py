@@ -8,6 +8,8 @@ import pathlib
 from gemmi import cif
 from relion._parser.ctffind import CTFFind
 from relion._parser.motioncorrection import MotionCorr
+from relion._parser.autopick import AutoPick
+from relion._parser.cryolo import Cryolo
 from relion._parser.class2D import Class2D
 from relion._parser.class3D import Class3D
 from relion._parser.relion_pipeline import RelionPipeline
@@ -74,6 +76,8 @@ class Project(RelionPipeline):
         resd = {
             "CtfFind": self.ctffind,
             "MotionCorr": self.motioncorrection,
+            "AutoPick": self.autopick,
+            "External:crYOLO": self.cryolo,
             "Class2D": self.class2D,
             "Class3D": self.class3D,
         }
@@ -94,6 +98,16 @@ class Project(RelionPipeline):
         Returns a dictionary-like object with job names as keys,
         and lists of MCMicrograph namedtuples as values."""
         return MotionCorr(self.basepath / "MotionCorr")
+
+    @property
+    @functools.lru_cache(maxsize=1)
+    def autopick(self):
+        return AutoPick(self.basepath / "AutoPick")
+
+    @property
+    @functools.lru_cache(maxsize=1)
+    def cryolo(self):
+        return Cryolo(self.basepath / "External")
 
     @property
     @functools.lru_cache(maxsize=1)

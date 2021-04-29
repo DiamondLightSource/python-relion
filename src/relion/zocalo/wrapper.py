@@ -393,6 +393,26 @@ def _(
     return ispyb_command_list
 
 
+@ispyb_results.register(relion.AutoPick)
+def _(stage_object: relion.AutoPick, job_string: str, relion_options: RelionItOptions):
+    logger.warning(
+        "There are currently no ISPyB commands for the AutoPick stage %s ",
+        job_string,
+    )
+    ispyb_command_list = []
+    return ispyb_command_list
+
+
+@ispyb_results.register(relion.Cryolo)
+def _(stage_object: relion.Cryolo, job_string: str, relion_options: RelionItOptions):
+    logger.warning(
+        "There are currently no ISPyB commands for the crYOLO stage %s ",
+        job_string,
+    )
+    ispyb_command_list = []
+    return ispyb_command_list
+
+
 @ispyb_results.register(relion.Class2D)
 def _(stage_object: relion.Class2D, job_string: str, relion_options: RelionItOptions):
     logger.warning(
