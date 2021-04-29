@@ -131,7 +131,7 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
 
             # Should only return results that have not previously been sent
             for fr in relion_prj.results.fresh:
-                ispyb_command_list.extend(ispyb_results(fr[0], fr[1]))
+                ispyb_command_list.extend(ispyb_results(fr[0], fr[1], self.opts))
                 logger.info(f"Fresh results found for {fr[1]}")
 
             if ispyb_command_list:
