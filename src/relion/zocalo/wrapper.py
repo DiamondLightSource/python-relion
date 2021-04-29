@@ -11,7 +11,7 @@ import zocalo.util.symlink
 import zocalo.wrapper
 from pprint import pprint
 from relion.cryolo_relion_it import cryolo_relion_it, dls_options
-from relion.cryolo_relion_it import RelionItOptions
+from relion.cryolo_relion_it.cryolo_relion_it import RelionItOptions
 
 logger = logging.getLogger("relion.zocalo.wrapper")
 
