@@ -236,15 +236,11 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
         if len(proj._job_nodes) == 0 or None in [j.attributes["status"] for j in proj]:
             return False
         check_time = time.time()
-        if all(
-            [
-                check_time - datetime.datetime.timestamp(j.attributes["end_time_stamp"])
-                > 10 * 60
-                for j in proj
-            ]
-        ):
-            return True
-        return False
+        return all(
+            check_time - datetime.datetime.timestamp(j.attributes["end_time_stamp"])
+            > 10 * 60
+            for j in proj
+        )
 
     def create_synchweb_stop_file(self):
         pathlib.Path(self.params["stop_file"]).touch()
