@@ -2097,7 +2097,7 @@ def scheduleJobsFSC(
 
     job_name = f"mask_soft_edge"
     options = [
-        f"External executable: == mask_soft_edge_external_job",
+        f"External executable: == external_job_mask_soft_edge",
         f"Param1 - label: == out_dir",
         f"Param1 - value: == External/MaskSoftEdge",
         f"Param2 - label: == box_size",
@@ -2116,7 +2116,7 @@ def scheduleJobsFSC(
     for iclass in range(0, len(model_star["model_classes"]["rlnReferenceImage"])):
         job_name = f"select_and_split_{iclass+1}"
         options = [
-            f"External executable: == select_and_split_external_job",
+            f"External executable: == external_job_select_and_split",
             f"Input micrographs:  == {data_star_file}",
             f"Param1 - label: == in_dir",
             f"Param1 - value: == {inimodel_job}",
@@ -2137,7 +2137,7 @@ def scheduleJobsFSC(
 
         job_name = f"reconstruct_halves_{iclass+1}"
         options = [
-            f"External executable: == reconstruct_halves_external_job",
+            f"External executable: == external_job_reconstruct_halves",
             f"Input micrographs:  == External/SelectAndSplit_{iclass+1}/particles_class{iclass+1}.star",
             f"Param1 - label: == in_dir",
             f"Param1 - value: == External/SelectAndSplit_{iclass+1}",
@@ -2183,7 +2183,7 @@ def scheduleJobsFSC(
 
     job_name = "fsc_fitting"
     options = [
-        f"External executable: == fsc_fitting_external_job",
+        f"External executable: == external_job_fsc_fitting",
         f"Param1 - label: == i",
         f"Param1 - value: == {fsc_files}",
         f"Param2 - label: == out_dir",
