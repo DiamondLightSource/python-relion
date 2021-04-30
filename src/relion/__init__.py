@@ -156,7 +156,10 @@ class Project(RelionPipeline):
         res = []
         for jtnode in self:
             if jtnode.attributes["status"]:
-                res_obj = self._results_dict.get(str(jtnode._path))
+                if "crYOLO" in jtnode.attributes.get("alias"):
+                    res_obj = self._results_dict.get(f"{jtnode._path}:crYOLO")
+                else:
+                    res_obj = self._results_dict.get(str(jtnode._path))
                 if res_obj is not None:
                     res.append(
                         (
@@ -183,6 +186,8 @@ class Project(RelionPipeline):
     def _clear_caches():
         Project.motioncorrection.fget.cache_clear()
         Project.ctffind.fget.cache_clear()
+        Project.autopick.fget.cache_clear()
+        Project.cryolo.fget.cache_clear()
         Project.class2D.fget.cache_clear()
         Project.class3D.fget.cache_clear()
 

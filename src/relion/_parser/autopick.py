@@ -32,8 +32,8 @@ class AutoPick(JobType):
         all_particles = self.parse_star_file("_rlnGroupNrParticles", file, info_table)
         num_particles = sum([int(n) for n in all_particles])
 
-        return ParticlePickerInfo(num_particles)
+        return [ParticlePickerInfo(num_particles)]
 
     @staticmethod
     def for_cache(partpickinfo):
-        return str(partpickinfo.num_particles)
+        return str(partpickinfo.number_of_particles)
