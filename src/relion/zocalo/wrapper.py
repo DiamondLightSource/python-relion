@@ -396,10 +396,17 @@ def _(
 @ispyb_results.register(relion.AutoPick)
 def _(stage_object: relion.AutoPick, job_string: str, relion_options: RelionItOptions):
     logger.warning(
-        "There are currently no ISPyB commands for the AutoPick stage %s ",
-        job_string,
+        f"There are currently no ISPyB commands for the AutoPick stage {job_string}"
     )
-    ispyb_command_list = []
+    num_particles = stage_object[job_string][0].number_of_particles
+    ispyb_command_list = [
+        {
+            "ispyb_command": "insert_particle_picker",
+            "number_of_particles": num_particles,
+            "particle_diameter": relion_options.autopick_LoG_diam_max
+            / 10,  # units are nm not Angstrom in the DB
+        }
+    ]
     return ispyb_command_list
 
 
@@ -409,7 +416,20 @@ def _(stage_object: relion.Cryolo, job_string: str, relion_options: RelionItOpti
         "There are currently no ISPyB commands for the crYOLO stage %s ",
         job_string,
     )
-    ispyb_command_list = []
+    num_particles = stage_object[job_string][0].number_of_particles
+    ispyb_command_list = [
+        {
+            "ispyb_command": "insert_particle_picker",
+            "number_of_particles": num_particles,
+            "particle_diameter": int(
+                relion_options.extract_boxsize
+                * relion_options.angpix
+                / relion_options.motioncor_binning
+            )
+            / 10,
+            "particle_picking_template": relion_options.cryolo_gmodel,
+        }
+    ]
     return ispyb_command_list
 
 
@@ -420,6 +440,24 @@ def _(stage_object: relion.Class2D, job_string: str, relion_options: RelionItOpt
         job_string,
     )
     ispyb_command_list = []
+    # num_batches = len(stage_object)
+    # have to get batch number from alias somehow
+    for class_2d in stage_object[job_string]:
+        ispyb_command_list.append(
+            {
+                "ispyb_command": "insert_class2d",
+                "number_of_particles_per_batch": relion_options.batch_size,
+                "number_of_classes_per_batch": relion_options.class2d_nr_classes,
+                "type": "2D",
+                "symmetry": relion_options.symmetry,
+                "class_number": class_2d.particle_sum[0],
+                "particles_per_class": class_2d.particle_sum[1],
+                "rotation_accuracy": class_2d.accuracy_rotations,
+                "translation_accuracy": class_2d.accuracy_translations_angst,
+                "estimated_resolution": class_2d.estimated_resolution,
+                "overall_fourier_completeness": class_2d.overall_fourier_completeness,
+            }
+        )
     return ispyb_command_list
 
 

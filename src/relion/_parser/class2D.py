@@ -16,6 +16,7 @@ Class2DParticleClass = namedtuple(
         "accuracy_translations_angst",
         "estimated_resolution",
         "overall_fourier_completeness",
+        # "number_of_classes",
     ],
 )
 
@@ -95,6 +96,7 @@ class Class2D(JobType):
 
         class_numbers = self.parse_star_file("_rlnClassNumber", sdfile, info_table)
         particle_sum = self._sum_all_particles(class_numbers)
+        num_classes = len(set(class_numbers))
         int_particle_sum = [(int(name), value) for name, value in particle_sum.items()]
         # something probably went wrong with file reading if this is the case
         # return empty list and hope to recover later
@@ -105,7 +107,8 @@ class Class2D(JobType):
         )
 
         particle_class_list = []
-        for j in range(len(reference_image)):
+        # for j in range(len(reference_image)):
+        for j in range(num_classes):
             particle_class_list.append(
                 Class2DParticleClass(
                     checked_particle_list[j],
