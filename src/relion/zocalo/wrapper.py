@@ -440,8 +440,10 @@ def _(stage_object: relion.Class2D, job_string: str, relion_options: RelionItOpt
         job_string,
     )
     ispyb_command_list = []
-    # num_batches = len(stage_object)
-    # have to get batch number from alias somehow
+    sorted_jobs = sorted(
+        [st for st in stage_object.keys()], key=lambda st: int(st.replace("job", ""))
+    )
+    batch_number = sorted_jobs.index(job_string) + 1
     for class_2d in stage_object[job_string]:
         ispyb_command_list.append(
             {
@@ -456,6 +458,7 @@ def _(stage_object: relion.Class2D, job_string: str, relion_options: RelionItOpt
                 "translation_accuracy": class_2d.accuracy_translations_angst,
                 "estimated_resolution": class_2d.estimated_resolution,
                 "overall_fourier_completeness": class_2d.overall_fourier_completeness,
+                "batch_number": batch_number,
             }
         )
     return ispyb_command_list
@@ -468,4 +471,25 @@ def _(stage_object: relion.Class3D, job_string: str, relion_options: RelionItOpt
         job_string,
     )
     ispyb_command_list = []
+    sorted_jobs = sorted(
+        [st for st in stage_object.keys()], key=lambda st: int(st.replace("job", ""))
+    )
+    batch_number = sorted_jobs.index(job_string) + 1
+    for class_3d in stage_object[job_string]:
+        ispyb_command_list.append(
+            {
+                "ispyb_command": "insert_class2d",
+                "number_of_particles_per_batch": relion_options.batch_size,
+                "number_of_classes_per_batch": relion_options.class3d_nr_classes,
+                "type": "3D",
+                "symmetry": relion_options.symmetry,
+                "class_number": class_3d.particle_sum[0],
+                "particles_per_class": class_3d.particle_sum[1],
+                "rotation_accuracy": class_3d.accuracy_rotations,
+                "translation_accuracy": class_3d.accuracy_translations_angst,
+                "estimated_resolution": class_3d.estimated_resolution,
+                "overall_fourier_completeness": class_3d.overall_fourier_completeness,
+                "batch_number": batch_number,
+            }
+        )
     return ispyb_command_list
