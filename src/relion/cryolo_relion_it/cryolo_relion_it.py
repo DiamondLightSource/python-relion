@@ -550,11 +550,6 @@ import grp
 
 from . import cryolo_external_job
 
-from . import mask_soft_edge_external_job
-from . import select_and_split_external_job
-from . import reconstruct_halves_external_job
-from . import fsc_fitting_external_job
-
 try:
     import tkinter as tk
     import tkinter.messagebox
@@ -2084,7 +2079,13 @@ def findBestClass(model_star_file, use_resol=True):
 # the model star file is used to find the number of classes, the data star file is passed to the
 # select_and_split External job
 def scheduleJobsFSC(
-    model_star_file, data_star_file, inimodel_job, opts, curr_angpix, curr_boxsize
+    model_star_file,
+    data_star_file,
+    inimodel_job,
+    opts,
+    curr_angpix,
+    curr_boxsize,
+    queue_opts,
 ):
     model_star = safe_load_star(model_star_file)
     outjobs = []
@@ -2096,7 +2097,7 @@ def scheduleJobsFSC(
 
     job_name = f"mask_soft_edge"
     options = [
-        f"External executable: == {mask_soft_edge_external_job.__file__}",
+        f"External executable: == external_job_mask_soft_edge",
         f"Param1 - label: == out_dir",
         f"Param1 - value: == External/MaskSoftEdge",
         f"Param2 - label: == box_size",
@@ -2115,7 +2116,7 @@ def scheduleJobsFSC(
     for iclass in range(0, len(model_star["model_classes"]["rlnReferenceImage"])):
         job_name = f"select_and_split_{iclass+1}"
         options = [
-            f"External executable: == {select_and_split_external_job.__file__}",
+            f"External executable: == external_job_select_and_split",
             f"Input micrographs:  == {data_star_file}",
             f"Param1 - label: == in_dir",
             f"Param1 - value: == {inimodel_job}",
@@ -2136,7 +2137,7 @@ def scheduleJobsFSC(
 
         job_name = f"reconstruct_halves_{iclass+1}"
         options = [
-            f"External executable: == {reconstruct_halves_external_job.__file__}",
+            f"External executable: == external_job_reconstruct_halves",
             f"Input micrographs:  == External/SelectAndSplit_{iclass+1}/particles_class{iclass+1}.star",
             f"Param1 - label: == in_dir",
             f"Param1 - value: == External/SelectAndSplit_{iclass+1}",
@@ -2149,6 +2150,7 @@ def scheduleJobsFSC(
             f"Param5 - label: == class_number",
             f"Param5 - value: == {iclass+1}",
         ]
+        options.extend(queue_opts)
         reconstruct_halves_job, already_had_it = addJob(
             "External",
             job_name,
@@ -2165,6 +2167,7 @@ def scheduleJobsFSC(
             f"Estimate B-factor automatically? == Yes",
             f"Lowest resolution for auto-B fit (A): == 10",
         ]
+        options.extend(queue_opts)
 
         postprocess_job, already_had_it = addJob(
             "PostProcess",
@@ -2180,7 +2183,7 @@ def scheduleJobsFSC(
 
     job_name = "fsc_fitting"
     options = [
-        f"External executable: == {fsc_fitting_external_job.__file__}",
+        f"External executable: == external_job_fsc_fitting",
         f"Param1 - label: == i",
         f"Param1 - value: == {fsc_files}",
         f"Param2 - label: == out_dir",
@@ -3200,6 +3203,10 @@ def run_pipeline(opts):
                             # )
 
                             if opts.use_fsc_criterion:
+                                if opts.refine_submit_to_queue:
+                                    qopts = queue_options
+                                else:
+                                    qopts = []
                                 ini_choose_jobs = scheduleJobsFSC(
                                     sgd_model_star,
                                     sgd_data_star,
@@ -3207,6 +3214,7 @@ def run_pipeline(opts):
                                     opts,
                                     curr_angpix,
                                     curr_boxsize,
+                                    qopts,
                                 )
                                 if not already_had_it:
                                     RunJobs(ini_choose_jobs, 1, 1, "INIMODEL")
