@@ -16,7 +16,7 @@ Class2DParticleClass = namedtuple(
         "accuracy_translations_angst",
         "estimated_resolution",
         "overall_fourier_completeness",
-        # "number_of_classes",
+        "number_of_classes",
     ],
 )
 
@@ -107,8 +107,7 @@ class Class2D(JobType):
         )
 
         particle_class_list = []
-        # for j in range(len(reference_image)):
-        for j in range(num_classes):
+        for j in range(len(reference_image)):
             particle_class_list.append(
                 Class2DParticleClass(
                     checked_particle_list[j],
@@ -118,6 +117,7 @@ class Class2D(JobType):
                     accuracy_translations_angst[j],
                     estimated_resolution[j],
                     overall_fourier_completeness[j],
+                    num_classes,
                 )
             )
         return particle_class_list
