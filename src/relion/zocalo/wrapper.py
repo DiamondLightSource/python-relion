@@ -155,7 +155,8 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
 
             currtime = time.time()
             if (
-                currtime - most_recent_movie > 30 * 60
+                currtime - most_recent_movie
+                > int(self.params["latest_movie_timeout"]) * 60
                 and currtime - relion_started > 10 * 60
                 and preprocess_check.is_file()
                 and preproc_recently_run
@@ -164,7 +165,8 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
 
             processing_ended = self.check_whether_ended(relion_prj)
             if (
-                currtime - most_recent_movie > 30 * 60
+                currtime - most_recent_movie
+                > int(self.params["latest_movie_timeout"]) * 60
                 and currtime - relion_started > 10 * 60
                 and all_process_check.is_file()
                 and processing_ended
