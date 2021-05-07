@@ -111,7 +111,7 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
             if pathlib.Path(self.params["stop_file"]).is_file():
                 relion_prj.load()
                 for job_path in relion_prj._job_nodes:
-                    pathlib.Path(job_path.name / "RELION_EXIT_ABORTED").touch()
+                    (pathlib.Path(job_path.name) / "RELION_EXIT_ABORTED").touch()
                 for p in self.results_directory.glob("RUNNING_*"):
                     p.unlink()
 
