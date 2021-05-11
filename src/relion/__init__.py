@@ -16,7 +16,7 @@ import copy
 __all__ = []
 __author__ = "Diamond Light Source - Scientific Software"
 __email__ = "scientificsoftware@diamond.ac.uk"
-__version__ = "0.4.6"
+__version__ = "0.4.7"
 __version_tuple__ = tuple(int(x) for x in __version__.split("."))
 
 pipeline_lock = ".relion_lock"
