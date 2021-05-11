@@ -65,7 +65,10 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
         movielink = "Movies"
         os.symlink(self.params["image_directory"], self.working_directory / movielink)
         self.params["ispyb_parameters"]["import_images"] = os.path.join(
-            movielink, self.params["file_template"]
+            movielink,
+            pathlib.Path(self.params["ispyb_parameters"]["import_images"]).relative_to(
+                self.params["image_directory"]
+            ),
         )
 
         # Debug output
