@@ -132,32 +132,31 @@ class RelionPipeline:
             # the try/except blocks below catch the case where Relion removes
             # the SUCCESS/FAILURE file in between checking for its existence
             # and checking its modification time
-            if failure.is_file():
+            try:
+                node.attributes["end_time_stamp"] = datetime.datetime.fromtimestamp(
+                    failure.stat().st_ctime
+                )
                 node.attributes["status"] = False
-                try:
-                    node.attributes["end_time_stamp"] = datetime.datetime.fromtimestamp(
-                        failure.stat().st_ctime
-                    )
-                except FileNotFoundError:
-                    node.attributes["status"] = None
-            elif aborted.is_file():
+                return
+            except FileNotFoundError:
+                pass
+            try:
+                node.attributes["end_time_stamp"] = datetime.datetime.fromtimestamp(
+                    aborted.stat().st_ctime
+                )
                 node.attributes["status"] = False
-                try:
-                    node.attributes["end_time_stamp"] = datetime.datetime.fromtimestamp(
-                        aborted.stat().st_ctime
-                    )
-                except FileNotFoundError:
-                    node.attributes["status"] = None
-            elif success.is_file():
+                return
+            except FileNotFoundError:
+                pass
+            try:
+                node.attributes["end_time_stamp"] = datetime.datetime.fromtimestamp(
+                    success.stat().st_ctime
+                )
                 node.attributes["status"] = True
-                try:
-                    node.attributes["end_time_stamp"] = datetime.datetime.fromtimestamp(
-                        success.stat().st_ctime
-                    )
-                except FileNotFoundError:
-                    node.attributes["status"] = None
-            else:
-                node.attributes["status"] = None
+                return
+            except FileNotFoundError:
+                pass
+            node.attributes["status"] = None
 
     def _set_job_nodes(self, star_doc):
         self._job_nodes = copy.deepcopy(self._nodes)
