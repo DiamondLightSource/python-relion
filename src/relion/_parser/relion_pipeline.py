@@ -129,21 +129,33 @@ class RelionPipeline:
             success = basepath / node._path / "RELION_JOB_EXIT_SUCCESS"
             failure = basepath / node._path / "RELION_JOB_EXIT_FAILURE"
             aborted = basepath / node._path / "RELION_JOB_EXIT_ABORTED"
+            # the try/except blocks below catch the case where Relion removes
+            # the SUCCESS/FAILURE file in between checking for its existence
+            # and checking its modification time
             if failure.is_file():
                 node.attributes["status"] = False
-                node.attributes["end_time_stamp"] = datetime.datetime.fromtimestamp(
-                    failure.stat().st_ctime
-                )
+                try:
+                    node.attributes["end_time_stamp"] = datetime.datetime.fromtimestamp(
+                        failure.stat().st_ctime
+                    )
+                except FileNotFoundError:
+                    node.attributes["status"] = None
             elif aborted.is_file():
                 node.attributes["status"] = False
-                node.attributes["end_time_stamp"] = datetime.datetime.fromtimestamp(
-                    aborted.stat().st_ctime
-                )
+                try:
+                    node.attributes["end_time_stamp"] = datetime.datetime.fromtimestamp(
+                        aborted.stat().st_ctime
+                    )
+                except FileNotFoundError:
+                    node.attributes["status"] = None
             elif success.is_file():
                 node.attributes["status"] = True
-                node.attributes["end_time_stamp"] = datetime.datetime.fromtimestamp(
-                    success.stat().st_ctime
-                )
+                try:
+                    node.attributes["end_time_stamp"] = datetime.datetime.fromtimestamp(
+                        success.stat().st_ctime
+                    )
+                except FileNotFoundError:
+                    node.attributes["status"] = None
             else:
                 node.attributes["status"] = None
 
