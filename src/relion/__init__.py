@@ -216,6 +216,7 @@ class RelionResults:
         self._seen_before = []
         self._fresh_called = False
         self._cache = {}
+        self._validation_cache = {}
 
     def consume(self, results):
         self._results = [(r[0], r[1]) for r in results]
@@ -226,6 +227,7 @@ class RelionResults:
                     self._cache[r[1]] = []
                     for single_res in r[0][r[1]]:
                         self._cache[r[1]].append(r[0].for_cache(single_res))
+                        self._validation_cache.update(r[0].for_validation(single_res))
                 if (r[1], r[2]) not in self._seen_before:
                     self._seen_before.append((r[1], r[2]))
         else:
@@ -241,9 +243,23 @@ class RelionResults:
                             r[0][r[1]].remove(single_res)
                         else:
                             self._cache[r[1]].append(r[0].for_cache(single_res))
+                            self._validation_cache.update(
+                                r[0].for_validation(single_res)
+                            )
 
                     self._fresh_results.append((r[0], r[1]))
                     self._seen_before.append((r[1], r[2]))
+
+    # def _validate(self, new_val_cache):
+    # numbers = sorted(self._validation_cache.keys())
+    # new_numbers = sorted(new_val_cache.keys())
+    # if numbers == new_numbers:
+    # for num,name in self._validation_cache.items():
+
+    # new_missing_numbers = sorted(
+    #    set(range(new_numbers[0], new_numbers[-1] + 1)).difference(new_numbers)
+    # )
+    # if new_missing_numbers is not None:
 
     def __iter__(self):
         return iter(self._results)

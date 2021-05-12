@@ -2,11 +2,19 @@ from collections import namedtuple
 from relion._parser.jobtype import JobType
 
 MCMicrograph = namedtuple(
-    "MCMicrograph", ["micrograph_name", "total_motion", "early_motion", "late_motion"]
+    "MCMicrograph",
+    [
+        "micrograph_name",
+        "micrograph_number",
+        "total_motion",
+        "early_motion",
+        "late_motion",
+    ],
 )
 
 MCMicrograph.__doc__ = "Motion Correction stage."
 MCMicrograph.micrograph_name.__doc__ = "Micrograph name. Useful for reference."
+MCMicrograph.micrograph_number.__doc__ = "Micrograph number: sequential in time."
 MCMicrograph.total_motion.__doc__ = (
     "Total motion. The amount the sample moved during exposure. Units angstrom (A)."
 )
@@ -55,6 +63,7 @@ class MotionCorr(JobType):
             micrograph_list.append(
                 MCMicrograph(
                     micrograph_name[j],
+                    j + 1,
                     accum_motion_total[j],
                     accum_motion_early[j],
                     accum_motion_late[j],
@@ -65,3 +74,7 @@ class MotionCorr(JobType):
     @staticmethod
     def for_cache(mcmicrograph):
         return str(mcmicrograph.micrograph_name)
+
+    @staticmethod
+    def for_validation(mcmicrograph):
+        return {mcmicrograph.micrograph_number: str(mcmicrograph.micrograph_name)}

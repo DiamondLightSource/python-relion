@@ -75,3 +75,7 @@ class JobType(collections.abc.Mapping):
     @staticmethod
     def for_cache(element):
         return None
+
+    @staticmethod
+    def for_validation(element):
+        return None
