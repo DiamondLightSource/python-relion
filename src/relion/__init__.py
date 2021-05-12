@@ -250,16 +250,21 @@ class RelionResults:
                     self._fresh_results.append((r[0], r[1]))
                     self._seen_before.append((r[1], r[2]))
 
-    # def _validate(self, new_val_cache):
-    # numbers = sorted(self._validation_cache.keys())
-    # new_numbers = sorted(new_val_cache.keys())
-    # if numbers == new_numbers:
-    # for num,name in self._validation_cache.items():
-
-    # new_missing_numbers = sorted(
-    #    set(range(new_numbers[0], new_numbers[-1] + 1)).difference(new_numbers)
-    # )
-    # if new_missing_numbers is not None:
+    def _validate(self, new_val_cache):
+        numbers = sorted(self._validation_cache.keys())
+        new_numbers = sorted(new_val_cache.keys())
+        if numbers == new_numbers:
+            if set(self._validation_cache.values()) != set(new_val_cache.values()):
+                raise ValueError(
+                    "Numbering validation failed because new names didn't match the cached names"
+                )
+            for num, name in self._validation_cache.items():
+                if new_val_cache[num] != name:
+                    new_val_cache[num] = name
+        # new_missing_numbers = sorted(
+        #    set(range(new_numbers[0], new_numbers[-1] + 1)).difference(new_numbers)
+        # )
+        # if new_missing_numbers is not None:
 
     def __iter__(self):
         return iter(self._results)
