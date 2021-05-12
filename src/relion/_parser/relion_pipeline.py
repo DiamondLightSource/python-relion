@@ -137,7 +137,7 @@ class RelionPipeline:
                     failure.stat().st_ctime
                 )
                 node.attributes["status"] = False
-                return
+                continue
             except FileNotFoundError:
                 pass
             try:
@@ -145,7 +145,7 @@ class RelionPipeline:
                     aborted.stat().st_ctime
                 )
                 node.attributes["status"] = False
-                return
+                continue
             except FileNotFoundError:
                 pass
             try:
@@ -153,7 +153,7 @@ class RelionPipeline:
                     success.stat().st_ctime
                 )
                 node.attributes["status"] = True
-                return
+                continue
             except FileNotFoundError:
                 pass
             node.attributes["status"] = None
