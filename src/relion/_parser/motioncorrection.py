@@ -77,4 +77,12 @@ class MotionCorr(JobType):
 
     @staticmethod
     def for_validation(mcmicrograph):
-        return {mcmicrograph.micrograph_number: str(mcmicrograph.micrograph_name)}
+        return {str(mcmicrograph.micrograph_name): mcmicrograph.micrograph_number}
+
+    @staticmethod
+    def mutate_result(mcmicrograph, **kwargs):
+        attr_names_list = MCMicrograph._fields
+        attr_list = [
+            kwargs.get(name, getattr(mcmicrograph, name)) for name in attr_names_list
+        ]
+        return MCMicrograph(*attr_list)

@@ -48,6 +48,11 @@ class JobType(collections.abc.Mapping):
             self._jobcache[key] = self._load_job_directory(key)
         return self._jobcache[key]
 
+    def __setitem__(self, key, new_value):
+        if not isinstance(key, str):
+            raise KeyError(f"Invalid argument {key!r}, expected string")
+        self._jobcache[key] = new_value
+
     def _load_job_directory(self, jobdir):
         raise NotImplementedError("Load job directory not implemented")
 
@@ -79,3 +84,7 @@ class JobType(collections.abc.Mapping):
     @staticmethod
     def for_validation(element):
         return None
+
+    @staticmethod
+    def mutate_result(res_element, **kwargs):
+        raise NotImplementedError

@@ -220,22 +220,46 @@ class RelionResults:
 
     def consume(self, results):
         self._results = [(r[0], r[1]) for r in results]
+        curr_val_cache = {}
+        results_for_validation = []
         if not self._fresh_called:
             self._fresh_results = self._results
             for r in results:
-                if r[2] not in [p[1] for p in self._seen_before]:
+                end_time_not_seen_before = r[2] not in [p[1] for p in self._seen_before]
+                if end_time_not_seen_before:
                     self._cache[r[1]] = []
-                    for single_res in r[0][r[1]]:
+                for single_res in r[0][r[1]]:
+                    validation_check = r[0].for_validation(single_res)
+                    if validation_check:
+                        if not curr_val_cache.get(r[0]):
+                            curr_val_cache[r[0]] = {}
+                        if (r[0], r[1]) not in results_for_validation:
+                            results_for_validation.append((r[0], r[1]))
+                        curr_val_cache[r[0]].update(validation_check)
+                    if end_time_not_seen_before:
                         self._cache[r[1]].append(r[0].for_cache(single_res))
-                        self._validation_cache.update(r[0].for_validation(single_res))
                 if (r[1], r[2]) not in self._seen_before:
                     self._seen_before.append((r[1], r[2]))
+            validated_results = self._validate(curr_val_cache, results_for_validation)
+            if validated_results:
+                for r0, r1 in validated_results:
+                    for index, t in enumerate(self._results):
+                        if r1 == t[1]:
+                            self._results[index] = (r0, r1)
         else:
             self._fresh_results = []
             results_copy = copy.deepcopy(results)
             for r in results_copy:
+                current_job_results = list(r[0][r[1]])
+                for single_res in current_job_results:
+                    validation_check = r[0].for_validation(single_res)
+                    if validation_check:
+                        if not curr_val_cache.get(r[0]):
+                            curr_val_cache[r[0]] = {}
+                        if (r[0], r[1]) not in results_for_validation:
+                            results_for_validation.append((r[0], r[1]))
+                        curr_val_cache[r[0]].update(validation_check)
                 if (r[1], r[2]) not in self._seen_before:
-                    current_job_results = list(r[0][r[1]])
                     for single_res in current_job_results:
                         if self._cache.get(r[1]) is None:
                             self._cache[r[1]] = []
@@ -243,28 +267,90 @@ class RelionResults:
                             r[0][r[1]].remove(single_res)
                         else:
                             self._cache[r[1]].append(r[0].for_cache(single_res))
-                            self._validation_cache.update(
-                                r[0].for_validation(single_res)
-                            )
 
                     self._fresh_results.append((r[0], r[1]))
                     self._seen_before.append((r[1], r[2]))
+            validated_results = self._validate(curr_val_cache, results_for_validation)
+            if validated_results:
+                for r0, r1 in validated_results:
+                    for index, t in enumerate(self._results):
+                        if r1 == t[1]:
+                            self._results[index] = (r0, r1)
 
-    def _validate(self, new_val_cache):
-        numbers = sorted(self._validation_cache.keys())
-        new_numbers = sorted(new_val_cache.keys())
-        if numbers == new_numbers:
-            if set(self._validation_cache.values()) != set(new_val_cache.values()):
-                raise ValueError(
-                    "Numbering validation failed because new names didn't match the cached names"
+    def _validate(self, new_val_cache, job_results):
+        # print(new_val_cache)
+        changes_made = False
+        for stage, job in job_results:
+            validation_failed = False
+
+            new_numbers = sorted(new_val_cache[stage].values())
+
+            new_missing_numbers = sorted(
+                set(range(new_numbers[0], new_numbers[-1] + 1)).difference(new_numbers)
+            )
+            if len(new_missing_numbers) != 0:
+                raise ValueError("Validation numbers were not contiguous")
+
+            if self._validation_cache.get(stage) is None:
+                self._validation_cache[stage] = new_val_cache[stage]
+                continue
+
+            numbers = sorted(self._validation_cache[stage].values())
+
+            if len(new_numbers) == 0:
+                return
+
+            if len(new_numbers) < len(numbers):
+                for key in new_val_cache[stage].keys():
+                    if key not in self._validation_cache[stage].keys():
+                        raise ValueError(
+                            f"New result for {key} found but there are fewer results overall than those cached"
+                        )
+                    if new_val_cache[stage][key] != self._validation_cache[stage][key]:
+                        raise ValueError(
+                            f"Results validation failed for {key} but there are fewer new results than cached results: unsupported"
+                        )
+                return
+
+            if numbers == new_numbers:
+                if set(self._validation_cache[stage].keys()) != set(
+                    new_val_cache[stage].keys()
+                ):
+                    raise ValueError(
+                        "Numbering validation failed because new names didn't match the cached names"
+                    )
+
+            start_new_count = None
+
+            for name, num in self._validation_cache[stage].items():
+                if new_val_cache[stage][name] != num:
+                    validation_failed = True
+                    new_val_cache[stage][name] = num
+                    if start_new_count is None:
+                        start_new_count = len(numbers) + 1
+
+            if start_new_count:
+                name_diffs = set(new_val_cache[stage].keys()).difference(
+                    self._validation_cache[stage].keys()
                 )
-            for num, name in self._validation_cache.items():
-                if new_val_cache[num] != name:
-                    new_val_cache[num] = name
-        # new_missing_numbers = sorted(
-        #    set(range(new_numbers[0], new_numbers[-1] + 1)).difference(new_numbers)
-        # )
-        # if new_missing_numbers is not None:
+                nums_for_name_diffs = sorted(
+                    [(new_val_cache[stage][k], k) for k in name_diffs],
+                    key=lambda x: x[0],
+                )
+                for index, new_name in enumerate([p[1] for p in nums_for_name_diffs]):
+                    new_val_cache[stage][new_name] = start_new_count + index
+
+            if validation_failed:
+                changes_made = True
+                for mindex, mic in enumerate(stage[job]):
+                    stage[job][mindex] = stage.mutate_result(
+                        mic, micrograph_number=new_val_cache[stage][mic.micrograph_name]
+                    )
+
+            self._validation_cache[stage] = new_val_cache[stage]
+        # print(self._validation_cache)
+        if changes_made:
+            return job_results
 
     def __iter__(self):
         return iter(self._results)

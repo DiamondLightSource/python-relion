@@ -388,6 +388,7 @@ def _(
                 "dose_per_frame": relion_options.motioncor_doseperframe,
                 "patches_used_x": relion_options.motioncor_patches_x,
                 "patches_used_y": relion_options.motioncor_patches_y,
+                "image_number": motion_corr_micrograph.micrograph_number,
             }
         )
     return ispyb_command_list
