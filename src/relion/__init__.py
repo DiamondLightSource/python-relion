@@ -300,6 +300,7 @@ class RelionResults:
             if len(new_numbers) == 0:
                 return
 
+            # these cases may be covered fine by the set difference below: requires testing
             if len(new_numbers) < len(numbers):
                 for key in new_val_cache[stage].keys():
                     if key not in self._validation_cache[stage].keys():
@@ -347,7 +348,7 @@ class RelionResults:
                         mic, micrograph_number=new_val_cache[stage][mic.micrograph_name]
                     )
 
-            self._validation_cache[stage] = new_val_cache[stage]
+            self._validation_cache[stage].update(new_val_cache[stage])
         # print(self._validation_cache)
         if changes_made:
             return job_results
