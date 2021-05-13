@@ -38,7 +38,7 @@ class Cryolo(JobType):
             all_particles = self.parse_star_file("_rlnCoordinateX", file, info_table)
             num_particles += len(all_particles)
 
-        return [ParticlePickerInfo(num_particles)]
+        return [ParticlePickerInfo(num_particles, "")]
 
     @staticmethod
     def for_cache(partpickinfo):

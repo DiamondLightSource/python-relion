@@ -5,6 +5,7 @@ ParticlePickerInfo = namedtuple(
     "ParticlePickerInfo",
     [
         "number_of_particles",
+        "first_micrograph_name",
     ],
 )
 
@@ -32,7 +33,11 @@ class AutoPick(JobType):
         all_particles = self.parse_star_file("_rlnGroupNrParticles", file, info_table)
         num_particles = sum([int(n) for n in all_particles])
 
-        return [ParticlePickerInfo(num_particles)]
+        first_mc_micrograph = self.parse_star_file(
+            "_rlnMicrographName", file, info_table
+        )[0]
+
+        return [ParticlePickerInfo(num_particles, first_mc_micrograph)]
 
     @staticmethod
     def for_cache(partpickinfo):

@@ -400,12 +400,14 @@ def _(stage_object: relion.AutoPick, job_string: str, relion_options: RelionItOp
         f"There are currently no ISPyB commands for the AutoPick stage {job_string}"
     )
     num_particles = stage_object[job_string][0].number_of_particles
+    micrograph = stage_object[job_string][0].first_micrograph_name
     ispyb_command_list = [
         {
             "ispyb_command": "insert_particle_picker",
             "number_of_particles": num_particles,
             "particle_diameter": relion_options.autopick_LoG_diam_max
             / 10,  # units are nm not Angstrom in the DB
+            "first_micrograph": micrograph,
         }
     ]
     return ispyb_command_list
