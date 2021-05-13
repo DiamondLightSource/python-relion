@@ -218,6 +218,18 @@ class RelionResults:
         self._cache = {}
         self._validation_cache = {}
 
+    @staticmethod
+    def _update_temp_validation_cache(
+        stage, job, current_result, cache, results_for_validation
+    ):
+        validation_check = stage.for_validation(current_result)
+        if validation_check:
+            if not cache.get(stage):
+                cache[stage] = {}
+            if (stage, job) not in results_for_validation:
+                results_for_validation.append((stage, job))
+            cache[stage].update(validation_check)
+
     def consume(self, results):
         self._results = [(r[0], r[1]) for r in results]
         curr_val_cache = {}
@@ -229,38 +241,25 @@ class RelionResults:
                 if end_time_not_seen_before:
                     self._cache[r[1]] = []
                 for single_res in r[0][r[1]]:
-                    validation_check = r[0].for_validation(single_res)
-                    if validation_check:
-                        if not curr_val_cache.get(r[0]):
-                            curr_val_cache[r[0]] = {}
-                        if (r[0], r[1]) not in results_for_validation:
-                            results_for_validation.append((r[0], r[1]))
-                        curr_val_cache[r[0]].update(validation_check)
+                    self._update_temp_validation_cache(
+                        r[0], r[1], single_res, curr_val_cache, results_for_validation
+                    )
                     if end_time_not_seen_before:
                         self._cache[r[1]].append(r[0].for_cache(single_res))
                 if (r[1], r[2]) not in self._seen_before:
                     self._seen_before.append((r[1], r[2]))
-            validated_results = self._validate(curr_val_cache, results_for_validation)
-            if validated_results:
-                for r0, r1 in validated_results:
-                    for index, t in enumerate(self._results):
-                        if r1 == t[1]:
-                            self._results[index] = (r0, r1)
+            self._validate(curr_val_cache, results_for_validation)
+
         else:
             self._fresh_results = []
             results_copy = copy.deepcopy(results)
             for r in results_copy:
                 current_job_results = list(r[0][r[1]])
                 for single_res in current_job_results:
-                    validation_check = r[0].for_validation(single_res)
-                    if validation_check:
-                        if not curr_val_cache.get(r[0]):
-                            curr_val_cache[r[0]] = {}
-                        if (r[0], r[1]) not in results_for_validation:
-                            results_for_validation.append((r[0], r[1]))
-                        curr_val_cache[r[0]].update(validation_check)
-                if (r[1], r[2]) not in self._seen_before:
-                    for single_res in current_job_results:
+                    self._update_temp_validation_cache(
+                        r[0], r[1], single_res, curr_val_cache, results_for_validation
+                    )
+                    if (r[1], r[2]) not in self._seen_before:
                         if self._cache.get(r[1]) is None:
                             self._cache[r[1]] = []
                         if r[0].for_cache(single_res) in self._cache[r[1]]:
@@ -270,16 +269,9 @@ class RelionResults:
 
                     self._fresh_results.append((r[0], r[1]))
                     self._seen_before.append((r[1], r[2]))
-            validated_results = self._validate(curr_val_cache, results_for_validation)
-            if validated_results:
-                for r0, r1 in validated_results:
-                    for index, t in enumerate(self._results):
-                        if r1 == t[1]:
-                            self._results[index] = (r0, r1)
+            self._validate(curr_val_cache, results_for_validation)
 
     def _validate(self, new_val_cache, job_results):
-        # print(new_val_cache)
-        changes_made = False
         for stage, job in job_results:
             validation_failed = False
 
@@ -321,16 +313,13 @@ class RelionResults:
                     new_val_cache[stage][new_name] = start_new_count + index
 
             if validation_failed:
-                changes_made = True
                 for mindex, mic in enumerate(stage[job]):
                     stage[job][mindex] = stage.mutate_result(
                         mic, micrograph_number=new_val_cache[stage][mic.micrograph_name]
                     )
+                map(lambda x: (stage, job) if x[1] == job else x, self._results)
 
             self._validation_cache[stage].update(new_val_cache[stage])
-        # print(self._validation_cache)
-        if changes_made:
-            return job_results
 
     def __iter__(self):
         return iter(self._results)
