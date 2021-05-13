@@ -79,6 +79,7 @@ class MotionCorr(JobType):
     def for_validation(mcmicrograph):
         return {str(mcmicrograph.micrograph_name): mcmicrograph.micrograph_number}
 
+    # this allows an MCMicrograph object to be copied but with some attributes changed
     @staticmethod
     def mutate_result(mcmicrograph, **kwargs):
         attr_names_list = MCMicrograph._fields

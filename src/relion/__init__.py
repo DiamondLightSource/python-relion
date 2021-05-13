@@ -248,44 +248,53 @@ class RelionResults:
                         self._cache[r[1]].append(r[0].for_cache(single_res))
                 if (r[1], r[2]) not in self._seen_before:
                     self._seen_before.append((r[1], r[2]))
-            self._validate(curr_val_cache, results_for_validation)
 
         else:
             self._fresh_results = []
             results_copy = copy.deepcopy(results)
             for r in results_copy:
                 current_job_results = list(r[0][r[1]])
+                not_seen_before = (r[1], r[2]) not in self._seen_before
                 for single_res in current_job_results:
                     self._update_temp_validation_cache(
                         r[0], r[1], single_res, curr_val_cache, results_for_validation
                     )
-                    if (r[1], r[2]) not in self._seen_before:
+                    if not_seen_before:
                         if self._cache.get(r[1]) is None:
                             self._cache[r[1]] = []
                         if r[0].for_cache(single_res) in self._cache[r[1]]:
                             r[0][r[1]].remove(single_res)
                         else:
                             self._cache[r[1]].append(r[0].for_cache(single_res))
-
+                if not_seen_before:
                     self._fresh_results.append((r[0], r[1]))
                     self._seen_before.append((r[1], r[2]))
-            self._validate(curr_val_cache, results_for_validation)
+        self._validate(curr_val_cache, results_for_validation)
 
+    # check if a validation dictionary is compatible with the previously stored validation dictionary
+    # if not correct the offending results
+    # the validation dictionary is a dictionary of dictionaries:
+    # for a given stage there is a dictionary with relevant keys (such as micrograph names) and numeric values
+    # these values must be conitguous integers to pass validation
     def _validate(self, new_val_cache, job_results):
         for stage, job in job_results:
-            validation_failed = False
+            # print(stage, job)
 
             new_numbers = sorted(new_val_cache[stage].values())
 
+            # ignore if there are no results being reported for validation
             if len(new_numbers) == 0:
                 continue
 
             new_missing_numbers = sorted(
                 set(range(new_numbers[0], new_numbers[-1] + 1)).difference(new_numbers)
             )
+            # if the count of results is not contiguous something has gone wrong
+            # wherever they were counted
             if len(new_missing_numbers) != 0:
                 raise ValueError("Validation numbers were not contiguous")
 
+            # if there is no pre-existing validation cache for this stage then set it and move on
             if self._validation_cache.get(stage) is None:
                 self._validation_cache[stage] = new_val_cache[stage]
                 continue
@@ -294,13 +303,17 @@ class RelionResults:
 
             start_new_count = None
 
+            # check if there is a mismatch between old and new caches or if there
+            # are results in the old cache that are not in the new cache
+            # if there is overlap between new cache and old cache fix new cache
+            # to match old on the overlap
             for name, num in self._validation_cache[stage].items():
                 if new_val_cache[stage].get(name) != num:
-                    validation_failed = True
                     new_val_cache[stage][name] = num
                     if start_new_count is None:
                         start_new_count = len(numbers) + 1
 
+            # if the validation has failed then correct the offending attributes
             if start_new_count:
                 name_diffs = set(new_val_cache[stage].keys()).difference(
                     self._validation_cache[stage].keys()
@@ -312,12 +325,14 @@ class RelionResults:
                 for index, new_name in enumerate([p[1] for p in nums_for_name_diffs]):
                     new_val_cache[stage][new_name] = start_new_count + index
 
-            if validation_failed:
+            if start_new_count:
                 for mindex, mic in enumerate(stage[job]):
                     stage[job][mindex] = stage.mutate_result(
                         mic, micrograph_number=new_val_cache[stage][mic.micrograph_name]
                     )
-                map(lambda x: (stage, job) if x[1] == job else x, self._results)
+                for index, res in enumerate(self._results):
+                    if res[1] == job:
+                        self._results[index] = (stage, job)
 
             self._validation_cache[stage].update(new_val_cache[stage])
 
