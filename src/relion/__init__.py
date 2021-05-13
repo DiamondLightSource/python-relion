@@ -285,6 +285,9 @@ class RelionResults:
 
             new_numbers = sorted(new_val_cache[stage].values())
 
+            if len(new_numbers) == 0:
+                continue
+
             new_missing_numbers = sorted(
                 set(range(new_numbers[0], new_numbers[-1] + 1)).difference(new_numbers)
             )
@@ -297,34 +300,10 @@ class RelionResults:
 
             numbers = sorted(self._validation_cache[stage].values())
 
-            if len(new_numbers) == 0:
-                return
-
-            # these cases may be covered fine by the set difference below: requires testing
-            if len(new_numbers) < len(numbers):
-                for key in new_val_cache[stage].keys():
-                    if key not in self._validation_cache[stage].keys():
-                        raise ValueError(
-                            f"New result for {key} found but there are fewer results overall than those cached"
-                        )
-                    if new_val_cache[stage][key] != self._validation_cache[stage][key]:
-                        raise ValueError(
-                            f"Results validation failed for {key} but there are fewer new results than cached results: unsupported"
-                        )
-                return
-
-            if numbers == new_numbers:
-                if set(self._validation_cache[stage].keys()) != set(
-                    new_val_cache[stage].keys()
-                ):
-                    raise ValueError(
-                        "Numbering validation failed because new names didn't match the cached names"
-                    )
-
             start_new_count = None
 
             for name, num in self._validation_cache[stage].items():
-                if new_val_cache[stage][name] != num:
+                if new_val_cache[stage].get(name) != num:
                     validation_failed = True
                     new_val_cache[stage][name] = num
                     if start_new_count is None:
