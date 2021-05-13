@@ -481,7 +481,7 @@ def _(stage_object: relion.Class3D, job_string: str, relion_options: RelionItOpt
     for class_3d in stage_object[job_string]:
         ispyb_command_list.append(
             {
-                "ispyb_command": "insert_class2d",
+                "ispyb_command": "insert_class3d",
                 "number_of_particles_per_batch": relion_options.batch_size,
                 "number_of_classes_per_batch": relion_options.class3d_nr_classes,
                 "type": "3D",
