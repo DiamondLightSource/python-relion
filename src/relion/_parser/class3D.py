@@ -149,10 +149,13 @@ class Class3D(JobType):
         model_file_class_split = str(ini_model_path.name).split("_")
         for sindex, sect in enumerate(model_file_class_split):
             if "class" in sect:
-                model_file_class = sect.split(".")[0].split("_")[0].replace("class", "")
+                model_file_class = sect.split(".")[0].replace("class", "")
                 remainder = model_file_class_split[sindex + 1 :]
                 # drop suffix
-                remainder[-1] = "".join(remainder[-1].split(".")[:-1])
+                try:
+                    remainder[-1] = "".join(remainder[-1].split(".")[:-1])
+                except IndexError:
+                    pass
                 break
         else:
             return
@@ -170,9 +173,12 @@ class Class3D(JobType):
         info_table = self._find_table_from_column_name(
             "_rlnClassNumber", model_info_file
         )
+        # this str(int()) thing strips the 0s off of model_file_class
+        # should be faster than converting everything in num_particles_in_class to int
+        # there's probably a better way
         num_particles_in_class = self.parse_star_file(
             "_rlnClassNumber", model_info_file, info_table
-        ).count(int(model_file_class))
+        ).count(str(int(model_file_class)))
         return num_particles_in_class
 
     def _final_data_and_model(self, job_path):
