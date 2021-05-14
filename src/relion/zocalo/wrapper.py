@@ -420,6 +420,7 @@ def _(stage_object: relion.Cryolo, job_string: str, relion_options: RelionItOpti
         job_string,
     )
     num_particles = stage_object[job_string][0].number_of_particles
+    micrograph = stage_object[job_string][0].first_micrograph_name
     ispyb_command_list = [
         {
             "ispyb_command": "insert_particle_picker",
@@ -431,6 +432,7 @@ def _(stage_object: relion.Cryolo, job_string: str, relion_options: RelionItOpti
             )
             / 10,
             "particle_picking_template": relion_options.cryolo_gmodel,
+            "first_micrograph": micrograph,
         }
     ]
     return ispyb_command_list
