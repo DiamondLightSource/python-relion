@@ -9,6 +9,7 @@ MCMicrograph = namedtuple(
         "total_motion",
         "early_motion",
         "late_motion",
+        "drift_data",
     ],
 )
 
@@ -20,6 +21,16 @@ MCMicrograph.total_motion.__doc__ = (
 )
 MCMicrograph.early_motion.__doc__ = "Early motion."
 MCMicrograph.late_motion.__doc__ = "Late motion."
+
+
+MCMicrographDrift = namedtuple(
+    "MCMicrographDrift",
+    [
+        "frame",
+        "deltaX",
+        "deltaY",
+    ],
+)
 
 
 class MotionCorr(JobType):
@@ -60,6 +71,25 @@ class MotionCorr(JobType):
 
         micrograph_list = []
         for j in range(len(micrograph_name)):
+            drift_data = []
+            drift_star_file_path = (
+                micrograph_name[j].split(jobdir + "/")[-1].replace("mrc", "star")
+            )
+            drift_star_file = self._read_star_file(jobdir, drift_star_file_path)
+            info_table = self._find_table_from_column_name(
+                "_rlnMicrographFrameNumber", drift_star_file
+            )
+            frame_numbers = self.parse_star_file(
+                "_rlnMicrographFrameNumber", drift_star_file, info_table
+            )
+            deltaxs = self.parse_star_file(
+                "_rlnMicrographShiftX", drift_star_file, info_table
+            )
+            deltays = self.parse_star_file(
+                "_rlnMicrographShiftY", drift_star_file, info_table
+            )
+            for f, dx, dy in zip(frame_numbers, deltaxs, deltays):
+                drift_data.append(MCMicrographDrift(f, dx, dy))
             micrograph_list.append(
                 MCMicrograph(
                     micrograph_name[j],
@@ -67,6 +97,7 @@ class MotionCorr(JobType):
                     accum_motion_total[j],
                     accum_motion_early[j],
                     accum_motion_late[j],
+                    drift_data,
                 )
             )
         return micrograph_list
