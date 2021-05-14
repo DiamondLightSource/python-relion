@@ -62,6 +62,12 @@ class JobType(collections.abc.Mapping):
         star_doc = cif.read_file(gemmi_readable_path)
         return star_doc
 
+    def _read_star_file_from_proj_dir(self, job_num, file_name):
+        full_path = self._basepath.parent / job_num / file_name
+        gemmi_readable_path = os.fspath(full_path)
+        star_doc = cif.read_file(gemmi_readable_path)
+        return star_doc
+
     def parse_star_file(self, loop_name, star_doc, block_number):
         data_block = star_doc[block_number]
         values = data_block.find_loop(loop_name)

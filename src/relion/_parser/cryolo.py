@@ -38,7 +38,23 @@ class Cryolo(JobType):
             all_particles = self.parse_star_file("_rlnCoordinateX", file, info_table)
             num_particles += len(all_particles)
 
-        return [ParticlePickerInfo(num_particles, "")]
+        # all of this just tracks back to a micrograph name from the MotionCorrection job
+        jobfile = self._read_star_file(jobdir, "job.star")
+        info_table = self._find_table_from_column_name("_rlnJobOptionVariable", jobfile)
+        variables = self.parse_star_file("_rlnJobOptionVariable", jobfile, info_table)
+        inmicindex = variables.index("in_mic")
+        ctffilename = pathlib.Path(
+            self.parse_star_file("_rlnJobOptionValue", jobfile, info_table)[inmicindex]
+        )
+        ctffile = self._read_star_file_from_proj_dir(
+            ctffilename.parts[0], ctffilename.relative_to(ctffilename.parts[0])
+        )
+        info_table = self._find_table_from_column_name("_rlnMicrographName", ctffile)
+        micrograph_name = self.parse_star_file(
+            "_rlnMicrographName", ctffile, info_table
+        )[0]
+
+        return [ParticlePickerInfo(num_particles, micrograph_name)]
 
     @staticmethod
     def for_cache(partpickinfo):
