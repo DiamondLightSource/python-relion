@@ -146,12 +146,22 @@ class Class3D(JobType):
             ]
         )
         # this string maniuplation is bad, I'm sorry
-        model_file_class = (
-            str(ini_model_path.name).split("_")[-1].split(".")[0].replace("class", "")
-        )
+        model_file_class_split = str(ini_model_path.name).split("_")
+        for sindex, sect in enumerate(model_file_class_split):
+            if "class" in sect:
+                model_file_class = sect.split(".")[0].split("_")[0].replace("class", "")
+                remainder = model_file_class_split[sindex + 1 :]
+                # drop suffix
+                remainder[-1] = "".join(remainder[-1].split(".")[:-1])
+                break
+        else:
+            return
         model_info_name = (
             str(ini_model_path.name)
-            .replace("class" + model_file_class, "data")
+            .replace(
+                "class" + model_file_class + "".join(["_" + r for r in remainder if r]),
+                "data",
+            )
             .replace("mrc", "star")
         )
         model_info_file = self._read_star_file_from_proj_dir(
