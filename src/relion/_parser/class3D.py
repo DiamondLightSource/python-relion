@@ -114,7 +114,7 @@ class Class3D(JobType):
         )
 
         init_nodel_num_particles = self._get_init_model_num_particles(
-            pathlib.Path(jobdir) / "job.star"
+            jobdir, "job.star"
         )
 
         particle_class_list = []
