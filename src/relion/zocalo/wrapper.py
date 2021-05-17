@@ -415,7 +415,7 @@ def _(stage_object: relion.AutoPick, job_string: str, relion_options: RelionItOp
             "number_of_particles": num_particles,
             "particle_diameter": relion_options.autopick_LoG_diam_max
             / 10,  # units are nm not Angstrom in the DB
-            "first_micrograph": micrograph,
+            "micrograph_name": micrograph,
         }
     ]
     return ispyb_command_list
@@ -440,7 +440,7 @@ def _(stage_object: relion.Cryolo, job_string: str, relion_options: RelionItOpti
             )
             / 10,
             "particle_picking_template": relion_options.cryolo_gmodel,
-            "first_micrograph": micrograph,
+            "micrograph_name": micrograph,
         }
     ]
     return ispyb_command_list
