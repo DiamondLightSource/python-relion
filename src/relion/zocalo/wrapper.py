@@ -390,12 +390,8 @@ def _(
                 "patches_used_y": relion_options.motioncor_patches_y,
                 "image_number": motion_corr_micrograph.micrograph_number,
                 "drift_frames": tuple(
-                    (f, x, y)
-                    for f, x, y in zip(
-                        motion_corr_micrograph.drift_data["frame"],
-                        motion_corr_micrograph.drift_data["deltaX"],
-                        motion_corr_micrograph.drift_data["deltaY"],
-                    )
+                    (frame.frame, frame.deltaX, frame.deltaY)
+                    for frame in motion_corr_micrograph.drift_data
                 ),
             }
         )
