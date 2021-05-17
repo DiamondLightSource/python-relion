@@ -136,6 +136,8 @@ def test_prepended_results_are_picked_up_correctly_by_fresh(dials_data, proj):
     ).touch()
     proj.load()
     fresh_results = [p for p in proj.results.fresh]
+    print(proj.res._cache)
+    print(proj.res._seen_before)
     assert len(fresh_results[0][0]["job002"]) == 2
     assert (
         fresh_results[0][0]["job002"][0].micrograph_name
