@@ -128,6 +128,16 @@ def test_prepended_results_are_picked_up_correctly_by_fresh(dials_data, proj):
     )
     assert fresh_results[0][0]["job002"][0].micrograph_number == 1
     star_doc.write_file(corrected_star_path)
+    print(
+        (
+            dials_data("relion_tutorial_data", pathlib=True)
+            / "MotionCorr"
+            / "job002"
+            / "RELION_JOB_EXIT_SUCCESS"
+        )
+        .stat()
+        .st_ctime
+    )
     (
         dials_data("relion_tutorial_data", pathlib=True)
         / "MotionCorr"

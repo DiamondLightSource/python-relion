@@ -134,7 +134,7 @@ class RelionPipeline:
             # and checking its modification time
             try:
                 node.attributes["end_time_stamp"] = datetime.datetime.fromtimestamp(
-                    failure.stat().st_ctime
+                    failure.stat().st_mtime
                 )
                 node.attributes["status"] = False
                 continue
@@ -142,7 +142,7 @@ class RelionPipeline:
                 pass
             try:
                 node.attributes["end_time_stamp"] = datetime.datetime.fromtimestamp(
-                    aborted.stat().st_ctime
+                    aborted.stat().st_mtime
                 )
                 node.attributes["status"] = False
                 continue
@@ -150,7 +150,7 @@ class RelionPipeline:
                 pass
             try:
                 node.attributes["end_time_stamp"] = datetime.datetime.fromtimestamp(
-                    success.stat().st_ctime
+                    success.stat().st_mtime
                 )
                 node.attributes["status"] = True
                 continue
