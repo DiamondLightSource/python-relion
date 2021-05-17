@@ -499,8 +499,8 @@ def _(stage_object: relion.Class3D, job_string: str, relion_options: RelionItOpt
                 "estimated_resolution": class_3d.estimated_resolution,
                 "overall_fourier_completeness": class_3d.overall_fourier_completeness,
                 "batch_number": batch_number,
-                "init_model_num_particles": class_3d.initial_model_num_particles,
-                "init_model_res": relion_options.inimodel_resol_final,
+                "init_model_number_of_particles": class_3d.initial_model_num_particles,
+                "init_model_resolution": relion_options.inimodel_resol_final,
             }
         )
     return ispyb_command_list
