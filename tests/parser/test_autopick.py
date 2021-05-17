@@ -76,9 +76,19 @@ def test_all_keys_are_different(input):
         assert key_list[i] != key_list[i - 1]
 
 
-def test_total_value(input):
+def test_numper_of_particles_value(input):
     ap_object = input
     assert ap_object["job006"][0].number_of_particles == 1158
+    assert ap_object["job010"][0].number_of_particles == 2038
+    assert ap_object["job011"][0].number_of_particles == 9482
+
+
+def test_micrograph_path_name(input):
+    ap_object = input
+    assert (
+        ap_object["job006"][0].first_micrograph_name
+        == "MotionCorr/job002/Movies/20170629_00021_frameImage.mrc"
+    )
 
 
 def test_invalid_input(invalid_input):

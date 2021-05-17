@@ -60,3 +60,8 @@ def test_get_imported_files_from_job_directory(proj):
     imported = proj.get_imported()
     assert len(imported) == 24
     assert imported[0] == "Movies/20170629_00021_frameImage.tiff"
+
+    
+def test_results_collection_for_a_none_empty_run(proj):
+    results = [p for p in proj.results]
+    assert len(results) == 8
