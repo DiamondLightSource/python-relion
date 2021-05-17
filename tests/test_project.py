@@ -119,6 +119,8 @@ def test_prepended_results_are_picked_up_correctly_by_fresh(dials_data, proj):
     new_star_doc = remove_corrected_star_slice(corrected_star_path, slice(2, None))
     new_star_doc.write_file(corrected_star_path)
     fresh_results = [p for p in proj.results.fresh]
+    print(proj.res._cache)
+    print(proj.res._seen_before)
     assert len(fresh_results[0][0]["job002"]) == 22
     assert (
         fresh_results[0][0]["job002"][0].micrograph_name
