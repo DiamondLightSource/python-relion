@@ -79,6 +79,11 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
             os.environ["CRYOLO_VERSION"] = self.params["cryolo_version"]
             logger.info("Selected cryolo version %s", self.params["cryolo_version"])
 
+        # Initialise number of imported files to 0
+        imported_files = []
+        all_imports_processed = False
+        mc_job_time_all_processed = None
+
         # Start Relion
         self._relion_subthread = threading.Thread(
             target=self.start_relion, name="relion_subprocess_runner", daemon=True
@@ -139,13 +144,26 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
                 logger.info("Sent %d commands to ISPyB", len(ispyb_command_list))
 
             # if Relion has been running too long stop loop of preprocessing jobs
-            # setting this time to 2 minutes for testing - will need to change
             most_recent_movie = max(
                 [
                     p.stat().st_mtime
                     for p in pathlib.Path(self.params["image_directory"]).glob("**/*")
                 ]
             )
+
+            # check if all imported files have been motion corrected
+            # if they have then get the time stamp of the motion correction job
+            # so that it can be checked all preprocessing jobs have run after it
+            # only do this if the number of imported files has changed
+            new_imported_files = relion.get_imported(
+                relion_prj.basepath / relion_prj.origin
+            )
+            if new_imported_files != imported_files:
+                imported_files = new_imported_files
+                (
+                    all_imports_processed,
+                    mc_job_time_all_processed,
+                ) = self.check_processing_of_imports(relion_prj, imported_files)
 
             if len(relion_prj._job_nodes) != 0:
                 for job in relion_prj.preprocess:
@@ -157,6 +175,12 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
                         or job.attributes["job_count"] < 1
                     ):
                         break
+                    if mc_job_time_all_processed:
+                        if (
+                            datetime.datetime.timestamp(job_start_time)
+                            < mc_job_time_all_processed
+                        ):
+                            break
                 else:
                     preproc_recently_run = True
 
@@ -167,6 +191,7 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
                 and currtime - relion_started > 10 * 60
                 and preprocess_check.is_file()
                 and preproc_recently_run
+                and all_imports_processed
             ):
                 preprocess_check.unlink()
 
@@ -177,6 +202,7 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
                 and currtime - relion_started > 10 * 60
                 and all_process_check.is_file()
                 and processing_ended
+                and all_imports_processed
             ):
                 all_process_check.unlink()
 
@@ -190,6 +216,20 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
             all_process_check.unlink()
 
         return success
+
+    @staticmethod
+    def check_processing_of_imports(relion_prj, imported):
+        try:
+            if len(relion_prj.res._cache.keys()) == 0:
+                for key in relion_prj.res._cache.keys():
+                    for f in imported:
+                        if any(f.is_relative_to(p) for p in relion_prj.res._cache[key]):
+                            return True, datetime.datetime.timestamp(
+                                relion_prj._job_nodes.get_by_name("MotionCorr/" + key)
+                            )
+            return False, None
+        except (KeyError, RuntimeError, FileNotFoundError):
+            return False, None
 
     def start_relion(self):
         print("Running RELION wrapper - stdout")

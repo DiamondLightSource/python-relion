@@ -5,6 +5,7 @@ https://github.com/DiamondLightSource/python-relion
 
 import functools
 import pathlib
+from gemmi import cif
 from relion._parser.ctffind import CTFFind
 from relion._parser.motioncorrection import MotionCorr
 from relion._parser.class2D import Class2D
@@ -12,6 +13,7 @@ from relion._parser.class3D import Class3D
 from relion._parser.relion_pipeline import RelionPipeline
 import time
 import copy
+import os
 
 __all__ = []
 __author__ = "Diamond Light Source - Scientific Software"
@@ -238,3 +240,20 @@ class PipelineLock:
         if self.obtained:
             self.lockdir.rmdir()
         self.obtained = False
+
+
+def get_imported(import_job_path):
+    try:
+        gemmi_readable_path = os.fspath(import_job_path / "movies.star")
+        star_doc = cif.read_file(gemmi_readable_path)
+        for index, block in enumerate(star_doc):
+            if list(block.find_loop("_rlnMicrographMovieName")):
+                block_index = index
+                break
+        data_block = star_doc[block_index]
+        values = list(data_block.find_loop("_rlnMicrographMovieName"))
+        if not values:
+            print("Warning - no values found for _rlnMicrographMovieName")
+        return values
+    except (FileNotFoundError, RuntimeError):
+        return []
