@@ -175,7 +175,8 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
                         or job.attributes["job_count"] < 1
                     ):
                         break
-                    if mc_job_time_all_processed:
+                    # don't need to check if Import job has run recently for this bit
+                    if mc_job_time_all_processed and "Import" not in job.name:
                         if (
                             datetime.datetime.timestamp(job_start_time)
                             < mc_job_time_all_processed
