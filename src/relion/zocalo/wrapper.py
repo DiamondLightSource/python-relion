@@ -158,7 +158,7 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
             new_imported_files = relion.get_imported(
                 relion_prj.basepath / relion_prj.origin
             )
-            if new_imported_files != imported_files:
+            if new_imported_files != imported_files or not all_imports_processed:
                 imported_files = new_imported_files
                 (
                     all_imports_processed,
@@ -220,13 +220,17 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
     @staticmethod
     def check_processing_of_imports(relion_prj, imported):
         try:
-            if len(relion_prj.res._cache.keys()) == 0:
-                for key in relion_prj.res._cache.keys():
-                    for f in imported:
-                        if any(f.is_relative_to(p) for p in relion_prj.res._cache[key]):
-                            return True, datetime.datetime.timestamp(
-                                relion_prj._job_nodes.get_by_name("MotionCorr/" + key)
-                            )
+            for key in relion_prj.res._cache.keys():
+                for f in imported:
+                    if any(
+                        f.split(".")[0] in p.split(".")[0]
+                        for p in relion_prj.res._cache[key]
+                    ):
+                        return True, datetime.datetime.timestamp(
+                            relion_prj._job_nodes.get_by_name(
+                                "MotionCorr/" + key
+                            ).attributes["start_time_stamp"]
+                        )
             return False, None
         except (KeyError, RuntimeError, FileNotFoundError):
             return False, None
