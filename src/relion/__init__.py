@@ -172,6 +172,23 @@ class Project(RelionPipeline):
         Project.class2D.fget.cache_clear()
         Project.class3D.fget.cache_clear()
 
+    def get_imported(self):
+        try:
+            import_job_path = self.basepath / self.origin
+            gemmi_readable_path = os.fspath(import_job_path / "movies.star")
+            star_doc = cif.read_file(gemmi_readable_path)
+            for index, block in enumerate(star_doc):
+                if list(block.find_loop("_rlnMicrographMovieName")):
+                    block_index = index
+                    break
+            data_block = star_doc[block_index]
+            values = list(data_block.find_loop("_rlnMicrographMovieName"))
+            if not values:
+                print("Warning - no values found for _rlnMicrographMovieName")
+            return values
+        except (FileNotFoundError, RuntimeError):
+            return []
+
 
 class RelionResults:
     def __init__(self):

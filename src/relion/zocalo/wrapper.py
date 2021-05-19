@@ -154,9 +154,7 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
             # if they have then get the time stamp of the motion correction job
             # so that it can be checked all preprocessing jobs have run after it
             # only do this if the number of imported files has changed
-            new_imported_files = relion.get_imported(
-                relion_prj.basepath / relion_prj.origin
-            )
+            new_imported_files = relion_prj.get_imported()
             if new_imported_files != imported_files or not mc_job_time_all_processed:
                 imported_files = new_imported_files
                 mc_job_time_all_processed = self.check_processing_of_imports(
