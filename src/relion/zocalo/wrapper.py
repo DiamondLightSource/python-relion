@@ -81,7 +81,6 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
 
         # Initialise number of imported files to 0
         imported_files = []
-        all_imports_processed = False
         mc_job_time_all_processed = None
 
         # Start Relion
@@ -158,12 +157,11 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
             new_imported_files = relion.get_imported(
                 relion_prj.basepath / relion_prj.origin
             )
-            if new_imported_files != imported_files or not all_imports_processed:
+            if new_imported_files != imported_files or not mc_job_time_all_processed:
                 imported_files = new_imported_files
-                (
-                    all_imports_processed,
-                    mc_job_time_all_processed,
-                ) = self.check_processing_of_imports(relion_prj, imported_files)
+                mc_job_time_all_processed = self.check_processing_of_imports(
+                    relion_prj, imported_files
+                )
 
             if len(relion_prj._job_nodes) != 0:
                 for job in relion_prj.preprocess:
@@ -192,7 +190,7 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
                 and currtime - relion_started > 10 * 60
                 and preprocess_check.is_file()
                 and preproc_recently_run
-                and all_imports_processed
+                and mc_job_time_all_processed
             ):
                 preprocess_check.unlink()
 
@@ -203,7 +201,7 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
                 and currtime - relion_started > 10 * 60
                 and all_process_check.is_file()
                 and processing_ended
-                and all_imports_processed
+                and mc_job_time_all_processed
             ):
                 all_process_check.unlink()
 
@@ -227,14 +225,14 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
                         f.split(".")[0] in p.split(".")[0]
                         for p in relion_prj.res._cache[key]
                     ):
-                        return True, datetime.datetime.timestamp(
+                        return datetime.datetime.timestamp(
                             relion_prj._job_nodes.get_by_name(
                                 "MotionCorr/" + key
                             ).attributes["start_time_stamp"]
                         )
-            return False, None
+            return
         except (KeyError, RuntimeError, FileNotFoundError):
-            return False, None
+            return
 
     def start_relion(self):
         print("Running RELION wrapper - stdout")
