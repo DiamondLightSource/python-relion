@@ -207,3 +207,7 @@ def test_process_graph_show_all_nodes(mock_Digraph, graph):
 def test_process_graph_wipe(graph):
     graph.wipe()
     assert len(graph) == 0
+
+
+def test_get_by_name(graph):
+    assert graph.get_by_name("Project/MotionCorr/job002") == graph[1]

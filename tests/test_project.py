@@ -54,3 +54,11 @@ def test_results_collection_does_not_crash_for_an_empty_project():
     proj = relion.Project("./")
     results = proj.results
     assert results._results == []
+
+
+def test_get_imported_files_from_job_directory(dials_data):
+    imported = relion.get_imported(
+        dials_data("relion_tutorial_data", pathlib=True) / "Import" / "job001"
+    )
+    assert len(imported) == 24
+    assert imported[0] == "Movies/20170629_00021_frameImage.tiff"
