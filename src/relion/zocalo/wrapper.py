@@ -217,17 +217,23 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
     @staticmethod
     def check_processing_of_imports(relion_prj, imported):
         try:
-            for key in relion_prj.res._cache.keys():
-                for f in imported:
+            checked_key = "job002"
+            checks = [False for _ in range(len(imported))]
+            for i, f in enumerate(imported):
+                for key in relion_prj.res._cache.keys():
                     if any(
                         f.split(".")[0] in p.split(".")[0]
                         for p in relion_prj.res._cache[key]
                     ):
-                        return datetime.datetime.timestamp(
-                            relion_prj._job_nodes.get_by_name(
-                                "MotionCorr/" + key
-                            ).attributes["start_time_stamp"]
-                        )
+                        checks[i] = True
+                        checked_key = key
+                        break
+            if all(checks):
+                return datetime.datetime.timestamp(
+                    relion_prj._job_nodes.get_by_name(
+                        "MotionCorr/" + checked_key
+                    ).attributes["start_time_stamp"]
+                )
             return
         except (KeyError, RuntimeError, FileNotFoundError):
             return
