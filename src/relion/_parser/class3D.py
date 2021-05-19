@@ -81,6 +81,10 @@ class Class3D(JobType):
         class_numbers = self.parse_star_file("_rlnClassNumber", sdfile, info_table)
         particle_sum = self._sum_all_particles(class_numbers)
         int_particle_sum = [(int(name), value) for name, value in particle_sum.items()]
+        # something probably went wrong with file reading if this is the case
+        # return empty list and hope to recover later
+        if len(int_particle_sum) == 0:
+            return []
         checked_particle_list = self._class_checker(
             sorted(int_particle_sum), len(reference_image)
         )
