@@ -34,6 +34,12 @@ class ProcessGraph(collections.abc.Sequence):
             raise ValueError("Index of ProcessGraph must be an integer")
         return self._node_list[index]
 
+    def get_by_name(self, name):
+        for i, j in enumerate(self):
+            if str(j.name) == name:
+                return self._node_list[i]
+        return None
+
     def extend(self, other):
         if not isinstance(other, ProcessGraph):
             raise ValueError("Can only extend a ProcessGraph with another ProcessGraph")

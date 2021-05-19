@@ -65,7 +65,8 @@ class JobType(collections.abc.Mapping):
             print("Warning - no values found for", loop_name)
         return values_list
 
-    def _find_table_from_column_name(self, cname, star_doc):
+    @staticmethod
+    def _find_table_from_column_name(cname, star_doc):
         for block_index, block in enumerate(star_doc):
             if list(block.find_loop(cname)):
                 return block_index
