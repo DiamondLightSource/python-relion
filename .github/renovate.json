@@ -1,29 +1,37 @@
 {
+  "dependencyDashboard": true,
+  "dependencyDashboardApproval": true,
   "extends": [
     "config:base"
   ],
-  "labels": ["dependencies"],
-  "prHourlyLimit": 2,
-  "schedule": ["after 6am and before 6pm every monday"],
-  "stabilityDays": 3,
-  "dependencyDashboard": true,
-  "dependencyDashboardApproval": true,
+  "labels": [
+    "dependencies"
+  ],
   "pip_requirements": {
-    "fileMatch": ["^requirements.*\\.txt$"],
+    "fileMatch": [
+      "^requirements.*\\.txt$"
+    ],
     "groupName": "all dependencies",
     "groupSlug": "all",
     "packageRules": [
       {
+        "groupName": "all dependencies",
+        "groupSlug": "all",
         "matchPackagePatterns": [
           "*"
-        ],
-        "groupName": "all dependencies",
-        "groupSlug": "all"
+        ]
       }
     ]
   },
+  "prHourlyLimit": 2,
   "pre-commit": {
-    "schedule": ["every 3 months on the first day of the month"],
+    "schedule": [
+      "every 3 months on the first day of the month"
+    ],
     "stabilityDays": 10
-  }
+  },
+  "schedule": [
+    "after 6am and before 6pm every monday"
+  ],
+  "stabilityDays": 3
 }
