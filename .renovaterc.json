@@ -13,6 +13,17 @@
     "stabilityDays": 10
   },
   "python": {
-    "fileMatch": ["^requirements.*\\.txt$"]
+    "fileMatch": ["^requirements.*\\.txt$"],
+    "groupName": "all dependencies",
+    "groupSlug": "all",
+    "packageRules": [
+      {
+        "matchPackagePatterns": [
+          "*"
+        ],
+        "groupName": "all dependencies",
+        "groupSlug": "all"
+      }
+    ]
   }
 }
