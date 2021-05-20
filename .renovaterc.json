@@ -11,5 +11,8 @@
   "pre-commit": {
     "schedule": ["every 3 months on the first day of the month"],
     "stabilityDays": 10
+  },
+  "python": {
+    "fileMatch": ["^requirements.*\\.txt$"]
   }
 }
