@@ -145,12 +145,10 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
             # if Relion has been running too long stop loop of preprocessing jobs
             try:
                 most_recent_movie = max(
-                    [
-                        p.stat().st_mtime
-                        for p in pathlib.Path(self.params["image_directory"]).glob(
-                            "**/*"
-                        )
-                    ]
+                    p.stat().st_mtime
+                    for p in pathlib.Path(self.params["image_directory"]).glob(
+                        "**/*"
+                    )
                 )
             # if a file vanishes for some reason make sure that there is no crash and no exit
             except FileNotFoundError:
