@@ -1,0 +1,11 @@
+{
+  "extends": [
+    "config:base"
+  ],
+  "labels": ["dependencies"],
+  "prHourlyLimit": 2,
+  "schedule": ["after 6am and before 6pm every monday"],
+  "stabilityDays": 3,
+  "dependencyDashboard": true,
+  "dependencyDashboardApproval": true
+}
