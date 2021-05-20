@@ -54,7 +54,13 @@ class Class3D(JobType):
 
     def _load_job_directory(self, jobdir):
 
-        dfile, mfile = self._final_data_and_model(jobdir)
+        try:
+            dfile, mfile = self._final_data_and_model(jobdir)
+        except ValueError as e:
+            print(
+                f"The exception {e} was caught while trying to get data and model files. Returning an empty list"
+            )
+            return []
 
         try:
             sdfile = self._read_star_file(jobdir, dfile)
