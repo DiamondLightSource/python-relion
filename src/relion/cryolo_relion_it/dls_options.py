@@ -47,7 +47,7 @@ motioncor_gpu = ""
 motioncor_do_own = False
 motioncor_mpi = 4
 motioncor_threads = 10
-motioncor_other_args = "--do_at_most 40"
+motioncor_other_args = "--do_at_most 200"
 motioncor_submit_to_queue = True
 
 gctf_gpu = ""
