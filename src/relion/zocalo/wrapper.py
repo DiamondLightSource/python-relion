@@ -146,9 +146,7 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
             try:
                 most_recent_movie = max(
                     p.stat().st_mtime
-                    for p in pathlib.Path(self.params["image_directory"]).glob(
-                        "**/*"
-                    )
+                    for p in pathlib.Path(self.params["image_directory"]).glob("**/*")
                 )
             # if a file vanishes for some reason make sure that there is no crash and no exit
             except FileNotFoundError:
@@ -167,18 +165,18 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
 
             if len(relion_prj._job_nodes) != 0:
                 for job in relion_prj.preprocess:
-                    job_start_time = job.attributes["start_time_stamp"]
-                    if job_start_time is None:
+                    job_end_time = job.attributes["end_time_stamp"]
+                    if job_end_time is None:
                         break
                     if (
-                        datetime.datetime.timestamp(job_start_time) < most_recent_movie
+                        datetime.datetime.timestamp(job_end_time) < most_recent_movie
                         or job.attributes["job_count"] < 1
                     ):
                         break
                     # don't need to check if Import job has run recently for this bit
                     if mc_job_time_all_processed and "Import" not in job.name:
                         if (
-                            datetime.datetime.timestamp(job_start_time)
+                            datetime.datetime.timestamp(job_end_time)
                             < mc_job_time_all_processed
                         ):
                             break
@@ -236,7 +234,7 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
                 return datetime.datetime.timestamp(
                     relion_prj._job_nodes.get_by_name(
                         "MotionCorr/" + checked_key
-                    ).attributes["start_time_stamp"]
+                    ).attributes["end_time_stamp"]
                 )
             return
         except (KeyError, AttributeError, RuntimeError, FileNotFoundError) as e:
