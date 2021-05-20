@@ -7,5 +7,9 @@
   "schedule": ["after 6am and before 6pm every monday"],
   "stabilityDays": 3,
   "dependencyDashboard": true,
-  "dependencyDashboardApproval": true
+  "dependencyDashboardApproval": true,
+  "pre-commit": {
+    "schedule": ["every 3 months on the first day of the month"],
+    "stabilityDays": 10
+  }
 }
