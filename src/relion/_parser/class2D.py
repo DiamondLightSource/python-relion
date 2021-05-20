@@ -98,7 +98,7 @@ class Class2D(JobType):
         int_particle_sum = [(int(name), value) for name, value in particle_sum.items()]
         # something probably went wrong with file reading if this is the case
         # return empty list and hope to recover later
-        if len(int_particle_sum) == 0:
+        if not int_particle_sum:
             return []
         checked_particle_list = self._class_checker(
             sorted(int_particle_sum), len(reference_image)
