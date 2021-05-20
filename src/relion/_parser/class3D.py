@@ -1,7 +1,9 @@
 from collections import namedtuple
 from collections import Counter
 from relion._parser.jobtype import JobType
+import logging
 
+logger = logging.getLogger("relion._parser.class3D")
 
 Class3DParticleClass = namedtuple(
     "Class3DParticleClass",
@@ -57,8 +59,9 @@ class Class3D(JobType):
         try:
             dfile, mfile = self._final_data_and_model(jobdir)
         except ValueError as e:
-            print(
-                f"The exception {e} was caught while trying to get data and model files. Returning an empty list"
+            logger.debug(
+                f"The exception {e} was caught while trying to get data and model files. Returning an empty list",
+                exc_info=True,
             )
             return []
 
@@ -66,10 +69,15 @@ class Class3D(JobType):
             sdfile = self._read_star_file(jobdir, dfile)
             smfile = self._read_star_file(jobdir, mfile)
         except RuntimeError:
+            logger.debug(
+                "gemmi could not open file while trying to get data and model files. Returning an empty list",
+                exc_info=True,
+            )
             return []
 
         info_table = self._find_table_from_column_name("_rlnClassDistribution", smfile)
         if info_table is None:
+            logger.debug(f"_rlnClassDistribution not found in file {mfile}")
             return []
 
         class_distribution = self.parse_star_file(

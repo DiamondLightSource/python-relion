@@ -242,8 +242,9 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
                 )
             return
         except (KeyError, AttributeError, RuntimeError, FileNotFoundError) as e:
-            logger.warning(
-                f"Exception encountered while checking whether imported files have been processed: {e}"
+            logger.debug(
+                f"Exception encountered while checking whether imported files have been processed: {e}",
+                exc_info=True,
             )
             return
 
