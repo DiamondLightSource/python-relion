@@ -179,6 +179,7 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
                             datetime.datetime.timestamp(job_end_time)
                             < mc_job_time_all_processed
                         ):
+                            preproc_recently_run = False
                             break
                 else:
                     preproc_recently_run = True
