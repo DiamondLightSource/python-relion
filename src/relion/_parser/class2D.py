@@ -2,6 +2,9 @@ from collections import namedtuple
 from collections import Counter
 from operator import attrgetter
 from relion._parser.jobtype import JobType
+import logging
+
+logger = logging.getLogger("relion._parser.class2D")
 
 Class2DParticleClass = namedtuple(
     "Class2DParticleClass",
@@ -49,12 +52,29 @@ class Class2D(JobType):
 
     def _load_job_directory(self, jobdir):
 
-        dfile, mfile = self._final_data_and_model(jobdir)
+        try:
+            dfile, mfile = self._final_data_and_model(jobdir)
+        except ValueError as e:
+            logger.debug(
+                f"The exception {e} was caught while trying to get data and model files. Returning an empty list",
+                exc_info=True,
+            )
+            return []
 
-        sdfile = self._read_star_file(jobdir, dfile)
-        smfile = self._read_star_file(jobdir, mfile)
+        try:
+            sdfile = self._read_star_file(jobdir, dfile)
+            smfile = self._read_star_file(jobdir, mfile)
+        except RuntimeError:
+            logger.debug(
+                "gemmi could not open file while trying to get data and model files. Returning an empty list",
+                exc_info=True,
+            )
+            return []
 
         info_table = self._find_table_from_column_name("_rlnClassDistribution", smfile)
+        if info_table is None:
+            logger.debug(f"_rlnClassDistribution not found in file {mfile}")
+            return []
 
         class_distribution = self.parse_star_file(
             "_rlnClassDistribution", smfile, info_table
@@ -76,6 +96,10 @@ class Class2D(JobType):
         class_numbers = self.parse_star_file("_rlnClassNumber", sdfile, info_table)
         particle_sum = self._sum_all_particles(class_numbers)
         int_particle_sum = [(int(name), value) for name, value in particle_sum.items()]
+        # something probably went wrong with file reading if this is the case
+        # return empty list and hope to recover later
+        if not int_particle_sum:
+            return []
         checked_particle_list = self._class_checker(
             sorted(int_particle_sum), len(reference_image)
         )

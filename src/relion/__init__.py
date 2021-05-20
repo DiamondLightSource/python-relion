@@ -184,7 +184,7 @@ class Project(RelionPipeline):
             data_block = star_doc[block_index]
             values = list(data_block.find_loop("_rlnMicrographMovieName"))
             if not values:
-                print("Warning - no values found for _rlnMicrographMovieName")
+                return []
             return values
         except (FileNotFoundError, RuntimeError):
             return []

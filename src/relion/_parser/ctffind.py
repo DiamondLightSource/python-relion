@@ -52,9 +52,14 @@ class CTFFind(JobType):
         return jobs
 
     def _load_job_directory(self, jobdir):
-        file = self._read_star_file(jobdir, "micrographs_ctf.star")
+        try:
+            file = self._read_star_file(jobdir, "micrographs_ctf.star")
+        except RuntimeError:
+            return []
 
         info_table = self._find_table_from_column_name("_rlnCtfAstigmatism", file)
+        if info_table is None:
+            return []
 
         astigmatism = self.parse_star_file("_rlnCtfAstigmatism", file, info_table)
         defocus_u = self.parse_star_file("_rlnDefocusU", file, info_table)

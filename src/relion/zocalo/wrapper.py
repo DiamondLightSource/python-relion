@@ -111,7 +111,7 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
         ) and False not in [n.attributes["status"] for n in relion_prj]:
             time.sleep(1)
 
-            logger.info("Looking for results")
+            # logger.info("Looking for results")
 
             ispyb_command_list = []
 
@@ -143,12 +143,16 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
                 logger.info("Sent %d commands to ISPyB", len(ispyb_command_list))
 
             # if Relion has been running too long stop loop of preprocessing jobs
-            most_recent_movie = max(
-                [
+            try:
+                most_recent_movie = max(
                     p.stat().st_mtime
-                    for p in pathlib.Path(self.params["image_directory"]).glob("**/*")
-                ]
-            )
+                    for p in pathlib.Path(self.params["image_directory"]).glob(
+                        "**/*"
+                    )
+                )
+            # if a file vanishes for some reason make sure that there is no crash and no exit
+            except FileNotFoundError:
+                most_recent_movie = time.time()
 
             # check if all imported files have been motion corrected
             # if they have then get the time stamp of the motion correction job
@@ -235,7 +239,11 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
                     ).attributes["start_time_stamp"]
                 )
             return
-        except (KeyError, RuntimeError, FileNotFoundError):
+        except (KeyError, AttributeError, RuntimeError, FileNotFoundError) as e:
+            logger.debug(
+                f"Exception encountered while checking whether imported files have been processed: {e}",
+                exc_info=True,
+            )
             return
 
     def start_relion(self):
