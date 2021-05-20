@@ -241,7 +241,10 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
                     ).attributes["start_time_stamp"]
                 )
             return
-        except (KeyError, AttributeError, RuntimeError, FileNotFoundError):
+        except (KeyError, AttributeError, RuntimeError, FileNotFoundError) as e:
+            logger.warning(
+                f"Exception encountered while checking whether imported files have been processed: {e}"
+            )
             return
 
     def start_relion(self):

@@ -51,10 +51,15 @@ class Class2D(JobType):
 
         dfile, mfile = self._final_data_and_model(jobdir)
 
-        sdfile = self._read_star_file(jobdir, dfile)
-        smfile = self._read_star_file(jobdir, mfile)
+        try:
+            sdfile = self._read_star_file(jobdir, dfile)
+            smfile = self._read_star_file(jobdir, mfile)
+        except RuntimeError:
+            return []
 
         info_table = self._find_table_from_column_name("_rlnClassDistribution", smfile)
+        if info_table is None:
+            return []
 
         class_distribution = self.parse_star_file(
             "_rlnClassDistribution", smfile, info_table
