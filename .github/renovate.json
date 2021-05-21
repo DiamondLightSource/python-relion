@@ -23,15 +23,17 @@
       }
     ]
   },
+  "prCreation": "not-pending",
   "prHourlyLimit": 2,
   "pre-commit": {
     "schedule": [
-      "every 3 months on the first day of the month"
+      "after 10am and before 4pm every 3 months on the first day of the month"
     ],
     "stabilityDays": 10
   },
   "schedule": [
-    "after 6am and before 6pm every monday"
+    "after 7am and before 4pm every monday"
   ],
-  "stabilityDays": 3
+  "stabilityDays": 2,
+  "timezone": "Europe/London"
 }
