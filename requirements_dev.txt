@@ -1,11 +1,6 @@
 bump2version==1.0.1
-<<<<<<< 3c212a90ec8eb220c62cc8cadb898744c3057e45
 dials_data==2.1.54
 gemmi==0.4.6
-=======
-dials_data==2.1.50
-gemmi==0.4.5
->>>>>>> Add drift_frames to motion correction ISPyB message
 graphviz==0.16
 pytest==6.2.4
 pytest-cov==2.12.0

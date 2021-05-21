@@ -6,6 +6,7 @@ https://github.com/DiamondLightSource/python-relion
 import functools
 import pathlib
 from gemmi import cif
+from collections import namedtuple
 from relion._parser.ctffind import CTFFind
 from relion._parser.motioncorrection import MotionCorr
 from relion._parser.autopick import AutoPick
@@ -24,6 +25,24 @@ __version__ = "0.4.13"
 __version_tuple__ = tuple(int(x) for x in __version__.split("."))
 
 pipeline_lock = ".relion_lock"
+
+
+RelionJobResult = namedtuple(
+    "RelionJobResult",
+    [
+        "stage_object",
+        "job_name",
+        "end_time_stamp",
+    ],
+)
+
+RelionJobInfo = namedtuple(
+    "RelionJobInfo",
+    [
+        "job_name",
+        "end_time_stamp",
+    ],
+)
 
 
 class Project(RelionPipeline):
@@ -162,7 +181,7 @@ class Project(RelionPipeline):
                     res_obj = self._results_dict.get(str(jtnode._path))
                 if res_obj is not None:
                     res.append(
-                        (
+                        RelionJobResult(
                             res_obj,
                             jtnode.attributes["job"],
                             jtnode.attributes["end_time_stamp"],
@@ -231,44 +250,68 @@ class RelionResults:
             cache[stage].update(validation_check)
 
     def consume(self, results):
-        self._results = [(r[0], r[1]) for r in results]
+        self._results = results  # [(r.stage_object, r.job_name) for r in results]
         curr_val_cache = {}
         results_for_validation = []
         if not self._fresh_called:
             self._fresh_results = self._results
             for r in results:
-                end_time_not_seen_before = r[2] not in [p[1] for p in self._seen_before]
+                end_time_not_seen_before = r.end_time_stamp not in [
+                    p.end_time_stamp for p in self._seen_before
+                ]
                 if end_time_not_seen_before:
-                    self._cache[r[1]] = []
-                for single_res in r[0][r[1]]:
+                    self._cache[r.job_name] = []
+                for single_res in r.stage_object[r.job_name]:
                     self._update_temp_validation_cache(
-                        r[0], r[1], single_res, curr_val_cache, results_for_validation
+                        r.stage_object,
+                        r.job_name,
+                        single_res,
+                        curr_val_cache,
+                        results_for_validation,
                     )
                     if end_time_not_seen_before:
-                        self._cache[r[1]].append(r[0].for_cache(single_res))
-                if (r[1], r[2]) not in self._seen_before:
-                    self._seen_before.append((r[1], r[2]))
+                        self._cache[r.job_name].append(
+                            r.stage_object.for_cache(single_res)
+                        )
+                if (r.job_name, r.end_time_stamp) not in self._seen_before:
+                    self._seen_before.append(
+                        RelionJobInfo(r.job_name, r.end_time_stamp)
+                    )
 
         else:
             self._fresh_results = []
             results_copy = copy.deepcopy(results)
             for r in results_copy:
-                current_job_results = list(r[0][r[1]])
-                not_seen_before = (r[1], r[2]) not in self._seen_before
+                current_job_results = list(r.stage_object[r.job_name])
+                not_seen_before = (
+                    r.job_name,
+                    r.end_time_stamp,
+                ) not in self._seen_before
                 for single_res in current_job_results:
                     self._update_temp_validation_cache(
-                        r[0], r[1], single_res, curr_val_cache, results_for_validation
+                        r.stage_object,
+                        r.job_name,
+                        single_res,
+                        curr_val_cache,
+                        results_for_validation,
                     )
                     if not_seen_before:
-                        if self._cache.get(r[1]) is None:
-                            self._cache[r[1]] = []
-                        if r[0].for_cache(single_res) in self._cache[r[1]]:
-                            r[0][r[1]].remove(single_res)
+                        if self._cache.get(r.job_name) is None:
+                            self._cache[r.job_name] = []
+                        if (
+                            r.stage_object.for_cache(single_res)
+                            in self._cache[r.job_name]
+                        ):
+                            r.stage_object[r.job_name].remove(single_res)
                         else:
-                            self._cache[r[1]].append(r[0].for_cache(single_res))
+                            self._cache[r.job_name].append(
+                                r.stage_object.for_cache(single_res)
+                            )
                 if not_seen_before:
-                    self._fresh_results.append((r[0], r[1]))
-                    self._seen_before.append((r[1], r[2]))
+                    self._fresh_results.append(r)
+                    self._seen_before.append(
+                        RelionJobInfo(r.job_name, r.end_time_stamp)
+                    )
         self._validate(curr_val_cache, results_for_validation)
 
     # check if a validation dictionary is compatible with the previously stored validation dictionary
@@ -331,7 +374,7 @@ class RelionResults:
                         mic, micrograph_number=new_val_cache[stage][mic.micrograph_name]
                     )
                 for index, res in enumerate(self._results):
-                    if res[1] == job:
+                    if res.job_name == job:
                         self._results[index] = (stage, job)
 
             self._validation_cache[stage].update(new_val_cache[stage])
