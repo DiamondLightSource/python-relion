@@ -135,7 +135,7 @@ def test_prepended_results_are_picked_up_correctly_by_fresh(dials_data, proj):
         / "RELION_JOB_EXIT_SUCCESS"
     ).touch()
     proj.load()
-    fresh_results = [p for p in proj.results.fresh]
+    fresh_results = list(proj.results.fresh)
     assert len(fresh_results[0][0]["job002"]) == 2
     assert (
         fresh_results[0][0]["job002"][0].micrograph_name
