@@ -1,3 +1,4 @@
+from functools import lru_cache
 from collections import namedtuple
 from relion._parser.jobtype import JobType
 
@@ -71,25 +72,7 @@ class MotionCorr(JobType):
 
         micrograph_list = []
         for j in range(len(micrograph_name)):
-            drift_data = []
-            drift_star_file_path = (
-                micrograph_name[j].split(jobdir + "/")[-1].replace("mrc", "star")
-            )
-            drift_star_file = self._read_star_file(jobdir, drift_star_file_path)
-            info_table = self._find_table_from_column_name(
-                "_rlnMicrographFrameNumber", drift_star_file
-            )
-            frame_numbers = self.parse_star_file(
-                "_rlnMicrographFrameNumber", drift_star_file, info_table
-            )
-            deltaxs = self.parse_star_file(
-                "_rlnMicrographShiftX", drift_star_file, info_table
-            )
-            deltays = self.parse_star_file(
-                "_rlnMicrographShiftY", drift_star_file, info_table
-            )
-            for f, dx, dy in zip(frame_numbers, deltaxs, deltays):
-                drift_data.append(MCMicrographDrift(f, dx, dy))
+            drift_data = self.collect_drift_data(micrograph_name[j], jobdir)
             micrograph_list.append(
                 MCMicrograph(
                     micrograph_name[j],
@@ -101,6 +84,33 @@ class MotionCorr(JobType):
                 )
             )
         return micrograph_list
+
+    @lru_cache(maxsize=None)
+    def collect_drift_data(self, mic_name, jobdir):
+        drift_data = []
+        drift_star_file_path = mic_name.split(jobdir + "/")[-1].replace("mrc", "star")
+        try:
+            drift_star_file = self._read_star_file(jobdir, drift_star_file_path)
+        except (RuntimeError, IOError):
+            return drift_data
+        try:
+            info_table = self._find_table_from_column_name(
+                "_rlnMicrographFrameNumber", drift_star_file
+            )
+        except (RuntimeError, ValueError):
+            return drift_data
+        frame_numbers = self.parse_star_file(
+            "_rlnMicrographFrameNumber", drift_star_file, info_table
+        )
+        deltaxs = self.parse_star_file(
+            "_rlnMicrographShiftX", drift_star_file, info_table
+        )
+        deltays = self.parse_star_file(
+            "_rlnMicrographShiftY", drift_star_file, info_table
+        )
+        for f, dx, dy in zip(frame_numbers, deltaxs, deltays):
+            drift_data.append(MCMicrographDrift(int(f), float(dx), float(dy)))
+        return drift_data
 
     @staticmethod
     def for_cache(mcmicrograph):
