@@ -26,7 +26,10 @@ class AutoPick(JobType):
         return f"<AutoPick parser at {self._basepath}>"
 
     def _load_job_directory(self, jobdir):
-        file = self._read_star_file(jobdir, "summary.star")
+        try:
+            file = self._read_star_file(jobdir, "summary.star")
+        except (RuntimeError, IOError):
+            return []
 
         info_table = self._find_table_from_column_name("_rlnGroupNrParticles", file)
 

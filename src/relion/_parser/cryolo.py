@@ -29,9 +29,12 @@ class Cryolo(JobType):
     def _load_job_directory(self, jobdir):
         num_particles = 0
         for star_file in (self._basepath / jobdir / "picked_stars").glob("*"):
-            file = self._read_star_file(
-                jobdir, pathlib.Path("picked_stars") / star_file.name
-            )
+            try:
+                file = self._read_star_file(
+                    jobdir, pathlib.Path("picked_stars") / star_file.name
+                )
+            except (RuntimeError, IOError):
+                return []
 
             info_table = self._find_table_from_column_name("_rlnCoordinateX", file)
 
@@ -39,7 +42,10 @@ class Cryolo(JobType):
             num_particles += len(all_particles)
 
         # all of this just tracks back to a micrograph name from the MotionCorrection job
-        jobfile = self._read_star_file(jobdir, "job.star")
+        try:
+            jobfile = self._read_star_file(jobdir, "job.star")
+        except (RuntimeError, IOError):
+            return []
         info_table = self._find_table_from_column_name("_rlnJobOptionVariable", jobfile)
         variables = self.parse_star_file("_rlnJobOptionVariable", jobfile, info_table)
         inmicindex = variables.index("in_mic")
