@@ -1,4 +1,3 @@
-from functools import lru_cache
 from collections import namedtuple
 from relion._parser.jobtype import JobType
 
@@ -33,8 +32,23 @@ MCMicrographDrift = namedtuple(
     ],
 )
 
+MCDriftCacheRecord = namedtuple(
+    "MCDriftCacheRecord",
+    [
+        "data",
+        "file_size",
+    ],
+)
+
 
 class MotionCorr(JobType):
+    def __init__(self, path, drift_cache=None):
+        super().__init__(path)
+        if drift_cache is None:
+            self._drift_cache = {}
+        else:
+            self._drift_cache = drift_cache
+
     def __eq__(self, other):
         if isinstance(other, MotionCorr):  # check this
             return self._basepath == other._basepath
@@ -85,10 +99,23 @@ class MotionCorr(JobType):
             )
         return micrograph_list
 
-    @lru_cache(maxsize=None)
     def collect_drift_data(self, mic_name, jobdir):
         drift_data = []
         drift_star_file_path = mic_name.split(jobdir + "/")[-1].replace("mrc", "star")
+        if self._drift_cache.get(jobdir):
+            if self._drift_cache[jobdir].get(mic_name):
+                try:
+                    if (
+                        self._drift_cache[jobdir][mic_name].file_size
+                        == (self._basepath / jobdir / drift_star_file_path)
+                        .stat()
+                        .st_size
+                    ):
+                        return self._drift_cache[jobdir][mic_name].data
+                except FileNotFoundError:
+                    return []
+        else:
+            self._drift_cache[jobdir] = {}
         try:
             drift_star_file = self._read_star_file(jobdir, drift_star_file_path)
         except (RuntimeError, IOError):
@@ -110,6 +137,13 @@ class MotionCorr(JobType):
         )
         for f, dx, dy in zip(frame_numbers, deltaxs, deltays):
             drift_data.append(MCMicrographDrift(int(f), float(dx), float(dy)))
+        try:
+            self._drift_cache[jobdir][mic_name] = MCDriftCacheRecord(
+                drift_data,
+                (self._basepath / jobdir / drift_star_file_path).stat().st_size,
+            )
+        except FileNotFoundError:
+            return []
         return drift_data
 
     @staticmethod

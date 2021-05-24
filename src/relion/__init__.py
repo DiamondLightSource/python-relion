@@ -71,6 +71,7 @@ class Project(RelionPipeline):
             #    f"Relion Project was unable to load the relion pipeline from {self.basepath}/default_pipeline.star"
             # )
         self.res = RelionResults()
+        self._drift_cache = {}
 
     @property
     def _plock(self):
@@ -116,7 +117,7 @@ class Project(RelionPipeline):
         """access the motion correction stage of the project.
         Returns a dictionary-like object with job names as keys,
         and lists of MCMicrograph namedtuples as values."""
-        return MotionCorr(self.basepath / "MotionCorr")
+        return MotionCorr(self.basepath / "MotionCorr", self._drift_cache)
 
     @property
     @functools.lru_cache(maxsize=1)
