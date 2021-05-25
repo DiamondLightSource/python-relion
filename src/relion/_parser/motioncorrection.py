@@ -1,5 +1,8 @@
 from collections import namedtuple
 from relion._parser.jobtype import JobType
+import logging
+
+logger = logging.getLogger("relion._parser.motioncorrection")
 
 MCMicrograph = namedtuple(
     "MCMicrograph",
@@ -71,6 +74,7 @@ class MotionCorr(JobType):
 
         info_table = self._find_table_from_column_name("_rlnAccumMotionTotal", file)
         if info_table is None:
+            logger.debug(f"_rlnAccumMotionTotal not found in file {file}")
             return []
 
         accum_motion_total = self.parse_star_file(
@@ -113,6 +117,10 @@ class MotionCorr(JobType):
                     ):
                         return self._drift_cache[jobdir][mic_name].data
                 except FileNotFoundError:
+                    logger.debug(
+                        "Could not find expected file containing drift data",
+                        exc_info=True,
+                    )
                     return []
         else:
             self._drift_cache[jobdir] = {}
@@ -125,6 +133,11 @@ class MotionCorr(JobType):
                 "_rlnMicrographFrameNumber", drift_star_file
             )
         except (RuntimeError, ValueError):
+            return drift_data
+        if info_table is None:
+            logger.debug(
+                f"_rlnMicrographFrameNumber not found in file {drift_star_file}"
+            )
             return drift_data
         frame_numbers = self.parse_star_file(
             "_rlnMicrographFrameNumber", drift_star_file, info_table

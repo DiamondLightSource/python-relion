@@ -1,6 +1,9 @@
 from relion._parser.jobtype import JobType
 from relion._parser.autopick import ParticlePickerInfo
 import pathlib
+import logging
+
+logger = logging.getLogger("relion._parser.cryolo")
 
 
 class Cryolo(JobType):
@@ -37,6 +40,9 @@ class Cryolo(JobType):
                 return []
 
             info_table = self._find_table_from_column_name("_rlnCoordinateX", file)
+            if info_table is None:
+                logger.debug(f"_rlnCoordinateX not found in file {file}")
+                return []
 
             all_particles = self.parse_star_file("_rlnCoordinateX", file, info_table)
             num_particles += len(all_particles)
@@ -47,6 +53,9 @@ class Cryolo(JobType):
         except (RuntimeError, FileNotFoundError):
             return []
         info_table = self._find_table_from_column_name("_rlnJobOptionVariable", jobfile)
+        if info_table is None:
+            logger.debug(f"_rlnJobOptionVariable not found in file {jobfile}")
+            return []
         variables = self.parse_star_file("_rlnJobOptionVariable", jobfile, info_table)
         inmicindex = variables.index("in_mic")
         ctffilename = pathlib.Path(
@@ -56,6 +65,9 @@ class Cryolo(JobType):
             ctffilename.parts[0], ctffilename.relative_to(ctffilename.parts[0])
         )
         info_table = self._find_table_from_column_name("_rlnMicrographName", ctffile)
+        if info_table is None:
+            logger.debug(f"_rlnMicrographName not found in file {ctffile}")
+            return []
         micrograph_name = self.parse_star_file(
             "_rlnMicrographName", ctffile, info_table
         )[0]

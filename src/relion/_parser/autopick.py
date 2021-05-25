@@ -1,5 +1,8 @@
 from collections import namedtuple
 from relion._parser.jobtype import JobType
+import logging
+
+logger = logging.getLogger("relion._parser.autopick")
 
 ParticlePickerInfo = namedtuple(
     "ParticlePickerInfo",
@@ -32,6 +35,9 @@ class AutoPick(JobType):
             return []
 
         info_table = self._find_table_from_column_name("_rlnGroupNrParticles", file)
+        if info_table is None:
+            logger.debug(f"_rlnGroupNrParticles not found in file {file}")
+            return []
 
         all_particles = self.parse_star_file("_rlnGroupNrParticles", file, info_table)
         num_particles = sum([int(n) for n in all_particles])
