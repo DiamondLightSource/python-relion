@@ -181,6 +181,8 @@ class Project(RelionPipeline):
                 if list(block.find_loop("_rlnMicrographMovieName")):
                     block_index = index
                     break
+            else:
+                return []
             data_block = star_doc[block_index]
             values = list(data_block.find_loop("_rlnMicrographMovieName"))
             if not values:
