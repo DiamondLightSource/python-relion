@@ -113,9 +113,13 @@ class Class3D(JobType):
             sorted(int_particle_sum), len(reference_image)
         )
 
-        init_nodel_num_particles = self._get_init_model_num_particles(
-            jobdir, "job.star"
-        )
+        try:
+            init_nodel_num_particles = self._get_init_model_num_particles(
+                jobdir, "job.star"
+            )
+        except (RuntimeError, FileNotFoundError):
+            logger.debug(f"Encountered error trying to read {jobdir}/job.star")
+            return []
 
         particle_class_list = []
         for j in range(len(reference_image)):
