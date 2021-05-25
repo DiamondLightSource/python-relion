@@ -1,12 +1,24 @@
 from collections import namedtuple
 from relion._parser.jobtype import JobType
+import logging
+
+logger = logging.getLogger("relion._parser.motioncorrection")
 
 MCMicrograph = namedtuple(
-    "MCMicrograph", ["micrograph_name", "total_motion", "early_motion", "late_motion"]
+    "MCMicrograph",
+    [
+        "micrograph_name",
+        "micrograph_number",
+        "total_motion",
+        "early_motion",
+        "late_motion",
+        "drift_data",
+    ],
 )
 
 MCMicrograph.__doc__ = "Motion Correction stage."
 MCMicrograph.micrograph_name.__doc__ = "Micrograph name. Useful for reference."
+MCMicrograph.micrograph_number.__doc__ = "Micrograph number: sequential in time."
 MCMicrograph.total_motion.__doc__ = (
     "Total motion. The amount the sample moved during exposure. Units angstrom (A)."
 )
@@ -14,7 +26,32 @@ MCMicrograph.early_motion.__doc__ = "Early motion."
 MCMicrograph.late_motion.__doc__ = "Late motion."
 
 
+MCMicrographDrift = namedtuple(
+    "MCMicrographDrift",
+    [
+        "frame",
+        "deltaX",
+        "deltaY",
+    ],
+)
+
+MCDriftCacheRecord = namedtuple(
+    "MCDriftCacheRecord",
+    [
+        "data",
+        "file_size",
+    ],
+)
+
+
 class MotionCorr(JobType):
+    def __init__(self, path, drift_cache=None):
+        super().__init__(path)
+        if drift_cache is None:
+            self._drift_cache = {}
+        else:
+            self._drift_cache = drift_cache
+
     def __eq__(self, other):
         if isinstance(other, MotionCorr):  # check this
             return self._basepath == other._basepath
@@ -37,6 +74,7 @@ class MotionCorr(JobType):
 
         info_table = self._find_table_from_column_name("_rlnAccumMotionTotal", file)
         if info_table is None:
+            logger.debug(f"_rlnAccumMotionTotal not found in file {file}")
             return []
 
         accum_motion_total = self.parse_star_file(
@@ -52,16 +90,88 @@ class MotionCorr(JobType):
 
         micrograph_list = []
         for j in range(len(micrograph_name)):
+            drift_data = self.collect_drift_data(micrograph_name[j], jobdir)
             micrograph_list.append(
                 MCMicrograph(
                     micrograph_name[j],
+                    j + 1,
                     accum_motion_total[j],
                     accum_motion_early[j],
                     accum_motion_late[j],
+                    drift_data,
                 )
             )
         return micrograph_list
 
+    def collect_drift_data(self, mic_name, jobdir):
+        drift_data = []
+        drift_star_file_path = mic_name.split(jobdir + "/")[-1].replace("mrc", "star")
+        if self._drift_cache.get(jobdir):
+            if self._drift_cache[jobdir].get(mic_name):
+                try:
+                    if (
+                        self._drift_cache[jobdir][mic_name].file_size
+                        == (self._basepath / jobdir / drift_star_file_path)
+                        .stat()
+                        .st_size
+                    ):
+                        return self._drift_cache[jobdir][mic_name].data
+                except FileNotFoundError:
+                    logger.debug(
+                        "Could not find expected file containing drift data",
+                        exc_info=True,
+                    )
+                    return []
+        else:
+            self._drift_cache[jobdir] = {}
+        try:
+            drift_star_file = self._read_star_file(jobdir, drift_star_file_path)
+        except (RuntimeError, IOError):
+            return drift_data
+        try:
+            info_table = self._find_table_from_column_name(
+                "_rlnMicrographFrameNumber", drift_star_file
+            )
+        except (RuntimeError, ValueError):
+            return drift_data
+        if info_table is None:
+            logger.debug(
+                f"_rlnMicrographFrameNumber not found in file {drift_star_file}"
+            )
+            return drift_data
+        frame_numbers = self.parse_star_file(
+            "_rlnMicrographFrameNumber", drift_star_file, info_table
+        )
+        deltaxs = self.parse_star_file(
+            "_rlnMicrographShiftX", drift_star_file, info_table
+        )
+        deltays = self.parse_star_file(
+            "_rlnMicrographShiftY", drift_star_file, info_table
+        )
+        for f, dx, dy in zip(frame_numbers, deltaxs, deltays):
+            drift_data.append(MCMicrographDrift(int(f), float(dx), float(dy)))
+        try:
+            self._drift_cache[jobdir][mic_name] = MCDriftCacheRecord(
+                drift_data,
+                (self._basepath / jobdir / drift_star_file_path).stat().st_size,
+            )
+        except FileNotFoundError:
+            return []
+        return drift_data
+
     @staticmethod
     def for_cache(mcmicrograph):
         return str(mcmicrograph.micrograph_name)
+
+    @staticmethod
+    def for_validation(mcmicrograph):
+        return {str(mcmicrograph.micrograph_name): mcmicrograph.micrograph_number}
+
+    # this allows an MCMicrograph object to be copied but with some attributes changed
+    @staticmethod
+    def mutate_result(mcmicrograph, **kwargs):
+        attr_names_list = MCMicrograph._fields
+        attr_list = [
+            kwargs.get(name, getattr(mcmicrograph, name)) for name in attr_names_list
+        ]
+        return MCMicrograph(*attr_list)

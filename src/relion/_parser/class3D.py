@@ -1,3 +1,4 @@
+import pathlib
 from collections import namedtuple
 from collections import Counter
 from relion._parser.jobtype import JobType
@@ -15,6 +16,7 @@ Class3DParticleClass = namedtuple(
         "accuracy_translations_angst",
         "estimated_resolution",
         "overall_fourier_completeness",
+        "initial_model_num_particles",
     ],
 )
 
@@ -31,6 +33,9 @@ Class3DParticleClass.accuracy_translations_angst.__doc__ = (
 Class3DParticleClass.estimated_resolution.__doc__ = "Estimated resolution."
 Class3DParticleClass.overall_fourier_completeness.__doc__ = (
     "Overall Fourier completeness."
+)
+Class3DParticleClass.initial_model_num_particles.__doc__ = (
+    "The number of particles used to generate the initial model."
 )
 
 
@@ -108,6 +113,10 @@ class Class3D(JobType):
             sorted(int_particle_sum), len(reference_image)
         )
 
+        init_nodel_num_particles = self._get_init_model_num_particles(
+            jobdir, "job.star"
+        )
+
         particle_class_list = []
         for j in range(len(reference_image)):
             particle_class_list.append(
@@ -119,9 +128,58 @@ class Class3D(JobType):
                     accuracy_translations_angst[j],
                     estimated_resolution[j],
                     overall_fourier_completeness[j],
+                    init_nodel_num_particles,
                 )
             )
         return particle_class_list
+
+    def _get_init_model_num_particles(self, jobdir, param_file_name):
+        paramfile = self._read_star_file(jobdir, param_file_name)
+        info_table = self._find_table_from_column_name(
+            "_rlnJobOptionVariable", paramfile
+        )
+        variables = self.parse_star_file("_rlnJobOptionVariable", paramfile, info_table)
+        ini_model_index = variables.index("fn_ref")
+        ini_model_path = pathlib.Path(
+            self.parse_star_file("_rlnJobOptionValue", paramfile, info_table)[
+                ini_model_index
+            ]
+        )
+        # this string maniuplation is bad, I'm sorry
+        model_file_class_split = str(ini_model_path.name).split("_")
+        for sindex, sect in enumerate(model_file_class_split):
+            if "class" in sect:
+                model_file_class = sect.split(".")[0].replace("class", "")
+                remainder = model_file_class_split[sindex + 1 :]
+                # drop suffix
+                try:
+                    remainder[-1] = "".join(remainder[-1].split(".")[:-1])
+                except IndexError:
+                    pass
+                break
+        else:
+            return
+        model_info_name = (
+            str(ini_model_path.name)
+            .replace(
+                "class" + model_file_class + "".join(["_" + r for r in remainder if r]),
+                "data",
+            )
+            .replace("mrc", "star")
+        )
+        model_info_file = self._read_star_file_from_proj_dir(
+            ini_model_path.parent, model_info_name
+        )
+        info_table = self._find_table_from_column_name(
+            "_rlnClassNumber", model_info_file
+        )
+        # this str(int()) thing strips the 0s off of model_file_class
+        # should be faster than converting everything in num_particles_in_class to int
+        # there's probably a better way
+        num_particles_in_class = self.parse_star_file(
+            "_rlnClassNumber", model_info_file, info_table
+        ).count(str(int(model_file_class)))
+        return num_particles_in_class
 
     def _final_data_and_model(self, job_path):
         number_list = [

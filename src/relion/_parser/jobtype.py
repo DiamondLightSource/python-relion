@@ -48,11 +48,22 @@ class JobType(collections.abc.Mapping):
             self._jobcache[key] = self._load_job_directory(key)
         return self._jobcache[key]
 
+    def __setitem__(self, key, new_value):
+        if not isinstance(key, str):
+            raise KeyError(f"Invalid argument {key!r}, expected string")
+        self._jobcache[key] = new_value
+
     def _load_job_directory(self, jobdir):
         raise NotImplementedError("Load job directory not implemented")
 
     def _read_star_file(self, job_num, file_name):
         full_path = self._basepath / job_num / file_name
+        gemmi_readable_path = os.fspath(full_path)
+        star_doc = cif.read_file(gemmi_readable_path)
+        return star_doc
+
+    def _read_star_file_from_proj_dir(self, job_num, file_name):
+        full_path = self._basepath.parent / job_num / file_name
         gemmi_readable_path = os.fspath(full_path)
         star_doc = cif.read_file(gemmi_readable_path)
         return star_doc
@@ -75,3 +86,11 @@ class JobType(collections.abc.Mapping):
     @staticmethod
     def for_cache(element):
         return None
+
+    @staticmethod
+    def for_validation(element):
+        return None
+
+    @staticmethod
+    def mutate_result(res_element, **kwargs):
+        raise NotImplementedError

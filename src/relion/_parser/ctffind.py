@@ -11,6 +11,7 @@ CTFMicrograph = namedtuple(
         "defocus_angle",
         "max_resolution",
         "fig_of_merit",
+        "amp_contrast",
     ],
 )
 CTFMicrograph.__doc__ = "Contrast Transfer Function stage."
@@ -29,6 +30,7 @@ CTFMicrograph.max_resolution.__doc__ = (
 CTFMicrograph.fig_of_merit.__doc__ = (
     "Figure of merit/CC/correlation value. Confidence of the defocus estimation."
 )
+CTFMicrograph.amp_contrast.__doc__ = "Amplitude contrast."
 
 
 class CTFFind(JobType):
@@ -70,6 +72,10 @@ class CTFFind(JobType):
 
         micrograph_name = self.parse_star_file("_rlnMicrographName", file, info_table)
 
+        info_table = self._find_table_from_column_name("_rlnAmplitudeContrast", file)
+
+        amp_contrast = self.parse_star_file("_rlnAmplitudeContrast", file, info_table)
+
         micrograph_list = []
         for j in range(len(micrograph_name)):
             micrograph_list.append(
@@ -81,6 +87,7 @@ class CTFFind(JobType):
                     defocus_angle[j],
                     max_resolution[j],
                     fig_of_merit[j],
+                    amp_contrast[0],
                 )
             )
         return micrograph_list
