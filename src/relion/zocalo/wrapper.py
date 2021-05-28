@@ -358,6 +358,7 @@ def _(stage_object: relion.CTFFind, job_string: str, relion_options: RelionItOpt
                 / 2,
                 "cc_value": ctf_micrograph.fig_of_merit,
                 "amplitude_contrast": ctf_micrograph.amp_contrast,
+                "fft_theoretical_full_path": ctf_micrograph.diagnostic_plot_path,
                 "box_size_x": relion_options.ctffind_boxsize,
                 "box_size_y": relion_options.ctffind_boxsize,
                 "min_resolution": relion_options.ctffind_minres,

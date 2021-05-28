@@ -1,5 +1,10 @@
+import cv2
+import mrcfile
 from collections import namedtuple
 from relion._parser.jobtype import JobType
+import logging
+
+logger = logging.getLogger("relion._parser.class3D")
 
 CTFMicrograph = namedtuple(
     "CTFMicrograph",
@@ -12,6 +17,7 @@ CTFMicrograph = namedtuple(
         "max_resolution",
         "fig_of_merit",
         "amp_contrast",
+        "diagnostic_plot_path",
     ],
 )
 CTFMicrograph.__doc__ = "Contrast Transfer Function stage."
@@ -71,6 +77,7 @@ class CTFFind(JobType):
         fig_of_merit = self.parse_star_file("_rlnCtfFigureOfMerit", file, info_table)
 
         micrograph_name = self.parse_star_file("_rlnMicrographName", file, info_table)
+        ctf_img_path = self.parse_star_file("_rlnCtfImage", file, info_table)
 
         info_table = self._find_table_from_column_name("_rlnAmplitudeContrast", file)
 
@@ -78,6 +85,7 @@ class CTFFind(JobType):
 
         micrograph_list = []
         for j in range(len(micrograph_name)):
+            plot_path = self._make_ctf_jpg(ctf_img_path[j].split(":")[0])
             micrograph_list.append(
                 CTFMicrograph(
                     micrograph_name[j],
@@ -88,9 +96,28 @@ class CTFFind(JobType):
                     max_resolution[j],
                     fig_of_merit[j],
                     amp_contrast[0],
+                    plot_path,
                 )
             )
         return micrograph_list
+
+    def _make_ctf_jpg(self, proj_path_to_mrc):
+        jpg_path = proj_path_to_mrc.split(".")[0] + ".jpg"
+        try:
+            with mrcfile.open(self._basepath.parent / proj_path_to_mrc) as mrc:
+                data = mrc.data
+        except FileNotFoundError:
+            logger.debug(
+                f"File {self._basepath.parent / proj_path_to_mrc} not found. No CTF jpg produced."
+            )
+            return jpg_path
+        data = data - data.min()
+        data *= 255 / data.max()
+        int_data = data.astype(int)
+        out_file = self._basepath.parent / jpg_path
+        print("writing:", out_file)
+        cv2.imwrite(str(out_file), int_data[0])
+        return jpg_path
 
     @staticmethod
     def for_cache(ctfmicrograph):

@@ -4,3 +4,5 @@ gemmi==0.4.6
 graphviz==0.16
 pytest==6.2.4
 pytest-cov==2.12.0
+opencv-python>=4.5
+mrcfile>=1.3
