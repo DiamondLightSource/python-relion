@@ -377,6 +377,7 @@ def _(
     logger.info("Generating ISPyB commands for %s ", job_string)
     ispyb_command_list = []
     for motion_corr_micrograph in stage_object[job_string]:
+        number_of_frames = len(motion_corr_micrograph.drift_data)
         ispyb_command_list.append(
             {
                 "ispyb_command": "insert_motion_correction",
@@ -384,9 +385,8 @@ def _(
                 "total_motion": motion_corr_micrograph.total_motion,
                 "early_motion": motion_corr_micrograph.early_motion,
                 "late_motion": motion_corr_micrograph.late_motion,
-                "average_motion_per_frame": (
-                    float(motion_corr_micrograph.total_motion)
-                ),  # / number of frames
+                "average_motion_per_frame": (float(motion_corr_micrograph.total_motion))
+                / number_of_frames,
                 "dose_per_frame": relion_options.motioncor_doseperframe,
                 "patches_used_x": relion_options.motioncor_patches_x,
                 "patches_used_y": relion_options.motioncor_patches_y,
