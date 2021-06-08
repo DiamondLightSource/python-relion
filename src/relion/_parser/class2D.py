@@ -105,17 +105,22 @@ class Class2D(JobType):
         )
 
         particle_class_list = []
-        for j in range(len(reference_image)):
-            particle_class_list.append(
-                Class2DParticleClass(
-                    checked_particle_list[j],
-                    reference_image[j],
-                    float(class_distribution[j]),
-                    accuracy_rotations[j],
-                    accuracy_translations_angst[j],
-                    estimated_resolution[j],
-                    overall_fourier_completeness[j],
+        try:
+            for j in range(len(reference_image)):
+                particle_class_list.append(
+                    Class2DParticleClass(
+                        checked_particle_list[j],
+                        reference_image[j],
+                        float(class_distribution[j]),
+                        accuracy_rotations[j],
+                        accuracy_translations_angst[j],
+                        estimated_resolution[j],
+                        overall_fourier_completeness[j],
+                    )
                 )
+        except IndexError:
+            logger.debug(
+                "An IndexError was encountered while collecting 2D classification data: there was possibly a mismatch between data from different files"
             )
         return particle_class_list
 

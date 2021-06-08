@@ -122,18 +122,23 @@ class Class3D(JobType):
             return []
 
         particle_class_list = []
-        for j in range(len(reference_image)):
-            particle_class_list.append(
-                Class3DParticleClass(
-                    checked_particle_list[j],
-                    reference_image[j],
-                    float(class_distribution[j]),
-                    accuracy_rotations[j],
-                    accuracy_translations_angst[j],
-                    estimated_resolution[j],
-                    overall_fourier_completeness[j],
-                    init_nodel_num_particles,
+        try:
+            for j in range(len(reference_image)):
+                particle_class_list.append(
+                    Class3DParticleClass(
+                        checked_particle_list[j],
+                        reference_image[j],
+                        float(class_distribution[j]),
+                        accuracy_rotations[j],
+                        accuracy_translations_angst[j],
+                        estimated_resolution[j],
+                        overall_fourier_completeness[j],
+                        init_nodel_num_particles,
+                    )
                 )
+        except IndexError:
+            logger.debug(
+                "An IndexError was encountered while collecting 3D classification data: there was possibly a mismatch between data from different files"
             )
         return particle_class_list
 
