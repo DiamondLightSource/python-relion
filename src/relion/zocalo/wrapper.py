@@ -405,8 +405,11 @@ def _(stage_object: relion.AutoPick, job_string: str, relion_options: RelionItOp
     logger.warning(
         f"There are currently no ISPyB commands for the AutoPick stage {job_string}"
     )
-    num_particles = stage_object[job_string][0].number_of_particles
-    micrograph = stage_object[job_string][0].first_micrograph_name
+    try:
+        num_particles = stage_object[job_string][0].number_of_particles
+        micrograph = stage_object[job_string][0].first_micrograph_name
+    except IndexError:
+        return []
     ispyb_command_list = [
         {
             "ispyb_command": "insert_particle_picker",
@@ -425,8 +428,11 @@ def _(stage_object: relion.Cryolo, job_string: str, relion_options: RelionItOpti
         "There are currently no ISPyB commands for the crYOLO stage %s ",
         job_string,
     )
-    num_particles = stage_object[job_string][0].number_of_particles
-    micrograph = stage_object[job_string][0].first_micrograph_name
+    try:
+        num_particles = stage_object[job_string][0].number_of_particles
+        micrograph = stage_object[job_string][0].first_micrograph_name
+    except IndexError:
+        return []
     ispyb_command_list = [
         {
             "ispyb_command": "insert_particle_picker",
