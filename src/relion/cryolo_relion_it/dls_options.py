@@ -18,9 +18,7 @@ cryolo_finetune = False
 
 # Location of the cryolo specific files
 cryolo_config = "/dls_sw/apps/EM/crYOLO/phosaurus_models/config.json"
-cryolo_gmodel = (
-    "/dls_sw/apps/EM/crYOLO/phosaurus_models/gmodel_phosnet_202005_N63_c17.h5"
-)
+cryolo_gmodel = "/dls_sw/apps/EM/crYOLO/phosaurus_models/gmodel_phosnet_202005_N63_c17.h5"
 
 # Running options for cryolo
 cryolo_pick_gpus = "0 1 2 3"
@@ -69,7 +67,8 @@ refine_do_gpu = True
 refine_gpu = ""
 refine_mpi = 5
 refine_threads = 8
-refine_scratch_disk = ""  # Hamilton nodes only have ~100 GB in /tmp, so don't use this
+refine_scratch_disk = ""
+# Hamilton nodes only have ~100 GB in /tmp, so don't use this
 refine_submit_to_queue = True
 
 minimum_batch_size = 250
@@ -81,9 +80,7 @@ minimum_batch_size = 250
 
 voltage = 300
 Cs = 2.7
-angpix = ""
 import_images = "Movies/*.tif"
-motioncor_doseperframe = ""
 autopick_LoG_diam_max = ""
 autopick_LoG_diam_min = ""
 autopick_3dreference = ""

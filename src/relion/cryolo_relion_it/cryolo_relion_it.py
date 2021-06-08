@@ -747,6 +747,12 @@ class RelionItOptions(object):
     # Submit motion correction job to the cluster?
     motioncor_submit_to_queue = False
 
+    #### Icebreaker
+    do_icebreaker_job_group = True
+    do_icebreaker_job_flatten = True
+    do_icebreaker_group = True
+    icebreaker_threads_number = 10
+
     ### CTF estimation parameters
     # Amplitude contrast (Q0)
     ampl_contrast = 0.1
@@ -2390,6 +2396,46 @@ def run_pipeline(opts):
                 "MotionCorr", "motioncorr_job", SETUP_CHECK_FILE, motioncorr_options
             )
 
+        #### Set up Icebreaker job - group
+        if opts.do_icebreaker_job_group:
+            icebreaker_options = [
+                f"External executable: == ib_job.py",
+                f"Input micrographs:  == {motioncorr_job}corrected_micrographs.star",
+                "Param1 - label: == o",
+                f"Param1 - value: == External/Icebreaker_G",
+                "Param2 - label: == mode",
+                f"Param2 - value: == group",
+                "Param3 - label: == j",
+                f"Param3 - value: == {opts.icebreaker_threads_number}",
+            ]
+            icebreaker_job_group, already_had_it = addJob(
+                "External",
+                "icebreaker_job_group",
+                SETUP_CHECK_FILE,
+                icebreaker_options,
+                alias="Icebreaker_G",
+            )
+
+        ####Set up Icebreaker job - flatten
+        if opts.do_icebreaker_job_flatten:
+            icebreaker_options = [
+                f"External executable: == ib_job.py",
+                f"Input micrographs:  == {motioncorr_job}corrected_micrographs.star",
+                "Param1 - label: == o",
+                f"Param1 - value: == External/Icebreaker_F",
+                "Param2 - label: == mode",
+                f"Param2 - value: == flatten",
+                "Param3 - label: == j",
+                f"Param3 - value: == {opts.icebreaker_threads_number}",
+            ]
+            icebreaker_job_flatten, already_had_it = addJob(
+                "External",
+                "icebreaker_job_flatten",
+                SETUP_CHECK_FILE,
+                icebreaker_options,
+                alias="Icebreaker_F",
+            )
+
         #### Set up the CtfFind job
         ctffind_options = [
             "Amount of astigmatism (A): == {}".format(opts.ctffind_astigmatism),
@@ -2453,6 +2499,8 @@ def run_pipeline(opts):
         runjobs = [import_job]
         if opts.images_are_movies:
             runjobs.append(motioncorr_job)
+        runjobs.append(icebreaker_job_group)
+        runjobs.append(icebreaker_job_flatten)
         runjobs.append(ctffind_job)
 
         # There is an option to stop on-the-fly processing after CTF estimation
@@ -2660,6 +2708,29 @@ def run_pipeline(opts):
                 alias=extract_alias,
             )
             runjobs.append(extract_job)
+
+            #### Set up Icebreaker grouping job
+            if opts.do_icebreaker_group and opts.do_icebreaker_job_group:
+                icebreaker_group_options = [
+                    f"External executable: == ib_group.py",
+                    f"Input micrographs:  == {icebreaker_job_group}grouped_micrographs.star",
+                    "Param1 - label: == o",
+                    f"Param1 - value: == External/Icebreaker_group",
+                    "Param2 - label: == in_parts",
+                    f"Param2 - value: == {extract_job}particles.star",
+                    "Param3 - label: == j",
+                    f"Param3 - value: == {opts.icebreaker_threads_number}",
+                ]
+                icebreaker_group_job, already_had_it = addJob(
+                    "External",
+                    "icebreaker_group_job",
+                    SETUP_CHECK_FILE,
+                    icebreaker_group_options,
+                    alias="Icebreaker_group",
+                )
+
+            if opts.do_icebreaker_group and opts.do_icebreaker_job_group:
+                runjobs.append(icebreaker_group_job)
 
             if (ipass == 0 and (opts.do_class2d or opts.do_class3d)) or (
                 ipass == 1 and (opts.do_class2d_pass2 or opts.do_class3d_pass2)
