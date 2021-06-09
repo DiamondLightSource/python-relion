@@ -23,5 +23,4 @@ def create_histogram(working_directory):
     plt.ylabel("Number of particles")
     plt.title("Histogram of Icebreaker estimated ice thickness")
     plt.legend(["Total number of particles = " + str(len(data))])
-    plt.show()
     plt.savefig(icebreaker_path + "/ice_hist.pdf")
