@@ -166,7 +166,7 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
                     relion_prj, imported_files
                 )
 
-            if len(relion_prj._job_nodes) != 0:
+            if len(relion_prj._job_nodes) != 0 and len(relion_prj.preprocess) != 0:
                 for job in relion_prj.preprocess:
                     job_end_time = job.attributes["end_time_stamp"]
                     if job_end_time is None:

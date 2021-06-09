@@ -282,13 +282,20 @@ class RelionPipeline:
             return []
         if logfile.is_file():
             with open(logfile, "r") as lfile:
-                return [
-                    self._job_nodes[
-                        self._job_nodes.index(pathlib.PurePosixPath(line.split()[1]))
+                try:
+                    return [
+                        self._job_nodes[
+                            self._job_nodes.index(
+                                pathlib.PurePosixPath(line.split()[1])
+                            )
+                        ]
+                        for line in lfile
+                        if line.startswith(" - ")
                     ]
-                    for line in lfile
-                    if line.startswith(" - ")
-                ]
+                # if it doesn't find the job in self._job_nodes then return empty list
+                # should sort itself out later
+                except ValueError:
+                    return []
         return []
 
     def _calculate_relative_job_times(self):
