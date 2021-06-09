@@ -17,9 +17,9 @@ def create_histogram(working_directory):
     try:
         data = extract_ice_column(icebreaker_path + "/particles.star")
         plt.hist(x=data, bins="auto", rwidth=0.9)
-        plt.xlabel("Ice thickness")
+        plt.xlabel("Relative estimated ice thickness")
         plt.ylabel("Number of particles")
-        plt.title("Estimated ice thickness")
+        plt.title("Histogram of Icebreaker estimated ice thickness")
         plt.legend(["Total number of particles = " + str(len(data))])
         plt.show()
         plt.savefig(icebreaker_path + "/ice_hist.pdf")
