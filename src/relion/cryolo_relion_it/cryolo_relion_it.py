@@ -2499,8 +2499,10 @@ def run_pipeline(opts):
         runjobs = [import_job]
         if opts.images_are_movies:
             runjobs.append(motioncorr_job)
-        runjobs.append(icebreaker_job_group)
-        runjobs.append(icebreaker_job_flatten)
+        if opts.do_icebreaker_job_group:
+            runjobs.append(icebreaker_job_group)
+        if opts.do_icebreaker_job_flatten:
+            runjobs.append(icebreaker_job_flatten)
         runjobs.append(ctffind_job)
 
         # There is an option to stop on-the-fly processing after CTF estimation
