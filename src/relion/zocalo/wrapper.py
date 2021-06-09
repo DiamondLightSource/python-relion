@@ -297,8 +297,10 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
 
         try:
             icebreaker_histogram.create_histogram(self.working_directory)
-        except Exception as ex:
-            logger.error("Error creating Icebreaker histogram.", ex)
+        except RuntimeError:
+            logger.error("Error creating Icebreaker histogram.")
+        except ValueError:
+            logger.error("Error creating Icebreaker histogram.")
 
         logger.info("Done.")
         return success
