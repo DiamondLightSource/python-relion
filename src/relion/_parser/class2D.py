@@ -104,7 +104,13 @@ class Class2D(JobType):
             sorted(int_particle_sum), len(reference_image)
         )
 
+        if len(reference_image) != len(checked_particle_list):
+            logger.debug(
+                f"Number of reference images did not match number of classes for {jobdir}"
+            )
+
         particle_class_list = []
+
         try:
             for j in range(len(reference_image)):
                 particle_class_list.append(

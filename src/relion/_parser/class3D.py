@@ -121,6 +121,11 @@ class Class3D(JobType):
             logger.debug(f"Encountered error trying to read {jobdir}/job.star")
             return []
 
+        if len(reference_image) != len(checked_particle_list):
+            logger.debug(
+                f"Number of reference images did not match number of classes for {jobdir}"
+            )
+
         particle_class_list = []
         try:
             for j in range(len(reference_image)):
