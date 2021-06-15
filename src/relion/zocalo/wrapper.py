@@ -295,8 +295,24 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
         finally:
             os.chdir(oldpwd)
 
+        ### Extract and send Icebreaker results as histograms
+        icebreaker_file_path = self.working_directory / "External/Icebreaker_group/"
+        attachment_list = []
         try:
-            icebreaker_histogram.create_histogram(self.working_directory)
+            pdf_file_name = icebreaker_histogram.create_pdf_histogram(
+                self.working_directory
+            )
+            json_file_name = icebreaker_histogram.create_json_histogram(
+                self.working_directory
+            )
+            attachment_list.append(
+                ispyb_attachment(json_file_name, icebreaker_file_path, "graph")
+            )
+            attachment_list.append(
+                ispyb_attachment(pdf_file_name, icebreaker_file_path, "graph")
+            )
+            logger.info("Sending ISPyB attachments")
+            self.recwrap.send_to("ispyb", {"ispyb_command_list": attachment_list})
         except (RuntimeError, ValueError):
             logger.error("Error creating Icebreaker histogram.")
 
@@ -502,3 +518,12 @@ def _(stage_object: relion.Class3D, job_string: str, relion_options: RelionItOpt
             }
         )
     return ispyb_command_list
+
+
+def ispyb_attachment(file_name, file_type, file_path):
+    return {
+        "ispyb_command": "add_program_attachment",
+        "file_name": file_name,
+        "file_path": file_path,
+        "file_type": file_type,
+    }
