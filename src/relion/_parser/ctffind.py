@@ -4,7 +4,7 @@ from collections import namedtuple
 from relion._parser.jobtype import JobType
 import logging
 
-logger = logging.getLogger("relion._parser.class3D")
+logger = logging.getLogger("relion._parser.ctffind")
 
 CTFMicrograph = namedtuple(
     "CTFMicrograph",
