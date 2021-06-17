@@ -9,7 +9,7 @@ import pandas as pd
 
 def create_json_histogram(working_directory):
     icebreaker_path = str(working_directory / "External/Icebreaker_group/")
-    json_hist_file_name = "/ice_hist.json"
+    json_hist_file_name = "ice_hist.json"
     if Path(icebreaker_path + "/particles.star").is_file():
         data = extract_ice_column(icebreaker_path + "/particles.star")
     else:
@@ -21,13 +21,13 @@ def create_json_histogram(working_directory):
         title="Histogram of Icebreaker estimated ice thickness <br>Total number of particles = "
         + str(len(data)),
     )
-    fig.write_json(icebreaker_path + json_hist_file_name)
+    fig.write_json(icebreaker_path + "/" + json_hist_file_name)
     return json_hist_file_name
 
 
 def create_pdf_histogram(working_directory):
     icebreaker_path = str(working_directory / "External/Icebreaker_group/")
-    pdf_hist_file_name = "/ice_hist.pdf"
+    pdf_hist_file_name = "ice_hist.pdf"
     if Path(icebreaker_path + "/particles.star").is_file():
         data = extract_ice_column(icebreaker_path + "/particles.star")
     else:
@@ -37,7 +37,7 @@ def create_pdf_histogram(working_directory):
     plt.ylabel("Number of particles")
     plt.title("Histogram of Icebreaker estimated ice thickness")
     plt.legend(["Total number of particles = " + str(len(data))])
-    plt.savefig(icebreaker_path + pdf_hist_file_name)
+    plt.savefig(icebreaker_path + "/" + pdf_hist_file_name)
     return pdf_hist_file_name
 
 

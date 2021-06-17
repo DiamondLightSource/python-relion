@@ -106,6 +106,8 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
 
         preproc_recently_run = False
         processing_ended = False
+        should_send_icebreaker = True
+        icebreaker_particles_star_file_found = False
 
         while (
             self._relion_subthread.is_alive() or preprocess_check.is_file()
@@ -144,6 +146,41 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
                     "ispyb", {"ispyb_command_list": ispyb_command_list}
                 )
                 logger.info("Sent %d commands to ISPyB", len(ispyb_command_list))
+
+            ### Extract and send Icebreaker results as histograms if the Icebreaker grouping job has run
+            if not self.opts.stop_after_ctf_estimation:
+                icebreaker_file_path = (
+                    self.working_directory / "External/Icebreaker_group/"
+                )
+                attachment_list = []
+                try:
+                    pdf_file_name = icebreaker_histogram.create_pdf_histogram(
+                        self.working_directory
+                    )
+                    json_file_name = icebreaker_histogram.create_json_histogram(
+                        self.working_directory
+                    )
+                    if pdf_file_name is None or json_file_name is None:
+                        pass
+                    elif should_send_icebreaker:
+                        attachment_list.append(
+                            ispyb_attachment(
+                                json_file_name, str(icebreaker_file_path), "Graph"
+                            )
+                        )
+                        attachment_list.append(
+                            ispyb_attachment(
+                                pdf_file_name, str(icebreaker_file_path), "Graph"
+                            )
+                        )
+                        logger.info(f"Sending ISPyB attachments {attachment_list}")
+                        self.recwrap.send_to(
+                            "ispyb", {"ispyb_command_list": attachment_list}
+                        )
+                        should_send_icebreaker = False
+                        icebreaker_particles_star_file_found = True
+                except (RuntimeError, ValueError):
+                    logger.error("Error creating Icebreaker histogram.")
 
             # if Relion has been running too long stop loop of preprocessing jobs
             try:
@@ -209,6 +246,8 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
             ):
                 all_process_check.unlink()
 
+        if not icebreaker_particles_star_file_found:
+            logger.warning("No particles.star file found for Icebreaker grouping.")
         logger.info("Done.")
         success = True
 
@@ -294,27 +333,6 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
             logger.error(ex)
         finally:
             os.chdir(oldpwd)
-
-        ### Extract and send Icebreaker results as histograms
-        icebreaker_file_path = self.working_directory / "External/Icebreaker_group/"
-        attachment_list = []
-        try:
-            pdf_file_name = icebreaker_histogram.create_pdf_histogram(
-                self.working_directory
-            )
-            json_file_name = icebreaker_histogram.create_json_histogram(
-                self.working_directory
-            )
-            attachment_list.append(
-                ispyb_attachment(json_file_name, icebreaker_file_path, "graph")
-            )
-            attachment_list.append(
-                ispyb_attachment(pdf_file_name, icebreaker_file_path, "graph")
-            )
-            logger.info("Sending ISPyB attachments")
-            self.recwrap.send_to("ispyb", {"ispyb_command_list": attachment_list})
-        except (RuntimeError, ValueError):
-            logger.error("Error creating Icebreaker histogram.")
 
         logger.info("Done.")
         return success
@@ -520,7 +538,7 @@ def _(stage_object: relion.Class3D, job_string: str, relion_options: RelionItOpt
     return ispyb_command_list
 
 
-def ispyb_attachment(file_name, file_type, file_path):
+def ispyb_attachment(file_name, file_path, file_type):
     return {
         "ispyb_command": "add_program_attachment",
         "file_name": file_name,
