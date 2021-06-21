@@ -115,6 +115,7 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
             # logger.info("Looking for results")
 
             ispyb_command_list = []
+            images_command_list = []
 
             if pathlib.Path(self.params["stop_file"]).is_file():
                 relion_prj.load()
@@ -133,6 +134,7 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
             for fr in relion_prj.results.fresh:
                 curr_res = ispyb_results(fr.stage_object, fr.job_name, self.opts)
                 ispyb_command_list.extend(curr_res)
+                images_command_list.extend(images_msgs(fr.stage_object, fr.job_name))
                 if curr_res:
                     logger.info(f"Fresh results found for {fr.job_name}")
 
@@ -144,6 +146,11 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
                     "ispyb", {"ispyb_command_list": ispyb_command_list}
                 )
                 logger.info("Sent %d commands to ISPyB", len(ispyb_command_list))
+
+            for img in images_command_list:
+                self.recwrap.send_to(
+                    "images", {"image_command": "do_mrc_to_jpeg", "file": img}
+                )
 
             # if Relion has been running too long stop loop of preprocessing jobs
             try:
@@ -326,6 +333,20 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
             else:
                 return RelionStatus.RUNNING
             # if job_finished_file exists:
+
+
+@functools.singedispatch
+def images_msgs(relion_stage_object, job_string: str):
+    logger.debug(f"{relion_stage_object!r} does not have associated images")
+    return []
+
+
+@images_msgs.register(relion.CTFFind)
+def _(stage_object: relion.CTFFind, job_string: str):
+    imgs = []
+    for ctf_micrograph in stage_object[job_string]:
+        imgs.append(ctf_micrograph.diagnostic_plot_path.replace(".jpeg", ".ctf"))
+    return imgs
 
 
 @functools.singledispatch

@@ -85,7 +85,10 @@ class CTFFind(JobType):
 
         micrograph_list = []
         for j in range(len(micrograph_name)):
-            plot_path = self._make_ctf_jpg(ctf_img_path[j].split(":")[0])
+            # plot_path = self._make_ctf_jpg(ctf_img_path[j].split(":")[0])
+            plot_path = self._basepath.parent / ctf_img_path[j].split(":")[0].replace(
+                ".ctf", ".jpeg"
+            )
             micrograph_list.append(
                 CTFMicrograph(
                     micrograph_name[j],
