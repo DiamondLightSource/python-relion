@@ -306,7 +306,7 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
         pprint(self.params["ispyb_parameters"])
 
         # Prepare options object
-        opts = cryolo_relion_it.RelionItOptions()
+        opts = RelionItOptions()
         opts.update_from(vars(dls_options))
         opts.update_from(self.params["ispyb_parameters"])
 
