@@ -10,8 +10,8 @@ import time
 import zocalo.util.symlink
 import zocalo.wrapper
 from pprint import pprint
-from relion.cryolo_relion_it import cryolo_relion_it, dls_options
 from relion.cryolo_relion_it.cryolo_relion_it import RelionItOptions
+from relion.cryolo_relion_it import cryolo_relion_it, dls_options, icebreaker_histogram
 
 logger = logging.getLogger("relion.zocalo.wrapper")
 
@@ -294,6 +294,11 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
             logger.error(ex)
         finally:
             os.chdir(oldpwd)
+
+        try:
+            icebreaker_histogram.create_histogram(self.working_directory)
+        except Exception as ex:
+            logger.error("Error creating Icebreaker histogram.", ex)
 
         logger.info("Done.")
         return success
