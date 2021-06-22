@@ -8,7 +8,8 @@ MCMicrograph = namedtuple(
     "MCMicrograph",
     [
         "micrograph_name",
-        "micrograph_snapshot_full_path" "micrograph_number",
+        "micrograph_snapshot_full_path",
+        "micrograph_number",
         "total_motion",
         "early_motion",
         "late_motion",
