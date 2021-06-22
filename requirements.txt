@@ -1,1 +1,4 @@
 gemmi==0.4.6
+plotly==4.14.3
+matplotlib==3.3.2
+pandas==1.2.4

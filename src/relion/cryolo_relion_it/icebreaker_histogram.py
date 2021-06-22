@@ -2,7 +2,6 @@ import gemmi
 import json
 import matplotlib.pyplot as plt
 from pathlib import Path
-
 import plotly.express as px
 import pandas as pd
 
@@ -14,6 +13,8 @@ def create_json_histogram(working_directory):
         data = extract_ice_column(icebreaker_path + "/particles.star")
     else:
         return None
+    if data is None:
+        print("No data extracted.")
     df = pd.DataFrame(data, columns=["Relative estimated ice thickness"])
     fig = px.histogram(
         df,
@@ -43,6 +44,9 @@ def create_pdf_histogram(working_directory):
 
 def extract_ice_column(icebreaker_star_file_path):
     particles = gemmi.cif.read_file(icebreaker_star_file_path)
-    data_as_dict = json.loads(particles.as_json())["particles"]
-    ice_group = data_as_dict["_rlnhelicaltubeid"]
-    return ice_group
+    try:
+        data_as_dict = json.loads(particles.as_json())["particles"]
+        ice_group = data_as_dict["_rlnhelicaltubeid"]
+        return ice_group
+    except KeyError:
+        return []
