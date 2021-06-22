@@ -341,6 +341,14 @@ def images_msgs(relion_stage_object, job_string: str):
     return []
 
 
+@images_msgs.register(relion.MotionCorr)
+def _(stage_object: relion.MotionCorr, job_string: str):
+    imgs = []
+    for micrograph in stage_object[job_string]:
+        imgs.append(micrograph.micrograph_snapshot_full_path.replace(".jpeg", ".ctf"))
+    return imgs
+
+
 @images_msgs.register(relion.CTFFind)
 def _(stage_object: relion.CTFFind, job_string: str):
     imgs = []
