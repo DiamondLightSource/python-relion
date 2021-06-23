@@ -1,6 +1,5 @@
 from collections import namedtuple
 from relion._parser.jobtype import JobType
-import pathlib
 import logging
 
 logger = logging.getLogger("relion._parser.ctffind")
@@ -87,9 +86,8 @@ class CTFFind(JobType):
 
         micrograph_list = []
         for j in range(len(micrograph_name)):
-            # plot_path = self._make_ctf_jpg(ctf_img_path[j].split(":")[0])
             plot_path = (
-                str(pathlib.PurePosixPath(self._basepath.parent) / ctf_img_path[j])
+                (str(self._basepath.parent) + "/" + ctf_img_path[j])
                 .split(":")[0]
                 .replace(".ctf", ".jpeg")
             )
