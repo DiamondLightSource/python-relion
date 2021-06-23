@@ -17,7 +17,7 @@ def proj(dials_data):
 def test_mrc_to_jpeg_nack_when_file_not_found(proj):
     ctf_data = proj.ctffind["job003"]
     jpeg_path = str(
-        proj.basepath
+        pathlib.PurePosixPath(proj.basepath)
         / "CtfFind"
         / "job003"
         / "Movies"
