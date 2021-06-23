@@ -37,7 +37,7 @@ def test_mrc_to_jpeg_nack_when_file_not_found(proj):
 
     rw = RW_mock()
     rw.transport = ct
-    rw.recipe_step = {"parameters": {"images_command": "do_mrc_to_jpeg"}}
+    rw.recipe_step = {"parameters": {"images_command": "mrc_to_jpeg"}}
     rw.environment = {"has_recipe_wrapper": False}
     rw.set_default_channel = rw.dummy
     rw.send = rw.dummy
@@ -75,7 +75,7 @@ def test_mrc_to_jpeg_ack_when_file_exists(tmp_path):
 
     rw = RW_mock()
     rw.transport = ct
-    rw.recipe_step = {"parameters": {"images_command": "do_mrc_to_jpeg"}}
+    rw.recipe_step = {"parameters": {"images_command": "mrc_to_jpeg"}}
     rw.environment = {"has_recipe_wrapper": False}
     rw.set_default_channel = rw.dummy
     rw.send = rw.dummy

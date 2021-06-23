@@ -98,7 +98,9 @@ class MotionCorr(JobType):
             micrograph_list.append(
                 MCMicrograph(
                     micrograph_name[j],
-                    str(self._basepath / micrograph_name[j]).replace(".mrc", ".jpeg"),
+                    str(self._basepath.parent / micrograph_name[j]).replace(
+                        ".mrc", ".jpeg"
+                    ),
                     j + 1,
                     accum_motion_total[j],
                     accum_motion_early[j],
