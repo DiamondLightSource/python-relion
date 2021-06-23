@@ -148,9 +148,7 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
                 logger.info("Sent %d commands to ISPyB", len(ispyb_command_list))
 
             for img in images_command_list:
-                self.recwrap.send_to(
-                    "images", {"image_command": "do_mrc_to_jpeg", "file": img}
-                )
+                self.recwrap.send_to("images", {"file": img})
 
             # if Relion has been running too long stop loop of preprocessing jobs
             try:
@@ -345,7 +343,7 @@ def images_msgs(relion_stage_object, job_string: str):
 def _(stage_object: relion.MotionCorr, job_string: str):
     imgs = []
     for micrograph in stage_object[job_string]:
-        imgs.append(micrograph.micrograph_snapshot_full_path.replace(".jpeg", ".ctf"))
+        imgs.append(micrograph.micrograph_snapshot_full_path.replace(".jpeg", ".mrc"))
     return imgs
 
 
