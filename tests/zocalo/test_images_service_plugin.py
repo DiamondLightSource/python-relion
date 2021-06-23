@@ -2,6 +2,7 @@ import pytest
 import relion
 import pathlib
 import mrcfile
+import sys
 import numpy as np
 from unittest import mock
 from relion.zocalo.images_service_plugin import mrc_to_jpeg
@@ -14,6 +15,7 @@ def proj(dials_data):
     return relion.Project(dials_data("relion_tutorial_data"))
 
 
+@pytest.mark.skipif(sys.platform == "win32", reason="does not run on windows")
 def test_mrc_to_jpeg_nack_when_file_not_found(proj):
     ctf_data = proj.ctffind["job003"]
     jpeg_path = str(

@@ -87,7 +87,7 @@ class CTFFind(JobType):
         micrograph_list = []
         for j in range(len(micrograph_name)):
             plot_path = (
-                (str(self._basepath.parent) + "/" + ctf_img_path[j])
+                str(self._basepath.parent / ctf_img_path[j])
                 .split(":")[0]
                 .replace(".ctf", ".jpeg")
             )

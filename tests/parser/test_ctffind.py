@@ -1,6 +1,7 @@
 import pytest
 import sys
 import relion
+import pathlib
 
 
 @pytest.fixture
@@ -79,3 +80,14 @@ def test_invalid_job_references_raise_KeyErrors(ctffind):
 
 def test_astigmatism(ctffind):
     assert ctffind["job003"][0].astigmatism == "288.135742"
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="does not run on windows")
+def test_diagnosis_plot_path(proj, ctffind):
+    assert ctffind["job003"][0].diagnostic_plot_path == str(
+        pathlib.PurePosixPath(proj.basepath)
+        / "CtfFind"
+        / "job003"
+        / "Movies"
+        / "20170629_00021_frameImage_PS.jpeg"
+    )
