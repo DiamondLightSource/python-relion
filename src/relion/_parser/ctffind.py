@@ -1,5 +1,3 @@
-import cv2
-import mrcfile
 from collections import namedtuple
 from relion._parser.jobtype import JobType
 import logging
@@ -37,6 +35,9 @@ CTFMicrograph.fig_of_merit.__doc__ = (
     "Figure of merit/CC/correlation value. Confidence of the defocus estimation."
 )
 CTFMicrograph.amp_contrast.__doc__ = "Amplitude contrast."
+CTFMicrograph.diagnostic_plot_path.__doc__ = (
+    "Path to the CTF diagnostic (fit/data comparison) plot (jpeg)."
+)
 
 
 class CTFFind(JobType):
@@ -105,24 +106,6 @@ class CTFFind(JobType):
                 )
             )
         return micrograph_list
-
-    def _make_ctf_jpg(self, proj_path_to_mrc):
-        jpg_path = proj_path_to_mrc.split(".")[0] + ".jpg"
-        try:
-            with mrcfile.open(self._basepath.parent / proj_path_to_mrc) as mrc:
-                data = mrc.data
-        except FileNotFoundError:
-            logger.debug(
-                f"File {self._basepath.parent / proj_path_to_mrc} not found. No CTF jpg produced."
-            )
-            return jpg_path
-        data = data - data.min()
-        data *= 255 / data.max()
-        int_data = data.astype(int)
-        out_file = self._basepath.parent / jpg_path
-        print("writing:", out_file)
-        cv2.imwrite(str(out_file), int_data[0])
-        return jpg_path
 
     @staticmethod
     def for_cache(ctfmicrograph):

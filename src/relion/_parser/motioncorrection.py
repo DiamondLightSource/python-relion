@@ -19,6 +19,9 @@ MCMicrograph = namedtuple(
 
 MCMicrograph.__doc__ = "Motion Correction stage."
 MCMicrograph.micrograph_name.__doc__ = "Micrograph name. Useful for reference."
+MCMicrograph.micrograph_snapshot_full_path.__doc__ = (
+    "Path to jpeg of the motion corrected micrograph."
+)
 MCMicrograph.micrograph_number.__doc__ = "Micrograph number: sequential in time."
 MCMicrograph.total_motion.__doc__ = (
     "Total motion. The amount the sample moved during exposure. Units angstrom (A)."
