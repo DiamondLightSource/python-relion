@@ -4,14 +4,16 @@ import functools
 import logging
 import os
 import pathlib
-import relion
 import threading
 import time
+from pprint import pprint
+
 import zocalo.util.symlink
 import zocalo.wrapper
-from pprint import pprint
-from relion.cryolo_relion_it.cryolo_relion_it import RelionItOptions
+
+import relion
 from relion.cryolo_relion_it import cryolo_relion_it, dls_options, icebreaker_histogram
+from relion.cryolo_relion_it.cryolo_relion_it import RelionItOptions
 
 logger = logging.getLogger("relion.zocalo.wrapper")
 
@@ -149,30 +151,21 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
 
             ### Extract and send Icebreaker results as histograms if the Icebreaker grouping job has run
             if not self.opts.stop_after_ctf_estimation:
-                icebreaker_file_path = (
-                    self.working_directory / "External/Icebreaker_group/"
-                )
                 attachment_list = []
                 try:
-                    pdf_file_name = icebreaker_histogram.create_pdf_histogram(
+                    pdf_file_path = icebreaker_histogram.create_pdf_histogram(
                         self.working_directory
                     )
-                    json_file_name = icebreaker_histogram.create_json_histogram(
+                    json_file_path = icebreaker_histogram.create_json_histogram(
                         self.working_directory
                     )
-                    if pdf_file_name is None or json_file_name is None:
+                    if pdf_file_path is None or json_file_path is None:
                         pass
                     elif should_send_icebreaker:
                         attachment_list.append(
-                            ispyb_attachment(
-                                json_file_name, str(icebreaker_file_path), "Graph"
-                            )
+                            ispyb_attachment(json_file_path, "Graph")
                         )
-                        attachment_list.append(
-                            ispyb_attachment(
-                                pdf_file_name, str(icebreaker_file_path), "Graph"
-                            )
-                        )
+                        attachment_list.append(ispyb_attachment(pdf_file_path, "Graph"))
                         logger.info(f"Sending ISPyB attachments {attachment_list}")
                         self.recwrap.send_to(
                             "ispyb", {"ispyb_command_list": attachment_list}
@@ -538,10 +531,10 @@ def _(stage_object: relion.Class3D, job_string: str, relion_options: RelionItOpt
     return ispyb_command_list
 
 
-def ispyb_attachment(file_name, file_path, file_type):
+def ispyb_attachment(attachment_path_object, file_type):
     return {
         "ispyb_command": "add_program_attachment",
-        "file_name": file_name,
-        "file_path": file_path,
+        "file_name": attachment_path_object.name,
+        "file_path": attachment_path_object.parent,
         "file_type": file_type,
     }

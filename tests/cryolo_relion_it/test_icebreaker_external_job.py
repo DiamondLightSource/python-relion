@@ -1,71 +1,70 @@
-from relion.cryolo_relion_it import icebreaker_histogram
-import os
 import gemmi
 
+from relion.cryolo_relion_it import icebreaker_histogram
 
-def test_create_json_histogram(tmpdir):
+
+def test_create_json_histogram(tmp_path):
     # Prep
-    os.chdir(tmpdir)
-    external_dir = tmpdir.mkdir("External")
-    icebreaker_dir = external_dir.mkdir("Icebreaker_group")
-    particles_file = icebreaker_dir.join("particles.star")
-    particles_file.write("")
+    icebreaker_dir = tmp_path / "External" / "Icebreaker_group"
+    icebreaker_dir.mkdir(parents=True)
+    particles_file = icebreaker_dir / "particles.star"
+    particles_file.write_text("")
 
-    assert icebreaker_histogram.create_json_histogram(tmpdir) == "ice_hist.json"
+    assert icebreaker_histogram.create_json_histogram(tmp_path).name == "ice_hist.json"
 
 
-def test_create_json_histogram_fails_without_particle_star_file(tmpdir):
+def test_create_json_histogram_fails_without_particle_star_file(tmp_path):
     # Prep
-    os.chdir(tmpdir)
+    icebreaker_dir = tmp_path / "External" / "Icebreaker_group"
+    icebreaker_dir.mkdir(parents=True)
 
-    assert icebreaker_histogram.create_json_histogram(tmpdir) is None
+    assert icebreaker_histogram.create_json_histogram(tmp_path) is None
 
 
-def test_create_json_histogram_creates_a_file(tmpdir):
+def test_create_json_histogram_creates_a_file(tmp_path):
     # Prep
-    os.chdir(tmpdir)
-    external_dir = tmpdir.mkdir("External")
-    icebreaker_dir = external_dir.mkdir("Icebreaker_group")
-    particles_file = icebreaker_dir.join("particles.star")
+    icebreaker_dir = tmp_path / "External" / "Icebreaker_group"
+    icebreaker_dir.mkdir(parents=True)
+    particles_file = icebreaker_dir / "particles.star"
+
     out_doc = gemmi.cif.Document()
     output_nodes_block = out_doc.add_new_block("particles")
     loop = output_nodes_block.init_loop("", ["_rlnHelicalTubeID"])
     loop.add_row(["5"])
     out_doc.write_file(str(particles_file))
 
-    icebreaker_histogram.create_json_histogram(tmpdir)
-    assert os.path.isfile(tmpdir / "External" / "Icebreaker_group" / "ice_hist.json")
+    icebreaker_histogram.create_json_histogram(tmp_path)
+    assert icebreaker_dir.joinpath("ice_hist.json").is_file()
 
 
-def test_create_pdf_histogram(tmpdir):
+def test_create_pdf_histogram(tmp_path):
     # Prep
-    os.chdir(tmpdir)
-    external_dir = tmpdir.mkdir("External")
-    icebreaker_dir = external_dir.mkdir("Icebreaker_group")
-    particles_file = icebreaker_dir.join("particles.star")
-    particles_file.write("")
+    icebreaker_dir = tmp_path / "External" / "Icebreaker_group"
+    icebreaker_dir.mkdir(parents=True)
+    particles_file = icebreaker_dir / "particles.star"
+    particles_file.write_text("")
 
-    assert icebreaker_histogram.create_pdf_histogram(tmpdir) == "ice_hist.pdf"
+    assert icebreaker_histogram.create_pdf_histogram(tmp_path).name == "ice_hist.pdf"
 
 
-def test_create_pdf_histogram_fails_without_particle_star_file(tmpdir):
+def test_create_pdf_histogram_fails_without_particle_star_file(tmp_path):
     # Prep
-    os.chdir(tmpdir)
+    icebreaker_dir = tmp_path / "External" / "Icebreaker_group"
+    icebreaker_dir.mkdir(parents=True)
 
-    assert icebreaker_histogram.create_pdf_histogram(tmpdir) is None
+    assert icebreaker_histogram.create_pdf_histogram(tmp_path) is None
 
 
-def test_create_pdf_histogram_creates_a_file(tmpdir):
+def test_create_pdf_histogram_creates_a_file(tmp_path):
     # Prep
-    os.chdir(tmpdir)
-    external_dir = tmpdir.mkdir("External")
-    icebreaker_dir = external_dir.mkdir("Icebreaker_group")
-    particles_file = icebreaker_dir.join("particles.star")
+    icebreaker_dir = tmp_path / "External" / "Icebreaker_group"
+    icebreaker_dir.mkdir(parents=True)
+    particles_file = icebreaker_dir / "particles.star"
     out_doc = gemmi.cif.Document()
     output_nodes_block = out_doc.add_new_block("particles")
     loop = output_nodes_block.init_loop("", ["_rlnHelicalTubeID"])
     loop.add_row(["5"])
     out_doc.write_file(str(particles_file))
 
-    icebreaker_histogram.create_pdf_histogram(tmpdir)
-    assert os.path.isfile(tmpdir / "External" / "Icebreaker_group" / "ice_hist.pdf")
+    icebreaker_histogram.create_pdf_histogram(tmp_path)
+    assert icebreaker_dir.joinpath("ice_hist.pdf").is_file()
