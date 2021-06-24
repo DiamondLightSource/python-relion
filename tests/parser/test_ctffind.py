@@ -1,7 +1,6 @@
 import pytest
 import sys
 import relion
-import pathlib
 
 
 @pytest.fixture
@@ -85,7 +84,7 @@ def test_astigmatism(ctffind):
 @pytest.mark.skipif(sys.platform == "win32", reason="does not run on windows")
 def test_diagnosis_plot_path(proj, ctffind):
     assert ctffind["job003"][0].diagnostic_plot_path == str(
-        pathlib.PurePosixPath(proj.basepath)
+        proj.basepath
         / "CtfFind"
         / "job003"
         / "Movies"
