@@ -540,20 +540,20 @@ important logic is in the `run_pipeline()' function so that's a good place to st
 import argparse
 import ast
 import glob
+import grp
 import inspect
 import math
 import os
+import subprocess
 import time
 import traceback
-import subprocess
-import grp
 
 from . import cryolo_external_job
 
 try:
     import tkinter as tk
-    import tkinter.messagebox
     import tkinter.filedialog
+    import tkinter.messagebox
 except ImportError:
     # The GUI is optional. If the user requests it, it will fail when it tries
     # to open so we can ignore the error for now.
@@ -2101,20 +2101,20 @@ def scheduleJobsFSC(
     # calculate a mask radius that is 0.98 of that used in the reconstruct_halves job
     mask_outer_radius = math.floor(0.98 * opts.mask_diameter / (2 * curr_angpix))
 
-    job_name = f"mask_soft_edge"
+    job_name = "mask_soft_edge"
     options = [
-        f"External executable: == external_job_mask_soft_edge",
-        f"Param1 - label: == out_dir",
-        f"Param1 - value: == External/MaskSoftEdge",
-        f"Param2 - label: == box_size",
+        "External executable: == external_job_mask_soft_edge",
+        "Param1 - label: == out_dir",
+        "Param1 - value: == External/MaskSoftEdge",
+        "Param2 - label: == box_size",
         f"Param2 - value: == {curr_boxsize}",
-        f"Param3 - label: == angpix",
+        "Param3 - label: == angpix",
         f"Param3 - value: == {curr_angpix}",
-        f"Param4 - label: == outer_radius",
+        "Param4 - label: == outer_radius",
         f"Param4 - value: == {mask_outer_radius}",
     ]
     mask_soft_job, already_had_it = addJob(
-        "External", job_name, SETUP_CHECK_FILE, options, alias=f"MaskSoftEdge"
+        "External", job_name, SETUP_CHECK_FILE, options, alias="MaskSoftEdge"
     )
 
     outjobs.append(mask_soft_job)
@@ -2122,15 +2122,15 @@ def scheduleJobsFSC(
     for iclass in range(0, len(model_star["model_classes"]["rlnReferenceImage"])):
         job_name = f"select_and_split_{iclass+1}"
         options = [
-            f"External executable: == external_job_select_and_split",
+            "External executable: == external_job_select_and_split",
             f"Input micrographs:  == {data_star_file}",
-            f"Param1 - label: == in_dir",
+            "Param1 - label: == in_dir",
             f"Param1 - value: == {inimodel_job}",
-            f"Param2 - label: == out_dir",
+            "Param2 - label: == out_dir",
             f"Param2 - value: == External/SelectAndSplit_{iclass+1}",
-            f"Param3 - label: == outfile",
+            "Param3 - label: == outfile",
             f"Param3 - value: == particles_class{iclass+1}.star",
-            f"Param4 - label: == class_number",
+            "Param4 - label: == class_number",
             f"Param4 - value: == {iclass+1}",
         ]
         select_split_job, already_had_it = addJob(
@@ -2143,17 +2143,17 @@ def scheduleJobsFSC(
 
         job_name = f"reconstruct_halves_{iclass+1}"
         options = [
-            f"External executable: == external_job_reconstruct_halves",
+            "External executable: == external_job_reconstruct_halves",
             f"Input micrographs:  == External/SelectAndSplit_{iclass+1}/particles_class{iclass+1}.star",
-            f"Param1 - label: == in_dir",
+            "Param1 - label: == in_dir",
             f"Param1 - value: == External/SelectAndSplit_{iclass+1}",
-            f"Param2 - label: == out_dir",
+            "Param2 - label: == out_dir",
             f"Param2 - value: == External/ReconstructHalves_{iclass+1}",
-            f"Param3 - label: == i",
+            "Param3 - label: == i",
             f"Param3 - value: == particles_class{iclass+1}.star",
-            f"Param4 - label: == mask_diameter",
+            "Param4 - label: == mask_diameter",
             f"Param4 - value: == {opts.mask_diameter}",
-            f"Param5 - label: == class_number",
+            "Param5 - label: == class_number",
             f"Param5 - value: == {iclass+1}",
         ]
         options.extend(queue_opts)
@@ -2167,11 +2167,11 @@ def scheduleJobsFSC(
 
         job_name = f"postprocessing_{iclass+1}"
         options = [
-            f"Solvent mask: == External/MaskSoftEdge/mask.mrc",
+            "Solvent mask: == External/MaskSoftEdge/mask.mrc",
             f"One of the 2 unfiltered half-maps: == External/ReconstructHalves_{iclass+1}/3d_half1_model{iclass+1}.mrc",
             f"Calibrated pixel size (A) == {curr_angpix}",
-            f"Estimate B-factor automatically? == Yes",
-            f"Lowest resolution for auto-B fit (A): == 10",
+            "Estimate B-factor automatically? == Yes",
+            "Lowest resolution for auto-B fit (A): == 10",
         ]
         options.extend(queue_opts)
 
@@ -2189,11 +2189,11 @@ def scheduleJobsFSC(
 
     job_name = "fsc_fitting"
     options = [
-        f"External executable: == external_job_fsc_fitting",
-        f"Param1 - label: == i",
+        "External executable: == external_job_fsc_fitting",
+        "Param1 - label: == i",
         f"Param1 - value: == {fsc_files}",
-        f"Param2 - label: == out_dir",
-        f"Param2 - value: == External/FSCFitting",
+        "Param2 - label: == out_dir",
+        "Param2 - value: == External/FSCFitting",
     ]
     fsc_fitting_job, already_had_it = addJob(
         "External", job_name, SETUP_CHECK_FILE, options, alias="FSCFitting"
@@ -2399,12 +2399,12 @@ def run_pipeline(opts):
         #### Set up Icebreaker job - group
         if opts.do_icebreaker_job_group:
             icebreaker_options = [
-                f"External executable: == ib_job.py",
+                "External executable: == ib_job.py",
                 f"Input micrographs:  == {motioncorr_job}corrected_micrographs.star",
                 "Param1 - label: == o",
-                f"Param1 - value: == External/Icebreaker_G",
+                "Param1 - value: == External/Icebreaker_G",
                 "Param2 - label: == mode",
-                f"Param2 - value: == group",
+                "Param2 - value: == group",
                 "Param3 - label: == j",
                 f"Param3 - value: == {opts.icebreaker_threads_number}",
             ]
@@ -2419,12 +2419,12 @@ def run_pipeline(opts):
         ####Set up Icebreaker job - flatten
         if opts.do_icebreaker_job_flatten:
             icebreaker_options = [
-                f"External executable: == ib_job.py",
+                "External executable: == ib_job.py",
                 f"Input micrographs:  == {motioncorr_job}corrected_micrographs.star",
                 "Param1 - label: == o",
-                f"Param1 - value: == External/Icebreaker_F",
+                "Param1 - value: == External/Icebreaker_F",
                 "Param2 - label: == mode",
-                f"Param2 - value: == flatten",
+                "Param2 - value: == flatten",
                 "Param3 - label: == j",
                 f"Param3 - value: == {opts.icebreaker_threads_number}",
             ]
@@ -2714,10 +2714,10 @@ def run_pipeline(opts):
             #### Set up Icebreaker grouping job
             if opts.do_icebreaker_group and opts.do_icebreaker_job_group:
                 icebreaker_group_options = [
-                    f"External executable: == ib_group.py",
+                    "External executable: == ib_group.py",
                     f"Input micrographs:  == {icebreaker_job_group}grouped_micrographs.star",
                     "Param1 - label: == o",
-                    f"Param1 - value: == External/Icebreaker_group",
+                    "Param1 - value: == External/Icebreaker_group",
                     "Param2 - label: == in_parts",
                     f"Param2 - value: == {extract_job}particles.star",
                     "Param3 - label: == j",
