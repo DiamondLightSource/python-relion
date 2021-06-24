@@ -10,7 +10,10 @@ def test_create_json_histogram(tmp_path):
     particles_file = icebreaker_dir / "particles.star"
     particles_file.write_text("")
 
-    assert icebreaker_histogram.create_json_histogram(tmp_path).name == "ice_hist.json"
+    assert (
+        icebreaker_histogram.create_json_histogram(tmp_path)
+        == icebreaker_dir / "ice_hist.json"
+    )
 
 
 def test_create_json_histogram_fails_without_particle_star_file(tmp_path):
@@ -44,7 +47,10 @@ def test_create_pdf_histogram(tmp_path):
     particles_file = icebreaker_dir / "particles.star"
     particles_file.write_text("")
 
-    assert icebreaker_histogram.create_pdf_histogram(tmp_path).name == "ice_hist.pdf"
+    assert (
+        icebreaker_histogram.create_pdf_histogram(tmp_path)
+        == icebreaker_dir / "ice_hist.pdf"
+    )
 
 
 def test_create_pdf_histogram_fails_without_particle_star_file(tmp_path):

@@ -159,9 +159,7 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
                     json_file_path = icebreaker_histogram.create_json_histogram(
                         self.working_directory
                     )
-                    if pdf_file_path is None or json_file_path is None:
-                        pass
-                    elif should_send_icebreaker:
+                    if should_send_icebreaker and pdf_file_path and json_file_path:
                         attachment_list.append(
                             ispyb_attachment(json_file_path, "Graph")
                         )
@@ -534,7 +532,7 @@ def _(stage_object: relion.Class3D, job_string: str, relion_options: RelionItOpt
 def ispyb_attachment(attachment_path_object, file_type):
     return {
         "ispyb_command": "add_program_attachment",
-        "file_name": attachment_path_object.name,
-        "file_path": attachment_path_object.parent,
+        "file_name": os.fspath(attachment_path_object.name),
+        "file_path": os.fspath(attachment_path_object.parent),
         "file_type": file_type,
     }
