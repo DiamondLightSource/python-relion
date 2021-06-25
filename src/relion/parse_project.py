@@ -1,9 +1,10 @@
 import sys
 from optparse import SUPPRESS_HELP, OptionParser
+from pprint import pprint
 
 from workflows.transport.stomp_transport import StompTransport
+
 import relion
-from pprint import pprint
 
 
 def run():

@@ -1,17 +1,19 @@
-from gemmi import cif
 import os
 import pathlib
 import warnings
+
+from gemmi import cif
 
 try:
     from graphviz import Digraph
 except ImportError:
     pass
+import calendar
 import copy
 import datetime
-import calendar
-from relion._parser.processnode import ProcessNode
+
 from relion._parser.processgraph import ProcessGraph
+from relion._parser.processnode import ProcessNode
 
 
 class RelionPipeline:

@@ -1,8 +1,10 @@
-import pytest
-from relion._parser.processnode import ProcessNode
-from relion._parser.processgraph import ProcessGraph
 import copy
 from unittest import mock
+
+import pytest
+
+from relion._parser.processgraph import ProcessGraph
+from relion._parser.processnode import ProcessNode
 
 
 @pytest.fixture

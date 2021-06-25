@@ -7,8 +7,8 @@ External job
 import argparse
 import os
 import os.path
-import subprocess
 import pathlib
+import subprocess
 
 RELION_JOB_FAILURE_FILENAME = "RELION_JOB_EXIT_FAILURE"
 RELION_JOB_SUCCESS_FILENAME = "RELION_JOB_EXIT_SUCCESS"

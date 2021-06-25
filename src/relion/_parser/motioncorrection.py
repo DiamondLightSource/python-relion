@@ -1,6 +1,7 @@
-from collections import namedtuple
-from relion._parser.jobtype import JobType
 import logging
+from collections import namedtuple
+
+from relion._parser.jobtype import JobType
 
 logger = logging.getLogger("relion._parser.motioncorrection")
 

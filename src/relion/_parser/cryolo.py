@@ -1,7 +1,8 @@
-from relion._parser.jobtype import JobType
-from relion._parser.autopick import ParticlePickerInfo
-import pathlib
 import logging
+import pathlib
+
+from relion._parser.autopick import ParticlePickerInfo
+from relion._parser.jobtype import JobType
 
 logger = logging.getLogger("relion._parser.cryolo")
 

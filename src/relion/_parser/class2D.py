@@ -1,8 +1,8 @@
-from collections import namedtuple
-from collections import Counter
-from operator import attrgetter
-from relion._parser.jobtype import JobType
 import logging
+from collections import Counter, namedtuple
+from operator import attrgetter
+
+from relion._parser.jobtype import JobType
 
 logger = logging.getLogger("relion._parser.class2D")
 

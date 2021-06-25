@@ -1,8 +1,10 @@
-import pytest
-import relion
-import pathlib
 import os
+import pathlib
+
+import pytest
 from gemmi import cif
+
+import relion
 
 
 @pytest.fixture

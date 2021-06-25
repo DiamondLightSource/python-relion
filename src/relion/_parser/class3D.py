@@ -1,8 +1,8 @@
-import pathlib
-from collections import namedtuple
-from collections import Counter
-from relion._parser.jobtype import JobType
 import logging
+import pathlib
+from collections import Counter, namedtuple
+
+from relion._parser.jobtype import JobType
 
 logger = logging.getLogger("relion._parser.class3D")
 

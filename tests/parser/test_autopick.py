@@ -1,7 +1,9 @@
-import pytest
-import relion
 import sys
 from pprint import pprint
+
+import pytest
+
+import relion
 
 
 @pytest.fixture

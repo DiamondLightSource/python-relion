@@ -1,6 +1,7 @@
-import pytest
-import gemmi
 import sys
+
+import gemmi
+import pytest
 
 from relion.cryolo_relion_it import fsc_fitting_external_job
 

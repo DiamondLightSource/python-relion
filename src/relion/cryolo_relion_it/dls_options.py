@@ -18,7 +18,9 @@ cryolo_finetune = False
 
 # Location of the cryolo specific files
 cryolo_config = "/dls_sw/apps/EM/crYOLO/phosaurus_models/config.json"
-cryolo_gmodel = "/dls_sw/apps/EM/crYOLO/phosaurus_models/gmodel_phosnet_202005_N63_c17.h5"
+cryolo_gmodel = (
+    "/dls_sw/apps/EM/crYOLO/phosaurus_models/gmodel_phosnet_202005_N63_c17.h5"
+)
 
 # Running options for cryolo
 cryolo_pick_gpus = "0 1 2 3"
