@@ -119,6 +119,7 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
             # logger.info("Looking for results")
 
             ispyb_command_list = []
+            images_command_list = []
 
             if pathlib.Path(self.params["stop_file"]).is_file():
                 relion_prj.load()
@@ -137,6 +138,7 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
             for fr in relion_prj.results.fresh:
                 curr_res = ispyb_results(fr.stage_object, fr.job_name, self.opts)
                 ispyb_command_list.extend(curr_res)
+                images_command_list.extend(images_msgs(fr.stage_object, fr.job_name))
                 if curr_res:
                     logger.info(f"Fresh results found for {fr.job_name}")
 
@@ -148,6 +150,9 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
                     "ispyb", {"ispyb_command_list": ispyb_command_list}
                 )
                 logger.info("Sent %d commands to ISPyB", len(ispyb_command_list))
+
+            for img in images_command_list:
+                self.recwrap.send_to("images", {"file": img})
 
             ### Extract and send Icebreaker results as histograms if the Icebreaker grouping job has run
             if not self.opts.stop_after_ctf_estimation:
@@ -358,6 +363,28 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
             # if job_finished_file exists:
 
 
+@functools.singedispatch
+def images_msgs(relion_stage_object, job_string: str):
+    logger.debug(f"{relion_stage_object!r} does not have associated images")
+    return []
+
+
+@images_msgs.register(relion.MotionCorr)
+def _(stage_object: relion.MotionCorr, job_string: str):
+    return [
+        micrograph.micrograph_snapshot_full_path.replace(".jpeg", ".mrc")
+        for micrograph in stage_object[job_string]
+    ]
+
+
+@images_msgs.register(relion.CTFFind)
+def _(stage_object: relion.CTFFind, job_string: str):
+    return [
+        ctf_micrograph.diagnostic_plot_path.replace(".jpeg", ".ctf")
+        for ctf_micrograph in stage_object[job_string]
+    ]
+
+
 @functools.singledispatch
 def ispyb_results(
     relion_stage_object, job_string: str, relion_options: RelionItOptions
@@ -388,6 +415,7 @@ def _(stage_object: relion.CTFFind, job_string: str, relion_options: RelionItOpt
                 / 2,
                 "cc_value": ctf_micrograph.fig_of_merit,
                 "amplitude_contrast": ctf_micrograph.amp_contrast,
+                "fft_theoretical_full_path": ctf_micrograph.diagnostic_plot_path,
                 "box_size_x": relion_options.ctffind_boxsize,
                 "box_size_y": relion_options.ctffind_boxsize,
                 "min_resolution": relion_options.ctffind_minres,

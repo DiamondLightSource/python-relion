@@ -1,5 +1,8 @@
 from collections import namedtuple
 from relion._parser.jobtype import JobType
+import logging
+
+logger = logging.getLogger("relion._parser.ctffind")
 
 CTFMicrograph = namedtuple(
     "CTFMicrograph",
@@ -12,6 +15,7 @@ CTFMicrograph = namedtuple(
         "max_resolution",
         "fig_of_merit",
         "amp_contrast",
+        "diagnostic_plot_path",
     ],
 )
 CTFMicrograph.__doc__ = "Contrast Transfer Function stage."
@@ -31,6 +35,9 @@ CTFMicrograph.fig_of_merit.__doc__ = (
     "Figure of merit/CC/correlation value. Confidence of the defocus estimation."
 )
 CTFMicrograph.amp_contrast.__doc__ = "Amplitude contrast."
+CTFMicrograph.diagnostic_plot_path.__doc__ = (
+    "Path to the CTF diagnostic (fit/data comparison) plot (jpeg)."
+)
 
 
 class CTFFind(JobType):
@@ -71,6 +78,7 @@ class CTFFind(JobType):
         fig_of_merit = self.parse_star_file("_rlnCtfFigureOfMerit", file, info_table)
 
         micrograph_name = self.parse_star_file("_rlnMicrographName", file, info_table)
+        ctf_img_path = self.parse_star_file("_rlnCtfImage", file, info_table)
 
         info_table = self._find_table_from_column_name("_rlnAmplitudeContrast", file)
 
@@ -78,6 +86,11 @@ class CTFFind(JobType):
 
         micrograph_list = []
         for j in range(len(micrograph_name)):
+            plot_path = (
+                str(self._basepath.parent / ctf_img_path[j])
+                .split(":")[0]
+                .replace(".ctf", ".jpeg")
+            )
             micrograph_list.append(
                 CTFMicrograph(
                     micrograph_name[j],
@@ -88,6 +101,7 @@ class CTFFind(JobType):
                     max_resolution[j],
                     fig_of_merit[j],
                     amp_contrast[0],
+                    plot_path,
                 )
             )
         return micrograph_list

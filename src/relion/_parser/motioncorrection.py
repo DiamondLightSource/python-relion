@@ -8,6 +8,7 @@ MCMicrograph = namedtuple(
     "MCMicrograph",
     [
         "micrograph_name",
+        "micrograph_snapshot_full_path",
         "micrograph_number",
         "total_motion",
         "early_motion",
@@ -18,6 +19,9 @@ MCMicrograph = namedtuple(
 
 MCMicrograph.__doc__ = "Motion Correction stage."
 MCMicrograph.micrograph_name.__doc__ = "Micrograph name. Useful for reference."
+MCMicrograph.micrograph_snapshot_full_path.__doc__ = (
+    "Path to jpeg of the motion corrected micrograph."
+)
 MCMicrograph.micrograph_number.__doc__ = "Micrograph number: sequential in time."
 MCMicrograph.total_motion.__doc__ = (
     "Total motion. The amount the sample moved during exposure. Units angstrom (A)."
@@ -94,6 +98,9 @@ class MotionCorr(JobType):
             micrograph_list.append(
                 MCMicrograph(
                     micrograph_name[j],
+                    str(self._basepath.parent / micrograph_name[j]).replace(
+                        ".mrc", ".jpeg"
+                    ),
                     j + 1,
                     accum_motion_total[j],
                     accum_motion_early[j],
