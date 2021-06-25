@@ -5,7 +5,13 @@ import sys
 import os
 import numpy as np
 from relion.zocalo.images_service_plugin import mrc_to_jpeg
-from typing import NamedTuple, Callable, Any
+from typing import NamedTuple, Callable, Any, Dict
+
+
+class FunctionParameter(NamedTuple):
+    rw: Any
+    parameters: Callable
+    message: Dict
 
 
 @pytest.fixture
@@ -21,12 +27,28 @@ def plugin_params(jpeg_path):
         }
         return p.get(key)
 
-    class FunctionParameter(NamedTuple):
-        rw: Any
-        parameters: Callable
-        message: dict
+    return FunctionParameter(rw=None, parameters=params, message={})
 
-    return FunctionParameter(None, params, {})
+
+def test_contract_with_images_service():
+    dlstbx_images = pytest.importorskip("dlstbx.services.images")
+
+    # Check that we do not declare any keys that are unknown upstream
+    assert set(FunctionParameter._fields).issubset(
+        dlstbx_images.PluginParameter._fields
+    )
+
+    for key, annotation in FunctionParameter.__annotations__.items():
+        if annotation is Any:
+            continue
+        upstream_type = dlstbx_images.PluginParameter.__annotations__[key]
+        if annotation == upstream_type:
+            continue
+        if not hasattr(annotation, "_name") or not hasattr(upstream_type, "_name"):
+            raise TypeError(
+                f"Upstream type {upstream_type} does not match local type {annotation} for parameter {key}"
+            )
+        assert annotation._name == upstream_type._name
 
 
 @pytest.mark.skipif(sys.platform == "win32", reason="does not run on windows")
