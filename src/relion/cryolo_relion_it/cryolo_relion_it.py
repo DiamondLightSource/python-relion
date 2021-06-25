@@ -1842,51 +1842,52 @@ def load_star(filename):
 
     in_loop = 0  # 0: outside 1: reading colnames 2: reading data
 
-    for line in open(filename):
-        line = line.strip()
+    with open(filename) as fh:
+        for line in fh:
+            line = line.strip()
 
-        # remove comments
-        comment_pos = line.find("#")
-        if comment_pos > 0:
-            line = line[:comment_pos]
+            # remove comments
+            comment_pos = line.find("#")
+            if comment_pos > 0:
+                line = line[:comment_pos]
 
-        if line == "":
-            if in_loop == 2:
-                in_loop = 0
-            continue
+            if line == "":
+                if in_loop == 2:
+                    in_loop = 0
+                continue
 
-        if line.startswith("data_"):
-            in_loop = 0
-
-            data_name = line[5:]
-            current_data = OrderedDict()
-            datasets[data_name] = current_data
-
-        elif line.startswith("loop_"):
-            current_colnames = []
-            in_loop = 1
-
-        elif line.startswith("_"):
-            if in_loop == 2:
+            if line.startswith("data_"):
                 in_loop = 0
 
-            elems = line[1:].split()
-            if in_loop == 1:
-                current_colnames.append(elems[0])
-                current_data[elems[0]] = []
-            else:
-                current_data[elems[0]] = elems[1]
+                data_name = line[5:]
+                current_data = OrderedDict()
+                datasets[data_name] = current_data
 
-        elif in_loop > 0:
-            in_loop = 2
-            elems = line.split()
-            assert len(elems) == len(
-                current_colnames
-            ), "Error in STAR file {}, number of elements in {} does not match number of column names {}".format(
-                filename, elems, current_colnames
-            )
-            for idx, e in enumerate(elems):
-                current_data[current_colnames[idx]].append(e)
+            elif line.startswith("loop_"):
+                current_colnames = []
+                in_loop = 1
+
+            elif line.startswith("_"):
+                if in_loop == 2:
+                    in_loop = 0
+
+                elems = line[1:].split()
+                if in_loop == 1:
+                    current_colnames.append(elems[0])
+                    current_data[elems[0]] = []
+                else:
+                    current_data[elems[0]] = elems[1]
+
+            elif in_loop > 0:
+                in_loop = 2
+                elems = line.split()
+                assert len(elems) == len(
+                    current_colnames
+                ), "Error in STAR file {}, number of elements in {} does not match number of column names {}".format(
+                    filename, elems, current_colnames
+                )
+                for idx, e in enumerate(elems):
+                    current_data[current_colnames[idx]].append(e)
 
     return datasets
 
