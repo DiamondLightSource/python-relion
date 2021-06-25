@@ -540,20 +540,20 @@ important logic is in the `run_pipeline()' function so that's a good place to st
 import argparse
 import ast
 import glob
+import grp
 import inspect
 import math
 import os
+import subprocess
 import time
 import traceback
-import subprocess
-import grp
 
 from . import cryolo_external_job
 
 try:
     import tkinter as tk
-    import tkinter.messagebox
     import tkinter.filedialog
+    import tkinter.messagebox
 except ImportError:
     # The GUI is optional. If the user requests it, it will fail when it tries
     # to open so we can ignore the error for now.
@@ -746,6 +746,12 @@ class RelionItOptions(object):
     motioncor_other_args = ""
     # Submit motion correction job to the cluster?
     motioncor_submit_to_queue = False
+
+    #### Icebreaker
+    do_icebreaker_job_group = True
+    do_icebreaker_job_flatten = True
+    do_icebreaker_group = True
+    icebreaker_threads_number = 10
 
     ### CTF estimation parameters
     # Amplitude contrast (Q0)
@@ -1836,51 +1842,52 @@ def load_star(filename):
 
     in_loop = 0  # 0: outside 1: reading colnames 2: reading data
 
-    for line in open(filename):
-        line = line.strip()
+    with open(filename) as fh:
+        for line in fh:
+            line = line.strip()
 
-        # remove comments
-        comment_pos = line.find("#")
-        if comment_pos > 0:
-            line = line[:comment_pos]
+            # remove comments
+            comment_pos = line.find("#")
+            if comment_pos > 0:
+                line = line[:comment_pos]
 
-        if line == "":
-            if in_loop == 2:
-                in_loop = 0
-            continue
+            if line == "":
+                if in_loop == 2:
+                    in_loop = 0
+                continue
 
-        if line.startswith("data_"):
-            in_loop = 0
-
-            data_name = line[5:]
-            current_data = OrderedDict()
-            datasets[data_name] = current_data
-
-        elif line.startswith("loop_"):
-            current_colnames = []
-            in_loop = 1
-
-        elif line.startswith("_"):
-            if in_loop == 2:
+            if line.startswith("data_"):
                 in_loop = 0
 
-            elems = line[1:].split()
-            if in_loop == 1:
-                current_colnames.append(elems[0])
-                current_data[elems[0]] = []
-            else:
-                current_data[elems[0]] = elems[1]
+                data_name = line[5:]
+                current_data = OrderedDict()
+                datasets[data_name] = current_data
 
-        elif in_loop > 0:
-            in_loop = 2
-            elems = line.split()
-            assert len(elems) == len(
-                current_colnames
-            ), "Error in STAR file {}, number of elements in {} does not match number of column names {}".format(
-                filename, elems, current_colnames
-            )
-            for idx, e in enumerate(elems):
-                current_data[current_colnames[idx]].append(e)
+            elif line.startswith("loop_"):
+                current_colnames = []
+                in_loop = 1
+
+            elif line.startswith("_"):
+                if in_loop == 2:
+                    in_loop = 0
+
+                elems = line[1:].split()
+                if in_loop == 1:
+                    current_colnames.append(elems[0])
+                    current_data[elems[0]] = []
+                else:
+                    current_data[elems[0]] = elems[1]
+
+            elif in_loop > 0:
+                in_loop = 2
+                elems = line.split()
+                assert len(elems) == len(
+                    current_colnames
+                ), "Error in STAR file {}, number of elements in {} does not match number of column names {}".format(
+                    filename, elems, current_colnames
+                )
+                for idx, e in enumerate(elems):
+                    current_data[current_colnames[idx]].append(e)
 
     return datasets
 
@@ -2095,20 +2102,20 @@ def scheduleJobsFSC(
     # calculate a mask radius that is 0.98 of that used in the reconstruct_halves job
     mask_outer_radius = math.floor(0.98 * opts.mask_diameter / (2 * curr_angpix))
 
-    job_name = f"mask_soft_edge"
+    job_name = "mask_soft_edge"
     options = [
-        f"External executable: == external_job_mask_soft_edge",
-        f"Param1 - label: == out_dir",
-        f"Param1 - value: == External/MaskSoftEdge",
-        f"Param2 - label: == box_size",
+        "External executable: == external_job_mask_soft_edge",
+        "Param1 - label: == out_dir",
+        "Param1 - value: == External/MaskSoftEdge",
+        "Param2 - label: == box_size",
         f"Param2 - value: == {curr_boxsize}",
-        f"Param3 - label: == angpix",
+        "Param3 - label: == angpix",
         f"Param3 - value: == {curr_angpix}",
-        f"Param4 - label: == outer_radius",
+        "Param4 - label: == outer_radius",
         f"Param4 - value: == {mask_outer_radius}",
     ]
     mask_soft_job, already_had_it = addJob(
-        "External", job_name, SETUP_CHECK_FILE, options, alias=f"MaskSoftEdge"
+        "External", job_name, SETUP_CHECK_FILE, options, alias="MaskSoftEdge"
     )
 
     outjobs.append(mask_soft_job)
@@ -2116,15 +2123,15 @@ def scheduleJobsFSC(
     for iclass in range(0, len(model_star["model_classes"]["rlnReferenceImage"])):
         job_name = f"select_and_split_{iclass+1}"
         options = [
-            f"External executable: == external_job_select_and_split",
+            "External executable: == external_job_select_and_split",
             f"Input micrographs:  == {data_star_file}",
-            f"Param1 - label: == in_dir",
+            "Param1 - label: == in_dir",
             f"Param1 - value: == {inimodel_job}",
-            f"Param2 - label: == out_dir",
+            "Param2 - label: == out_dir",
             f"Param2 - value: == External/SelectAndSplit_{iclass+1}",
-            f"Param3 - label: == outfile",
+            "Param3 - label: == outfile",
             f"Param3 - value: == particles_class{iclass+1}.star",
-            f"Param4 - label: == class_number",
+            "Param4 - label: == class_number",
             f"Param4 - value: == {iclass+1}",
         ]
         select_split_job, already_had_it = addJob(
@@ -2137,17 +2144,17 @@ def scheduleJobsFSC(
 
         job_name = f"reconstruct_halves_{iclass+1}"
         options = [
-            f"External executable: == external_job_reconstruct_halves",
+            "External executable: == external_job_reconstruct_halves",
             f"Input micrographs:  == External/SelectAndSplit_{iclass+1}/particles_class{iclass+1}.star",
-            f"Param1 - label: == in_dir",
+            "Param1 - label: == in_dir",
             f"Param1 - value: == External/SelectAndSplit_{iclass+1}",
-            f"Param2 - label: == out_dir",
+            "Param2 - label: == out_dir",
             f"Param2 - value: == External/ReconstructHalves_{iclass+1}",
-            f"Param3 - label: == i",
+            "Param3 - label: == i",
             f"Param3 - value: == particles_class{iclass+1}.star",
-            f"Param4 - label: == mask_diameter",
+            "Param4 - label: == mask_diameter",
             f"Param4 - value: == {opts.mask_diameter}",
-            f"Param5 - label: == class_number",
+            "Param5 - label: == class_number",
             f"Param5 - value: == {iclass+1}",
         ]
         options.extend(queue_opts)
@@ -2161,11 +2168,11 @@ def scheduleJobsFSC(
 
         job_name = f"postprocessing_{iclass+1}"
         options = [
-            f"Solvent mask: == External/MaskSoftEdge/mask.mrc",
+            "Solvent mask: == External/MaskSoftEdge/mask.mrc",
             f"One of the 2 unfiltered half-maps: == External/ReconstructHalves_{iclass+1}/3d_half1_model{iclass+1}.mrc",
             f"Calibrated pixel size (A) == {curr_angpix}",
-            f"Estimate B-factor automatically? == Yes",
-            f"Lowest resolution for auto-B fit (A): == 10",
+            "Estimate B-factor automatically? == Yes",
+            "Lowest resolution for auto-B fit (A): == 10",
         ]
         options.extend(queue_opts)
 
@@ -2183,11 +2190,11 @@ def scheduleJobsFSC(
 
     job_name = "fsc_fitting"
     options = [
-        f"External executable: == external_job_fsc_fitting",
-        f"Param1 - label: == i",
+        "External executable: == external_job_fsc_fitting",
+        "Param1 - label: == i",
         f"Param1 - value: == {fsc_files}",
-        f"Param2 - label: == out_dir",
-        f"Param2 - value: == External/FSCFitting",
+        "Param2 - label: == out_dir",
+        "Param2 - value: == External/FSCFitting",
     ]
     fsc_fitting_job, already_had_it = addJob(
         "External", job_name, SETUP_CHECK_FILE, options, alias="FSCFitting"
@@ -2390,6 +2397,46 @@ def run_pipeline(opts):
                 "MotionCorr", "motioncorr_job", SETUP_CHECK_FILE, motioncorr_options
             )
 
+        #### Set up Icebreaker job - group
+        if opts.do_icebreaker_job_group:
+            icebreaker_options = [
+                "External executable: == ib_job.py",
+                f"Input micrographs:  == {motioncorr_job}corrected_micrographs.star",
+                "Param1 - label: == o",
+                "Param1 - value: == External/Icebreaker_G",
+                "Param2 - label: == mode",
+                "Param2 - value: == group",
+                "Param3 - label: == j",
+                f"Param3 - value: == {opts.icebreaker_threads_number}",
+            ]
+            icebreaker_job_group, already_had_it = addJob(
+                "External",
+                "icebreaker_job_group",
+                SETUP_CHECK_FILE,
+                icebreaker_options,
+                alias="Icebreaker_G",
+            )
+
+        ####Set up Icebreaker job - flatten
+        if opts.do_icebreaker_job_flatten:
+            icebreaker_options = [
+                "External executable: == ib_job.py",
+                f"Input micrographs:  == {motioncorr_job}corrected_micrographs.star",
+                "Param1 - label: == o",
+                "Param1 - value: == External/Icebreaker_F",
+                "Param2 - label: == mode",
+                "Param2 - value: == flatten",
+                "Param3 - label: == j",
+                f"Param3 - value: == {opts.icebreaker_threads_number}",
+            ]
+            icebreaker_job_flatten, already_had_it = addJob(
+                "External",
+                "icebreaker_job_flatten",
+                SETUP_CHECK_FILE,
+                icebreaker_options,
+                alias="Icebreaker_F",
+            )
+
         #### Set up the CtfFind job
         ctffind_options = [
             "Amount of astigmatism (A): == {}".format(opts.ctffind_astigmatism),
@@ -2453,6 +2500,10 @@ def run_pipeline(opts):
         runjobs = [import_job]
         if opts.images_are_movies:
             runjobs.append(motioncorr_job)
+        if opts.do_icebreaker_job_group:
+            runjobs.append(icebreaker_job_group)
+        if opts.do_icebreaker_job_flatten:
+            runjobs.append(icebreaker_job_flatten)
         runjobs.append(ctffind_job)
 
         # There is an option to stop on-the-fly processing after CTF estimation
@@ -2660,6 +2711,29 @@ def run_pipeline(opts):
                 alias=extract_alias,
             )
             runjobs.append(extract_job)
+
+            #### Set up Icebreaker grouping job
+            if opts.do_icebreaker_group and opts.do_icebreaker_job_group:
+                icebreaker_group_options = [
+                    "External executable: == ib_group.py",
+                    f"Input micrographs:  == {icebreaker_job_group}grouped_micrographs.star",
+                    "Param1 - label: == o",
+                    "Param1 - value: == External/Icebreaker_group",
+                    "Param2 - label: == in_parts",
+                    f"Param2 - value: == {extract_job}particles.star",
+                    "Param3 - label: == j",
+                    f"Param3 - value: == {opts.icebreaker_threads_number}",
+                ]
+                icebreaker_group_job, already_had_it = addJob(
+                    "External",
+                    "icebreaker_group_job",
+                    SETUP_CHECK_FILE,
+                    icebreaker_group_options,
+                    alias="Icebreaker_group",
+                )
+
+            if opts.do_icebreaker_group and opts.do_icebreaker_job_group:
+                runjobs.append(icebreaker_group_job)
 
             if (ipass == 0 and (opts.do_class2d or opts.do_class3d)) or (
                 ipass == 1 and (opts.do_class2d_pass2 or opts.do_class3d_pass2)

@@ -4,13 +4,15 @@ import functools
 import logging
 import os
 import pathlib
-import relion
 import threading
 import time
+from pprint import pprint
+
 import zocalo.util.symlink
 import zocalo.wrapper
-from pprint import pprint
-from relion.cryolo_relion_it import cryolo_relion_it, dls_options
+
+import relion
+from relion.cryolo_relion_it import cryolo_relion_it, dls_options, icebreaker_histogram
 from relion.cryolo_relion_it.cryolo_relion_it import RelionItOptions
 
 logger = logging.getLogger("relion.zocalo.wrapper")
@@ -106,6 +108,8 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
 
         preproc_recently_run = False
         processing_ended = False
+        should_send_icebreaker = True
+        icebreaker_particles_star_file_found = False
 
         while (
             self._relion_subthread.is_alive() or preprocess_check.is_file()
@@ -149,6 +153,30 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
 
             for img in images_command_list:
                 self.recwrap.send_to("images", {"file": img})
+
+            ### Extract and send Icebreaker results as histograms if the Icebreaker grouping job has run
+            if not self.opts.stop_after_ctf_estimation:
+                attachment_list = []
+                try:
+                    pdf_file_path = icebreaker_histogram.create_pdf_histogram(
+                        self.working_directory
+                    )
+                    json_file_path = icebreaker_histogram.create_json_histogram(
+                        self.working_directory
+                    )
+                    if should_send_icebreaker and pdf_file_path and json_file_path:
+                        attachment_list.append(
+                            ispyb_attachment(json_file_path, "Graph")
+                        )
+                        attachment_list.append(ispyb_attachment(pdf_file_path, "Graph"))
+                        logger.info(f"Sending ISPyB attachments {attachment_list}")
+                        self.recwrap.send_to(
+                            "ispyb", {"ispyb_command_list": attachment_list}
+                        )
+                        should_send_icebreaker = False
+                        icebreaker_particles_star_file_found = True
+                except (RuntimeError, ValueError):
+                    logger.error("Error creating Icebreaker histogram.")
 
             # if Relion has been running too long stop loop of preprocessing jobs
             try:
@@ -214,6 +242,8 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
             ):
                 all_process_check.unlink()
 
+        if not icebreaker_particles_star_file_found:
+            logger.warning("No particles.star file found for Icebreaker grouping.")
         logger.info("Done.")
         success = True
 
@@ -272,7 +302,7 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
         pprint(self.params["ispyb_parameters"])
 
         # Prepare options object
-        opts = cryolo_relion_it.RelionItOptions()
+        opts = RelionItOptions()
         opts.update_from(vars(dls_options))
         opts.update_from(self.params["ispyb_parameters"])
 
@@ -525,3 +555,12 @@ def _(stage_object: relion.Class3D, job_string: str, relion_options: RelionItOpt
             }
         )
     return ispyb_command_list
+
+
+def ispyb_attachment(attachment_path_object, file_type):
+    return {
+        "ispyb_command": "add_program_attachment",
+        "file_name": os.fspath(attachment_path_object.name),
+        "file_path": os.fspath(attachment_path_object.parent),
+        "file_type": file_type,
+    }
