@@ -15,3 +15,33 @@ the entry relationships should be.
 
 An ``sqlalchemy`` ISPyB ORM is available as part of the ``ispyb`` `API package <https://github.com/DiamondLightSource/ispyb-api>`_ 
 and we make use of this to keep up to date with the available ISPyB columns.
+
+------
+Tables
+------
+
+The ``relion.dbmodel.modeltables.Table`` class allows rows to be added to a table with defined 
+columns while maintaining the uniqueness of entries under set conditions in order to avoid duplication. 
+On initialisation of a ``Table`` instance a single primary key must be specified . When a row is added 
+(with the ``add_row`` method) if the value of the primary key is not specified for the new row (i.e. 
+it is left as ``None``) then the primary key is auto-incremented. On initialisation there is also the 
+option to specify "unique" columns. The table will not insert a new row if a row already exists with the 
+same entries for the "unique" columns (even if the value of the primary key is not provided); instead it 
+will perform an update of the existing row. 
+
+An exaple of a ``Table`` definition for the ``ParticleClassification`` table is:
+
+.. code_block:: python 
+
+    class ParticleClassificationTable(Table):
+        def __init__(self):
+            columns = [
+                to_snake_case(c)
+                for c in ispyb.sqlalchemy.ParticleClassification.__table__.columns.keys()
+            ]
+            columns.append("job_string")
+            prim_key = get_prim_key(ispyb.sqlalchemy.ParticleClassification)
+            super().__init__(columns, prim_key, unique=["job_string", "class_number"])
+
+The ``"job_string"`` column which is added here, extraneously to the columns that exist in ISPyB, 
+is useful for keeping track of which results belong to which Relion job.
