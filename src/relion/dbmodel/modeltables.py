@@ -178,8 +178,17 @@ def parse_sqlalchemy_table(sa_table):
 
 class MotionCorrectionTable(Table):
     def __init__(self):
+<<<<<<< 039d679c82f57bd383f26132f9fa0f01fd010c6e
         columns, prim_key = parse_sqlalchemy_table(sqlalchemy.MotionCorrection)
         columns.append("job_string")
+=======
+        columns = [
+            to_snake_case(c)
+            for c in ispyb.sqlalchemy.MotionCorrection.__table__.columns.keys()
+        ]
+        columns.append("job_string")
+        prim_key = get_prim_key(ispyb.sqlalchemy.MotionCorrection)
+>>>>>>> Doubt this will fix the tests but giving it a go
         super().__init__(
             columns,
             prim_key,
@@ -190,7 +199,14 @@ class MotionCorrectionTable(Table):
 
 class CTFTable(Table):
     def __init__(self):
+<<<<<<< 039d679c82f57bd383f26132f9fa0f01fd010c6e
         columns, prim_key = parse_sqlalchemy_table(sqlalchemy.CTF)
+=======
+        columns = [
+            to_snake_case(c) for c in ispyb.sqlalchemy.CTF.__table__.columns.keys()
+        ]
+        prim_key = get_prim_key(ispyb.sqlalchemy.CTF)
+>>>>>>> Doubt this will fix the tests but giving it a go
         super().__init__(
             columns,
             prim_key,
@@ -201,6 +217,7 @@ class CTFTable(Table):
 
 class ParticlePickerTable(Table):
     def __init__(self):
+<<<<<<< 039d679c82f57bd383f26132f9fa0f01fd010c6e
         columns, prim_key = parse_sqlalchemy_table(sqlalchemy.ParticlePicker)
         columns.extend(
             [
@@ -209,6 +226,16 @@ class ParticlePickerTable(Table):
                 "job_string",
             ]
         )
+=======
+        columns = [
+            to_snake_case(c)
+            for c in ispyb.sqlalchemy.ParticlePicker.__table__.columns.keys()
+        ]
+        columns.append("micrograph_full_path")
+        columns.append("first_motion_correction_micrograph")
+        columns.append("job_string")
+        prim_key = get_prim_key(ispyb.sqlalchemy.ParticlePicker)
+>>>>>>> Doubt this will fix the tests but giving it a go
         super().__init__(
             columns, prim_key, unique=["micrograph_full_path", "job_string"]
         )
@@ -216,24 +243,51 @@ class ParticlePickerTable(Table):
 
 class ParticleClassificationGroupTable(Table):
     def __init__(self):
+<<<<<<< 039d679c82f57bd383f26132f9fa0f01fd010c6e
         columns, prim_key = parse_sqlalchemy_table(
             sqlalchemy.ParticleClassificationGroup
         )
         columns.append("job_string")
+=======
+        columns = [
+            to_snake_case(c)
+            for c in ispyb.sqlalchemy.ParticleClassificationGroup.__table__.columns.keys()
+        ]
+        columns.append("job_string")
+        prim_key = get_prim_key(ispyb.sqlalchemy.ParticleClassificationGroup)
+>>>>>>> Doubt this will fix the tests but giving it a go
         super().__init__(columns, prim_key, unique="job_string")
 
 
 class ParticleClassificationTable(Table):
     def __init__(self):
+<<<<<<< 039d679c82f57bd383f26132f9fa0f01fd010c6e
         columns, prim_key = parse_sqlalchemy_table(sqlalchemy.ParticleClassification)
         columns.append("job_string")
+=======
+        columns = [
+            to_snake_case(c)
+            for c in ispyb.sqlalchemy.ParticleClassification.__table__.columns.keys()
+        ]
+        columns.append("job_string")
+        prim_key = get_prim_key(ispyb.sqlalchemy.ParticleClassification)
+>>>>>>> Doubt this will fix the tests but giving it a go
         super().__init__(columns, prim_key, unique=["job_string", "class_number"])
 
 
 class CryoemInitialModelTable(Table):
     def __init__(self):
+<<<<<<< 039d679c82f57bd383f26132f9fa0f01fd010c6e
         columns, prim_key = parse_sqlalchemy_table(sqlalchemy.CryoemInitialModel)
         columns.append("ini_model_job_string")
+=======
+        columns = [
+            to_snake_case(c)
+            for c in ispyb.sqlalchemy.CryoemInitialModel.__table__.columns.keys()
+        ]
+        columns.append("ini_model_job_string")
+        prim_key = get_prim_key(ispyb.sqlalchemy.CryoemInitialModel)
+>>>>>>> Doubt this will fix the tests but giving it a go
         super().__init__(
             columns,
             prim_key,
