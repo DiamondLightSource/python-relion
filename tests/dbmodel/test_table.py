@@ -2,6 +2,7 @@ import random
 
 import pytest
 
+<<<<<<< fc302bcdc44edf1c439634d44b723f5d2705905e
 from relion.dbmodel.modeltables import MotionCorrectionTable, Table, WrapperID
 
 
@@ -14,6 +15,9 @@ def fake_table_minimal():
         columns,
         "primary_id",
     )
+=======
+from relion.dbmodel.modeltables import PID, Table
+>>>>>>> Remove some extraneous stuff and add more documentation
 
 
 @pytest.fixture
@@ -132,9 +136,15 @@ def test_columns_correctly_initialised(fake_table):
     assert fake_table._counters == ["count"]
 
 
+<<<<<<< fc302bcdc44edf1c439634d44b723f5d2705905e
 def test_adding_first_row(fake_table, unique_value):
     base_id = next(WrapperID)
     fake_table.add_row({"unique_value": unique_value, "comment": "first insert"})
+=======
+def test_adding_first_row(fake_table):
+    PID.reset(1)
+    fake_table.add_row({"unique_value": 1, "comment": "first insert"})
+>>>>>>> Remove some extraneous stuff and add more documentation
     for columns in fake_table._tab.values():
         assert len(columns) == 1
     assert fake_table._tab["primary_id"] == [base_id + 1]
@@ -143,6 +153,7 @@ def test_adding_first_row(fake_table, unique_value):
     assert fake_table._tab["comment"] == ["first insert"]
 
 
+<<<<<<< fc302bcdc44edf1c439634d44b723f5d2705905e
 def test_get_item(fake_table, unique_value):
     fake_table.add_row({"unique_value": unique_value, "comment": "first insert"})
     assert fake_table["unique_value"] == [unique_value]
@@ -152,6 +163,18 @@ def test_adding_second_new_row(fake_table, unique_value):
     base_id = next(WrapperID)
     fake_table.add_row({"unique_value": unique_value, "comment": "first insert"})
     fake_table.add_row({"unique_value": unique_value + 1, "comment": "second insert"})
+=======
+def test_get_item(fake_table):
+    PID.reset(1)
+    fake_table.add_row({"unique_value": 1, "comment": "first insert"})
+    assert fake_table["unique_value"] == [1]
+
+
+def test_adding_second_new_row(fake_table):
+    PID.reset(1)
+    fake_table.add_row({"unique_value": 1, "comment": "first insert"})
+    fake_table.add_row({"unique_value": 2, "comment": "second insert"})
+>>>>>>> Remove some extraneous stuff and add more documentation
     for columns in fake_table._tab.values():
         assert len(columns) == 2
     assert fake_table._tab["primary_id"] == [base_id + 1, base_id + 2]
@@ -160,12 +183,19 @@ def test_adding_second_new_row(fake_table, unique_value):
     assert fake_table._tab["comment"] == ["first insert", "second insert"]
 
 
+<<<<<<< fc302bcdc44edf1c439634d44b723f5d2705905e
 def test_adding_row_twice_returns_none(fake_table, unique_value):
     base_id = next(WrapperID)
     fake_table.add_row({"unique_value": unique_value, "comment": "first insert"})
     pid_insert = fake_table.add_row(
         {"unique_value": unique_value, "comment": "first insert"}
     )
+=======
+def test_adding_row_twice_returns_none(fake_table):
+    PID.reset(1)
+    fake_table.add_row({"unique_value": 1, "comment": "first insert"})
+    pid_insert = fake_table.add_row({"unique_value": 1, "comment": "first insert"})
+>>>>>>> Remove some extraneous stuff and add more documentation
     for columns in fake_table._tab.values():
         assert len(columns) == 1
     assert fake_table._tab["primary_id"] == [base_id + 1]
@@ -175,12 +205,19 @@ def test_adding_row_twice_returns_none(fake_table, unique_value):
     assert pid_insert is None
 
 
+<<<<<<< fc302bcdc44edf1c439634d44b723f5d2705905e
 def test_adding_second_conflicting_row(fake_table, unique_value):
     base_id = next(WrapperID)
     fake_table.add_row({"unique_value": unique_value, "comment": "first insert"})
     pid_insert = fake_table.add_row(
         {"unique_value": unique_value, "comment": "new insert"}
     )
+=======
+def test_adding_second_conflicting_row(fake_table):
+    PID.reset(1)
+    fake_table.add_row({"unique_value": 1, "comment": "first insert"})
+    pid_insert = fake_table.add_row({"unique_value": 1, "comment": "new insert"})
+>>>>>>> Remove some extraneous stuff and add more documentation
     for columns in fake_table._tab.values():
         assert len(columns) == 1
     assert fake_table._tab["primary_id"] == [base_id + 1]
