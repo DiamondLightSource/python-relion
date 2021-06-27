@@ -19,7 +19,7 @@ class ProcessID:
         self.id = start
 
 
-pid = ProcessID(1)
+PID = ProcessID(1)
 
 
 class Table:
@@ -90,7 +90,7 @@ class Table:
             modified = True
             for c in self.columns:
                 if c == self._primary_key:
-                    self._tab[c].append(row.get(c) or pid())
+                    self._tab[c].append(row.get(c) or PID())
                 else:
                     self._tab[c].append(row.get(c))
         else:
@@ -302,13 +302,7 @@ def _(
     relion_options,
     row,
 ):
-    if end_time is None:
-        return
-    if (
-        primary_table._last_update[source] is None
-        or end_time > primary_table._last_update[source]
-    ):
-        primary_table._last_update[source] = end_time
+
     row.update(
         {
             "dose_per_frame": relion_options.motioncor_doseperframe,
@@ -328,13 +322,6 @@ def _(
     relion_options,
     row,
 ):
-    if end_time is None:
-        return
-    if (
-        primary_table._last_update[source] is None
-        or end_time > primary_table._last_update[source]
-    ):
-        primary_table._last_update[source] = end_time
 
     row.update(
         {
@@ -360,13 +347,7 @@ def _(
     relion_options,
     row,
 ):
-    if end_time is None:
-        return
-    if (
-        primary_table._last_update[source] is None
-        or end_time > primary_table._last_update[source]
-    ):
-        primary_table._last_update[source] = end_time
+
     row.update(
         {
             "particle_picking_template": relion_options.cryolo_gmodel,
@@ -390,13 +371,7 @@ def _(
     relion_options,
     row,
 ):
-    if end_time is None:
-        return
-    if (
-        primary_table._last_update[source] is None
-        or end_time > primary_table._last_update[source]
-    ):
-        primary_table._last_update[source] = end_time
+
     row.update(
         {
             "number_of_particles_per_batch": relion_options.batch_size,
@@ -416,13 +391,7 @@ def _(
     relion_options,
     row,
 ):
-    if end_time is None:
-        return
-    if (
-        primary_table._last_update[source] is None
-        or end_time > primary_table._last_update[source]
-    ):
-        primary_table._last_update[source] = end_time
+
     pid = primary_table.add_row(row)
     return pid
 
@@ -435,13 +404,7 @@ def _(
     relion_options,
     row,
 ):
-    if end_time is None:
-        return
-    if (
-        primary_table._last_update[source] is None
-        or end_time > primary_table._last_update[source]
-    ):
-        primary_table._last_update[source] = end_time
+
     row["number_of_particles"] = row["init_model_number_of_particles"][
         row["init_model_class_num"]
     ]

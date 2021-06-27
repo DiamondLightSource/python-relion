@@ -43,5 +43,13 @@ An exaple of a ``Table`` definition for the ``ParticleClassification`` table is:
             prim_key = get_prim_key(ispyb.sqlalchemy.ParticleClassification)
             super().__init__(columns, prim_key, unique=["job_string", "class_number"])
 
-The ``"job_string"`` column which is added here, extraneously to the columns that exist in ISPyB, 
-is useful for keeping track of which results belong to which Relion job.
+(The ISPyB column names are changed from camel to snake case here.) The ``"job_string"`` column which is 
+added here, extraneously to the columns that exist in ISPyB, is useful for keeping track of which results 
+belong to which Relion job. The ``unique`` key word argument is used to specify that only one row can exist 
+for a given combination of ``job_string`` and ``class_number``, i.e. for each classification job there can 
+only be one record for each class number.
+
+In addition, a column can be set to auto-increment with the ``counters`` key word in ``Table`` initialisation. 
+This is used, for example, in the ``MotionCorrection`` table which contains an ``image_number`` column which 
+needs to be a unique integer for each micrograph. An appendable column may be specified with the ``append`` 
+keyword. For these columns values are appended to a list rather than updated.
