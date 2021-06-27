@@ -31,7 +31,7 @@ will perform an update of the existing row.
 
 An exaple of a ``Table`` definition for the ``ParticleClassification`` table is:
 
-.. code_block:: python 
+.. code-block:: python 
 
     class ParticleClassificationTable(Table):
         def __init__(self):
