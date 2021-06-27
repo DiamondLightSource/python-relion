@@ -1,7 +1,7 @@
 import functools
 import re
 
-import ispyb.sqlalchemy as tabs
+from ispyb import sqlalchemy as tabs
 
 # if we replace uuid with count do not include 0 in the count because it will break some bool checks for None
 
