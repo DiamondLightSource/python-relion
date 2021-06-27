@@ -1,9 +1,10 @@
-import webbrowser
-import platform
-import pathlib
-import subprocess
-from relion import Project
 import argparse
+import pathlib
+import platform
+import subprocess
+import webbrowser
+
+from relion import Project
 
 
 def run():

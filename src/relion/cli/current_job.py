@@ -1,6 +1,7 @@
-from relion import Project
 import argparse
 import pathlib
+
+from relion import Project
 
 
 def run():

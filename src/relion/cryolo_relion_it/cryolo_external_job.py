@@ -15,14 +15,13 @@ import datetime
 import json
 import os
 import os.path
+import pathlib
 import platform
 import shutil
 import subprocess
 import sys
-import pathlib
 
 import gemmi
-
 
 RELION_JOB_FAILURE_FILENAME = "RELION_JOB_EXIT_FAILURE"
 RELION_JOB_SUCCESS_FILENAME = "RELION_JOB_EXIT_SUCCESS"

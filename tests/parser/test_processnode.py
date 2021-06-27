@@ -1,6 +1,8 @@
-import pytest
-from relion._parser.processnode import ProcessNode
 import pathlib
+
+import pytest
+
+from relion._parser.processnode import ProcessNode
 
 
 @pytest.fixture

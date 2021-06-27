@@ -1,8 +1,9 @@
-import mrcfile
-import PIL.Image
-import pathlib
-import numpy as np
 import logging
+import pathlib
+
+import mrcfile
+import numpy as np
+import PIL.Image
 
 logger = logging.getLogger("relion.zocalo.images_service_plugin")
 

@@ -1,8 +1,8 @@
 import json
 import os
+import pathlib
 import sys
 from unittest import mock
-import pathlib
 
 import gemmi
 

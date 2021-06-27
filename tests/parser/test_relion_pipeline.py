@@ -1,9 +1,11 @@
-import pytest
-from relion._parser.processnode import ProcessNode
-from relion._parser.processgraph import ProcessGraph
-from relion._parser.relion_pipeline import RelionPipeline
 import pathlib
 import sys
+
+import pytest
+
+from relion._parser.processgraph import ProcessGraph
+from relion._parser.processnode import ProcessNode
+from relion._parser.relion_pipeline import RelionPipeline
 
 
 @pytest.fixture

@@ -1,5 +1,5 @@
-import pathlib
 import functools
+import pathlib
 
 
 @functools.total_ordering

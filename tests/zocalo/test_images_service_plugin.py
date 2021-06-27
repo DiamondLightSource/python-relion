@@ -1,11 +1,13 @@
-import pytest
-import relion
-import mrcfile
-import sys
 import os
+import sys
+from typing import Any, Callable, Dict, NamedTuple
+
+import mrcfile
 import numpy as np
+import pytest
+
+import relion
 from relion.zocalo.images_service_plugin import mrc_to_jpeg
-from typing import NamedTuple, Callable, Any, Dict
 
 
 class FunctionParameter(NamedTuple):
