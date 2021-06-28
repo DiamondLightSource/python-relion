@@ -46,28 +46,21 @@ class Table:
                 self._unique = unique
         else:
             self._unique = unique
-        if counters is not None:
-            if isinstance(counters, str):
-                self._counters = [counters]
-            else:
-                self._counters = counters
-        else:
-            self._counters = []
-        if append is None:
-            self._append = []
-        elif isinstance(append, list):
-            self._append = append
-        else:
-            self._append = [append]
-        if required is None:
-            self._required = []
-        elif isinstance(required, list):
-            self._required = required
-        else:
-            self._required = [required]
+        self._unique = self._make_list(unique, default=None)
+        self._counters = self._make_list(counters)
+        self._append = self._make_list(append)
+        self._required = self._make_list(required)
 
     def __getitem__(self, key):
         return self._tab[key]
+
+    @staticmethod
+    def _make_list(elem, default=[]):
+        if elem is None:
+            return default
+        elif isinstance(elem, list):
+            return elem
+        return [elem]
 
     def add_row(self, row):
 
