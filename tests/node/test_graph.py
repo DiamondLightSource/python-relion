@@ -172,6 +172,12 @@ def test_process_graph_merge_does_not_merge_if_merging_graph_is_not_connected_to
     assert not merged
 
 
+def test_calling_graph_gives_results_for_all_nodes(node, graph):
+    graph()
+    assert len(graph._call_returns.values()) == len(graph.nodes)
+    assert graph._call_returns[node.nodeid] is None
+
+
 @mock.patch("relion.node.graph.Digraph")
 def test_process_graph_show_all_nodes(mock_Digraph, graph):
     graph.show()
