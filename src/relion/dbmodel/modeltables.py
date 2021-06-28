@@ -84,18 +84,25 @@ class Table:
                 index = self._tab[self._primary_key].index(prim_key_arg)
                 row[counter] = self._tab[counter][index]
 
+        # if no primary key is specified and the uniqueness check has not returned one then add the row
+        # with a new primary key id
         if prim_key_arg is None or prim_key_arg not in self._tab[self._primary_key]:
             modified = True
             for c in self.columns:
                 if c == self._primary_key:
-                    self._tab[c].append(row.get(c) or PID())
+                    self._tab[c].append(prim_key_arg or PID())
                 else:
                     self._tab[c].append(row.get(c))
+        # otherwise use existing primary key
         else:
             index = self._tab[self._primary_key].index(prim_key_arg)
             for c in self.columns:
                 if c != self._primary_key:
                     if self._tab[c][index] != row.get(c):
+                        # if column c is marked for appending to then append to it:
+                        # if current value is a list and the new row value is a list then combine lists
+                        # otherwise create a list out of the combination of the two
+                        # only allow unique elements in the list
                         if c in self._append:
                             if row.get(c) is not None:
                                 if not isinstance(self._tab[c][index], list):
@@ -122,6 +129,7 @@ class Table:
         else:
             return
 
+    # check if the row being added has already existing values for the columns marked as unique
     def _unique_check(self, in_values):
         try:
             unique_indices = []
