@@ -97,34 +97,22 @@ class Table:
                 if c != self._primary_key:
                     if self._tab[c][index] != row.get(c):
                         if c in self._append:
-                            if isinstance(self._tab[c][index], list) and isinstance(
-                                row.get(c), list
-                            ):
-                                for n in row.get(c):
-                                    if n not in self._tab[c][index]:
-                                        modified = True
-                                        self._tab[c][index].append(n)
-                            elif isinstance(self._tab[c][index], list):
-                                if row.get(c) not in self._tab[c][index]:
-                                    modified = True
+                            if row.get(c) is not None:
+                                if not isinstance(self._tab[c][index], list):
+                                    self._tab[c][index] = [self._tab[c][index]]
+                                try:
+                                    self._tab[c][index].extend(row.get(c))
+                                    self._tab[c][index] = list(set(self._tab[c][index]))
+                                except TypeError:
                                     self._tab[c][index].append(row.get(c))
-                            elif isinstance(row.get(c), list):
-                                self._tab[c][index] = [self._tab[c][index]]
-                                for n in row.get(c):
-                                    if n not in self._tab[c][index]:
-                                        modified = True
-                                        self._tab[c][index].append(n)
-                                if len(self._tab[c][index]) == 1:
-                                    self._tab[c][index] = self._tab[c][index][0]
-                            else:
+                                    self._tab[c][index] = list(set(self._tab[c][index]))
+
                                 modified = True
-                                self._tab[c][index] = [
-                                    self._tab[c][index],
-                                    row.get(c),
-                                ]
                         else:
                             modified = True
-                            self._tab[c][index] = row.get(c)
+                            if self._tab[c][index] != row.get(c):
+                                modified = True
+                                self._tab[c][index] = row.get(c)
 
         if modified:
             if prim_key_arg is None:
