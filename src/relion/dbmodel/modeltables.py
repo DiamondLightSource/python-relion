@@ -51,6 +51,10 @@ class Table:
             if row.get(req) is None:
                 return None
 
+        for req in self._required:
+            if row.get(req) is None:
+                return
+
         modified = False
 
         unique_check = self._unique_check(row)
