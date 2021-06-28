@@ -62,10 +62,10 @@ def test_relion_pipeline_check_job_node_statuses(dials_data):
         dials_data("relion_tutorial_data") / "default_pipeline.star"
     )
     pipeline.check_job_node_statuses(pathlib.Path(dials_data("relion_tutorial_data")))
-    assert pipeline._job_nodes[pipeline._job_nodes.index("Extract/job018")].attributes[
+    assert pipeline._job_nodes[pipeline._job_nodes.index("Extract/job018")].environment[
         "status"
     ]
-    assert pipeline._job_nodes[pipeline._job_nodes.index("Class2D/job008")].attributes[
+    assert pipeline._job_nodes[pipeline._job_nodes.index("Class2D/job008")].environment[
         "status"
     ]
 
@@ -90,15 +90,15 @@ def test_relion_pipeline_collect_job_times_from_dials_data_logs(dials_data):
     assert dials_data("relion_tutorial_data") / "pipeline_PREPROCESS.log" in logs
     pipeline.collect_job_times(logs)
     for job in pipeline._job_nodes:
-        assert job.attributes.get("start_time_stamp") is not None
+        assert job.environment["start_time_stamp"] is not None
     assert (
-        pipeline._job_nodes[pipeline._job_nodes.index("MotionCorr/job002")].attributes[
+        pipeline._job_nodes[pipeline._job_nodes.index("MotionCorr/job002")].environment[
             "job_count"
         ]
         == 2
     )
     assert (
-        pipeline._job_nodes[pipeline._job_nodes.index("Class2D/job008")].attributes[
+        pipeline._job_nodes[pipeline._job_nodes.index("Class2D/job008")].environment[
             "job_count"
         ]
         == 1
@@ -113,7 +113,7 @@ def test_relion_pipeline_current_jobs_property_with_timing_info(dials_data):
     logs = list(pathlib.Path(dials_data("relion_tutorial_data")).glob("pipeline*.log"))
     pipeline.collect_job_times(logs)
     pipeline.check_job_node_statuses(pathlib.Path(dials_data("relion_tutorial_data")))
-    pipeline._job_nodes[pipeline._job_nodes.index("LocalRes/job031")].attributes[
+    pipeline._job_nodes[pipeline._job_nodes.index("LocalRes/job031")].environment[
         "status"
     ] = None
     assert str(pipeline.current_jobs[0]._path) == "LocalRes/job031"
@@ -129,10 +129,10 @@ def test_relion_pipeline_current_jobs_property_with_timing_info_multiple_jobs(
     logs = list(pathlib.Path(dials_data("relion_tutorial_data")).glob("pipeline*.log"))
     pipeline.collect_job_times(logs)
     pipeline.check_job_node_statuses(pathlib.Path(dials_data("relion_tutorial_data")))
-    pipeline._job_nodes[pipeline._job_nodes.index("LocalRes/job031")].attributes[
+    pipeline._job_nodes[pipeline._job_nodes.index("LocalRes/job031")].environment[
         "status"
     ] = None
-    pipeline._job_nodes[pipeline._job_nodes.index("MotionCorr/job002")].attributes[
+    pipeline._job_nodes[pipeline._job_nodes.index("MotionCorr/job002")].environment[
         "status"
     ] = None
     assert [str(cj._path) for cj in pipeline.current_jobs] == [

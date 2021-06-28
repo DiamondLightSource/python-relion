@@ -177,8 +177,8 @@ class Project(RelionPipeline):
         self._clear_caches()
         res = []
         for jtnode in self:
-            if jtnode.attributes["status"]:
-                if "crYOLO" in jtnode.attributes.get("alias"):
+            if jtnode.environment["status"]:
+                if "crYOLO" in jtnode.environment["alias"]:
                     res_obj = self._results_dict.get(f"{jtnode._path}:crYOLO")
                 else:
                     res_obj = self._results_dict.get(str(jtnode._path))
@@ -186,8 +186,8 @@ class Project(RelionPipeline):
                     res.append(
                         RelionJobResult(
                             res_obj,
-                            jtnode.attributes["job"],
-                            jtnode.attributes["end_time_stamp"],
+                            jtnode.environment["job"],
+                            jtnode.environment["end_time_stamp"],
                         )
                     )
         self.res.consume(res)
