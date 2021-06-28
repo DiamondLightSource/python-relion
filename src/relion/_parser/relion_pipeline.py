@@ -17,13 +17,13 @@ from relion._parser.processnode import ProcessNode
 
 
 class RelionPipeline:
-    def __init__(self, origin, graphin=ProcessGraph([]), locklist=None):
+    def __init__(self, origin, graphin=ProcessGraph("nodes", []), locklist=None):
         self.origin = origin
         self._nodes = graphin
         self._connected = {}
         self.origins = {}
-        self._job_nodes = ProcessGraph([])
-        self._jobtype_nodes = ProcessGraph([])
+        self._job_nodes = ProcessGraph("job nodes", [])
+        self._jobtype_nodes = ProcessGraph("job type nodes", [])
         self._connected_jobs = {}
         self.job_origins = {}
         self._jobs_collapsed = False
@@ -67,21 +67,23 @@ class RelionPipeline:
 
     def _load_file_nodes_from_star(self, star_doc):
         return ProcessGraph(
+            "file nodes",
             [
                 ProcessNode(pathlib.Path(p))
                 for p in self._request_star_values(star_doc, "_rlnPipeLineNodeName")
-            ]
+            ],
         )
 
     def _load_job_nodes_from_star(self, star_doc):
         return ProcessGraph(
+            "job nodes",
             [
                 ProcessNode(pathlib.Path(p), alias=al)
                 for p, al in zip(
                     self._request_star_values(star_doc, "_rlnPipeLineProcessName"),
                     self._request_star_values(star_doc, "_rlnPipeLineProcessAlias"),
                 )
-            ]
+            ],
         )
 
     def load_nodes_from_star(self, star_path):
@@ -172,12 +174,14 @@ class RelionPipeline:
     def _collapse_jobs_to_jobtypes(self):
         ordered_graph = []
         if len(self._nodes) == 0:
-            self._jobtype_nodes = ProcessGraph([])
+            self._jobtype_nodes = ProcessGraph("job type nodes", [])
             return
         self._job_nodes.node_explore(
             self._job_nodes[self._job_nodes.index(self.origin)], ordered_graph
         )
-        self._jobtype_nodes = ProcessGraph(copy.deepcopy(ordered_graph))
+        self._jobtype_nodes = ProcessGraph(
+            "job type nodes", copy.deepcopy(ordered_graph)
+        )
         for node in self._jobtype_nodes:
             node.environment["job"] = node._path.name
             node._path = node._path.parent

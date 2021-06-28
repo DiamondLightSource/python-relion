@@ -29,7 +29,7 @@ def node_with_links(next_node_01, next_node_02):
 @pytest.fixture
 def graph(node_with_links, next_node_01, next_node_02):
     node_links = [node_with_links, next_node_01, next_node_02]
-    return ProcessGraph(node_links)
+    return ProcessGraph("process graph", node_links)
 
 
 @pytest.fixture

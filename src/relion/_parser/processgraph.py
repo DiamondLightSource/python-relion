@@ -1,15 +1,14 @@
-import collections.abc
-
 try:
     from graphviz import Digraph
 except ImportError:
     pass
 from relion._parser.processnode import ProcessNode
+from relion.node.graph import Graph
 
 
-class ProcessGraph(collections.abc.Sequence):
-    def __init__(self, node_list):
-        self._node_list = node_list
+class ProcessGraph(Graph):
+    # def __init__(self, node_list):
+    #    self._node_list = node_list
 
     def __eq__(self, other):
         if isinstance(other, ProcessGraph):
@@ -21,7 +20,7 @@ class ProcessGraph(collections.abc.Sequence):
         return False
 
     def __hash__(self):
-        return hash(("relion._parser.pipeline.ProcessGraph", iter(self._node_list)))
+        return hash(("relion._parser.processgraph.ProcessGraph", iter(self._node_list)))
 
     def __iter__(self):
         return iter(self._node_list)
@@ -36,7 +35,7 @@ class ProcessGraph(collections.abc.Sequence):
 
     def get_by_name(self, name):
         for i, j in enumerate(self):
-            if str(j.name) == name:
+            if j.name == name:
                 return self._node_list[i]
         return None
 
@@ -54,7 +53,7 @@ class ProcessGraph(collections.abc.Sequence):
     def node_explore(self, node, explored):
         if not isinstance(node, ProcessNode):
             raise ValueError(
-                "ProcessGraph.node_explore must be called with a ProcessNode as the starting point; a string or similar is insufficient"
+                f"ProcessGraph.node_explore must be called with a ProcessNode (not {type(node)}: {node}) as the starting point; a string or similar is insufficient"
             )
         if node not in explored:
             explored.append(node)
@@ -67,22 +66,11 @@ class ProcessGraph(collections.abc.Sequence):
         else:
             raise ValueError("Attempted to add a node that was not a ProcessNode")
 
-    def remove_node(self, node_name):
-        behind_nodes = []
-        for currnode in self:
-            if node_name in currnode:
-                behind_nodes.append(currnode)
-                currnode.unlink_from(node_name)
-        for bnode in behind_nodes:
-            for next_node in self._node_list[self._node_list.index(node_name)]:
-                bnode.link_to(next_node)
-        self._node_list.remove(node_name)
-
     def find_origins(self):
         child_nodes = []
-        for node in self:
+        for node in self._node_list:
             child_nodes.extend([next_node for next_node in node])
-        origins = [p for p in self if p not in child_nodes]
+        origins = [p for p in self._node_list if p not in child_nodes]
         return origins
 
     def merge(self, other):
@@ -104,10 +92,12 @@ class ProcessGraph(collections.abc.Sequence):
         if len(self._node_list) == 0:
             return []
         connected_graphs = []
-        for origin in self.find_origins():
+        for oi, origin in enumerate(self.find_origins()):
             curr_graph = []
             self.node_explore(origin, curr_graph)
-            connected_graphs.append(ProcessGraph(curr_graph))
+            connected_graphs.append(
+                ProcessGraph(f"{self.name}:Connected:{oi}", curr_graph)
+            )
         for_removal = []
         for i, g in enumerate(connected_graphs):
             for ng in connected_graphs[i + 1 :]:
@@ -122,7 +112,7 @@ class ProcessGraph(collections.abc.Sequence):
         connected_graphs = self.split_connected()
         ancillary_count = 1
         for cg in connected_graphs:
-            if origin in cg:
+            if origin in cg._node_list:
                 connected_dict["main"] = cg
                 origins_dict["main"] = self[self.index(origin)]
             else:
