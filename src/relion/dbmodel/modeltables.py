@@ -1,7 +1,8 @@
 import functools
 import re
 
-import ispyb
+# import ispyb
+from ispyb import sqlalchemy
 
 # if we replace uuid with count do not include 0 in the count because it will break some bool checks for None
 
@@ -70,6 +71,10 @@ class Table:
 
     def add_row(self, row):
 
+        for req in self._required:
+            if row.get(req) is None:
+                return
+
         modified = False
 
         unique_check = self._unique_check(row)
@@ -129,9 +134,6 @@ class Table:
                             self._tab[c][index] = row.get(c)
 
         if modified:
-            for req in self._required:
-                if row.get(req) is None:
-                    return
             if prim_key_arg is None:
                 return row.get(self._primary_key) or self._tab[self._primary_key][-1]
             else:
@@ -210,10 +212,10 @@ class MotionCorrectionTable(Table):
     def __init__(self):
         columns = [
             to_snake_case(c)
-            for c in ispyb.sqlalchemy.MotionCorrection.__table__.columns.keys()
+            for c in sqlalchemy.MotionCorrection.__table__.columns.keys()
         ]
         columns.append("job_string")
-        prim_key = get_prim_key(ispyb.sqlalchemy.MotionCorrection)
+        prim_key = get_prim_key(sqlalchemy.MotionCorrection)
         super().__init__(
             columns,
             prim_key,
@@ -224,10 +226,8 @@ class MotionCorrectionTable(Table):
 
 class CTFTable(Table):
     def __init__(self):
-        columns = [
-            to_snake_case(c) for c in ispyb.sqlalchemy.CTF.__table__.columns.keys()
-        ]
-        prim_key = get_prim_key(ispyb.sqlalchemy.CTF)
+        columns = [to_snake_case(c) for c in sqlalchemy.CTF.__table__.columns.keys()]
+        prim_key = get_prim_key(sqlalchemy.CTF)
         super().__init__(
             columns,
             prim_key,
@@ -239,13 +239,12 @@ class CTFTable(Table):
 class ParticlePickerTable(Table):
     def __init__(self):
         columns = [
-            to_snake_case(c)
-            for c in ispyb.sqlalchemy.ParticlePicker.__table__.columns.keys()
+            to_snake_case(c) for c in sqlalchemy.ParticlePicker.__table__.columns.keys()
         ]
         columns.append("micrograph_full_path")
         columns.append("first_motion_correction_micrograph")
         columns.append("job_string")
-        prim_key = get_prim_key(ispyb.sqlalchemy.ParticlePicker)
+        prim_key = get_prim_key(sqlalchemy.ParticlePicker)
         super().__init__(
             columns, prim_key, unique=["micrograph_full_path", "job_string"]
         )
@@ -255,10 +254,10 @@ class ParticleClassificationGroupTable(Table):
     def __init__(self):
         columns = [
             to_snake_case(c)
-            for c in ispyb.sqlalchemy.ParticleClassificationGroup.__table__.columns.keys()
+            for c in sqlalchemy.ParticleClassificationGroup.__table__.columns.keys()
         ]
         columns.append("job_string")
-        prim_key = get_prim_key(ispyb.sqlalchemy.ParticleClassificationGroup)
+        prim_key = get_prim_key(sqlalchemy.ParticleClassificationGroup)
         super().__init__(columns, prim_key, unique="job_string")
 
 
@@ -266,10 +265,10 @@ class ParticleClassificationTable(Table):
     def __init__(self):
         columns = [
             to_snake_case(c)
-            for c in ispyb.sqlalchemy.ParticleClassification.__table__.columns.keys()
+            for c in sqlalchemy.ParticleClassification.__table__.columns.keys()
         ]
         columns.append("job_string")
-        prim_key = get_prim_key(ispyb.sqlalchemy.ParticleClassification)
+        prim_key = get_prim_key(sqlalchemy.ParticleClassification)
         super().__init__(columns, prim_key, unique=["job_string", "class_number"])
 
 
@@ -277,10 +276,10 @@ class CryoemInitialModelTable(Table):
     def __init__(self):
         columns = [
             to_snake_case(c)
-            for c in ispyb.sqlalchemy.CryoemInitialModel.__table__.columns.keys()
+            for c in sqlalchemy.CryoemInitialModel.__table__.columns.keys()
         ]
         columns.append("ini_model_job_string")
-        prim_key = get_prim_key(ispyb.sqlalchemy.CryoemInitialModel)
+        prim_key = get_prim_key(sqlalchemy.CryoemInitialModel)
         super().__init__(
             columns,
             prim_key,

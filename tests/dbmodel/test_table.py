@@ -1,6 +1,17 @@
 import pytest
 
-from relion.dbmodel.modeltables import PID, Table
+from relion.dbmodel.modeltables import PID, MotionCorrectionTable, Table
+
+
+@pytest.fixture
+def fake_table_minimal():
+    columns = [
+        "primary_id",
+    ]
+    return Table(
+        columns,
+        "primary_id",
+    )
 
 
 @pytest.fixture
@@ -17,6 +28,63 @@ def fake_table():
         "primary_id",
         unique="unique_value",
         counters="count",
+        append="appendable",
+    )
+
+
+@pytest.fixture
+def fake_table_required():
+    columns = [
+        "primary_id",
+        "unique_value",
+        "count",
+        "comment",
+        "appendable",
+    ]
+    return Table(
+        columns,
+        "primary_id",
+        unique="unique_value",
+        counters="count",
+        append="appendable",
+        required="comment",
+    )
+
+
+@pytest.fixture
+def fake_table_multiple_required():
+    columns = [
+        "primary_id",
+        "unique_value",
+        "count",
+        "comment",
+        "appendable",
+    ]
+    return Table(
+        columns,
+        "primary_id",
+        unique="unique_value",
+        counters="count",
+        append="appendable",
+        required=["comment", "appendable"],
+    )
+
+
+@pytest.fixture
+def fake_table_multiple_count():
+    columns = [
+        "primary_id",
+        "unique_value",
+        "count",
+        "count02",
+        "comment",
+        "appendable",
+    ]
+    return Table(
+        columns,
+        "primary_id",
+        unique="unique_value",
+        counters=["count", "count02"],
         append="appendable",
     )
 
@@ -112,6 +180,55 @@ def test_adding_second_conflicting_row(fake_table):
     assert pid_insert == 1
 
 
+def test_correct_unique_default_value(fake_table_minimal):
+    PID.reset(1)
+    assert fake_table_minimal._unique is None
+    assert fake_table_minimal._counters == []
+
+
+def test_multiple_counters_specified(fake_table_multiple_count):
+    PID.reset(1)
+    assert fake_table_multiple_count._counters == ["count", "count02"]
+    fake_table_multiple_count.add_row({"unique_value": 1, "comment": "first insert"})
+    assert fake_table_multiple_count._tab["count"] == [1]
+    assert fake_table_multiple_count._tab["count02"] == [1]
+    fake_table_multiple_count.add_row({"unique_value": 2, "comment": "second insert"})
+    assert fake_table_multiple_count._tab["count"] == [1, 2]
+    assert fake_table_multiple_count._tab["count02"] == [1, 2]
+
+
+def test_single_required(fake_table_required):
+    PID.reset(1)
+    assert fake_table_required._required == ["comment"]
+    row = fake_table_required.add_row({"unique_value": 1})
+    assert row is None
+    assert fake_table_required._tab["unique_value"] == []
+    row = fake_table_required.add_row({"unique_value": 1, "comment": "first success"})
+    assert fake_table_required._tab["unique_value"] == [1]
+
+
+def test_multiple_required(fake_table_multiple_required):
+    PID.reset(1)
+    assert fake_table_multiple_required._required == ["comment", "appendable"]
+    row = fake_table_multiple_required.add_row({"unique_value": 1})
+    assert row is None
+    assert fake_table_multiple_required._tab["unique_value"] == []
+    row = fake_table_multiple_required.add_row(
+        {"unique_value": 1, "comment": "first attempt"}
+    )
+    assert fake_table_multiple_required._tab["unique_value"] == []
+    row = fake_table_multiple_required.add_row(
+        {"unique_value": 1, "comment": "first success", "appendable": 1}
+    )
+    assert fake_table_multiple_required._tab["unique_value"] == [1]
+    assert fake_table_multiple_required._tab["appendable"] == [1]
+
+
+def test_get_row_index_with_None_value_returns_None(fake_table):
+    row_index = fake_table.get_row_index("unique", None)
+    assert row_index is None
+
+
 def test_appending(fake_table):
     PID.reset(1)
     fake_table.add_row({"unique_value": 1, "comment": "first insert", "appendable": 4})
@@ -126,6 +243,11 @@ def test_appending(fake_table):
     assert fake_table._tab["count"] == [1]
     assert fake_table._tab["comment"] == ["first insert"]
     assert fake_table._tab["appendable"] == [[4, 5]]
+    assert pid_insert == 1
+    pid_insert = fake_table.add_row(
+        {"unique_value": 1, "comment": "first insert", "appendable": 6}
+    )
+    assert fake_table._tab["appendable"] == [[4, 5, 6]]
     assert pid_insert == 1
 
 
@@ -205,3 +327,8 @@ def test_get_row_by_primary_key(fake_table):
     assert row["appendable"] == 4
     assert row["count"] == 1
     assert row["comment"] == "test"
+
+
+def test_motion_correction_table_has_correct_columns():
+    mctab = MotionCorrectionTable()
+    assert "motion_correction_id" in mctab.columns
