@@ -229,7 +229,7 @@ class Project(RelionPipeline):
             if not values:
                 return []
             return values
-        except (FileNotFoundError, RuntimeError):
+        except (FileNotFoundError, RuntimeError, ValueError):
             return []
 
 
