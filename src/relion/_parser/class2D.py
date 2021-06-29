@@ -64,7 +64,7 @@ class Class2D(JobType):
         try:
             sdfile = self._read_star_file(jobdir, dfile)
             smfile = self._read_star_file(jobdir, mfile)
-        except RuntimeError:
+        except (FileNotFoundError, RuntimeError):
             logger.debug(
                 "gemmi could not open file while trying to get data and model files. Returning an empty list",
                 exc_info=True,

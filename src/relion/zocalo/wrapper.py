@@ -175,7 +175,7 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
                         )
                         should_send_icebreaker = False
                         icebreaker_particles_star_file_found = True
-                except (RuntimeError, ValueError):
+                except (FileNotFoundError, RuntimeError, ValueError):
                     logger.error("Error creating Icebreaker histogram.")
 
             # if Relion has been running too long stop loop of preprocessing jobs
