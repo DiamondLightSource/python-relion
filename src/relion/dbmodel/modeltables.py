@@ -6,7 +6,7 @@ from ispyb import sqlalchemy
 
 # if we replace uuid with count do not include 0 in the count because it will break some bool checks for None
 
-ProcessID = itertools.count(1)
+WrapperID = itertools.count(1)
 
 
 class Table:
@@ -73,7 +73,7 @@ class Table:
             modified = True
             for c in self.columns:
                 if c == self._primary_key:
-                    self._tab[c].append(prim_key_arg or next(ProcessID))
+                    self._tab[c].append(prim_key_arg or next(WrapperID))
                 else:
                     self._tab[c].append(row.get(c))
         # otherwise use existing primary key

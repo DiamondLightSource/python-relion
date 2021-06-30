@@ -2,7 +2,7 @@ import random
 
 import pytest
 
-from relion.dbmodel.modeltables import MotionCorrectionTable, ProcessID, Table
+from relion.dbmodel.modeltables import MotionCorrectionTable, Table, WrapperID
 
 
 @pytest.fixture
@@ -133,7 +133,7 @@ def test_columns_correctly_initialised(fake_table):
 
 
 def test_adding_first_row(fake_table, unique_value):
-    base_id = next(ProcessID)
+    base_id = next(WrapperID)
     fake_table.add_row({"unique_value": unique_value, "comment": "first insert"})
     for columns in fake_table._tab.values():
         assert len(columns) == 1
@@ -149,7 +149,7 @@ def test_get_item(fake_table, unique_value):
 
 
 def test_adding_second_new_row(fake_table, unique_value):
-    base_id = next(ProcessID)
+    base_id = next(WrapperID)
     fake_table.add_row({"unique_value": unique_value, "comment": "first insert"})
     fake_table.add_row({"unique_value": unique_value + 1, "comment": "second insert"})
     for columns in fake_table._tab.values():
@@ -161,7 +161,7 @@ def test_adding_second_new_row(fake_table, unique_value):
 
 
 def test_adding_row_twice_returns_none(fake_table, unique_value):
-    base_id = next(ProcessID)
+    base_id = next(WrapperID)
     fake_table.add_row({"unique_value": unique_value, "comment": "first insert"})
     pid_insert = fake_table.add_row(
         {"unique_value": unique_value, "comment": "first insert"}
@@ -176,7 +176,7 @@ def test_adding_row_twice_returns_none(fake_table, unique_value):
 
 
 def test_adding_second_conflicting_row(fake_table, unique_value):
-    base_id = next(ProcessID)
+    base_id = next(WrapperID)
     fake_table.add_row({"unique_value": unique_value, "comment": "first insert"})
     pid_insert = fake_table.add_row(
         {"unique_value": unique_value, "comment": "new insert"}
@@ -242,7 +242,7 @@ def test_get_row_index_with_None_value_returns_None(fake_table):
 
 
 def test_appending(fake_table, unique_value):
-    base_id = next(ProcessID)
+    base_id = next(WrapperID)
     fake_table.add_row(
         {"unique_value": unique_value, "comment": "first insert", "appendable": 4}
     )
@@ -266,7 +266,7 @@ def test_appending(fake_table, unique_value):
 
 
 def test_appending_list_and_overlapping_list(fake_table, unique_value):
-    base_id = next(ProcessID)
+    base_id = next(WrapperID)
     fake_table.add_row(
         {"unique_value": unique_value, "comment": "first insert", "appendable": 4}
     )
@@ -320,7 +320,7 @@ def test_adding_rows_for_table_with_two_unique_columns(
 
 
 def test_get_row_index_for_single_index(fake_table, unique_value):
-    base_id = next(ProcessID)
+    base_id = next(WrapperID)
     fake_table.add_row(
         {"unique_value": unique_value, "comment": "first insert", "appendable": 4}
     )
@@ -355,7 +355,7 @@ def test_get_row_index_not_present(fake_table, unique_value):
 
 
 def test_get_row_by_primary_key(fake_table, unique_value):
-    base_id = next(ProcessID)
+    base_id = next(WrapperID)
     fake_table.add_row(
         {"unique_value": unique_value, "comment": "test", "appendable": 4}
     )
