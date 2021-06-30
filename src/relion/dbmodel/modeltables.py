@@ -6,9 +6,7 @@ from ispyb import sqlalchemy
 
 # if we replace uuid with count do not include 0 in the count because it will break some bool checks for None
 
-
 ProcessID = itertools.count(1)
-# should this be attached to the table?
 
 
 class Table:
