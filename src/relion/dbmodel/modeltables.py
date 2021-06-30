@@ -172,20 +172,19 @@ def to_snake_case(camel_case):
     return re.sub(r"(?<!^)(?=[A-Z])", "_", camel_case).lower()
 
 
-def get_prim_key(tab):
-    for column in tab.__table__.columns:
-        if column.primary_key:
-            return to_snake_case(column.name)
+def _parse_sqlalchemy_table(sa_table):
+    columns, primary = [], None
+    for column in sa_table.__table__.columns:
+        columns.append(to_snake_case(column.name))
+        if column.primary_key and not primary:
+            primary = columns[-1]
+    return columns, primary
 
 
 class MotionCorrectionTable(Table):
     def __init__(self):
-        columns = [
-            to_snake_case(c)
-            for c in sqlalchemy.MotionCorrection.__table__.columns.keys()
-        ]
+        columns, prim_key = _parse_sqlalchemy_table(sqlalchemy.MotionCorrection)
         columns.append("job_string")
-        prim_key = get_prim_key(sqlalchemy.MotionCorrection)
         super().__init__(
             columns,
             prim_key,
@@ -196,9 +195,7 @@ class MotionCorrectionTable(Table):
 
 class CTFTable(Table):
     def __init__(self):
-        columns = [to_snake_case(c) for c in sqlalchemy.CTF.__table__.columns.keys()]
-        prim_key = get_prim_key(sqlalchemy.CTF)
-        # this pattern occurs very often. Turn it into an c,p=inspectify() function?
+        columns, prim_key = _parse_sqlalchemy_table(sqlalchemy.CTF)
         super().__init__(
             columns,
             prim_key,
@@ -209,14 +206,14 @@ class CTFTable(Table):
 
 class ParticlePickerTable(Table):
     def __init__(self):
-        columns = [
-            to_snake_case(c) for c in sqlalchemy.ParticlePicker.__table__.columns.keys()
-        ] + [
-            "micrograph_full_path",
-            "first_motion_correction_micrograph",
-            "job_string",
-        ]
-        prim_key = get_prim_key(sqlalchemy.ParticlePicker)
+        columns, prim_key = _parse_sqlalchemy_table(sqlalchemy.ParticlePicker)
+        columns.extend(
+            [
+                "micrograph_full_path",
+                "first_motion_correction_micrograph",
+                "job_string",
+            ]
+        )
         super().__init__(
             columns, prim_key, unique=["micrograph_full_path", "job_string"]
         )
@@ -224,34 +221,24 @@ class ParticlePickerTable(Table):
 
 class ParticleClassificationGroupTable(Table):
     def __init__(self):
-        columns = [
-            to_snake_case(c)
-            for c in sqlalchemy.ParticleClassificationGroup.__table__.columns.keys()
-        ]
+        columns, prim_key = _parse_sqlalchemy_table(
+            sqlalchemy.ParticleClassificationGroup
+        )
         columns.append("job_string")
-        prim_key = get_prim_key(sqlalchemy.ParticleClassificationGroup)
         super().__init__(columns, prim_key, unique="job_string")
 
 
 class ParticleClassificationTable(Table):
     def __init__(self):
-        columns = [
-            to_snake_case(c)
-            for c in sqlalchemy.ParticleClassification.__table__.columns.keys()
-        ]
+        columns, prim_key = _parse_sqlalchemy_table(sqlalchemy.ParticleClassification)
         columns.append("job_string")
-        prim_key = get_prim_key(sqlalchemy.ParticleClassification)
         super().__init__(columns, prim_key, unique=["job_string", "class_number"])
 
 
 class CryoemInitialModelTable(Table):
     def __init__(self):
-        columns = [
-            to_snake_case(c)
-            for c in sqlalchemy.CryoemInitialModel.__table__.columns.keys()
-        ]
+        columns, prim_key = _parse_sqlalchemy_table(sqlalchemy.CryoemInitialModel)
         columns.append("ini_model_job_string")
-        prim_key = get_prim_key(sqlalchemy.CryoemInitialModel)
         super().__init__(
             columns,
             prim_key,
