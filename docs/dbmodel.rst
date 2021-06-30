@@ -2,10 +2,10 @@
 Database model
 ==============
 
-When on-the-fly Relion processing is performed at eBIC results are written to the ISPyB database 
+When on-the-fly Relion processing is performed at eBIC, results are written to the ISPyB database 
 as they become available. The tables in ISPyB designed to hold SPA information have various 
-relationships between them which requires that certain records be inserted before others. In an 
-environment in which database operations have been separated from the data collection from the 
+relationships between them, which requires that certain records be inserted before others. In an 
+environment where database operations have been separated from the data collection and the 
 Relion project itself in order to improve the stability and recoverability of the pipeline the order 
 in which these insertions are made is not guaranteed. This means the service performing the database 
 operations will not be able to determine the necessary relationships between entries. In order to 
@@ -29,7 +29,7 @@ option to specify "unique" columns. The table will not insert a new row if a row
 same entries for the "unique" columns (even if the value of the primary key is not provided); instead it 
 will perform an update of the existing row. 
 
-An exaple of a ``Table`` definition for the ``ParticleClassification`` table is:
+An example of a ``Table`` definition for the ``ParticleClassification`` table is:
 
 .. code-block:: python 
 

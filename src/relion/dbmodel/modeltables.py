@@ -1,26 +1,14 @@
 import functools
+import itertools
 import re
 
-# import ispyb
 from ispyb import sqlalchemy
 
 # if we replace uuid with count do not include 0 in the count because it will break some bool checks for None
 
 
-class ProcessID:
-    def __init__(self, start):
-        self.id = start
-
-    def __call__(self):
-        old_id = self.id
-        self.id += 1
-        return old_id
-
-    def reset(self, start):
-        self.id = start
-
-
-PID = ProcessID(1)
+ProcessID = itertools.count(1)
+# should this be attached to the table?
 
 
 class Table:
@@ -34,9 +22,7 @@ class Table:
         required=None,
     ):
         self.columns = columns
-        self._tab = {}
-        for c in self.columns:
-            self._tab[c] = []
+        self._tab = {c: [] for c in self.columns}
         self._primary_key = primary_key
         self._last_update = {self: 0}
         if unique is not None:
@@ -55,15 +41,15 @@ class Table:
         return self._tab[key]
 
     @staticmethod
-    def _make_list(elem, default=[]):
+    def _make_list(elem, default=...):
+        # default value fallacy
         if elem is None:
-            return default
+            return [] if default is Ellipsis else default
         elif isinstance(elem, list):
             return elem
         return [elem]
 
     def add_row(self, row):
-
         for req in self._required:
             if row.get(req) is None:
                 return
@@ -90,7 +76,7 @@ class Table:
             modified = True
             for c in self.columns:
                 if c == self._primary_key:
-                    self._tab[c].append(prim_key_arg or PID())
+                    self._tab[c].append(prim_key_arg or next(ProcessID))
                 else:
                     self._tab[c].append(row.get(c))
         # otherwise use existing primary key
@@ -113,6 +99,7 @@ class Table:
                                 except TypeError:
                                     self._tab[c][index].append(row.get(c))
                                     self._tab[c][index] = list(set(self._tab[c][index]))
+                                    # should these be sets by default?
 
                                 modified = True
                         else:
@@ -181,10 +168,7 @@ class Table:
 
     def get_row_by_primary_key(self, value):
         row_index = self.get_row_index(self._primary_key, value)
-        row = {}
-        for c in self.columns:
-            row[c] = self._tab[c][row_index]
-        return row
+        return {c: self._tab[c][row_index] for c in self.columns}
 
 
 def to_snake_case(camel_case):
@@ -192,9 +176,9 @@ def to_snake_case(camel_case):
 
 
 def get_prim_key(tab):
-    for key in tab.__table__.columns.keys():
-        if tab.__table__.columns[key].primary_key:
-            return to_snake_case(key)
+    for column in tab.__table__.columns:
+        if column.primary_key:
+            return to_snake_case(column.name)
 
 
 class MotionCorrectionTable(Table):
@@ -217,6 +201,7 @@ class CTFTable(Table):
     def __init__(self):
         columns = [to_snake_case(c) for c in sqlalchemy.CTF.__table__.columns.keys()]
         prim_key = get_prim_key(sqlalchemy.CTF)
+        # this pattern occurs very often. Turn it into an c,p=inspectify() function?
         super().__init__(
             columns,
             prim_key,
@@ -229,10 +214,11 @@ class ParticlePickerTable(Table):
     def __init__(self):
         columns = [
             to_snake_case(c) for c in sqlalchemy.ParticlePicker.__table__.columns.keys()
+        ] + [
+            "micrograph_full_path",
+            "first_motion_correction_micrograph",
+            "job_string",
         ]
-        columns.append("micrograph_full_path")
-        columns.append("first_motion_correction_micrograph")
-        columns.append("job_string")
         prim_key = get_prim_key(sqlalchemy.ParticlePicker)
         super().__init__(
             columns, prim_key, unique=["micrograph_full_path", "job_string"]
@@ -290,7 +276,6 @@ def _(
     relion_options,
     row,
 ):
-
     row.update(
         {
             "dose_per_frame": relion_options.motioncor_doseperframe,
@@ -310,7 +295,6 @@ def _(
     relion_options,
     row,
 ):
-
     row.update(
         {
             "box_size_x": relion_options.ctffind_boxsize,
@@ -322,7 +306,6 @@ def _(
             "defocus_step_size": relion_options.ctffind_defocus_step,
         }
     )
-
     pid = primary_table.add_row(row)
     return pid
 
@@ -335,7 +318,6 @@ def _(
     relion_options,
     row,
 ):
-
     row.update(
         {
             "particle_picking_template": relion_options.cryolo_gmodel,
@@ -359,7 +341,6 @@ def _(
     relion_options,
     row,
 ):
-
     row.update(
         {
             "number_of_particles_per_batch": relion_options.batch_size,
@@ -379,7 +360,6 @@ def _(
     relion_options,
     row,
 ):
-
     pid = primary_table.add_row(row)
     return pid
 
@@ -392,7 +372,6 @@ def _(
     relion_options,
     row,
 ):
-
     row["number_of_particles"] = row["init_model_number_of_particles"][
         row["init_model_class_num"]
     ]
@@ -411,8 +390,7 @@ def _(table: MotionCorrectionTable, primary_key: int):
     results = {
         "ispyb_command": "insert_motion_correction",
     }
-    for k, v in table.get_row_by_primary_key(primary_key).items():
-        results[k] = v
+    results.update(table.get_row_by_primary_key(primary_key))
     return results
 
 
@@ -421,8 +399,7 @@ def _(table: CTFTable, primary_key: int):
     results = {
         "ispyb_command": "insert_ctf",
     }
-    for k, v in table.get_row_by_primary_key(primary_key).items():
-        results[k] = v
+    results.update(table.get_row_by_primary_key(primary_key))
     return results
 
 
@@ -431,8 +408,7 @@ def _(table: ParticlePickerTable, primary_key: int):
     results = {
         "ispyb_command": "insert_particle_picker",
     }
-    for k, v in table.get_row_by_primary_key(primary_key).items():
-        results[k] = v
+    results.update(table.get_row_by_primary_key(primary_key))
     return results
 
 
@@ -441,8 +417,7 @@ def _(table: ParticleClassificationGroupTable, primary_key: int):
     results = {
         "ispyb_command": "insert_particle_classification_group",
     }
-    for k, v in table.get_row_by_primary_key(primary_key).items():
-        results[k] = v
+    results.update(table.get_row_by_primary_key(primary_key))
     return results
 
 
@@ -451,8 +426,7 @@ def _(table: ParticleClassificationTable, primary_key: int):
     results = {
         "ispyb_command": "insert_particle_classification",
     }
-    for k, v in table.get_row_by_primary_key(primary_key).items():
-        results[k] = v
+    results.update(table.get_row_by_primary_key(primary_key))
     return results
 
 
@@ -461,6 +435,5 @@ def _(table: CryoemInitialModelTable, primary_key: int):
     results = {
         "ispyb_command": "insert_cryoem_initial_model",
     }
-    for k, v in table.get_row_by_primary_key(primary_key).items():
-        results[k] = v
+    results.update(table.get_row_by_primary_key(primary_key))
     return results
