@@ -96,7 +96,6 @@ class Table:
                                     self._tab[c][index].add(row_value)
                                 modified = True
                         else:
-                            modified = True
                             if self._tab[c][index] != row_value:
                                 modified = True
                                 self._tab[c][index] = row_value
