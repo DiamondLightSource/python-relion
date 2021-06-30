@@ -49,7 +49,7 @@ class Table:
     def add_row(self, row):
         for req in self._required:
             if row.get(req) is None:
-                return
+                return None
 
         modified = False
 
@@ -107,7 +107,7 @@ class Table:
             else:
                 return prim_key_arg
         else:
-            return
+            return None
 
     # check if the row being added has already existing values for the columns marked as unique
     def _unique_check(self, in_values):
@@ -131,7 +131,7 @@ class Table:
                     for i2, ui2 in enumerate(unique_indices):
                         if i1 != i2:
                             if set(ui1).isdisjoint(ui2):
-                                return
+                                return None
                 else:
                     overlap_list = unique_indices[0]
                     for i in range(len(unique_indices) - 1):
@@ -142,22 +142,22 @@ class Table:
                             set(overlap_list).intersection(curr_overlap)
                         )
                     if not overlap_list:
-                        return
+                        return None
                     return self._tab[self._primary_key][overlap_list[0]]
-            return
+            return None
         except TypeError:
-            return
+            return None
 
     def get_row_index(self, key, value):
         if value is None:
-            return
+            return None
         indices = [i for i, element in enumerate(self._tab[key]) if element == value]
         if indices:
             if len(indices) == 1:
                 return indices[0]
             else:
                 return indices
-        return
+        return None
 
     def get_row_by_primary_key(self, value):
         row_index = self.get_row_index(self._primary_key, value)
