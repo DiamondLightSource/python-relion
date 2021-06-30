@@ -81,29 +81,25 @@ class Table:
             index = self._tab[self._primary_key].index(prim_key_arg)
             for c in self.columns:
                 if c != self._primary_key:
-                    if self._tab[c][index] != row.get(c):
+                    row_value = row.get(c)
+                    if self._tab[c][index] != row_value:
                         # if column c is marked for appending to then append to it:
-                        # if current value is a list and the new row value is a list then combine lists
-                        # otherwise create a list out of the combination of the two
-                        # only allow unique elements in the list
+                        # if current value is a set and the new row value is a list, set, or a tuple
+                        # then combine them as sets, otherwise add the new value as an item to the set
                         if c in self._append:
-                            if row.get(c) is not None:
-                                if not isinstance(self._tab[c][index], list):
-                                    self._tab[c][index] = [self._tab[c][index]]
-                                try:
-                                    self._tab[c][index].extend(row.get(c))
-                                    self._tab[c][index] = list(set(self._tab[c][index]))
-                                except TypeError:
-                                    self._tab[c][index].append(row.get(c))
-                                    self._tab[c][index] = list(set(self._tab[c][index]))
-                                    # should these be sets by default?
-
+                            if row_value is not None:
+                                if not isinstance(self._tab[c][index], set):
+                                    self._tab[c][index] = {self._tab[c][index]}
+                                if isinstance(row_value, (list, set, tuple)):
+                                    self._tab[c][index] |= set(row_value)
+                                else:
+                                    self._tab[c][index].add(row_value)
                                 modified = True
                         else:
                             modified = True
-                            if self._tab[c][index] != row.get(c):
+                            if self._tab[c][index] != row_value:
                                 modified = True
-                                self._tab[c][index] = row.get(c)
+                                self._tab[c][index] = row_value
 
         if modified:
             if prim_key_arg is None:
