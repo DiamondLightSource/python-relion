@@ -25,26 +25,25 @@ class Table:
         self._tab = {c: [] for c in self.columns}
         self._primary_key = primary_key
         self._last_update = {self: 0}
-        if unique is not None:
+        if unique is None:
+            self._unique = None
+        else:
             if isinstance(unique, str):
                 self._unique = [unique]
             else:
                 self._unique = unique
-        else:
-            self._unique = unique
         self._unique = self._make_list(unique, default=None)
-        self._counters = self._make_list(counters)
-        self._append = self._make_list(append)
-        self._required = self._make_list(required)
+        self._counters = self._make_list(counters, default=[])
+        self._append = self._make_list(append, default=[])
+        self._required = self._make_list(required, default=[])
 
     def __getitem__(self, key):
         return self._tab[key]
 
     @staticmethod
-    def _make_list(elem, default=...):
-        # default value fallacy
+    def _make_list(elem, *, default):
         if elem is None:
-            return [] if default is Ellipsis else default
+            return default
         elif isinstance(elem, list):
             return elem
         return [elem]
