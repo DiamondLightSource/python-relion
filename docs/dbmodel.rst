@@ -35,7 +35,7 @@ An example of a ``Table`` definition for the ``ParticleClassification`` table is
 
     class ParticleClassificationTable(Table):
         def __init__(self):
-            columns, prim_key = _parse_sqlalchemy_table(sqlalchemy.ParticleClassification)
+            columns, prim_key = parse_sqlalchemy_table(sqlalchemy.ParticleClassification)
             columns.append("job_string")
             super().__init__(columns, prim_key, unique=["job_string", "class_number"])
 
