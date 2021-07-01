@@ -363,7 +363,7 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
             # if job_finished_file exists:
 
 
-@functools.singedispatch
+@functools.singledispatch
 def images_msgs(relion_stage_object, job_string: str):
     logger.debug(f"{relion_stage_object!r} does not have associated images")
     return []
