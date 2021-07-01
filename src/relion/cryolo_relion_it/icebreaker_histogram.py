@@ -18,7 +18,6 @@ def create_json_histogram(working_directory):
             logger.warning("No ice thickness data extracted.")
             return None
     else:
-        logger.warning("No particles.star file found.")
         return None
     df = pd.DataFrame(data, columns=["Relative estimated ice thickness"])
     fig = px.histogram(
