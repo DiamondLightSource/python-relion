@@ -73,7 +73,7 @@ class Class3D(JobType):
         try:
             sdfile = self._read_star_file(jobdir, dfile)
             smfile = self._read_star_file(jobdir, mfile)
-        except (FileNotFoundError, RuntimeError):
+        except (FileNotFoundError, RuntimeError, ValueError):
             logger.debug(
                 "gemmi could not open file while trying to get data and model files. Returning an empty list",
                 exc_info=True,
@@ -109,15 +109,21 @@ class Class3D(JobType):
         # return empty list and hope to recover later
         if len(int_particle_sum) == 0:
             return []
-        checked_particle_list = self._class_checker(
-            sorted(int_particle_sum), len(reference_image)
-        )
+        try:
+            checked_particle_list = self._class_checker(
+                sorted(int_particle_sum), len(reference_image)
+            )
+        except IndexError:
+            logger.debug(
+                f"IndexErorr encountered in _class_checker for {jobdir}", exc_info=True
+            )
+            return []
 
         try:
             init_nodel_num_particles = self._get_init_model_num_particles(
                 jobdir, "job.star"
             )
-        except (RuntimeError, FileNotFoundError):
+        except (RuntimeError, FileNotFoundError, ValueError):
             logger.debug(f"Encountered error trying to read {jobdir}/job.star")
             return []
 
