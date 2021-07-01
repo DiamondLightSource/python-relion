@@ -35,12 +35,8 @@ An example of a ``Table`` definition for the ``ParticleClassification`` table is
 
     class ParticleClassificationTable(Table):
         def __init__(self):
-            columns = [
-                to_snake_case(c)
-                for c in ispyb.sqlalchemy.ParticleClassification.__table__.columns.keys()
-            ]
+            columns, prim_key = _parse_sqlalchemy_table(sqlalchemy.ParticleClassification)
             columns.append("job_string")
-            prim_key = get_prim_key(ispyb.sqlalchemy.ParticleClassification)
             super().__init__(columns, prim_key, unique=["job_string", "class_number"])
 
 (The ISPyB column names are changed from camel to snake case here.) The ``"job_string"`` column which is 

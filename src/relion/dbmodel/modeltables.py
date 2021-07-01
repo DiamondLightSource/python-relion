@@ -167,7 +167,7 @@ def to_snake_case(camel_case):
     return re.sub(r"(?<!^)(?=[A-Z])", "_", camel_case).lower()
 
 
-def _parse_sqlalchemy_table(sa_table):
+def parse_sqlalchemy_table(sa_table):
     columns, primary = [], None
     for column in sa_table.__table__.columns:
         columns.append(to_snake_case(column.name))
@@ -178,7 +178,7 @@ def _parse_sqlalchemy_table(sa_table):
 
 class MotionCorrectionTable(Table):
     def __init__(self):
-        columns, prim_key = _parse_sqlalchemy_table(sqlalchemy.MotionCorrection)
+        columns, prim_key = parse_sqlalchemy_table(sqlalchemy.MotionCorrection)
         columns.append("job_string")
         super().__init__(
             columns,
@@ -190,7 +190,7 @@ class MotionCorrectionTable(Table):
 
 class CTFTable(Table):
     def __init__(self):
-        columns, prim_key = _parse_sqlalchemy_table(sqlalchemy.CTF)
+        columns, prim_key = parse_sqlalchemy_table(sqlalchemy.CTF)
         super().__init__(
             columns,
             prim_key,
@@ -201,7 +201,7 @@ class CTFTable(Table):
 
 class ParticlePickerTable(Table):
     def __init__(self):
-        columns, prim_key = _parse_sqlalchemy_table(sqlalchemy.ParticlePicker)
+        columns, prim_key = parse_sqlalchemy_table(sqlalchemy.ParticlePicker)
         columns.extend(
             [
                 "micrograph_full_path",
@@ -216,7 +216,7 @@ class ParticlePickerTable(Table):
 
 class ParticleClassificationGroupTable(Table):
     def __init__(self):
-        columns, prim_key = _parse_sqlalchemy_table(
+        columns, prim_key = parse_sqlalchemy_table(
             sqlalchemy.ParticleClassificationGroup
         )
         columns.append("job_string")
@@ -225,14 +225,14 @@ class ParticleClassificationGroupTable(Table):
 
 class ParticleClassificationTable(Table):
     def __init__(self):
-        columns, prim_key = _parse_sqlalchemy_table(sqlalchemy.ParticleClassification)
+        columns, prim_key = parse_sqlalchemy_table(sqlalchemy.ParticleClassification)
         columns.append("job_string")
         super().__init__(columns, prim_key, unique=["job_string", "class_number"])
 
 
 class CryoemInitialModelTable(Table):
     def __init__(self):
-        columns, prim_key = _parse_sqlalchemy_table(sqlalchemy.CryoemInitialModel)
+        columns, prim_key = parse_sqlalchemy_table(sqlalchemy.CryoemInitialModel)
         columns.append("ini_model_job_string")
         super().__init__(
             columns,
