@@ -95,3 +95,7 @@ class JobType(collections.abc.Mapping):
     @staticmethod
     def mutate_result(res_element, **kwargs):
         raise NotImplementedError
+
+    @staticmethod
+    def db_unpack(data):
+        return []

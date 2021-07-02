@@ -32,21 +32,29 @@ class Cryolo(JobType):
 
     def _load_job_directory(self, jobdir):
         num_particles = 0
-        for star_file in (self._basepath / jobdir / "picked_stars").glob("*"):
-            try:
-                file = self._read_star_file(
-                    jobdir, pathlib.Path("picked_stars") / star_file.name
+        particles_per_micrograph = {}
+        first_mic = ""
+        for star_file in (self._basepath / jobdir / "Movies").glob("**/*"):
+            if "gain" not in str(star_file):
+                try:
+                    file = self._read_star_file(
+                        jobdir, star_file.relative_to(self._basepath / jobdir)
+                    )
+                except (RuntimeError, FileNotFoundError, ValueError):
+                    return []
+
+                info_table = self._find_table_from_column_name("_rlnCoordinateX", file)
+                if info_table is None:
+                    logger.debug(f"_rlnCoordinateX not found in file {file}")
+                    return []
+
+                all_particles = self.parse_star_file(
+                    "_rlnCoordinateX", file, info_table
                 )
-            except (RuntimeError, FileNotFoundError, ValueError):
-                return []
-
-            info_table = self._find_table_from_column_name("_rlnCoordinateX", file)
-            if info_table is None:
-                logger.debug(f"_rlnCoordinateX not found in file {file}")
-                return []
-
-            all_particles = self.parse_star_file("_rlnCoordinateX", file, info_table)
-            num_particles += len(all_particles)
+                if particles_per_micrograph == {}:
+                    first_mic = star_file
+                particles_per_micrograph[star_file] = len(all_particles)
+                num_particles += len(all_particles)
 
         # all of this just tracks back to a micrograph name from the MotionCorrection job
         try:
@@ -69,12 +77,49 @@ class Cryolo(JobType):
         if info_table is None:
             logger.debug(f"_rlnMicrographName not found in file {ctffile}")
             return []
-        micrograph_name = self.parse_star_file(
+        micrograph_names = self.parse_star_file(
             "_rlnMicrographName", ctffile, info_table
-        )[0]
+        )
 
-        return [ParticlePickerInfo(num_particles, micrograph_name)]
+        particle_picker_info = []
+        for mic, num_particles in particles_per_micrograph.items():
+            print(mic)
+            particle_picker_info.append(
+                ParticlePickerInfo(
+                    num_particles,
+                    next(
+                        (
+                            x
+                            for x in micrograph_names
+                            if str(mic.relative_to(self._basepath / jobdir)).replace(
+                                "_autopick.star", ".mrc"
+                            )
+                            in x
+                        ),
+                        None,
+                    ),
+                    str(first_mic.relative_to(self._basepath / jobdir)).replace(
+                        "_autopick.star", ".mrc"
+                    ),
+                    jobdir,
+                )
+            )
+
+        return particle_picker_info
 
     @staticmethod
     def for_cache(partpickinfo):
         return str(partpickinfo.number_of_particles)
+
+    @staticmethod
+    def db_unpack(partpickinfo):
+        res = [
+            {
+                "number_of_particles": pi.number_of_particles,
+                "job_string": pi.job,
+                "micrograph_full_path": pi.micrograph_full_path,
+                "first_motion_correction_micrograph": pi.first_micrograph_name,
+            }
+            for pi in partpickinfo
+        ]
+        return res

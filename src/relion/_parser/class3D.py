@@ -17,6 +17,7 @@ Class3DParticleClass = namedtuple(
         "estimated_resolution",
         "overall_fourier_completeness",
         "initial_model_num_particles",
+        "job",
     ],
 )
 
@@ -145,6 +146,7 @@ class Class3D(JobType):
                         estimated_resolution[j],
                         overall_fourier_completeness[j],
                         init_nodel_num_particles,
+                        jobdir,
                     )
                 )
         except IndexError:
@@ -237,3 +239,22 @@ class Class3D(JobType):
     def _sum_all_particles(self, list):
         counted = self._count_all(list)
         return counted
+
+    @staticmethod
+    def db_unpack(particle_class):
+        res = []
+        for cl in particle_class:
+            res.append(
+                {
+                    "type": "3D",
+                    "job_string": cl.job,
+                    "class_number": cl.particle_sum[0],
+                    "particles_per_class": cl.particle_sum[1],
+                    "rotation_accuracy": cl.accuracy_rotations,
+                    "translation_accuracy": cl.accuracy_translations_angst,
+                    "estimated_resolution": cl.estimated_resolution,
+                    "overall_fourier_completeness": cl.overall_fourier_completeness,
+                    "job_string": cl.job,
+                }
+            )
+        return res
