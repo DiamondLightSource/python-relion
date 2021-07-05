@@ -2402,7 +2402,7 @@ def run_pipeline(opts):
             icebreaker_options = [
                 "External executable: == ib_job.py",
                 f"Input micrographs:  == {motioncorr_job}corrected_micrographs.star",
-                f"Number of threads: == {opts.icebreaker_threads_number}"
+                f"Number of threads: == {opts.icebreaker_threads_number}",
                 "Param1 - label: == o",
                 "Param1 - value: == External/Icebreaker_G",
                 "Param2 - label: == mode",
@@ -2421,7 +2421,7 @@ def run_pipeline(opts):
             icebreaker_options = [
                 "External executable: == ib_job.py",
                 f"Input micrographs:  == {motioncorr_job}corrected_micrographs.star",
-                f"Number of threads: == {opts.icebreaker_threads_number}"
+                f"Number of threads: == {opts.icebreaker_threads_number}",
                 "Param1 - label: == o",
                 "Param1 - value: == External/Icebreaker_F",
                 "Param2 - label: == mode",
@@ -2715,7 +2715,7 @@ def run_pipeline(opts):
                 icebreaker_group_options = [
                     "External executable: == ib_group.py",
                     f"Input micrographs:  == {icebreaker_job_group}grouped_micrographs.star",
-                    f"Number of threads: == {opts.icebreaker_threads_number}"
+                    f"Number of threads: == {opts.icebreaker_threads_number}",
                     "Param1 - label: == o",
                     "Param1 - value: == External/Icebreaker_group",
                     "Param2 - label: == in_parts",
