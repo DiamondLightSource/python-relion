@@ -61,13 +61,13 @@ a ``Table`` associated with the node after doing a few checks. If ``"check_for``
 into the node's ``Table`` in the column ``environment["table_key"]``. This allows entries between different tables 
 to be linked based on if they share some common value. For example, in the ISPyB database schema the ``CTF`` table 
 contains a ``motionCorrectionId`` column which should point to the ``MotionCorrection`` entry for the matching 
-micrograph. If both ``DBNode``s associated with the ``MotionCorrection`` and ``CTF`` tables have a ``micrograph_full_path`` 
+micrograph. If both ``DBNode`` s associated with the ``MotionCorrection`` and ``CTF`` tables have a ``micrograph_full_path`` 
 in their ``environment``, then specifying ``environment["check_for"] = micrograph_full_path``, ``environment["table_key"] = motion_correction_id`` 
 and ``environment["foreign_table"]`` is the ``MotionCorrection`` table in the ``CTF`` node will ensure that ``motion_correction_id`` 
 is equal to the primary key of the ``MotionCorrection`` row that has a matching ``micrograph_full_path``.
 
 The ``DBNode`` call will return a message designed to be sent to a Zocalo service that will do the insertions into the 
-actual ISPyB database. A graph of ``DBNode``s can be set up which upon calling provides a series of messages to be sent 
+actual ISPyB database. A graph of ``DBNode`` s can be set up which upon calling provides a series of messages to be sent 
 to the Zocalo service with the correct connections made between the entries in various different related tables. 
 
 -------
