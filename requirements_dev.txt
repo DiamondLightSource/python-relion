@@ -2,6 +2,7 @@ bump2version==1.0.1
 dials_data==2.2.0
 gemmi==0.4.7
 graphviz==0.16
+ispyb==6.4.0
 matplotlib==3.3.2; python_version < '3.7'
 matplotlib==3.4.2; python_version >= '3.7'
 mrcfile==1.3
