@@ -2402,12 +2402,11 @@ def run_pipeline(opts):
             icebreaker_options = [
                 "External executable: == ib_job.py",
                 f"Input micrographs:  == {motioncorr_job}corrected_micrographs.star",
+                f"Number of threads: == {opts.icebreaker_threads_number}"
                 "Param1 - label: == o",
                 "Param1 - value: == External/Icebreaker_G",
                 "Param2 - label: == mode",
                 "Param2 - value: == group",
-                "Param3 - label: == j",
-                f"Param3 - value: == {opts.icebreaker_threads_number}",
             ]
             icebreaker_job_group, already_had_it = addJob(
                 "External",
@@ -2422,12 +2421,11 @@ def run_pipeline(opts):
             icebreaker_options = [
                 "External executable: == ib_job.py",
                 f"Input micrographs:  == {motioncorr_job}corrected_micrographs.star",
+                f"Number of threads: == {opts.icebreaker_threads_number}"
                 "Param1 - label: == o",
                 "Param1 - value: == External/Icebreaker_F",
                 "Param2 - label: == mode",
                 "Param2 - value: == flatten",
-                "Param3 - label: == j",
-                f"Param3 - value: == {opts.icebreaker_threads_number}",
             ]
             icebreaker_job_flatten, already_had_it = addJob(
                 "External",
@@ -2717,12 +2715,11 @@ def run_pipeline(opts):
                 icebreaker_group_options = [
                     "External executable: == ib_group.py",
                     f"Input micrographs:  == {icebreaker_job_group}grouped_micrographs.star",
+                    f"Number of threads: == {opts.icebreaker_threads_number}"
                     "Param1 - label: == o",
                     "Param1 - value: == External/Icebreaker_group",
                     "Param2 - label: == in_parts",
                     f"Param2 - value: == {extract_job}particles.star",
-                    "Param3 - label: == j",
-                    f"Param3 - value: == {opts.icebreaker_threads_number}",
                 ]
                 icebreaker_group_job, already_had_it = addJob(
                     "External",
