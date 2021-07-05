@@ -449,6 +449,7 @@ def _(
                 "patches_used_x": relion_options.motioncor_patches_x,
                 "patches_used_y": relion_options.motioncor_patches_y,
                 "image_number": motion_corr_micrograph.micrograph_number,
+                "micrograph_snapshot_full_path": motion_corr_micrograph.micrograph_snapshot_full_path,
                 "drift_frames": [
                     (frame.frame, frame.deltaX, frame.deltaY)
                     for frame in motion_corr_micrograph.drift_data
