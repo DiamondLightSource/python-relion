@@ -42,6 +42,7 @@ gctf_exe = "Gctf"
 ctffind4_exe = "ctffind"
 
 queue_submission_template = "/dls_sw/apps/EM/relion/qsub_template_hamilton"
+queue_submission_template_cpu = "/dls_sw/apps/EM/relion/qsub_template_hamilton_cpu"
 
 motioncor_gpu = ""
 motioncor_do_own = False
