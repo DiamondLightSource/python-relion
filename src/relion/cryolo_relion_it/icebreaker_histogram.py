@@ -11,14 +11,10 @@ logger = logging.getLogger("relion.cryolo_relion_it.icebreaker_histogram")
 
 
 def create_json_histogram(working_directory):
-    icebreaker_path = working_directory / "External" / "Icebreaker_group"
-    if icebreaker_path.joinpath("particles.star").is_file():
-        data = extract_ice_column(icebreaker_path / "particles.star")
-        if data is None:
-            logger.warning("No ice thickness data extracted.")
-            return None
-    else:
+    data = _get_data(working_directory)
+    if data is None:
         return None
+
     df = pd.DataFrame(data, columns=["Relative estimated ice thickness"])
     fig = px.histogram(
         df,
@@ -26,7 +22,9 @@ def create_json_histogram(working_directory):
         title="Histogram of Icebreaker estimated ice thickness <br>Total number of particles = "
         + str(len(data)),
     )
-    full_json_path_object = icebreaker_path / "ice_hist.json"
+    full_json_path_object = (
+        working_directory / "External" / "Icebreaker_group_batch_001" / "ice_hist.json"
+    )
     fig.write_json(
         os.fspath(full_json_path_object)
     )  # This plotly version doesn't support Path objects with write_json()
@@ -34,21 +32,46 @@ def create_json_histogram(working_directory):
 
 
 def create_pdf_histogram(working_directory):
-    icebreaker_path = working_directory / "External" / "Icebreaker_group"
-    if icebreaker_path.joinpath("particles.star").is_file():
-        data = extract_ice_column(icebreaker_path / "particles.star")
-    else:
+    data = _get_data(working_directory)
+    if data is None:
         return None
+
     plt.hist(x=data, bins="auto", rwidth=0.9)
     plt.xlabel("Relative estimated ice thickness")
     plt.ylabel("Number of particles")
     plt.title("Histogram of Icebreaker estimated ice thickness")
     plt.legend(["Total number of particles = " + str(len(data))])
-    full_pdf_path_object = icebreaker_path / "ice_hist.pdf"
+    full_pdf_path_object = (
+        working_directory / "External" / "Icebreaker_group_batch_001" / "ice_hist.pdf"
+    )
     plt.savefig(
         os.fspath(full_pdf_path_object)
     )  # This matplotlib version doesn't support Path objects with savefig()
     return full_pdf_path_object
+
+
+def _get_data(working_directory):
+    data = []
+    icebreaker_paths = (working_directory / "External").glob("Icebreaker_group*")
+    passed = []
+    for ibpath in icebreaker_paths:
+        particles_file = ibpath / "particles.star"
+        if particles_file.is_file():
+            passed.append(True)
+            current_data = extract_ice_column(particles_file)
+            print(current_data)
+            if not current_data:
+                logger.debug(f"No ice thickness data extracted for {particles_file}.")
+            else:
+                data.extend(current_data)
+        else:
+            logger.debug(f"Icebreaker {particles_file} not found.")
+            passed.append(False)
+
+    if all(passed):
+        return data
+
+    return None
 
 
 def extract_ice_column(icebreaker_star_file_path):
