@@ -52,8 +52,8 @@ def create_pdf_histogram(working_directory):
 
 def _get_data(working_directory):
     data = []
-    icebreaker_paths = (working_directory / "External").glob("Icebreaker_group*")
-    if not len(list(icebreaker_paths)):
+    icebreaker_paths = list((working_directory / "External").glob("Icebreaker_group*"))
+    if not len(icebreaker_paths):
         return None
     passed = []
     for ibpath in icebreaker_paths:
