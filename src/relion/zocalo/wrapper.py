@@ -155,7 +155,9 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
                 self.recwrap.send_to("images", {"file": img})
 
             ### Extract and send Icebreaker results as histograms if the Icebreaker grouping job has run
-            if not self.opts.stop_after_ctf_estimation:
+            if not self.opts.stop_after_ctf_estimation and (
+                self.opts.do_class2d or self.opts.do_class3d
+            ):
                 attachment_list = []
                 try:
                     pdf_file_path = icebreaker_histogram.create_pdf_histogram(

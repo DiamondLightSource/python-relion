@@ -2726,30 +2726,6 @@ def run_pipeline(opts):
             )
             runjobs.append(extract_job)
 
-            #### Set up Icebreaker grouping job
-            if opts.do_icebreaker_group and opts.do_icebreaker_job_group:
-                icebreaker_group_options = [
-                    "External executable: == ib_group.py",
-                    f"Input micrographs:  == {icebreaker_job_group}grouped_micrographs.star",
-                    f"Number of threads: == {opts.icebreaker_threads_number}",
-                    "Param1 - label: == o",
-                    "Param1 - value: == External/Icebreaker_group",
-                    "Param2 - label: == in_parts",
-                    f"Param2 - value: == {extract_job}particles.star",
-                ]
-                if opts.motioncor_submit_to_queue:
-                    icebreaker_group_options.extend(queue_options_cpu)
-                icebreaker_group_job, already_had_it = addJob(
-                    "External",
-                    "icebreaker_group_job",
-                    SETUP_CHECK_FILE,
-                    icebreaker_group_options,
-                    alias="Icebreaker_group",
-                )
-
-            if opts.do_icebreaker_group and opts.do_icebreaker_job_group:
-                runjobs.append(icebreaker_group_job)
-
             if (ipass == 0 and (opts.do_class2d or opts.do_class3d)) or (
                 ipass == 1 and (opts.do_class2d_pass2 or opts.do_class3d_pass2)
             ):
@@ -2960,6 +2936,51 @@ def run_pipeline(opts):
                         if (ipass == 0 and opts.do_class2d) or (
                             ipass == 1 and opts.do_class2d_pass2
                         ):
+
+                            #### Set up Icebreaker grouping job
+
+                            if (
+                                opts.do_icebreaker_group
+                                and opts.do_icebreaker_job_group
+                                and ipass == 0
+                            ):
+                                ibjobname = "icebreaker_group_job_batch_{:03d}".format(
+                                    iibatch
+                                )
+                                ibalias = "Icebreaker_group_batch_{:03d}".format(
+                                    iibatch
+                                )
+
+                                icebreaker_group_options = [
+                                    "External executable: == ib_group.py",
+                                    f"Input micrographs:  == {icebreaker_job_group}grouped_micrographs.star",
+                                    f"Number of threads: == {opts.icebreaker_threads_number}",
+                                    "Param1 - label: == o",
+                                    f"Param1 - value: == External/{ibalias}",
+                                    "Param2 - label: == in_parts",
+                                    f"Param2 - value: == {particles_star_file}",
+                                ]
+                                if opts.motioncor_submit_to_queue:
+                                    icebreaker_group_options.extend(queue_options_cpu)
+
+                                ibjobname = "icebreaker_group_job_batch_{:03d}".format(
+                                    iibatch
+                                )
+                                ibalias = "Icebreaker_group_batch_{:03d}".format(
+                                    iibatch
+                                )
+
+                                icebreaker_group_job, already_had_it = addJob(
+                                    "External",
+                                    ibjobname,
+                                    SETUP_CHECK_FILE,
+                                    icebreaker_group_options,
+                                    alias=ibalias,
+                                )
+
+                                RunJobs(
+                                    [icebreaker_group_job], 1, 1, "ICEBREAKER_GROUP"
+                                )
 
                             class2d_options = [
                                 "Input images STAR file: == {}".format(
