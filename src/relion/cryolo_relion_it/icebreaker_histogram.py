@@ -61,7 +61,6 @@ def _get_data(working_directory):
         if particles_file.is_file():
             passed.append(True)
             current_data = extract_ice_column(particles_file)
-            print(current_data)
             if not current_data:
                 logger.debug(f"No ice thickness data extracted for {particles_file}.")
             else:
