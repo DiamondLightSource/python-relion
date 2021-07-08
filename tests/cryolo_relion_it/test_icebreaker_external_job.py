@@ -17,7 +17,6 @@ def test_create_json_histogram(tmp_path):
 
 
 def test_create_json_histogram_more_than_one_batch(tmp_path):
-    # Prep
     icebreaker_dir = tmp_path / "External" / "Icebreaker_group_batch_001"
     icebreaker_dir_02 = tmp_path / "External" / "Icebreaker_group_batch_002"
     icebreaker_dir.mkdir(parents=True)
