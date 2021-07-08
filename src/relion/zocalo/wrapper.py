@@ -229,6 +229,9 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
                 and preproc_recently_run
                 and mc_job_time_all_processed
             ):
+                logger.info(
+                    f"Ending preprocessing: current time {currtime}, most recent movie {most_recent_movie}, time at which all micrographs were processed {mc_job_time_all_processed}"
+                )
                 preprocess_check.unlink()
 
             processing_ended = self.check_whether_ended(relion_prj)
@@ -240,6 +243,9 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
                 and processing_ended
                 and mc_job_time_all_processed
             ):
+                logger.info(
+                    f"Ending all processing: current time {currtime}, most recent movie {most_recent_movie}"
+                )
                 all_process_check.unlink()
 
         if not icebreaker_particles_star_file_found:
