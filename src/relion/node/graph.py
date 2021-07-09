@@ -175,10 +175,7 @@ class Graph(Node):
 
         for next_node in node:
             next_node.environment.update_prop(node.environment.propagate)
-            try:
-                next_traffic = node._link_traffic[next_node.nodeid]
-            except KeyError:
-                next_traffic = {}
+            next_traffic = node._link_traffic.get(next_node.nodeid, {})
             if next_traffic is None:
                 next_traffic = self._call_returns[node.nodeid]
             next_share = []
