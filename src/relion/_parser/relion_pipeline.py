@@ -125,6 +125,22 @@ class RelionPipeline:
             self._nodes[self._nodes.index(f._path)].link_to(
                 self._nodes[self._nodes.index(t._path)]
             )
+            if str(f._path.parent.parent) == "Select" and f._path.name.startswith(
+                "particles_split"
+            ):
+                self._nodes[self._nodes.index(f._path)].environment[
+                    "batch_number"
+                ] = f._path.stem.replace("particles_split", "")
+                self._nodes[self._nodes.index(f._path)].propagate(
+                    ("batch_number", "batch_number")
+                )
+            if str(f._path.parent.parent) == "InitialModel" and "class" in f._path.name:
+                self._nodes[self._nodes.index(f._path)].environment[
+                    "init_model_class_num"
+                ] = int(f._path.stem.split("class")[-1].split("_")[0])
+                self._nodes[self._nodes.index(f._path)].propagate(
+                    ("init_model_class_num", "init_model_class_num")
+                )
         self._nodes._split_connected(self._connected, self.origin, self.origins)
         self._set_job_nodes(star_doc_from_path)
 
