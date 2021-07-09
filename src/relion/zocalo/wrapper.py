@@ -461,34 +461,25 @@ def _(
 
 @ispyb_results.register(relion.AutoPick)
 def _(stage_object: relion.AutoPick, job_string: str, relion_options: RelionItOptions):
-    try:
-        num_particles = stage_object[job_string][0].number_of_particles
-        micrograph = stage_object[job_string][0].first_micrograph_name
-    except IndexError:
-        return []
     ispyb_command_list = [
         {
             "ispyb_command": "insert_particle_picker",
-            "number_of_particles": num_particles,
+            "number_of_particles": mic.number_of_particles,
             "particle_diameter": relion_options.autopick_LoG_diam_max
             / 10,  # units are nm not Angstrom in the DB
-            "micrograph_name": micrograph,
+            "micrograph_name": mic.micrograph_full_path,
         }
+        for mic in stage_object[job_string]
     ]
     return ispyb_command_list
 
 
 @ispyb_results.register(relion.Cryolo)
 def _(stage_object: relion.Cryolo, job_string: str, relion_options: RelionItOptions):
-    try:
-        num_particles = stage_object[job_string][0].number_of_particles
-        micrograph = stage_object[job_string][0].first_micrograph_name
-    except IndexError:
-        return []
     ispyb_command_list = [
         {
             "ispyb_command": "insert_particle_picker",
-            "number_of_particles": num_particles,
+            "number_of_particles": mic.number_of_particles,
             "particle_diameter": int(
                 relion_options.extract_boxsize
                 * relion_options.angpix
@@ -496,8 +487,9 @@ def _(stage_object: relion.Cryolo, job_string: str, relion_options: RelionItOpti
             )
             / 10,
             "particle_picking_template": relion_options.cryolo_gmodel,
-            "micrograph_name": micrograph,
+            "micrograph_name": mic.micrograph_full_path,
         }
+        for mic in stage_object[job_string]
     ]
     return ispyb_command_list
 
