@@ -33,7 +33,7 @@ class RelionPipeline:
     def __iter__(self):
         if not self._jobs_collapsed:
             self._collapse_jobs_to_jobtypes()
-        return iter(self._jobtype_nodes)
+        return iter(self._jobtype_nodes._node_list)
 
     @property
     def _plock(self):
@@ -200,7 +200,15 @@ class RelionPipeline:
         )
         for node in self._jobtype_nodes:
             node.environment["job"] = node._path.name
+            job_string = str(node._path.name)
             node._path = node._path.parent
+            for inode in node._in:
+                inode._link_traffic[node.nodeid] = inode._link_traffic[node.nodeid]
+            node._name = str(node._path)
+            if node.name == "InitialModel":
+                node.environment["ini_model_job_string"] = job_string
+            else:
+                node.environment["job_string"] = job_string
         self._jobs_collapsed = True
 
     def show_all_nodes(self):

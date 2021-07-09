@@ -121,6 +121,7 @@ class CTFFind(JobType):
                 "max_estimated_resolution": micrograph.max_resolution,
                 "cc_value": micrograph.fig_of_merit,
                 "amplitude_contrast": micrograph.amp_contrast,
+                "fft_theoretical_full_path": micrograph.diagnostic_plot_path,
             }
             for micrograph in micrograph_list
         ]

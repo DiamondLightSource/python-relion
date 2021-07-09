@@ -17,6 +17,7 @@ from relion._parser.class2D import Class2D
 from relion._parser.class3D import Class3D
 from relion._parser.cryolo import Cryolo
 from relion._parser.ctffind import CTFFind
+from relion._parser.initialmodel import InitialModel
 from relion._parser.motioncorrection import MotionCorr
 from relion._parser.relion_pipeline import RelionPipeline
 
@@ -120,6 +121,7 @@ class Project(RelionPipeline):
             "AutoPick": self.autopick,
             "External:crYOLO": self.cryolo,
             "Class2D": self.class2D,
+            "InitialModel": self.initialmodel,
             "Class3D": self.class3D,
         }
         return resd
@@ -157,6 +159,11 @@ class Project(RelionPipeline):
         Returns a dictionary-like object with job names as keys,
         and lists of Class2DParticleClass namedtuples as values."""
         return Class2D(self.basepath / "Class2D")
+
+    @property
+    @functools.lru_cache(maxsize=1)
+    def initialmodel(self):
+        return InitialModel(self.basepath / "InitialModel")
 
     @property
     @functools.lru_cache(maxsize=1)
@@ -250,10 +257,9 @@ class Project(RelionPipeline):
         if results is None:
             return msgs
         for node in self._db_model.db_nodes:
-            print(node)
             try:
-                if results[node.name + "-" + node.nodeid] is not None:
-                    msgs.append(results[node.name + "-" + node.nodeid])
+                if results[node.nodeid] is not None:
+                    msgs.append(results[node.nodeid])
             except KeyError:
                 logger.debug(
                     f"No results found for {node.name}: probably the job has not completed yet"
@@ -299,6 +305,7 @@ class Project(RelionPipeline):
         Project.autopick.fget.cache_clear()
         Project.cryolo.fget.cache_clear()
         Project.class2D.fget.cache_clear()
+        Project.initialmodel.fget.cache_clear()
         Project.class3D.fget.cache_clear()
 
     def get_imported(self):
