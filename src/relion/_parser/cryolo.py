@@ -35,7 +35,7 @@ class Cryolo(JobType):
         particles_per_micrograph = {}
         first_mic = ""
         for star_file in (self._basepath / jobdir / "Movies").glob("**/*"):
-            if "gain" not in str(star_file):
+            if star_file.is_file() and "gain" not in str(star_file):
                 try:
                     file = self._read_star_file(
                         jobdir, star_file.relative_to(self._basepath / jobdir)
