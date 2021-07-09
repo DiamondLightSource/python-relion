@@ -16,13 +16,13 @@ def run():
     else:
         print("These jobs are currently running: \n")
         for current_job in current_jobs:
-            alias = current_job.attributes.get("alias")
+            alias = current_job.environment["alias"]
             if alias is not None:
                 print(f"Current job: {current_job._path} [alias={alias}]")
             else:
                 print(f"Current job: {current_job._path}")
-            print(f"Job started at: {current_job.attributes['start_time_stamp']}")
-            print(f"Job has been run {current_job.attributes['job_count']} time(s)")
+            print(f"Job started at: {current_job.environment['start_time_stamp']}")
+            print(f"Job has been run {current_job.environment['job_count']} time(s)")
             print()
 
 

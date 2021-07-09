@@ -113,7 +113,7 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
 
         while (
             self._relion_subthread.is_alive() or preprocess_check.is_file()
-        ) and False not in [n.attributes["status"] for n in relion_prj]:
+        ) and False not in [n.environment["status"] for n in relion_prj]:
             time.sleep(1)
 
             # logger.info("Looking for results")
@@ -203,12 +203,12 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
 
             if len(relion_prj._job_nodes) != 0 and len(relion_prj.preprocess) != 0:
                 for job in relion_prj.preprocess:
-                    job_end_time = job.attributes["end_time_stamp"]
+                    job_end_time = job.environment["end_time_stamp"]
                     if job_end_time is None:
                         break
                     if (
                         datetime.datetime.timestamp(job_end_time) < most_recent_movie
-                        or job.attributes["job_count"] < 1
+                        or job.environment["job_count"] < 1
                     ):
                         break
                     # don't need to check if Import job has run recently for this bit
@@ -281,7 +281,7 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
                 return datetime.datetime.timestamp(
                     relion_prj._job_nodes.get_by_name(
                         "MotionCorr/" + checked_key
-                    ).attributes["end_time_stamp"]
+                    ).environment["end_time_stamp"]
                 )
             return
         except (KeyError, AttributeError, RuntimeError, FileNotFoundError) as e:
@@ -342,11 +342,11 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
         return success
 
     def check_whether_ended(self, proj):
-        if len(proj._job_nodes) == 0 or None in [j.attributes["status"] for j in proj]:
+        if len(proj._job_nodes) == 0 or None in [j.environment["status"] for j in proj]:
             return False
         check_time = time.time()
         return all(
-            check_time - datetime.datetime.timestamp(j.attributes["end_time_stamp"])
+            check_time - datetime.datetime.timestamp(j.environment["end_time_stamp"])
             > 10 * 60
             for j in proj
         )
