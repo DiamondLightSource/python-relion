@@ -20,6 +20,18 @@ from relion._parser.ctffind import CTFFind
 from relion._parser.motioncorrection import MotionCorr
 from relion._parser.relion_pipeline import RelionPipeline
 
+try:
+    from relion.cryolo_relion_it.cryolo_relion_it import RelionItOptions
+except ModuleNotFoundError:
+    pass
+import logging
+
+from relion.dbmodel import DBModel
+from relion.dbmodel.modeltables import construct_message
+from relion.node.graph import Graph
+
+logger = logging.getLogger("relion.Project")
+
 __all__ = []
 __author__ = "Diamond Light Source - Scientific Software"
 __email__ = "scientificsoftware@diamond.ac.uk"
@@ -53,7 +65,7 @@ class Project(RelionPipeline):
     a structured, object-oriented, and pythonic fashion.
     """
 
-    def __init__(self, path):
+    def __init__(self, path, database="ISPyB", run_options=None):
         """
         Create an object representing a Relion project.
         :param path: A string or file system path object pointing to the root
@@ -65,6 +77,13 @@ class Project(RelionPipeline):
         )
         if not self.basepath.is_dir():
             raise ValueError(f"path {self.basepath} is not a directory")
+        self._data_pipeline = Graph("DataPipeline", [])
+        self._db_model = DBModel(database)
+        self._drift_cache = {}
+        if run_options is None:
+            self.run_options = RelionItOptions()
+        else:
+            self.run_options = run_options
         try:
             self.load()
         except (FileNotFoundError, RuntimeError):
@@ -163,6 +182,57 @@ class Project(RelionPipeline):
         self.collect_job_times(
             list(self.schedule_files), self.basepath / "pipeline_PREPROCESS.log"
         )
+        for jobnode in self:
+            if self._results_dict.get(jobnode.name) and jobnode.name != "InitialModel":
+                jobnode.environment["result"] = self._results_dict[jobnode.name]
+                jobnode.environment["extra_options"] = self.run_options
+                self._db_model[jobnode.name].environment[
+                    "extra_options"
+                ] = self.run_options
+                self._db_model[jobnode.name].environment[
+                    "message_constructor"
+                ] = construct_message
+                jobnode.link_to(
+                    self._db_model[jobnode.name],
+                    result_as_traffic=True,
+                    share=[("end_time", "end_time")],
+                )
+                self._data_pipeline.add_node(jobnode)
+                self._data_pipeline.add_node(self._db_model[jobnode.name])
+                if jobnode.name == "AutoPick":
+                    jobnode.propagate(("job_string", "parpick_job_string"))
+            elif jobnode.name == "InitialModel":
+                jobnode.environment["result"] = self._results_dict[jobnode.name]
+                jobnode.link_to(
+                    self._db_model[jobnode.name],
+                    result_as_traffic=True,
+                    share=[("end_time", "end_time")],
+                )
+                self._data_pipeline.add_node(jobnode)
+                jobnode.propagate(("ini_model_job_string", "ini_model_job_string"))
+            elif "crYOLO" in jobnode.environment.get("alias"):
+                jobnode.environment["result"] = self._results_dict[
+                    f"{jobnode._path}:crYOLO"
+                ]
+                jobnode.environment["extra_options"] = self.run_options
+                self._db_model[f"{jobnode._path}:crYOLO"].environment[
+                    "extra_options"
+                ] = self.run_options
+                self._db_model[f"{jobnode._path}:crYOLO"].environment[
+                    "message_constructor"
+                ] = construct_message
+                jobnode.propagate(("job_string", "parpick_job_string"))
+                jobnode.link_to(
+                    self._db_model[f"{jobnode._path}:crYOLO"],
+                    result_as_traffic=True,
+                    share=[("end_time", "end_time")],
+                )
+                self._data_pipeline.add_node(jobnode)
+                self._data_pipeline.add_node(self._db_model[f"{jobnode._path}:crYOLO"])
+            else:
+                self._data_pipeline.add_node(jobnode)
+                if jobnode.name == "Import":
+                    self._data_pipeline.origins = [jobnode]
 
     def show_job_nodes(self):
         self.load()
@@ -171,6 +241,24 @@ class Project(RelionPipeline):
     @property
     def schedule_files(self):
         return self.basepath.glob("pipeline*.log")
+
+    @property
+    def messages(self):
+        self._clear_caches()
+        msgs = []
+        results = self._data_pipeline()
+        if results is None:
+            return msgs
+        for node in self._db_model.db_nodes:
+            print(node)
+            try:
+                if results[node.name + "-" + node.nodeid] is not None:
+                    msgs.append(results[node.name + "-" + node.nodeid])
+            except KeyError:
+                logger.debug(
+                    f"No results found for {node.name}: probably the job has not completed yet"
+                )
+        return msgs
 
     @property
     def results(self):
