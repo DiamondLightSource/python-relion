@@ -83,7 +83,6 @@ class Cryolo(JobType):
 
         particle_picker_info = []
         for mic, num_particles in particles_per_micrograph.items():
-            print(mic)
             particle_picker_info.append(
                 ParticlePickerInfo(
                     num_particles,
