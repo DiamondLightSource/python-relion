@@ -86,17 +86,7 @@ class Cryolo(JobType):
             particle_picker_info.append(
                 ParticlePickerInfo(
                     num_particles,
-                    next(
-                        (
-                            x
-                            for x in micrograph_names
-                            if str(mic.relative_to(self._basepath / jobdir)).replace(
-                                "_autopick.star", ".mrc"
-                            )
-                            in x
-                        ),
-                        None,
-                    ),
+                    self._get_micrograph_name(mic, micrograph_names, jobdir),
                     str(first_mic.relative_to(self._basepath / jobdir)).replace(
                         "_autopick.star", ".mrc"
                     ),
@@ -105,6 +95,17 @@ class Cryolo(JobType):
             )
 
         return particle_picker_info
+
+    def _get_micrograph_name(self, micrograph, micrograph_names, jobdir):
+        for x in micrograph_names:
+            if (
+                str(micrograph.relative_to(self._basepath / jobdir)).replace(
+                    "_autopick.star", ".mrc"
+                )
+                in x
+            ):
+                return x
+        return None
 
     @staticmethod
     def for_cache(partpickinfo):
