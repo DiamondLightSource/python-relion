@@ -72,8 +72,8 @@ class Graph(Node):
             for i_node in node._in:
                 if i_node not in self._node_list:
                     i_node.link_to(self)
-                    i_node._link_traffic[(self.name, self.nodeid)].update(
-                        i_node._link_traffic[(node.name, node.nodeid)]
+                    i_node._link_traffic[self.nodeid].update(
+                        i_node._link_traffic[node.nodeid]
                     )
 
     def extend(self, other):

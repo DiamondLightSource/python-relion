@@ -8,8 +8,13 @@ import relion
 
 
 @pytest.fixture
+def empty_options():
+    return []
+
+
+@pytest.fixture
 def proj(dials_data):
-    return relion.Project(dials_data("relion_tutorial_data"))
+    return relion.Project(dials_data("relion_tutorial_data"), run_options=empty_options)
 
 
 def remove_corrected_star_slice(corrected_star_path, required_slice):
@@ -52,12 +57,12 @@ def remove_corrected_star_slice(corrected_star_path, required_slice):
 
 
 def test_basic_Project_object_behaviour(tmp_path):
-    rp1 = relion.Project(tmp_path)
+    rp1 = relion.Project(tmp_path, run_options=empty_options)
     assert rp1
     assert str(tmp_path) in str(rp1)
     assert tmp_path.name in repr(rp1)
 
-    rp2 = relion.Project(str(tmp_path))
+    rp2 = relion.Project(str(tmp_path), run_options=empty_options)
     assert rp2
     assert str(rp1) == str(rp2)
     assert repr(rp1) == repr(rp2)
@@ -71,7 +76,7 @@ def test_basic_Project_object_behaviour(tmp_path):
 
 def test_create_Project_on_inaccessible_path_fails(tmp_path):
     with pytest.raises(ValueError):
-        relion.Project(tmp_path / "does_not_exist")
+        relion.Project(tmp_path / "does_not_exist", run_options=empty_options)
 
 
 def test_Project_schedule_files_property_contains_the_correct_files(dials_data, proj):
@@ -94,7 +99,7 @@ def test_Project_schedule_files_property_contains_the_correct_files(dials_data, 
 
 
 def test_results_collection_does_not_crash_for_an_empty_project():
-    proj = relion.Project("./")
+    proj = relion.Project("./", run_options=empty_options)
     results = proj.results
     assert results._results == []
 
