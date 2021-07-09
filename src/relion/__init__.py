@@ -65,9 +65,13 @@ class Project(RelionPipeline):
     a structured, object-oriented, and pythonic fashion.
     """
 
+<<<<<<< e53f5f7a98e64592b9453b5140689b8ab3c1d36a
     def __init__(
         self, path, database="ISPyB", run_options=None, message_constructors=None
     ):
+=======
+    def __init__(self, path, database="ISPyB", run_options=None):
+>>>>>>> Connect ProcessNodes to DBNodes so that collected information ends up in the database model
         """
         Create an object representing a Relion project.
         :param path: A string or file system path object pointing to the root
@@ -197,6 +201,7 @@ class Project(RelionPipeline):
             list(self.schedule_files), self.basepath / "pipeline_PREPROCESS.log"
         )
         for jobnode in self:
+<<<<<<< e53f5f7a98e64592b9453b5140689b8ab3c1d36a
             if self._results_dict.get(
                 jobnode.name
             ) or "crYOLO" in jobnode.environment.get("alias"):
@@ -219,10 +224,59 @@ class Project(RelionPipeline):
                     )
                 else:
                     self._update_pipeline(jobnode, jobnode.name)
+=======
+            if self._results_dict.get(jobnode.name) and jobnode.name != "InitialModel":
+                jobnode.environment["result"] = self._results_dict[jobnode.name]
+                jobnode.environment["extra_options"] = self.run_options
+                self._db_model[jobnode.name].environment[
+                    "extra_options"
+                ] = self.run_options
+                self._db_model[jobnode.name].environment[
+                    "message_constructor"
+                ] = construct_message
+                jobnode.link_to(
+                    self._db_model[jobnode.name],
+                    result_as_traffic=True,
+                    share=[("end_time", "end_time")],
+                )
+                self._data_pipeline.add_node(jobnode)
+                self._data_pipeline.add_node(self._db_model[jobnode.name])
+                if jobnode.name == "AutoPick":
+                    jobnode.propagate(("job_string", "parpick_job_string"))
+            elif jobnode.name == "InitialModel":
+                jobnode.environment["result"] = self._results_dict[jobnode.name]
+                jobnode.link_to(
+                    self._db_model[jobnode.name],
+                    result_as_traffic=True,
+                    share=[("end_time", "end_time")],
+                )
+                self._data_pipeline.add_node(jobnode)
+                jobnode.propagate(("ini_model_job_string", "ini_model_job_string"))
+            elif "crYOLO" in jobnode.environment.get("alias"):
+                jobnode.environment["result"] = self._results_dict[
+                    f"{jobnode._path}:crYOLO"
+                ]
+                jobnode.environment["extra_options"] = self.run_options
+                self._db_model[f"{jobnode._path}:crYOLO"].environment[
+                    "extra_options"
+                ] = self.run_options
+                self._db_model[f"{jobnode._path}:crYOLO"].environment[
+                    "message_constructor"
+                ] = construct_message
+                jobnode.propagate(("job_string", "parpick_job_string"))
+                jobnode.link_to(
+                    self._db_model[f"{jobnode._path}:crYOLO"],
+                    result_as_traffic=True,
+                    share=[("end_time", "end_time")],
+                )
+                self._data_pipeline.add_node(jobnode)
+                self._data_pipeline.add_node(self._db_model[f"{jobnode._path}:crYOLO"])
+>>>>>>> Connect ProcessNodes to DBNodes so that collected information ends up in the database model
             else:
                 self._data_pipeline.add_node(jobnode)
                 if jobnode.name == "Import":
                     self._data_pipeline.origins = [jobnode]
+<<<<<<< e53f5f7a98e64592b9453b5140689b8ab3c1d36a
 
     def _update_pipeline(self, jobnode, label, prop=None, in_db_model=True):
         jobnode.environment["result"] = self._results_dict[label]
@@ -242,6 +296,8 @@ class Project(RelionPipeline):
         self._data_pipeline.add_node(jobnode)
         if in_db_model:
             self._data_pipeline.add_node(self._db_model[label])
+=======
+>>>>>>> Connect ProcessNodes to DBNodes so that collected information ends up in the database model
 
     def show_job_nodes(self):
         self.load()
@@ -259,6 +315,7 @@ class Project(RelionPipeline):
         if results is None:
             return msgs
         for node in self._db_model.db_nodes:
+<<<<<<< e53f5f7a98e64592b9453b5140689b8ab3c1d36a
             try:
                 if results[node.nodeid] is not None:
                     d = {}
@@ -269,6 +326,12 @@ class Project(RelionPipeline):
                             except KeyError:
                                 d[key] = val
                     msgs.append(d)
+=======
+            print(node)
+            try:
+                if results[node.name + "-" + node.nodeid] is not None:
+                    msgs.append(results[node.name + "-" + node.nodeid])
+>>>>>>> Connect ProcessNodes to DBNodes so that collected information ends up in the database model
             except KeyError:
                 logger.debug(
                     f"No results found for {node.name}: probably the job has not completed yet"
