@@ -55,7 +55,7 @@ DBNode
 ------
 
 A ``DBNode`` is a ``Node`` implemented with a specific call. Calling a ``DBNode`` will perform an insert into 
-a ``Table`` associated with the node after doing a few checks. If ``"check_for`` is present in the node's 
+a ``Table`` associated with the node after doing a few checks. If ``check_for`` is present in the node's 
 ``environment`` then the ``Table`` ``environment["foreign_table"]`` will be searched for 
 ``environment[environment["check_for"]]`` and the primary key associated with the found value will be inserted 
 into the node's ``Table`` in the column ``environment["table_key"]``. This allows entries between different tables 
