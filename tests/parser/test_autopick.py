@@ -78,11 +78,12 @@ def test_all_keys_are_different(input):
         assert key_list[i] != key_list[i - 1]
 
 
-def test_numper_of_particles_value(input):
+def test_number_of_particles_value(input):
     ap_object = input
-    assert ap_object["job006"][0].number_of_particles == 1158
-    assert ap_object["job010"][0].number_of_particles == 2038
-    assert ap_object["job011"][0].number_of_particles == 9482
+    assert ap_object["job006"][0].number_of_particles == 242
+    assert ap_object["job006"][-1].number_of_particles == 237
+    assert ap_object["job010"][0].number_of_particles == 422
+    assert ap_object["job011"][0].number_of_particles == 422
 
 
 def test_micrograph_path_name(input):

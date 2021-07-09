@@ -16,6 +16,7 @@ Class2DParticleClass = namedtuple(
         "accuracy_translations_angst",
         "estimated_resolution",
         "overall_fourier_completeness",
+        "job",
     ],
 )
 
@@ -128,6 +129,7 @@ class Class2D(JobType):
                         accuracy_translations_angst[j],
                         estimated_resolution[j],
                         overall_fourier_completeness[j],
+                        jobdir,
                     )
                 )
         except IndexError:
@@ -185,3 +187,21 @@ class Class2D(JobType):
             temp_list.reverse()
             return_dict[item] = temp_list
         return return_dict
+
+    @staticmethod
+    def db_unpack(particle_class):
+        res = [
+            {
+                "type": "2D",
+                "job_string": cl.job,
+                "class_number": cl.particle_sum[0],
+                "particles_per_class": cl.particle_sum[1],
+                "rotation_accuracy": cl.accuracy_rotations,
+                "translation_accuracy": cl.accuracy_translations_angst,
+                "estimated_resolution": cl.estimated_resolution,
+                "overall_fourier_completeness": cl.overall_fourier_completeness,
+                "job_string": cl.job,
+            }
+            for cl in particle_class
+        ]
+        return res

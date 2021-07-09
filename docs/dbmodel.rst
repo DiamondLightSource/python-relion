@@ -49,3 +49,32 @@ In addition, a column can be set to auto-increment with the ``counters`` key wor
 This is used, for example, in the ``MotionCorrection`` table which contains an ``image_number`` column which 
 needs to be a unique integer for each micrograph. An appendable column may be specified with the ``append`` 
 keyword. For these columns values are appended to a list rather than updated.
+
+------
+DBNode
+------
+
+A ``DBNode`` is a ``Node`` implemented with a specific call. Calling a ``DBNode`` will perform an insert into 
+a ``Table`` associated with the node after doing a few checks. If ``check_for`` is present in the node's 
+``environment`` then the ``Table`` ``environment["foreign_table"]`` will be searched for 
+``environment[environment["check_for"]]`` and the primary key associated with the found value will be inserted 
+into the node's ``Table`` in the column ``environment["table_key"]``. This allows entries between different tables 
+to be linked based on if they share some common value. For example, in the ISPyB database schema the ``CTF`` table 
+contains a ``motionCorrectionId`` column which should point to the ``MotionCorrection`` entry for the matching 
+micrograph. If both ``DBNode`` s associated with the ``MotionCorrection`` and ``CTF`` tables have a ``micrograph_full_path`` 
+in their ``environment``, then specifying ``environment["check_for"] = micrograph_full_path``, ``environment["table_key"] = motion_correction_id`` 
+and ``environment["foreign_table"]`` is the ``MotionCorrection`` table in the ``CTF`` node will ensure that ``motion_correction_id`` 
+is equal to the primary key of the ``MotionCorrection`` row that has a matching ``micrograph_full_path``.
+
+The ``DBNode`` call will return a message designed to be sent to a Zocalo service that will do the insertions into the 
+actual ISPyB database. A graph of ``DBNode`` s can be set up which upon calling provides a series of messages to be sent 
+to the Zocalo service with the correct connections made between the entries in various different related tables. 
+
+-------
+DBGraph
+-------
+
+A ``DBGraph`` adds some basic functionality to a ``Graph`` to keep track of the last time that tables were updated, 
+and from which nodes that data came from. This allows checks on whether or not a data producing job has been run 
+since the last table update. Calling a ``DBGraph`` will return a collapsed set of messages from all the ``DBNodes`` 
+within the graph.

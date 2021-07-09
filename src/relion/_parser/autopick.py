@@ -9,7 +9,9 @@ ParticlePickerInfo = namedtuple(
     "ParticlePickerInfo",
     [
         "number_of_particles",
+        "micrograph_full_path",
         "first_micrograph_name",
+        "job",
     ],
 )
 
@@ -41,14 +43,33 @@ class AutoPick(JobType):
             return []
 
         all_particles = self.parse_star_file("_rlnGroupNrParticles", file, info_table)
-        num_particles = sum([int(n) for n in all_particles])
+        # num_particles = sum([int(n) for n in all_particles])
 
-        first_mc_micrograph = self.parse_star_file(
-            "_rlnMicrographName", file, info_table
-        )[0]
+        mc_micrographs = self.parse_star_file("_rlnMicrographName", file, info_table)
 
-        return [ParticlePickerInfo(num_particles, first_mc_micrograph)]
+        first_mc_micrograph = mc_micrographs[0]
+
+        particle_picker_info = []
+        for mic, np in zip(mc_micrographs, all_particles):
+            particle_picker_info.append(
+                ParticlePickerInfo(int(np), mic, first_mc_micrograph, jobdir)
+            )
+
+        return particle_picker_info
 
     @staticmethod
     def for_cache(partpickinfo):
         return str(partpickinfo.number_of_particles)
+
+    @staticmethod
+    def db_unpack(partpickinfo):
+        res = [
+            {
+                "number_of_particles": pi.number_of_particles,
+                "job_string": pi.job,
+                "micrograph_full_path": pi.micrograph_full_path,
+                "first_motion_correction_micrograph": pi.first_micrograph_name,
+            }
+            for pi in partpickinfo
+        ]
+        return res

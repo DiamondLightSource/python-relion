@@ -183,3 +183,20 @@ class MotionCorr(JobType):
             kwargs.get(name, getattr(mcmicrograph, name)) for name in attr_names_list
         ]
         return MCMicrograph(*attr_list)
+
+    @staticmethod
+    def db_unpack(micrograph_list):
+        res = [
+            {
+                "micrograph_full_path": micrograph.micrograph_name,
+                "total_motion": micrograph.total_motion,
+                "early_motion": micrograph.early_motion,
+                "late_motion": micrograph.late_motion,
+                "average_motion_per_frame": (
+                    float(micrograph.total_motion) / len(micrograph.drift_data)
+                ),
+                "image_number": micrograph.micrograph_number,
+            }
+            for micrograph in micrograph_list
+        ]
+        return res

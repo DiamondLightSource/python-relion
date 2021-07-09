@@ -17,13 +17,13 @@ from relion._parser.processnode import ProcessNode
 
 
 class RelionPipeline:
-    def __init__(self, origin, graphin=ProcessGraph([]), locklist=None):
+    def __init__(self, origin, graphin=ProcessGraph("nodes", []), locklist=None):
         self.origin = origin
         self._nodes = graphin
         self._connected = {}
         self.origins = {}
-        self._job_nodes = ProcessGraph([])
-        self._jobtype_nodes = ProcessGraph([])
+        self._job_nodes = ProcessGraph("job nodes", [])
+        self._jobtype_nodes = ProcessGraph("job type nodes", [])
         self._connected_jobs = {}
         self.job_origins = {}
         self._jobs_collapsed = False
@@ -67,21 +67,23 @@ class RelionPipeline:
 
     def _load_file_nodes_from_star(self, star_doc):
         return ProcessGraph(
+            "file nodes",
             [
                 ProcessNode(pathlib.Path(p))
                 for p in self._request_star_values(star_doc, "_rlnPipeLineNodeName")
-            ]
+            ],
         )
 
     def _load_job_nodes_from_star(self, star_doc):
         return ProcessGraph(
+            "job nodes",
             [
                 ProcessNode(pathlib.Path(p), alias=al)
                 for p, al in zip(
                     self._request_star_values(star_doc, "_rlnPipeLineProcessName"),
                     self._request_star_values(star_doc, "_rlnPipeLineProcessAlias"),
                 )
-            ]
+            ],
         )
 
     def load_nodes_from_star(self, star_path):
@@ -135,30 +137,30 @@ class RelionPipeline:
             # the SUCCESS/FAILURE file in between checking for its existence
             # and checking its modification time
             try:
-                node.attributes["end_time_stamp"] = datetime.datetime.fromtimestamp(
+                node.environment["end_time_stamp"] = datetime.datetime.fromtimestamp(
                     failure.stat().st_mtime
                 )
-                node.attributes["status"] = False
+                node.environment["status"] = False
                 continue
             except FileNotFoundError:
                 pass
             try:
-                node.attributes["end_time_stamp"] = datetime.datetime.fromtimestamp(
+                node.environment["end_time_stamp"] = datetime.datetime.fromtimestamp(
                     aborted.stat().st_mtime
                 )
-                node.attributes["status"] = False
+                node.environment["status"] = False
                 continue
             except FileNotFoundError:
                 pass
             try:
-                node.attributes["end_time_stamp"] = datetime.datetime.fromtimestamp(
+                node.environment["end_time_stamp"] = datetime.datetime.fromtimestamp(
                     success.stat().st_mtime
                 )
-                node.attributes["status"] = True
+                node.environment["status"] = True
                 continue
             except FileNotFoundError:
                 pass
-            node.attributes["status"] = None
+            node.environment["status"] = None
 
     def _set_job_nodes(self, star_doc):
         self._job_nodes = copy.deepcopy(self._nodes)
@@ -172,14 +174,16 @@ class RelionPipeline:
     def _collapse_jobs_to_jobtypes(self):
         ordered_graph = []
         if len(self._nodes) == 0:
-            self._jobtype_nodes = ProcessGraph([])
+            self._jobtype_nodes = ProcessGraph("job type nodes", [])
             return
         self._job_nodes.node_explore(
             self._job_nodes[self._job_nodes.index(self.origin)], ordered_graph
         )
-        self._jobtype_nodes = ProcessGraph(copy.deepcopy(ordered_graph))
+        self._jobtype_nodes = ProcessGraph(
+            "job type nodes", copy.deepcopy(ordered_graph)
+        )
         for node in self._jobtype_nodes:
-            node.attributes["job"] = node._path.name
+            node.environment["job"] = node._path.name
             node._path = node._path.parent
         self._jobs_collapsed = True
 
@@ -201,25 +205,25 @@ class RelionPipeline:
                 bordercolour = "teal"
             else:
                 bordercolour = "purple"
-            if node.attributes["status"]:
+            if node.environment["status"]:
                 node_colour = "mediumseagreen"
-            elif node.attributes["status"] is None:
+            elif node.environment["status"] is None:
                 node_colour = "lightgray"
             else:
                 node_colour = "orangered"
-            if node.attributes["start_time_stamp"] is not None:
-                sstamp = node.attributes["start_time_stamp"]
+            if node.environment["start_time_stamp"] is not None:
+                sstamp = node.environment["start_time_stamp"]
             else:
                 sstamp = "???"
-            if node.attributes["end_time_stamp"] is not None:
-                estamp = node.attributes["end_time_stamp"]
+            if node.environment["end_time_stamp"] is not None:
+                estamp = node.environment["end_time_stamp"]
             else:
                 estamp = "???"
             if (
-                node.attributes.get("alias") is not None
-                and node.attributes.get("alias") != "None"
+                node.environment.get("alias") is not None
+                and node.environment.get("alias") != "None"
             ):
-                nodename = node.attributes.get("alias")
+                nodename = node.environment.get("alias")
             else:
                 nodename = str(node._path)
             digraph.node(
@@ -231,15 +235,15 @@ class RelionPipeline:
                 tooltip=f"Start: {sstamp}&#013;End: {estamp}&#013;Path: {node._path}",
             )
             for next_node in node:
-                stime = next_node.attributes["start_time"]
-                etime = next_node.attributes["end_time"]
-                jcount = next_node.attributes["job_count"]
+                stime = next_node.environment["start_time"]
+                etime = next_node.environment["end_time"]
+                jcount = next_node.environment["job_count"]
 
                 if (
-                    next_node.attributes.get("alias") is not None
-                    and next_node.attributes.get("alias") != "None"
+                    next_node.environment["alias"] is not None
+                    and next_node.environment["alias"] != "None"
                 ):
-                    next_nodename = next_node.attributes.get("alias")
+                    next_nodename = next_node.environment["alias"]
                 else:
                     next_nodename = str(next_node._path)
 
@@ -274,8 +278,8 @@ class RelionPipeline:
     def collect_job_times(self, schedule_logs, preproc_log=None):
         for job in self._job_nodes:
             jtime, jcount = self._lookup_job_time(schedule_logs, job)
-            job.attributes["start_time_stamp"] = jtime
-            job.attributes["job_count"] = jcount
+            job.environment["start_time_stamp"] = jtime
+            job.environment["job_count"] = jcount
         self._calculate_relative_job_times()
         self.preprocess = self._get_pipeline_jobs(preproc_log)
 
@@ -301,8 +305,8 @@ class RelionPipeline:
         return []
 
     def _calculate_relative_job_times(self):
-        times = [j.attributes["start_time_stamp"] for j in self._job_nodes]
-        etimes = [j.attributes["end_time_stamp"] for j in self._job_nodes]
+        times = [j.environment["start_time_stamp"] for j in self._job_nodes]
+        etimes = [j.environment["end_time_stamp"] for j in self._job_nodes]
         already_started_times = [t for t in times if t is not None]
         try:
             origin = sorted(already_started_times)[0]
@@ -313,12 +317,14 @@ class RelionPipeline:
             microseconds=tdelta.microseconds
         )
         for node, rt in zip(self._job_nodes, relative_times):
-            node.attributes["start_time"] = just_seconds(datetime.timedelta(seconds=rt))
+            node.environment["start_time"] = just_seconds(
+                datetime.timedelta(seconds=rt)
+            )
         relative_etimes = [
             (t - origin).total_seconds() for t in etimes if t is not None
         ]
         for node, rt in zip(self._job_nodes, relative_etimes):
-            node.attributes["end_time"] = just_seconds(datetime.timedelta(seconds=rt))
+            node.environment["end_time"] = just_seconds(datetime.timedelta(seconds=rt))
 
     def _lookup_job_time(self, schedule_logs, job):
         time = None
@@ -348,8 +354,8 @@ class RelionPipeline:
         running_jobs = []
         for node in self._job_nodes:
             if (
-                node.attributes["start_time_stamp"] is not None
-                and node.attributes["status"] is None
+                node.environment["start_time_stamp"] is not None
+                and node.environment["status"] is None
             ):
                 running_jobs.append(node)
         if len(running_jobs) == 0:
