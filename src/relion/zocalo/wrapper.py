@@ -278,11 +278,11 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
                         checked_key = key
                         break
             if all(checks):
-                return datetime.datetime.timestamp(
-                    relion_prj._job_nodes.get_by_name(
-                        "MotionCorr/" + checked_key
-                    ).environment["end_time_stamp"]
-                )
+                completion_time = relion_prj._job_nodes.get_by_name(
+                    "MotionCorr/" + checked_key
+                ).environment["end_time_stamp"]
+                if completion_time:
+                    return datetime.datetime.timestamp(completion_time)
             return
         except (KeyError, AttributeError, RuntimeError, FileNotFoundError) as e:
             logger.debug(
