@@ -1,4 +1,3 @@
-import os
 import pathlib
 
 import pytest
@@ -98,102 +97,7 @@ def test_Project_schedule_files_property_contains_the_correct_files(dials_data, 
     )
 
 
-def test_results_collection_does_not_crash_for_an_empty_project():
-    proj = relion.Project("./", run_options=empty_options)
-    results = proj.results
-    assert results._results == []
-
-
 def test_get_imported_files_from_job_directory(proj):
     imported = proj.get_imported()
     assert len(imported) == 24
     assert imported[0] == "Movies/20170629_00021_frameImage.tiff"
-
-
-def test_results_collection_for_a_none_empty_run(proj):
-    results = [p for p in proj.results]
-    assert len(results) == 9
-
-
-def test_prepended_results_are_picked_up_correctly_by_fresh(dials_data, proj):
-    corrected_star_path = os.fspath(
-        dials_data("relion_tutorial_data", pathlib=True)
-        / "MotionCorr"
-        / "job002"
-        / "corrected_micrographs.star"
-    )
-    star_doc = cif.read_file(corrected_star_path)
-    new_star_doc = remove_corrected_star_slice(corrected_star_path, slice(2, None))
-    new_star_doc.write_file(corrected_star_path)
-    fresh_results = [p for p in proj.results.fresh]
-    assert len(fresh_results[0][0]["job002"]) == 22
-    assert (
-        fresh_results[0][0]["job002"][0].micrograph_name
-        == "MotionCorr/job002/Movies/20170629_00023_frameImage.mrc"
-    )
-    assert fresh_results[0][0]["job002"][0].micrograph_number == 1
-    star_doc.write_file(corrected_star_path)
-    (
-        dials_data("relion_tutorial_data", pathlib=True)
-        / "MotionCorr"
-        / "job002"
-        / "RELION_JOB_EXIT_SUCCESS"
-    ).touch()
-    proj.load()
-    fresh_results = list(proj.results.fresh)
-    assert len(fresh_results[0][0]["job002"]) == 2
-    assert (
-        fresh_results[0][0]["job002"][0].micrograph_name
-        == "MotionCorr/job002/Movies/20170629_00021_frameImage.mrc"
-    )
-    assert fresh_results[0][0]["job002"][0].micrograph_number == 23
-    results = [p for p in proj.results]
-    assert (
-        results[0][0]["job002"][2].micrograph_name
-        == "MotionCorr/job002/Movies/20170629_00023_frameImage.mrc"
-    )
-    assert results[0][0]["job002"][2].micrograph_number == 1
-
-
-def test_appended_results_are_picked_up_correctly_by_fresh(dials_data, proj):
-    corrected_star_path = os.fspath(
-        dials_data("relion_tutorial_data", pathlib=True)
-        / "MotionCorr"
-        / "job002"
-        / "corrected_micrographs.star"
-    )
-    star_doc = cif.read_file(corrected_star_path)
-    new_star_doc = remove_corrected_star_slice(corrected_star_path, slice(0, -2))
-    new_star_doc.write_file(corrected_star_path)
-    fresh_results = [p for p in proj.results.fresh]
-    assert len(fresh_results[0][0]["job002"]) == 22
-    assert (
-        fresh_results[0][0]["job002"][0].micrograph_name
-        == "MotionCorr/job002/Movies/20170629_00021_frameImage.mrc"
-    )
-    assert fresh_results[0][0]["job002"][0].micrograph_number == 1
-    assert (
-        fresh_results[0][0]["job002"][-1].micrograph_name
-        == "MotionCorr/job002/Movies/20170629_00047_frameImage.mrc"
-    )
-    star_doc.write_file(corrected_star_path)
-    (
-        dials_data("relion_tutorial_data", pathlib=True)
-        / "MotionCorr"
-        / "job002"
-        / "RELION_JOB_EXIT_SUCCESS"
-    ).touch()
-    proj.load()
-    fresh_results = [p for p in proj.results.fresh]
-    assert len(fresh_results[0][0]["job002"]) == 2
-    assert (
-        fresh_results[0][0]["job002"][0].micrograph_name
-        == "MotionCorr/job002/Movies/20170629_00048_frameImage.mrc"
-    )
-    assert fresh_results[0][0]["job002"][0].micrograph_number == 23
-    results = [p for p in proj.results]
-    assert (
-        results[0][0]["job002"][-1].micrograph_name
-        == "MotionCorr/job002/Movies/20170629_00049_frameImage.mrc"
-    )
-    assert results[0][0]["job002"][-1].micrograph_number == 24

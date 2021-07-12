@@ -39,9 +39,9 @@ class DBNode(Node):
             return []
         extra_options = self.environment["extra_options"]
         end_time = self.environment["end_time"]
-        msg_con = self.environment["message_constructor"]
+        msg_cons = self.environment["message_constructors"]
         self.insert(end_time, extra_options)
-        return self.message(msg_con)
+        return self.message(msg_cons)
 
     def update_times(self, source=None):
         if source is None:
@@ -106,17 +106,18 @@ class DBNode(Node):
         except KeyError:
             return
 
-    def message(self, constructor=None):
-        if constructor is None:
-            return []
-        messages = []
+    def message(self, constructors=None):
+        if constructors is None:
+            return {}
+        messages = {msg_type: [] for msg_type in constructors.keys()}
         for tab_index, ids in enumerate(self._unsent):
             for pid in ids:
-                message = constructor(
-                    self.tables[tab_index],
-                    pid,
-                )
-                messages.append(message)
+                for msg_type, constructor in constructors.items():
+                    message = constructor(
+                        self.tables[tab_index],
+                        pid,
+                    )
+                    messages[msg_type].append(message)
                 self._unsent[tab_index].remove(pid)
                 self._sent[tab_index].append(pid)
         return messages

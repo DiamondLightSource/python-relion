@@ -3,7 +3,6 @@ Relion Python API
 https://github.com/DiamondLightSource/python-relion
 """
 
-import copy
 import functools
 import os
 import pathlib
@@ -28,7 +27,6 @@ except ModuleNotFoundError:
 import logging
 
 from relion.dbmodel import DBModel
-from relion.dbmodel.modeltables import construct_message
 from relion.node.graph import Graph
 
 logger = logging.getLogger("relion.Project")
@@ -66,7 +64,9 @@ class Project(RelionPipeline):
     a structured, object-oriented, and pythonic fashion.
     """
 
-    def __init__(self, path, database="ISPyB", run_options=None):
+    def __init__(
+        self, path, database="ISPyB", run_options=None, message_constructors=None
+    ):
         """
         Create an object representing a Relion project.
         :param path: A string or file system path object pointing to the root
@@ -76,6 +76,10 @@ class Project(RelionPipeline):
         super().__init__(
             "Import/job001", locklist=[self.basepath / "default_pipeline.star"]
         )
+        if message_constructors is not None:
+            self.construct_messages = message_constructors
+        else:
+            self.construct_messages = {}
         if not self.basepath.is_dir():
             raise ValueError(f"path {self.basepath} is not a directory")
         self._data_pipeline = Graph("DataPipeline", [])
@@ -92,7 +96,7 @@ class Project(RelionPipeline):
             # raise RuntimeWarning(
             #    f"Relion Project was unable to load the relion pipeline from {self.basepath}/default_pipeline.star"
             # )
-        self.res = RelionResults()
+        # self.res = RelionResults()
         self._drift_cache = {}
 
     @property
@@ -197,8 +201,8 @@ class Project(RelionPipeline):
                     "extra_options"
                 ] = self.run_options
                 self._db_model[jobnode.name].environment[
-                    "message_constructor"
-                ] = construct_message
+                    "message_constructors"
+                ] = self.construct_messages
                 jobnode.link_to(
                     self._db_model[jobnode.name],
                     result_as_traffic=True,
@@ -226,8 +230,8 @@ class Project(RelionPipeline):
                     "extra_options"
                 ] = self.run_options
                 self._db_model[f"{jobnode._path}:crYOLO"].environment[
-                    "message_constructor"
-                ] = construct_message
+                    "message_constructors"
+                ] = self.construct_messages
                 jobnode.propagate(("job_string", "parpick_job_string"))
                 jobnode.link_to(
                     self._db_model[f"{jobnode._path}:crYOLO"],
@@ -326,166 +330,6 @@ class Project(RelionPipeline):
             return values
         except (FileNotFoundError, RuntimeError, ValueError):
             return []
-
-
-class RelionResults:
-    def __init__(self):
-        self._results = []
-        self._fresh_results = []
-        self._seen_before = []
-        self._fresh_called = False
-        self._cache = {}
-        self._validation_cache = {}
-
-    @staticmethod
-    def _update_temp_validation_cache(
-        stage, job, current_result, cache, results_for_validation
-    ):
-        validation_check = stage.for_validation(current_result)
-        if validation_check:
-            if not cache.get(stage):
-                cache[stage] = {}
-            if (stage, job) not in results_for_validation:
-                results_for_validation.append((stage, job))
-            cache[stage].update(validation_check)
-
-    def consume(self, results):
-        self._results = results  # [(r.stage_object, r.job_name) for r in results]
-        curr_val_cache = {}
-        results_for_validation = []
-        if not self._fresh_called:
-            self._fresh_results = self._results
-            for r in results:
-                end_time_not_seen_before = r.end_time_stamp not in [
-                    p.end_time_stamp for p in self._seen_before
-                ]
-                if end_time_not_seen_before:
-                    self._cache[r.job_name] = []
-                for single_res in r.stage_object[r.job_name]:
-                    self._update_temp_validation_cache(
-                        r.stage_object,
-                        r.job_name,
-                        single_res,
-                        curr_val_cache,
-                        results_for_validation,
-                    )
-                    if end_time_not_seen_before:
-                        self._cache[r.job_name].append(
-                            r.stage_object.for_cache(single_res)
-                        )
-                if (r.job_name, r.end_time_stamp) not in self._seen_before:
-                    self._seen_before.append(
-                        RelionJobInfo(r.job_name, r.end_time_stamp)
-                    )
-
-        else:
-            self._fresh_results = []
-            results_copy = copy.deepcopy(results)
-            for r in results_copy:
-                current_job_results = list(r.stage_object[r.job_name])
-                not_seen_before = (
-                    r.job_name,
-                    r.end_time_stamp,
-                ) not in self._seen_before
-                for single_res in current_job_results:
-                    self._update_temp_validation_cache(
-                        r.stage_object,
-                        r.job_name,
-                        single_res,
-                        curr_val_cache,
-                        results_for_validation,
-                    )
-                    if not_seen_before:
-                        if self._cache.get(r.job_name) is None:
-                            self._cache[r.job_name] = []
-                        if (
-                            r.stage_object.for_cache(single_res)
-                            in self._cache[r.job_name]
-                        ):
-                            r.stage_object[r.job_name].remove(single_res)
-                        else:
-                            self._cache[r.job_name].append(
-                                r.stage_object.for_cache(single_res)
-                            )
-                if not_seen_before:
-                    self._fresh_results.append(r)
-                    self._seen_before.append(
-                        RelionJobInfo(r.job_name, r.end_time_stamp)
-                    )
-        self._validate(curr_val_cache, results_for_validation)
-
-    # check if a validation dictionary is compatible with the previously stored validation dictionary
-    # if not correct the offending results
-    # the validation dictionary is a dictionary of dictionaries:
-    # for a given stage there is a dictionary with relevant keys (such as micrograph names) and numeric values
-    # these values must be conitguous integers to pass validation
-    def _validate(self, new_val_cache, job_results):
-        for stage, job in job_results:
-            # print(stage, job)
-
-            new_numbers = sorted(new_val_cache[stage].values())
-
-            # ignore if there are no results being reported for validation
-            if len(new_numbers) == 0:
-                continue
-
-            new_missing_numbers = sorted(
-                set(range(new_numbers[0], new_numbers[-1] + 1)).difference(new_numbers)
-            )
-            # if the count of results is not contiguous something has gone wrong
-            # wherever they were counted
-            if len(new_missing_numbers) != 0:
-                raise ValueError("Validation numbers were not contiguous")
-
-            # if there is no pre-existing validation cache for this stage then set it and move on
-            if self._validation_cache.get(stage) is None:
-                self._validation_cache[stage] = new_val_cache[stage]
-                continue
-
-            numbers = sorted(self._validation_cache[stage].values())
-
-            start_new_count = None
-
-            # check if there is a mismatch between old and new caches or if there
-            # are results in the old cache that are not in the new cache
-            # if there is overlap between new cache and old cache fix new cache
-            # to match old on the overlap
-            for name, num in self._validation_cache[stage].items():
-                if new_val_cache[stage].get(name) != num:
-                    new_val_cache[stage][name] = num
-                    if start_new_count is None:
-                        start_new_count = len(numbers) + 1
-
-            # if the validation has failed then correct the offending attributes
-            if start_new_count:
-                name_diffs = set(new_val_cache[stage].keys()).difference(
-                    self._validation_cache[stage].keys()
-                )
-                nums_for_name_diffs = sorted(
-                    [(new_val_cache[stage][k], k) for k in name_diffs],
-                    key=lambda x: x[0],
-                )
-                for index, new_name in enumerate([p[1] for p in nums_for_name_diffs]):
-                    new_val_cache[stage][new_name] = start_new_count + index
-
-            if start_new_count:
-                for mindex, mic in enumerate(stage[job]):
-                    stage[job][mindex] = stage.mutate_result(
-                        mic, micrograph_number=new_val_cache[stage][mic.micrograph_name]
-                    )
-                for index, res in enumerate(self._results):
-                    if res.job_name == job:
-                        self._results[index] = (stage, job)
-
-            self._validation_cache[stage].update(new_val_cache[stage])
-
-    def __iter__(self):
-        return iter(self._results)
-
-    @property
-    def fresh(self):
-        self._fresh_called = True
-        return iter(self._fresh_results)
 
 
 # helper class for dealing with the default_pipeline.star lock
