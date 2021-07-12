@@ -423,25 +423,27 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
 
 
 @functools.singledispatch
-def images_msgs(relion_stage_object, job_string: str):
-    logger.debug(f"{relion_stage_object!r} does not have associated images")
+def images_msgs(table, primary_key):
+    logger.debug(f"{table!r} does not have associated images")
     return []
 
 
-@images_msgs.register(relion.MotionCorr)
-def _(stage_object: relion.MotionCorr, job_string: str):
-    return [
-        micrograph.micrograph_snapshot_full_path.replace(".jpeg", ".mrc")
-        for micrograph in stage_object[job_string]
-    ]
+@images_msgs.register(MotionCorrectionTable)
+def _(table: MotionCorrectionTable, primary_key: int):
+    return {
+        "file": table.get_row_by_primary_key(primary_key)[
+            "micrograph_snapshot_full_path"
+        ].replace(".jpeg", ".mrc")
+    }
 
 
-@images_msgs.register(relion.CTFFind)
-def _(stage_object: relion.CTFFind, job_string: str):
-    return [
-        ctf_micrograph.diagnostic_plot_path.replace(".jpeg", ".ctf")
-        for ctf_micrograph in stage_object[job_string]
-    ]
+@images_msgs.register(CTFTable)
+def _(table: CTFTable, primary_key: int):
+    return {
+        "file": table.get_row_by_primary_key(primary_key)[
+            "fft_theoretical_full_path"
+        ].replace(".jpeg", ".ctf")
+    }
 
 
 # @functools.singledispatch
