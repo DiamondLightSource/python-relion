@@ -53,7 +53,7 @@ class InitialModel(JobType):
         for n in class_numbers:
             num_particles[int(n)] = num_particles.get(int(n), 0) + 1
 
-        return InitialModelInfo(num_particles)
+        return [InitialModelInfo(num_particles)]
 
     def _final_data(self, job_path):
         number_list = [
@@ -73,7 +73,7 @@ class InitialModel(JobType):
 
     @staticmethod
     def for_cache(initmodelinfo):
-        return str(initmodelinfo.number_of_particles)
+        return initmodelinfo.number_of_particles
 
     @staticmethod
     def db_unpack(initmodelinfo):
