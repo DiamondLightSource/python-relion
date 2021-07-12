@@ -23,7 +23,6 @@ class Graph(Node):
     def __eq__(self, other):
         if isinstance(other, Graph):
             if len(self.nodes) == len(other.nodes):
-                print(self.nodes, other.nodes)
                 for n in self.nodes:
                     if n not in other.nodes:
                         print(f"{n} not in {other.nodes}")

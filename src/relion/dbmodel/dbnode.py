@@ -35,6 +35,8 @@ class DBNode(Node):
         return False
 
     def func(self, *args, **kwargs):
+        if self.environment.empty:
+            return []
         extra_options = self.environment["extra_options"]
         end_time = self.environment["end_time"]
         msg_con = self.environment["message_constructor"]

@@ -179,12 +179,13 @@ def parse_sqlalchemy_table(sa_table):
 class MotionCorrectionTable(Table):
     def __init__(self):
         columns, prim_key = parse_sqlalchemy_table(sqlalchemy.MotionCorrection)
-        columns.append("job_string")
+        # columns.append("job_string")
         super().__init__(
             columns,
             prim_key,
             unique="micrograph_full_path",
             counters="image_number",
+            required="micrograph_full_path",
         )
 
 
@@ -210,7 +211,10 @@ class ParticlePickerTable(Table):
             ]
         )
         super().__init__(
-            columns, prim_key, unique=["micrograph_full_path", "job_string"]
+            columns,
+            prim_key,
+            unique=["micrograph_full_path", "job_string"],
+            required="motion_correction_id",
         )
 
 
@@ -220,14 +224,19 @@ class ParticleClassificationGroupTable(Table):
             sqlalchemy.ParticleClassificationGroup
         )
         columns.append("job_string")
-        super().__init__(columns, prim_key, unique="job_string")
+        super().__init__(columns, prim_key, unique="job_string", required="job_string")
 
 
 class ParticleClassificationTable(Table):
     def __init__(self):
         columns, prim_key = parse_sqlalchemy_table(sqlalchemy.ParticleClassification)
         columns.append("job_string")
-        super().__init__(columns, prim_key, unique=["job_string", "class_number"])
+        super().__init__(
+            columns,
+            prim_key,
+            unique=["job_string", "class_number"],
+            required="class_number",
+        )
 
 
 class CryoemInitialModelTable(Table):

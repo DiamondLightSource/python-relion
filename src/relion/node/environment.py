@@ -83,6 +83,12 @@ class Environment:
     def step(self):
         try:
             self.temp = next(self.iterator)
+            if self.temp == {}:
+                self.empty = True
+            else:
+                self.empty = False
+            if self.temp == "__do not iterate__":
+                self.temp = {}
             return True
         except StopIteration:
             self.reset()
@@ -116,7 +122,7 @@ class Environment:
         self.propagate.update(prop)
 
     def reset(self):
-        self.iterator = iter([{}])
+        self.iterator = iter(["__do not iterate__"])
 
 
 @functools.singledispatch
@@ -129,13 +135,13 @@ def set_base(base, env: Environment):
 @set_base.register(type(None))
 def _(base: type(None), env: Environment):
     env.base = {}
-    env.iterator = iter([{}])
+    env.iterator = iter(["__do not iterate__"])
 
 
 @set_base.register(dict)
 def _(base: dict, env: Environment):
     env.base = base
-    env.iterator = iter([{}])
+    env.iterator = iter(["__do not iterate__"])
 
 
 @set_base.register(list)
