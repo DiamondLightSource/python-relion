@@ -245,7 +245,6 @@ class Class3D(JobType):
         res = [
             {
                 "type": "3D",
-                "job_string": cl.job,
                 "class_number": cl.particle_sum[0],
                 "particles_per_class": cl.particle_sum[1],
                 "rotation_accuracy": cl.accuracy_rotations,

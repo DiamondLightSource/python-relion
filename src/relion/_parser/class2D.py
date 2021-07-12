@@ -193,7 +193,6 @@ class Class2D(JobType):
         res = [
             {
                 "type": "2D",
-                "job_string": cl.job,
                 "class_number": cl.particle_sum[0],
                 "particles_per_class": cl.particle_sum[1],
                 "rotation_accuracy": cl.accuracy_rotations,

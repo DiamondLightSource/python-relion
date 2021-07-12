@@ -131,18 +131,15 @@ class Table:
                         if i1 != i2:
                             if set(ui1).isdisjoint(ui2):
                                 return None
-                else:
-                    overlap_list = unique_indices[0]
-                    for i in range(len(unique_indices) - 1):
-                        curr_overlap = set(unique_indices[i]).intersection(
-                            unique_indices[i + 1]
-                        )
-                        overlap_list = list(
-                            set(overlap_list).intersection(curr_overlap)
-                        )
-                    if not overlap_list:
-                        return None
-                    return self._tab[self._primary_key][overlap_list[0]]
+                overlap_list = unique_indices[0]
+                for i in range(len(unique_indices) - 1):
+                    curr_overlap = set(unique_indices[i]).intersection(
+                        unique_indices[i + 1]
+                    )
+                    overlap_list = list(set(overlap_list).intersection(curr_overlap))
+                if not overlap_list:
+                    return None
+                return self._tab[self._primary_key][overlap_list[0]]
             return None
         except TypeError:
             return None
