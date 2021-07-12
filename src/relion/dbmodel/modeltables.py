@@ -176,7 +176,7 @@ def parse_sqlalchemy_table(sa_table):
 class MotionCorrectionTable(Table):
     def __init__(self):
         columns, prim_key = parse_sqlalchemy_table(sqlalchemy.MotionCorrection)
-        columns.append("job_string")
+        # columns.append("job_string")
         super().__init__(
             columns,
             prim_key,
@@ -211,7 +211,11 @@ class ParticlePickerTable(Table):
             columns,
             prim_key,
             unique=["micrograph_full_path", "job_string"],
+<<<<<<< 5f5fbdb558ebe79d39231e9ac02b513319aa381c
             required="first_motion_correction_id",
+=======
+            required="motion_correction_id",
+>>>>>>> Add more requirements to model tables to stop table inserts being performed from empty environments (which lead to a lot of Nones when getitem is called on the environment)
         )
 
 
@@ -234,7 +238,10 @@ class ParticleClassificationTable(Table):
             unique=["job_string", "class_number"],
             required="class_number",
         )
+<<<<<<< 5f5fbdb558ebe79d39231e9ac02b513319aa381c
 
+=======
+>>>>>>> Add more requirements to model tables to stop table inserts being performed from empty environments (which lead to a lot of Nones when getitem is called on the environment)
 
 
 class CryoemInitialModelTable(Table):
