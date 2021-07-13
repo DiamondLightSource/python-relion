@@ -13,7 +13,9 @@ def empty_options():
 
 @pytest.fixture
 def proj(dials_data):
-    return relion.Project(dials_data("relion_tutorial_data"), run_options=empty_options)
+    return relion.Project(
+        dials_data("relion_tutorial_data", pathlib=True), run_options=empty_options
+    )
 
 
 @pytest.fixture
