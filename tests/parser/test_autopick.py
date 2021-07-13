@@ -25,7 +25,9 @@ def input(proj):
 
 @pytest.fixture
 def invalid_input(dials_data):
-    return relion.Project(dials_data("relion_tutorial_data"), run_options=empty_options)
+    return relion.Project(
+        dials_data("relion_tutorial_data", pathlib=True), run_options=empty_options
+    )
 
 
 def test_result_of_casting_to_string(input, proj):

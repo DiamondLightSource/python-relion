@@ -88,7 +88,7 @@ def test_relion_pipeline_collect_job_times_from_dials_data_logs(dials_data):
     pipeline.load_nodes_from_star(
         dials_data("relion_tutorial_data", pathlib=True) / "default_pipeline.star"
     )
-    logs = list(pathlib.Path(dials_data("relion_tutorial_data")).glob("pipeline*.log"))
+    logs = list(dials_data("relion_tutorial_data", pathlib=True).glob("pipeline*.log"))
     assert (
         dials_data("relion_tutorial_data", pathlib=True) / "pipeline_PREPROCESS.log"
         in logs

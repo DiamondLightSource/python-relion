@@ -18,7 +18,7 @@ class FunctionParameter(NamedTuple):
 
 @pytest.fixture
 def proj(dials_data):
-    return relion.Project(dials_data("relion_tutorial_data"))
+    return relion.Project(dials_data("relion_tutorial_data", pathlib=True))
 
 
 def plugin_params(jpeg_path):
