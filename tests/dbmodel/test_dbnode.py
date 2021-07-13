@@ -3,7 +3,6 @@ import pytest
 import relion
 from relion.dbmodel import modeltables
 from relion.dbmodel.dbnode import DBNode
-from relion.zocalo.wrapper import construct_message
 
 
 @pytest.fixture
@@ -16,7 +15,6 @@ def proj(dials_data):
     return relion.Project(
         dials_data("relion_tutorial_data"),
         run_options=empty_options,
-        message_constructors={"ispyb": construct_message},
     )
 
 
