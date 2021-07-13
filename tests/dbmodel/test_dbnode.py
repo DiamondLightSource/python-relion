@@ -3,6 +3,7 @@ import pytest
 import relion
 from relion.dbmodel import modeltables
 from relion.dbmodel.dbnode import DBNode
+from relion.zocalo.wrapper import construct_message
 
 
 @pytest.fixture
