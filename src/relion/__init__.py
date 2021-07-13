@@ -186,7 +186,9 @@ class Project(RelionPipeline):
             return False
         return (self.basepath / self.origin / "RELION_JOB_EXIT_SUCCESS").is_file()
 
-    def load(self):
+    def load(self, clear_cache=True):
+        if clear_cache:
+            self._clear_caches()
         self._jobs_collapsed = False
         self.load_nodes_from_star(self.basepath / "default_pipeline.star")
         self.check_job_node_statuses(self.basepath)

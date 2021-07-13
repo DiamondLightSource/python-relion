@@ -78,7 +78,7 @@ class InitialModel(JobType):
     @staticmethod
     def db_unpack(initmodelinfo):
         res = {
-            "init_model_number_of_particles": initmodelinfo.number_of_particles,
+            "init_model_number_of_particles": initmodelinfo[0].number_of_particles,
         }
 
         return res

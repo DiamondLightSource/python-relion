@@ -50,7 +50,6 @@ class ProcessNode(Node):
             db_results = self.environment["result"].db_unpack(
                 self.environment["result"][self.environment["job"]]
             )
-
             return db_results
         return {}
 

@@ -1,3 +1,4 @@
+import os
 import pathlib
 
 import pytest
@@ -8,11 +9,30 @@ import relion
 
 @pytest.fixture
 def empty_options():
-    return []
+    class Options:
+        motioncor_doseperframe: int = 1
+        motioncor_patches_x: int = 5
+        motioncor_patches_y: int = 5
+        ctffind_boxsize: int = 512
+        ctffind_minres: int = 5
+        ctffind_maxres: int = 30
+        ctffind_defocus_min: int = 5000
+        ctffind_defocus_max: int = 50000
+        ctffind_defocus_step: int = 500
+        cryolo_gmodel: str = ""
+        extract_boxsize: int = 256
+        angpix: float = 0.885
+        motioncor_binning: int = 1
+        batch_size: int = 20000
+        class2d_nr_classes: int = 50
+        symmetry: str = "C1"
+        inimodel_resol_final: int = 15
+
+    return Options
 
 
 @pytest.fixture
-def proj(dials_data):
+def proj(dials_data, empty_options):
     return relion.Project(dials_data("relion_tutorial_data"), run_options=empty_options)
 
 
@@ -101,3 +121,107 @@ def test_get_imported_files_from_job_directory(proj):
     imported = proj.get_imported()
     assert len(imported) == 24
     assert imported[0] == "Movies/20170629_00021_frameImage.tiff"
+
+
+def test_prepended_results_are_picked_up_correctly_by_fresh(dials_data, proj):
+    corrected_star_path = os.fspath(
+        dials_data("relion_tutorial_data", pathlib=True)
+        / "MotionCorr"
+        / "job002"
+        / "corrected_micrographs.star"
+    )
+    star_doc = cif.read_file(corrected_star_path)
+    new_star_doc = remove_corrected_star_slice(corrected_star_path, slice(2, None))
+    new_star_doc.write_file(corrected_star_path)
+    proj._data_pipeline()
+
+    assert (
+        len(proj._db_model["MotionCorr"].tables[0]._tab["motion_correction_id"]) == 22
+    )
+    assert sorted(proj._db_model["MotionCorr"].tables[0]._tab["image_number"]) == list(
+        range(1, 23)
+    )
+
+    star_doc.write_file(corrected_star_path)
+    (
+        dials_data("relion_tutorial_data", pathlib=True)
+        / "MotionCorr"
+        / "job002"
+        / "RELION_JOB_EXIT_SUCCESS"
+    ).touch()
+    proj.load()
+    proj._data_pipeline()
+    assert (
+        len(proj._db_model["MotionCorr"].tables[0]._tab["motion_correction_id"]) == 24
+    )
+    assert sorted(proj._db_model["MotionCorr"].tables[0]._tab["image_number"]) == list(
+        range(1, 25)
+    )
+    base_id = sorted(
+        proj._db_model["MotionCorr"].tables[0]._tab["motion_correction_id"]
+    )[0]
+    last_mc_id = sorted(
+        proj._db_model["MotionCorr"].tables[0]._tab["motion_correction_id"]
+    )[-1]
+    first_row = proj._db_model["MotionCorr"].tables[0].get_row_by_primary_key(base_id)
+    assert (
+        first_row["micrograph_full_path"]
+        == "MotionCorr/job002/Movies/20170629_00023_frameImage.mrc"
+    )
+    last_row = proj._db_model["MotionCorr"].tables[0].get_row_by_primary_key(last_mc_id)
+    assert (
+        last_row["micrograph_full_path"]
+        == "MotionCorr/job002/Movies/20170629_00022_frameImage.mrc"
+    )
+
+
+def test_appended_results_are_picked_up_correctly_by_fresh(dials_data, proj):
+    corrected_star_path = os.fspath(
+        dials_data("relion_tutorial_data", pathlib=True)
+        / "MotionCorr"
+        / "job002"
+        / "corrected_micrographs.star"
+    )
+    star_doc = cif.read_file(corrected_star_path)
+    new_star_doc = remove_corrected_star_slice(corrected_star_path, slice(0, -2))
+    new_star_doc.write_file(corrected_star_path)
+    proj._data_pipeline()
+
+    assert (
+        len(proj._db_model["MotionCorr"].tables[0]._tab["motion_correction_id"]) == 22
+    )
+    assert sorted(proj._db_model["MotionCorr"].tables[0]._tab["image_number"]) == list(
+        range(1, 23)
+    )
+
+    star_doc.write_file(corrected_star_path)
+    (
+        dials_data("relion_tutorial_data", pathlib=True)
+        / "MotionCorr"
+        / "job002"
+        / "RELION_JOB_EXIT_SUCCESS"
+    ).touch()
+    proj.load()
+    proj._data_pipeline()
+    assert (
+        len(proj._db_model["MotionCorr"].tables[0]._tab["motion_correction_id"]) == 24
+    )
+    assert sorted(proj._db_model["MotionCorr"].tables[0]._tab["image_number"]) == list(
+        range(1, 25)
+    )
+    base_id = sorted(
+        proj._db_model["MotionCorr"].tables[0]._tab["motion_correction_id"]
+    )[0]
+    last_mc_id = sorted(
+        proj._db_model["MotionCorr"].tables[0]._tab["motion_correction_id"]
+    )[-1]
+    first_row = proj._db_model["MotionCorr"].tables[0].get_row_by_primary_key(base_id)
+    assert (
+        first_row["micrograph_full_path"]
+        == "MotionCorr/job002/Movies/20170629_00021_frameImage.mrc"
+    )
+    last_row = proj._db_model["MotionCorr"].tables[0].get_row_by_primary_key(last_mc_id)
+    assert (
+        last_row["micrograph_full_path"]
+        == "MotionCorr/job002/Movies/20170629_00049_frameImage.mrc"
+    )
