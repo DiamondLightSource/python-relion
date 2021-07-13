@@ -1,5 +1,6 @@
 import os
 import pathlib
+import sys
 
 import pytest
 from gemmi import cif
@@ -123,6 +124,7 @@ def test_get_imported_files_from_job_directory(proj):
     assert imported[0] == "Movies/20170629_00021_frameImage.tiff"
 
 
+@pytest.mark.skipif(sys.platform == "win32", reason="does not run on windows")
 def test_prepended_results_are_picked_up_correctly_by_fresh(dials_data, proj):
     corrected_star_path = os.fspath(
         dials_data("relion_tutorial_data", pathlib=True)
@@ -175,6 +177,7 @@ def test_prepended_results_are_picked_up_correctly_by_fresh(dials_data, proj):
     )
 
 
+@pytest.mark.skipif(sys.platform == "win32", reason="does not run on windows")
 def test_appended_results_are_picked_up_correctly_by_fresh(dials_data, proj):
     corrected_star_path = os.fspath(
         dials_data("relion_tutorial_data", pathlib=True)
