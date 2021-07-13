@@ -1,5 +1,4 @@
 import os
-import pathlib
 import sys
 
 import pytest
@@ -34,7 +33,9 @@ def empty_options():
 
 @pytest.fixture
 def proj(dials_data, empty_options):
-    return relion.Project(dials_data("relion_tutorial_data"), run_options=empty_options)
+    return relion.Project(
+        dials_data("relion_tutorial_data", pathlib=True), run_options=empty_options
+    )
 
 
 def remove_corrected_star_slice(corrected_star_path, required_slice):
@@ -101,19 +102,19 @@ def test_create_Project_on_inaccessible_path_fails(tmp_path):
 
 def test_Project_schedule_files_property_contains_the_correct_files(dials_data, proj):
     assert (
-        pathlib.Path(dials_data("relion_tutorial_data")) / "pipeline_PREPROCESS.log"
+        dials_data("relion_tutorial_data", pathlib=True) / "pipeline_PREPROCESS.log"
         in proj.schedule_files
     )
     assert (
-        pathlib.Path(dials_data("relion_tutorial_data")) / "pipeline_CLASS2D.log"
+        dials_data("relion_tutorial_data", pathlib=True) / "pipeline_CLASS2D.log"
         in proj.schedule_files
     )
     assert (
-        pathlib.Path(dials_data("relion_tutorial_data")) / "pipeline_INIMODEL.log"
+        dials_data("relion_tutorial_data", pathlib=True) / "pipeline_INIMODEL.log"
         in proj.schedule_files
     )
     assert (
-        pathlib.Path(dials_data("relion_tutorial_data")) / "pipeline_CLASS3D.log"
+        dials_data("relion_tutorial_data", pathlib=True) / "pipeline_CLASS3D.log"
         in proj.schedule_files
     )
 
