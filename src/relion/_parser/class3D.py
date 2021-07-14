@@ -38,6 +38,7 @@ Class3DParticleClass.overall_fourier_completeness.__doc__ = (
 Class3DParticleClass.initial_model_num_particles.__doc__ = (
     "The number of particles used to generate the initial model."
 )
+Class3DParticleClass.job.__doc__ = "Job number of the Class3D job."
 
 
 class Class3D(JobType):

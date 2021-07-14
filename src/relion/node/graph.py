@@ -152,7 +152,7 @@ class Graph(Node):
         for o in self.origins:
             self._follow(o, traffic={}, share=[])
 
-    def _follow(self, node, traffic, share, append=False):
+    def _follow(self, node, traffic, share):
         called = False
         if node not in self.nodes:
             return
@@ -187,14 +187,12 @@ class Graph(Node):
                     next_node,
                     next_traffic,
                     next_share,
-                    append=node._append_traffic.get(next_node.nodeid),
                 )
             elif not called:
                 self._follow(
                     next_node,
                     next_traffic,
                     next_share,
-                    append=node._append_traffic.get(next_node.nodeid),
                 )
 
     def show(self):

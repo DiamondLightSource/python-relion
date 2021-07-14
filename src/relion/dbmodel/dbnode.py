@@ -120,4 +120,10 @@ class DBNode(Node):
                     messages[msg_type].append(message)
                 self._unsent[tab_index].remove(pid)
                 self._sent[tab_index].append(pid)
+        need_to_pop = []
+        for key, value in messages.items():
+            if not value:
+                need_to_pop.append(key)
+        for key in need_to_pop:
+            messages.pop(key)
         return messages

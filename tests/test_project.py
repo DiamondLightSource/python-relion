@@ -6,6 +6,12 @@ from gemmi import cif
 
 import relion
 
+try:
+    from relion.cryolo_relion_it.cryolo_relion_it import RelionItOptions
+    from relion.zocalo.wrapper import construct_message
+except ImportError:
+    pass
+
 
 @pytest.fixture
 def empty_options():
@@ -126,7 +132,7 @@ def test_get_imported_files_from_job_directory(proj):
 
 
 @pytest.mark.skipif(sys.platform == "win32", reason="does not run on windows")
-def test_prepended_results_are_picked_up_correctly_by_fresh(dials_data, proj):
+def test_prepended_results_are_picked_up_correctly(dials_data, proj):
     corrected_star_path = os.fspath(
         dials_data("relion_tutorial_data", pathlib=True)
         / "MotionCorr"
@@ -179,7 +185,7 @@ def test_prepended_results_are_picked_up_correctly_by_fresh(dials_data, proj):
 
 
 @pytest.mark.skipif(sys.platform == "win32", reason="does not run on windows")
-def test_appended_results_are_picked_up_correctly_by_fresh(dials_data, proj):
+def test_appended_results_are_picked_up_correctly(dials_data, proj):
     corrected_star_path = os.fspath(
         dials_data("relion_tutorial_data", pathlib=True)
         / "MotionCorr"
@@ -229,3 +235,85 @@ def test_appended_results_are_picked_up_correctly_by_fresh(dials_data, proj):
         last_row["micrograph_full_path"]
         == "MotionCorr/job002/Movies/20170629_00049_frameImage.mrc"
     )
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="does not run on windows")
+def test_prepended_results_are_picked_up_correctly_in_project_messages(dials_data):
+    project = relion.Project(
+        dials_data("relion_tutorial_data", pathlib=True),
+        run_options=RelionItOptions,
+        message_constructors={"ispyb": construct_message},
+    )
+    corrected_star_path = os.fspath(
+        dials_data("relion_tutorial_data", pathlib=True)
+        / "MotionCorr"
+        / "job002"
+        / "corrected_micrographs.star"
+    )
+    star_doc = cif.read_file(corrected_star_path)
+    new_star_doc = remove_corrected_star_slice(corrected_star_path, slice(2, None))
+    new_star_doc.write_file(corrected_star_path)
+    msgs = project.messages
+
+    assert len(msgs) == 5
+    assert len(msgs[0]) == 22
+
+    star_doc.write_file(corrected_star_path)
+    (
+        dials_data("relion_tutorial_data", pathlib=True)
+        / "MotionCorr"
+        / "job002"
+        / "RELION_JOB_EXIT_SUCCESS"
+    ).touch()
+    project.load()
+    msgs = project.messages
+
+    assert len(msgs) == 5
+    assert len(msgs[0]) == 2
+    assert (
+        msgs[0][0]["ispyb"][0]["micrograph_full_path"]
+        == "MotionCorr/job002/Movies/20170629_00021_frameImage.mrc"
+    )
+    mc_id = msgs[0][0]["ispyb"][0]["motion_correction_id"]
+    assert msgs[1][0]["ispyb"][0]["motion_correction_id"] == mc_id
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="does not run on windows")
+def test_appended_results_are_picked_up_correctly_in_project_messages(dials_data):
+    project = relion.Project(
+        dials_data("relion_tutorial_data", pathlib=True),
+        run_options=RelionItOptions,
+        message_constructors={"ispyb": construct_message},
+    )
+    corrected_star_path = os.fspath(
+        dials_data("relion_tutorial_data", pathlib=True)
+        / "MotionCorr"
+        / "job002"
+        / "corrected_micrographs.star"
+    )
+    star_doc = cif.read_file(corrected_star_path)
+    new_star_doc = remove_corrected_star_slice(corrected_star_path, slice(0, -2))
+    new_star_doc.write_file(corrected_star_path)
+    msgs = project.messages
+
+    assert len(msgs) == 5
+    assert len(msgs[0]) == 22
+
+    star_doc.write_file(corrected_star_path)
+    (
+        dials_data("relion_tutorial_data", pathlib=True)
+        / "MotionCorr"
+        / "job002"
+        / "RELION_JOB_EXIT_SUCCESS"
+    ).touch()
+    project.load()
+    msgs = project.messages
+
+    assert len(msgs) == 5
+    assert len(msgs[0]) == 2
+    assert (
+        msgs[0][0]["ispyb"][0]["micrograph_full_path"]
+        == "MotionCorr/job002/Movies/20170629_00048_frameImage.mrc"
+    )
+    mc_id = msgs[0][0]["ispyb"][0]["motion_correction_id"]
+    assert msgs[1][0]["ispyb"][0]["motion_correction_id"] == mc_id

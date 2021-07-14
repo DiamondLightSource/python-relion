@@ -34,6 +34,7 @@ Class2DParticleClass.estimated_resolution.__doc__ = "Estimated resolution."
 Class2DParticleClass.overall_fourier_completeness.__doc__ = (
     "Overall Fourier completeness."
 )
+Class2DParticleClass.job.__doc__ = "Job number of the Class2D job."
 
 
 class Class2D(JobType):

@@ -265,7 +265,7 @@ class Project(RelionPipeline):
         for node in self._db_model.db_nodes:
             try:
                 if results[node.nodeid] is not None:
-                    msgs.append(results[node.nodeid])
+                    msgs.append(list(p for p in results[node.nodeid] if p))
             except KeyError:
                 logger.debug(
                     f"No results found for {node.name}: probably the job has not completed yet"
