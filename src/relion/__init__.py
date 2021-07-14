@@ -196,56 +196,50 @@ class Project(RelionPipeline):
             list(self.schedule_files), self.basepath / "pipeline_PREPROCESS.log"
         )
         for jobnode in self:
-            if self._results_dict.get(jobnode.name) and jobnode.name != "InitialModel":
-                jobnode.environment["result"] = self._results_dict[jobnode.name]
-                jobnode.environment["extra_options"] = self.run_options
-                self._db_model[jobnode.name].environment[
-                    "extra_options"
-                ] = self.run_options
-                self._db_model[jobnode.name].environment[
-                    "message_constructors"
-                ] = self.construct_messages
-                jobnode.link_to(
-                    self._db_model[jobnode.name],
-                    result_as_traffic=True,
-                    share=[("end_time", "end_time")],
-                )
-                self._data_pipeline.add_node(jobnode)
-                self._data_pipeline.add_node(self._db_model[jobnode.name])
-                if jobnode.name == "AutoPick":
-                    jobnode.propagate(("job_string", "parpick_job_string"))
-            elif jobnode.name == "InitialModel":
-                jobnode.environment["result"] = self._results_dict[jobnode.name]
-                jobnode.link_to(
-                    self._db_model[jobnode.name],
-                    result_as_traffic=True,
-                    share=[("end_time", "end_time")],
-                )
-                self._data_pipeline.add_node(jobnode)
-                jobnode.propagate(("ini_model_job_string", "ini_model_job_string"))
-            elif "crYOLO" in jobnode.environment.get("alias"):
-                jobnode.environment["result"] = self._results_dict[
-                    f"{jobnode._path}:crYOLO"
-                ]
-                jobnode.environment["extra_options"] = self.run_options
-                self._db_model[f"{jobnode._path}:crYOLO"].environment[
-                    "extra_options"
-                ] = self.run_options
-                self._db_model[f"{jobnode._path}:crYOLO"].environment[
-                    "message_constructors"
-                ] = self.construct_messages
-                jobnode.propagate(("job_string", "parpick_job_string"))
-                jobnode.link_to(
-                    self._db_model[f"{jobnode._path}:crYOLO"],
-                    result_as_traffic=True,
-                    share=[("end_time", "end_time")],
-                )
-                self._data_pipeline.add_node(jobnode)
-                self._data_pipeline.add_node(self._db_model[f"{jobnode._path}:crYOLO"])
+            if self._results_dict.get(jobnode.name):
+                if jobnode.name == "InitialModel":
+                    self._update_pipeline(
+                        jobnode,
+                        jobnode.name,
+                        prop=("ini_model_job_string", "ini_model_job_string"),
+                        in_db_model=False,
+                    )
+                elif jobnode.name == "AutoPick":
+                    self._update_pipeline(
+                        jobnode, jobnode.name, prop=("job_string", "parpick_job_string")
+                    )
+                elif "crYOLO" in jobnode.environment.get("alias"):
+                    print(jobnode.name, jobnode.environment["alias"])
+                    self._update_pipeline(
+                        jobnode,
+                        f"{jobnode._path}:crYOLO",
+                        prop=("job_string", "parpick_job_string"),
+                    )
+                else:
+                    self._update_pipeline(jobnode, jobnode.name)
             else:
                 self._data_pipeline.add_node(jobnode)
                 if jobnode.name == "Import":
                     self._data_pipeline.origins = [jobnode]
+
+    def _update_pipeline(self, jobnode, label, prop=None, in_db_model=True):
+        jobnode.environment["result"] = self._results_dict[label]
+        if in_db_model:
+            jobnode.environment["extra_options"] = self.run_options
+            self._db_model[label].environment["extra_options"] = self.run_options
+            self._db_model[label].environment[
+                "message_constructors"
+            ] = self.construct_messages
+        if prop is not None:
+            jobnode.propagate(prop)
+        jobnode.link_to(
+            self._db_model[label],
+            result_as_traffic=True,
+            share=[("end_time", "end_time")],
+        )
+        self._data_pipeline.add_node(jobnode)
+        if in_db_model:
+            self._data_pipeline.add_node(self._db_model[label])
 
     def show_job_nodes(self):
         self.load()
