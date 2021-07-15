@@ -275,7 +275,6 @@ def test_prepended_results_are_picked_up_correctly_in_project_messages(dials_dat
         == "MotionCorr/job002/Movies/20170629_00021_frameImage.mrc"
     )
     mc_id = msgs[0]["ispyb"][0]["buffer_store"]
-    print(msgs)
     assert msgs[1]["ispyb"][0]["buffer_lookup"]["motion_correction_id"] == mc_id
 
 
