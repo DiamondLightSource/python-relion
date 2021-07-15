@@ -148,12 +148,12 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
             # Should only return results that have not previously been sent
 
             for job_msg in relion_prj.messages:
-                if job_msg["ispyb"]:
+                if job_msg.get("ispyb") and job_msg["ispyb"]:
                     logger.info(
                         f"Found results that look like this: {job_msg['ispyb'][0]}"
                     )
                     ispyb_command_list.extend(job_msg["ispyb"])
-                if job_msg["images"]:
+                if job_msg.get("images") and job_msg["images"]:
                     images_command_list.extend(job_msg["images"])
 
             if ispyb_command_list:

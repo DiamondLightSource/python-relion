@@ -267,7 +267,6 @@ class Project(RelionPipeline):
                             except KeyError:
                                 d[key] = val
                     msgs.append(d)
-                    # msgs.append(list(p for p in results[node.nodeid] if p))
             except KeyError:
                 logger.debug(
                     f"No results found for {node.name}: probably the job has not completed yet"
