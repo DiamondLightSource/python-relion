@@ -235,7 +235,7 @@ class Project(RelionPipeline):
         jobnode.link_to(
             self._db_model[label],
             result_as_traffic=True,
-            share=[("end_time", "end_time")],
+            share=[("end_time_stamp", "end_time")],
         )
         self._data_pipeline.add_node(jobnode)
         if in_db_model:

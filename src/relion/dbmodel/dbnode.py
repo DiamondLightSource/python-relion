@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from relion.dbmodel import modeltables
 from relion.node import Node
 
@@ -38,7 +40,7 @@ class DBNode(Node):
         if self.environment.empty:
             return []
         extra_options = self.environment["extra_options"]
-        end_time = self.environment["end_time"]
+        end_time = datetime.timestamp(self.environment["end_time"])
         msg_cons = self.environment["message_constructors"]
         self.insert(end_time, extra_options)
         return self.message(msg_cons)
