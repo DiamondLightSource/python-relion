@@ -40,14 +40,10 @@ class DBNode(Node):
         if self.environment.empty:
             return []
         extra_options = self.environment["extra_options"]
-<<<<<<< 08fd055f1fa14f9456b6124bf8b1bcb295ab9749
         if self.environment["end_time"] is not None:
             end_time = datetime.timestamp(self.environment["end_time"])
         else:
             end_time = None
-=======
-        end_time = datetime.timestamp(self.environment["end_time"])
->>>>>>> Use the correct end time in DBNode func
         msg_cons = self.environment["message_constructors"]
         self.insert(end_time, extra_options)
         return self.message(msg_cons)
