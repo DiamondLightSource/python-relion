@@ -283,10 +283,15 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
             checked_key = "job002"
             checks = [False for _ in range(len(imported))]
             for i, f in enumerate(imported):
-                for key in relion_prj.res._cache.keys():
+                keys = [
+                    (j.environment["job"], j)
+                    for j in relion_prj._jobtype_nodes
+                    if j.name == "MotionCorr"
+                ]
+                for key, job in keys:
                     if any(
-                        f.split(".")[0] in p.split(".")[0]
-                        for p in relion_prj.res._cache[key]
+                        f.split(".")[0] in p.micrograph_name.split(".")[0]
+                        for p in job.environment["result"][key]
                     ):
                         checks[i] = True
                         checked_key = key
