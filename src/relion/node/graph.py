@@ -55,6 +55,9 @@ class Graph(Node):
 
     def func(self, *args, **kwargs):
         self._call_returns = {}
+        if self._in_multi_call:
+            for node in self.origins:
+                node._completed = self._completed
         self.traverse()
         self._traversed = []
         self._called_nodes = []
@@ -62,7 +65,7 @@ class Graph(Node):
             node.environment.reset()
             node._completed = []
         if self._call_returns == {}:
-            return
+            return None
         else:
             return self._call_returns
 

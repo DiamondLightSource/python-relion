@@ -122,7 +122,14 @@ class DBNode(Node):
                         self.tables[tab_index],
                         pid,
                     )
-                    messages[msg_type].append(message)
+                    if isinstance(message, dict):
+                        messages[msg_type].append(message)
+                    elif isinstance(message, list):
+                        messages[msg_type].extend(message)
+                    else:
+                        raise TypeError(
+                            f"message must be a dictionary or list but was {type(message)}: {message}"
+                        )
                 self._unsent[tab_index].remove(pid)
                 self._sent[tab_index].append(pid)
         need_to_pop = []

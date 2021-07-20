@@ -23,6 +23,7 @@ class Node:
         self._share_traffic = {}
         self._append_traffic = {}
         self._call_count = 0
+        self._in_multi_call = False
         self.shape = "oval"
         for key, value in kwargs.items():
             self.environment[key] = value
@@ -60,6 +61,7 @@ class Node:
     def __call__(self, *args, **kwargs):
         res = []
         incomplete = self.environment.step()
+        self._in_multi_call = True
         while incomplete:
             curr_res = self.func(*args, **kwargs)
             if isinstance(curr_res, list):
@@ -67,6 +69,7 @@ class Node:
             else:
                 res.append(curr_res)
             incomplete = self.environment.step()
+        self._in_multi_call = False
         for node in self._out:
             node._completed.append(self)
         self._call_count += 1

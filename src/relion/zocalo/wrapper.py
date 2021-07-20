@@ -421,55 +421,120 @@ def construct_message(table, primary_key):
 
 @construct_message.register(MotionCorrectionTable)
 def _(table: MotionCorrectionTable, primary_key: int):
+    row = table.get_row_by_primary_key(primary_key)
+    buffered = ["motion_correction_id"]
+    buffer_store = row["motion_correction_id"]
     results = {
-        "ispyb_command": "insert_motion_correction",
+        "ispyb_command": "buffer",
+        "buffer_command": {
+            "ispyb_command": "insert_motion_correction",
+            **{k: v for k, v in row.items() if k not in buffered},
+        },
+        "buffer_store": buffer_store,
     }
-    results.update(table.get_row_by_primary_key(primary_key))
     return results
 
 
 @construct_message.register(CTFTable)
 def _(table: CTFTable, primary_key: int):
+    row = table.get_row_by_primary_key(primary_key)
+    buffered = ["motion_correction_id", "ctf_id"]
+    buffer_store = row["ctf_id"]
+    buffer_lookup = row["motion_correction_id"]
     results = {
-        "ispyb_command": "insert_ctf",
+        "ispyb_command": "buffer",
+        "buffer_lookup": {
+            "motion_correction_id": buffer_lookup,
+        },
+        "buffer_command": {
+            "ispyb_command": "insert_ctf",
+            **{k: v for k, v in row.items() if k not in buffered},
+        },
+        "buffer_store": buffer_store,
     }
-    results.update(table.get_row_by_primary_key(primary_key))
     return results
 
 
 @construct_message.register(ParticlePickerTable)
 def _(table: ParticlePickerTable, primary_key: int):
+    row = table.get_row_by_primary_key(primary_key)
+    buffered = ["first_motion_correction_id", "particle_picker_id"]
+    buffer_store = row["particle_picker_id"]
+    buffer_lookup = row["first_motion_correction_id"]
     results = {
-        "ispyb_command": "insert_particle_picker",
+        "ispyb_command": "buffer",
+        "buffer_lookup": {
+            "motion_correction_id": buffer_lookup,
+        },
+        "buffer_command": {
+            "ispyb_command": "insert_particle_picker",
+            **{k: v for k, v in row.items() if k not in buffered},
+        },
+        "buffer_store": buffer_store,
     }
-    results.update(table.get_row_by_primary_key(primary_key))
     return results
 
 
 @construct_message.register(ParticleClassificationGroupTable)
 def _(table: ParticleClassificationGroupTable, primary_key: int):
+    row = table.get_row_by_primary_key(primary_key)
+    buffered = ["particle_picker_id", "particle_classification_group_id"]
+    buffer_store = row["particle_classification_group_id"]
+    buffer_lookup = row["particle_picker_id"]
     results = {
-        "ispyb_command": "insert_particle_classification_group",
+        "ispyb_command": "buffer",
+        "buffer_lookup": {
+            "particle_picker_id": buffer_lookup,
+        },
+        "buffer_command": {
+            "ispyb_command": "insert_particle_classification_group",
+            **{k: v for k, v in row.items() if k not in buffered},
+        },
+        "buffer_store": buffer_store,
     }
-    results.update(table.get_row_by_primary_key(primary_key))
     return results
 
 
 @construct_message.register(ParticleClassificationTable)
 def _(table: ParticleClassificationTable, primary_key: int):
+    row = table.get_row_by_primary_key(primary_key)
+    buffered = ["particle_classification_group_id", "particle_classification_id"]
+    buffer_store = row["particle_classification_id"]
+    buffer_lookup = row["particle_classification_group_id"]
     results = {
-        "ispyb_command": "insert_particle_classification",
+        "ispyb_command": "buffer",
+        "buffer_lookup": {
+            "particle_picker_id": buffer_lookup,
+        },
+        "buffer_command": {
+            "ispyb_command": "insert_particle_classification",
+            **{k: v for k, v in row.items() if k not in buffered},
+        },
+        "buffer_store": buffer_store,
     }
-    results.update(table.get_row_by_primary_key(primary_key))
     return results
 
 
 @construct_message.register(CryoemInitialModelTable)
 def _(table: CryoemInitialModelTable, primary_key: int):
-    results = {
-        "ispyb_command": "insert_cryoem_initial_model",
-    }
-    results.update(table.get_row_by_primary_key(primary_key))
+    row = table.get_row_by_primary_key(primary_key)
+    class_ids = row["particle_classification_id"]
+    if not isinstance(class_ids, list):
+        class_ids = [class_ids]
+    results = []
+    for class_id in class_ids:
+        buffered = ["particle_classification_id", "cryoem_initial_model_id"]
+        this_result = {
+            "ispyb_command": "buffer",
+            "buffer_lookup": {
+                "particle_classification_id": class_id,
+            },
+            "buffer_command": {
+                "ispyb_command": "insert_cryoem_initial_model",
+                **{k: v for k, v in row.items() if k not in buffered},
+            },
+        }
+        results.append(this_result)
     return results
 
 

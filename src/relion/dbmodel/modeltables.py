@@ -211,7 +211,7 @@ class ParticlePickerTable(Table):
             columns,
             prim_key,
             unique=["micrograph_full_path", "job_string"],
-            required="motion_correction_id",
+            required="first_motion_correction_id",
         )
 
 
@@ -240,6 +240,7 @@ class CryoemInitialModelTable(Table):
     def __init__(self):
         columns, prim_key = parse_sqlalchemy_table(sqlalchemy.CryoemInitialModel)
         columns.append("ini_model_job_string")
+        columns.append("particle_classification_id")
         super().__init__(
             columns,
             prim_key,
