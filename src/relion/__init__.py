@@ -196,7 +196,9 @@ class Project(RelionPipeline):
             list(self.schedule_files), self.basepath / "pipeline_PREPROCESS.log"
         )
         for jobnode in self:
-            if self._results_dict.get(jobnode.name):
+            if self._results_dict.get(
+                jobnode.name
+            ) or "crYOLO" in jobnode.environment.get("alias"):
                 if jobnode.name == "InitialModel":
                     self._update_pipeline(
                         jobnode,
@@ -209,7 +211,6 @@ class Project(RelionPipeline):
                         jobnode, jobnode.name, prop=("job_string", "parpick_job_string")
                     )
                 elif "crYOLO" in jobnode.environment.get("alias"):
-                    print(jobnode.name, jobnode.environment["alias"])
                     self._update_pipeline(
                         jobnode,
                         f"{jobnode._path}:crYOLO",
