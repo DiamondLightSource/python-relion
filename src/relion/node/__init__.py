@@ -60,6 +60,8 @@ class Node:
 
     def __call__(self, *args, **kwargs):
         res = []
+        print("Node called", self.name)
+        self.environment.load_iterator()
         incomplete = self.environment.step()
         self._in_multi_call = True
         while incomplete:

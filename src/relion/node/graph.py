@@ -166,6 +166,13 @@ class Graph(Node):
         for sh in share:
             node.environment[sh[1]] = sh[0]
 
+        print(
+            "node in graph",
+            node.name,
+            all(n in node._completed for n in node._in),
+            node.nodeid not in self._called_nodes,
+        )
+
         if (
             all(n in node._completed for n in node._in)
             and node.nodeid not in self._called_nodes

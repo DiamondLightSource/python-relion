@@ -53,11 +53,49 @@ class Escalate:
         self.released = True
 
 
+class Iterate:
+    def __init__(self, initial_store):
+        self.appended = []
+        self.store = initial_store
+
+    def squash(self):
+        if self.appended:
+            squashed_appended = []
+            for a in self.appended:
+                squashed_appended.extend(a)
+            if len(squashed_appended) != len(self.store):
+                raise ValueError(
+                    "Attempted to update ProtoNode Environment with concatenated lists (from updating with can_append_list option) that was a different size to the pre-existing iterator"
+                )
+            for i, tr in enumerate(squashed_appended):
+                self.store[i].update(tr)
+            self.appended = []
+
+    def __iter__(self):
+        return iter(self.store)
+
+    def update(self, u):
+        if isinstance(u, dict):
+            for s in self.store:
+                s.update(u)
+        if isinstance(u, list):
+            if self.store == [{}] or self.store == []:
+                self.store = u
+                return
+            if len(u) != len(self.store):
+                raise ValueError(
+                    "Attempted to update ProtoNode Environment with a list that was a different size to the pre-existing iterator"
+                )
+            for i, tr in enumerate(u):
+                self.store[i].update(tr)
+
+
 class Environment:
     def __init__(self, base=None):
         set_base(base, self)
         self.propagate = Propagate()
         self.escalate = Escalate()
+        self.iterate = Iterate([])
         self.temp = {}
 
     def __getitem__(self, key):
@@ -82,7 +120,12 @@ class Environment:
 
     def step(self):
         try:
+            print("calling step")
+            self.iterate.squash()
+            print("squashed", self.iterate.store)
             self.temp = next(self.iterator)
+            print(self.temp)
+            print("that was temp")
             if self.temp == {}:
                 self.empty = True
             else:
@@ -97,7 +140,7 @@ class Environment:
     def get(self, key):
         return self[key]
 
-    def update(self, traffic, append=False):
+    def update(self, traffic, append=False, can_append_list=False):
         if isinstance(traffic, dict):
             if append:
                 update_append(self.base, traffic)
@@ -105,15 +148,10 @@ class Environment:
                 self.base.update(traffic)
             return
         elif isinstance(traffic, list):
-            if list(self.iterator) == [{}] or list(self.iterator) == []:
-                self.iterator = iter(traffic)
-                return
-            if len(list(traffic)) != len(list(self.iterator)):
-                raise ValueError(
-                    "Attempted to update ProtoNode Environment with a list that was a different size to the pre-existing iterator"
-                )
-            for i, tr in enumerate(traffic):
-                self.iterator[i].update(tr)
+            self.iterate.update(traffic)
+
+    def load_iterator(self):
+        self.iterator = iter(self.iterate)
 
     def set_escalate(self, esc):
         self.escalate.start(esc)
@@ -122,7 +160,7 @@ class Environment:
         self.propagate.update(prop)
 
     def reset(self):
-        self.iterator = iter(["__do not iterate__"])
+        self.iterate = Iterate(["__do not iterate__"])
 
 
 @functools.singledispatch
@@ -135,16 +173,16 @@ def set_base(base, env: Environment):
 @set_base.register(type(None))
 def _(base: type(None), env: Environment):
     env.base = {}
-    env.iterator = iter(["__do not iterate__"])
+    env.iterate = Iterate(["__do not iterate__"])
 
 
 @set_base.register(dict)
 def _(base: dict, env: Environment):
     env.base = base
-    env.iterator = iter(["__do not iterate__"])
+    env.iterate = Iterate(["__do not iterate__"])
 
 
 @set_base.register(list)
 def _(base: list, env: Environment):
     env.base = {}
-    env.iterator = iter(base)
+    env.iterate = Iterate(base)
