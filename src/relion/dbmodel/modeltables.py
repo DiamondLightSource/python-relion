@@ -131,18 +131,15 @@ class Table:
                         if i1 != i2:
                             if set(ui1).isdisjoint(ui2):
                                 return None
-                else:
-                    overlap_list = unique_indices[0]
-                    for i in range(len(unique_indices) - 1):
-                        curr_overlap = set(unique_indices[i]).intersection(
-                            unique_indices[i + 1]
-                        )
-                        overlap_list = list(
-                            set(overlap_list).intersection(curr_overlap)
-                        )
-                    if not overlap_list:
-                        return None
-                    return self._tab[self._primary_key][overlap_list[0]]
+                overlap_list = unique_indices[0]
+                for i in range(len(unique_indices) - 1):
+                    curr_overlap = set(unique_indices[i]).intersection(
+                        unique_indices[i + 1]
+                    )
+                    overlap_list = list(set(overlap_list).intersection(curr_overlap))
+                if not overlap_list:
+                    return None
+                return self._tab[self._primary_key][overlap_list[0]]
             return None
         except TypeError:
             return None
@@ -179,12 +176,13 @@ def parse_sqlalchemy_table(sa_table):
 class MotionCorrectionTable(Table):
     def __init__(self):
         columns, prim_key = parse_sqlalchemy_table(sqlalchemy.MotionCorrection)
-        columns.append("job_string")
+        # columns.append("job_string")
         super().__init__(
             columns,
             prim_key,
             unique="micrograph_full_path",
             counters="image_number",
+            required="micrograph_full_path",
         )
 
 
@@ -210,7 +208,10 @@ class ParticlePickerTable(Table):
             ]
         )
         super().__init__(
-            columns, prim_key, unique=["micrograph_full_path", "job_string"]
+            columns,
+            prim_key,
+            unique=["micrograph_full_path", "job_string"],
+            required="first_motion_correction_id",
         )
 
 
@@ -220,20 +221,26 @@ class ParticleClassificationGroupTable(Table):
             sqlalchemy.ParticleClassificationGroup
         )
         columns.append("job_string")
-        super().__init__(columns, prim_key, unique="job_string")
+        super().__init__(columns, prim_key, unique="job_string", required="job_string")
 
 
 class ParticleClassificationTable(Table):
     def __init__(self):
         columns, prim_key = parse_sqlalchemy_table(sqlalchemy.ParticleClassification)
         columns.append("job_string")
-        super().__init__(columns, prim_key, unique=["job_string", "class_number"])
+        super().__init__(
+            columns,
+            prim_key,
+            unique=["job_string", "class_number"],
+            required="class_number",
+        )
 
 
 class CryoemInitialModelTable(Table):
     def __init__(self):
         columns, prim_key = parse_sqlalchemy_table(sqlalchemy.CryoemInitialModel)
         columns.append("ini_model_job_string")
+        columns.append("particle_classification_id")
         super().__init__(
             columns,
             prim_key,
@@ -357,62 +364,3 @@ def _(
     row.update({"resolution": relion_options.inimodel_resol_final})
     pid = primary_table.add_row(row)
     return pid
-
-
-@functools.singledispatch
-def construct_message(table, primary_key):
-    raise ValueError(f"{table!r} is not a known Table")
-
-
-@construct_message.register(MotionCorrectionTable)
-def _(table: MotionCorrectionTable, primary_key: int):
-    results = {
-        "ispyb_command": "insert_motion_correction",
-    }
-    results.update(table.get_row_by_primary_key(primary_key))
-    return results
-
-
-@construct_message.register(CTFTable)
-def _(table: CTFTable, primary_key: int):
-    results = {
-        "ispyb_command": "insert_ctf",
-    }
-    results.update(table.get_row_by_primary_key(primary_key))
-    return results
-
-
-@construct_message.register(ParticlePickerTable)
-def _(table: ParticlePickerTable, primary_key: int):
-    results = {
-        "ispyb_command": "insert_particle_picker",
-    }
-    results.update(table.get_row_by_primary_key(primary_key))
-    return results
-
-
-@construct_message.register(ParticleClassificationGroupTable)
-def _(table: ParticleClassificationGroupTable, primary_key: int):
-    results = {
-        "ispyb_command": "insert_particle_classification_group",
-    }
-    results.update(table.get_row_by_primary_key(primary_key))
-    return results
-
-
-@construct_message.register(ParticleClassificationTable)
-def _(table: ParticleClassificationTable, primary_key: int):
-    results = {
-        "ispyb_command": "insert_particle_classification",
-    }
-    results.update(table.get_row_by_primary_key(primary_key))
-    return results
-
-
-@construct_message.register(CryoemInitialModelTable)
-def _(table: CryoemInitialModelTable, primary_key: int):
-    results = {
-        "ispyb_command": "insert_cryoem_initial_model",
-    }
-    results.update(table.get_row_by_primary_key(primary_key))
-    return results

@@ -33,7 +33,7 @@ class RelionPipeline:
     def __iter__(self):
         if not self._jobs_collapsed:
             self._collapse_jobs_to_jobtypes()
-        return iter(self._jobtype_nodes)
+        return iter(self._jobtype_nodes._node_list)
 
     @property
     def _plock(self):
@@ -125,6 +125,22 @@ class RelionPipeline:
             self._nodes[self._nodes.index(f._path)].link_to(
                 self._nodes[self._nodes.index(t._path)]
             )
+            if str(f._path.parent.parent) == "Select" and f._path.name.startswith(
+                "particles_split"
+            ):
+                self._nodes[self._nodes.index(f._path)].environment[
+                    "batch_number"
+                ] = f._path.stem.replace("particles_split", "")
+                self._nodes[self._nodes.index(f._path)].propagate(
+                    ("batch_number", "batch_number")
+                )
+            if str(f._path.parent.parent) == "InitialModel" and "class" in f._path.name:
+                self._nodes[self._nodes.index(f._path)].environment[
+                    "init_model_class_num"
+                ] = int(f._path.stem.split("class")[-1].split("_")[0])
+                self._nodes[self._nodes.index(f._path)].propagate(
+                    ("init_model_class_num", "init_model_class_num")
+                )
         self._nodes._split_connected(self._connected, self.origin, self.origins)
         self._set_job_nodes(star_doc_from_path)
 
@@ -184,7 +200,15 @@ class RelionPipeline:
         )
         for node in self._jobtype_nodes:
             node.environment["job"] = node._path.name
+            job_string = str(node._path.name)
             node._path = node._path.parent
+            for inode in node._in:
+                inode._link_traffic[node.nodeid] = inode._link_traffic[node.nodeid]
+            node._name = str(node._path)
+            if node.name == "InitialModel":
+                node.environment["ini_model_job_string"] = job_string
+            else:
+                node.environment["job_string"] = job_string
         self._jobs_collapsed = True
 
     def show_all_nodes(self):

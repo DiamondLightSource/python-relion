@@ -66,13 +66,6 @@ class ProcessGraph(Graph):
         else:
             raise ValueError("Attempted to add a node that was not a ProcessNode")
 
-    def find_origins(self):
-        child_nodes = []
-        for node in self._node_list:
-            child_nodes.extend([next_node for next_node in node])
-        origins = [p for p in self._node_list if p not in child_nodes]
-        return origins
-
     def merge(self, other):
         node_names = [p._path for p in self]
         other_names = [p._path for p in other]

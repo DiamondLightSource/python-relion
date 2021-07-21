@@ -196,6 +196,7 @@ class MotionCorr(JobType):
                     float(micrograph.total_motion) / len(micrograph.drift_data)
                 ),
                 "image_number": micrograph.micrograph_number,
+                "micrograph_snapshot_full_path": micrograph.micrograph_snapshot_full_path,
             }
             for micrograph in micrograph_list
         ]

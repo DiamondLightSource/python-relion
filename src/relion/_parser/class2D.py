@@ -34,6 +34,7 @@ Class2DParticleClass.estimated_resolution.__doc__ = "Estimated resolution."
 Class2DParticleClass.overall_fourier_completeness.__doc__ = (
     "Overall Fourier completeness."
 )
+Class2DParticleClass.job.__doc__ = "Job number of the Class2D job."
 
 
 class Class2D(JobType):
@@ -193,7 +194,6 @@ class Class2D(JobType):
         res = [
             {
                 "type": "2D",
-                "job_string": cl.job,
                 "class_number": cl.particle_sum[0],
                 "particles_per_class": cl.particle_sum[1],
                 "rotation_accuracy": cl.accuracy_rotations,

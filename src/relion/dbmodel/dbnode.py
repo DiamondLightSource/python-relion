@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from relion.dbmodel import modeltables
 from relion.node import Node
 
@@ -35,11 +37,16 @@ class DBNode(Node):
         return False
 
     def func(self, *args, **kwargs):
+        if self.environment.empty:
+            return []
         extra_options = self.environment["extra_options"]
-        end_time = self.environment["end_time"]
-        msg_con = self.environment["message_constructor"]
+        if self.environment["end_time"] is not None:
+            end_time = datetime.timestamp(self.environment["end_time"])
+        else:
+            end_time = None
+        msg_cons = self.environment["message_constructors"]
         self.insert(end_time, extra_options)
-        return self.message(msg_con)
+        return self.message(msg_cons)
 
     def update_times(self, source=None):
         if source is None:
@@ -104,17 +111,31 @@ class DBNode(Node):
         except KeyError:
             return
 
-    def message(self, constructor=None):
-        if constructor is None:
-            return []
-        messages = []
+    def message(self, constructors=None):
+        if constructors is None:
+            return {}
+        messages = {msg_type: [] for msg_type in constructors.keys()}
         for tab_index, ids in enumerate(self._unsent):
             for pid in ids:
-                message = constructor(
-                    self.tables[tab_index],
-                    pid,
-                )
-                messages.append(message)
+                for msg_type, constructor in constructors.items():
+                    message = constructor(
+                        self.tables[tab_index],
+                        pid,
+                    )
+                    if isinstance(message, dict):
+                        messages[msg_type].append(message)
+                    elif isinstance(message, list):
+                        messages[msg_type].extend(message)
+                    else:
+                        raise TypeError(
+                            f"message must be a dictionary or list but was {type(message)}: {message}"
+                        )
                 self._unsent[tab_index].remove(pid)
                 self._sent[tab_index].append(pid)
+        need_to_pop = []
+        for key, value in messages.items():
+            if not value:
+                need_to_pop.append(key)
+        for key in need_to_pop:
+            messages.pop(key)
         return messages

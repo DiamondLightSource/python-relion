@@ -20,6 +20,8 @@ class DBGraph(Graph):
             for el in res:
                 if el is None:
                     continue
+                if not el:
+                    continue
                 for curr_res in el.values():
                     if curr_res is not None and curr_res not in collapsed_res:
                         collapsed_res.append(curr_res)
@@ -34,5 +36,6 @@ class DBGraph(Graph):
     def message(self, constructor=None):
         messages = []
         for node in self._node_list:
+
             messages.extend(node.message, constructor)
         return messages

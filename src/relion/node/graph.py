@@ -23,7 +23,6 @@ class Graph(Node):
     def __eq__(self, other):
         if isinstance(other, Graph):
             if len(self.nodes) == len(other.nodes):
-                print(self.nodes, other.nodes)
                 for n in self.nodes:
                     if n not in other.nodes:
                         print(f"{n} not in {other.nodes}")
@@ -56,6 +55,9 @@ class Graph(Node):
 
     def func(self, *args, **kwargs):
         self._call_returns = {}
+        if self._in_multi_call:
+            for node in self.origins:
+                node._completed = self._completed
         self.traverse()
         self._traversed = []
         self._called_nodes = []
@@ -63,7 +65,7 @@ class Graph(Node):
             node.environment.reset()
             node._completed = []
         if self._call_returns == {}:
-            return
+            return None
         else:
             return self._call_returns
 
@@ -72,8 +74,8 @@ class Graph(Node):
             for i_node in node._in:
                 if i_node not in self._node_list:
                     i_node.link_to(self)
-                    i_node._link_traffic[(self.name, self.nodeid)].update(
-                        i_node._link_traffic[(node.name, node.nodeid)]
+                    i_node._link_traffic[self.nodeid].update(
+                        i_node._link_traffic[node.nodeid]
                     )
 
     def extend(self, other):
@@ -153,7 +155,7 @@ class Graph(Node):
         for o in self.origins:
             self._follow(o, traffic={}, share=[])
 
-    def _follow(self, node, traffic, share, append=False):
+    def _follow(self, node, traffic, share):
         called = False
         if node not in self.nodes:
             return
@@ -188,14 +190,12 @@ class Graph(Node):
                     next_node,
                     next_traffic,
                     next_share,
-                    append=node._append_traffic.get(next_node.nodeid),
                 )
             elif not called:
                 self._follow(
                     next_node,
                     next_traffic,
                     next_share,
-                    append=node._append_traffic.get(next_node.nodeid),
                 )
 
     def show(self):

@@ -14,6 +14,14 @@ import zocalo.wrapper
 import relion
 from relion.cryolo_relion_it import cryolo_relion_it, dls_options, icebreaker_histogram
 from relion.cryolo_relion_it.cryolo_relion_it import RelionItOptions
+from relion.dbmodel.modeltables import (
+    CryoemInitialModelTable,
+    CTFTable,
+    MotionCorrectionTable,
+    ParticleClassificationGroupTable,
+    ParticleClassificationTable,
+    ParticlePickerTable,
+)
 
 logger = logging.getLogger("relion.zocalo.wrapper")
 
@@ -100,7 +108,10 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
         preprocess_check = self.results_directory / "RUNNING_PIPELINER_PREPROCESS"
         all_process_check = self.results_directory / "RUNNING_RELION_IT"
 
-        relion_prj = relion.Project(self.working_directory)
+        relion_prj = relion.Project(
+            self.working_directory,
+            message_constructors={"ispyb": construct_message, "images": images_msgs},
+        )
 
         while not relion_prj.origin_present() or not preprocess_check.is_file():
             time.sleep(0.5)
@@ -138,12 +149,15 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
             relion_prj.load()
 
             # Should only return results that have not previously been sent
-            for fr in relion_prj.results.fresh:
-                curr_res = ispyb_results(fr.stage_object, fr.job_name, self.opts)
-                ispyb_command_list.extend(curr_res)
-                images_command_list.extend(images_msgs(fr.stage_object, fr.job_name))
-                if curr_res:
-                    logger.info(f"Fresh results found for {fr.job_name}")
+
+            for job_msg in relion_prj.messages:
+                if job_msg.get("ispyb") and job_msg["ispyb"]:
+                    logger.info(
+                        f"Found results that look like this: {job_msg['ispyb'][0]}"
+                    )
+                    ispyb_command_list.extend(job_msg["ispyb"])
+                if job_msg.get("images") and job_msg["images"]:
+                    images_command_list.extend(job_msg["images"])
 
             if ispyb_command_list:
                 logger.info(
@@ -272,10 +286,15 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
             checked_key = "job002"
             checks = [False for _ in range(len(imported))]
             for i, f in enumerate(imported):
-                for key in relion_prj.res._cache.keys():
+                keys = [
+                    (j.environment["job"], j)
+                    for j in relion_prj._jobtype_nodes
+                    if j.name == "MotionCorr"
+                ]
+                for key, job in keys:
                     if any(
-                        f.split(".")[0] in p.split(".")[0]
-                        for p in relion_prj.res._cache[key]
+                        f.split(".")[0] in p.micrograph_name.split(".")[0]
+                        for p in job.environment["result"][key]
                     ):
                         checks[i] = True
                         checked_key = key
@@ -375,190 +394,151 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
 
 
 @functools.singledispatch
-def images_msgs(relion_stage_object, job_string: str):
-    logger.debug(f"{relion_stage_object!r} does not have associated images")
+def images_msgs(table, primary_key):
+    logger.debug(f"{table!r} does not have associated images")
     return []
 
 
-@images_msgs.register(relion.MotionCorr)
-def _(stage_object: relion.MotionCorr, job_string: str):
-    return [
-        micrograph.micrograph_snapshot_full_path.replace(".jpeg", ".mrc")
-        for micrograph in stage_object[job_string]
-    ]
+@images_msgs.register(MotionCorrectionTable)
+def _(table: MotionCorrectionTable, primary_key: int):
+    return {
+        "file": table.get_row_by_primary_key(primary_key)[
+            "micrograph_snapshot_full_path"
+        ].replace(".jpeg", ".mrc")
+    }
 
 
-@images_msgs.register(relion.CTFFind)
-def _(stage_object: relion.CTFFind, job_string: str):
-    return [
-        ctf_micrograph.diagnostic_plot_path.replace(".jpeg", ".ctf")
-        for ctf_micrograph in stage_object[job_string]
-    ]
+@images_msgs.register(CTFTable)
+def _(table: CTFTable, primary_key: int):
+    return {
+        "file": table.get_row_by_primary_key(primary_key)[
+            "fft_theoretical_full_path"
+        ].replace(".jpeg", ".ctf")
+    }
 
 
 @functools.singledispatch
-def ispyb_results(
-    relion_stage_object, job_string: str, relion_options: RelionItOptions
-):
-    """
-    A function that takes Relion stage objects and job names (together
-    representing a single job directory) and translates them into ISPyB
-    service commands.
-    """
-    raise ValueError(f"{relion_stage_object!r} is not a known Relion object")
+def construct_message(table, primary_key):
+    raise ValueError(f"{table!r} is not a known Table")
 
 
-@ispyb_results.register(relion.CTFFind)
-def _(stage_object: relion.CTFFind, job_string: str, relion_options: RelionItOptions):
-    logger.info("Generating ISPyB commands for %s ", job_string)
-    ispyb_command_list = []
-    for ctf_micrograph in stage_object[job_string]:
-        ispyb_command_list.append(
-            {
-                "ispyb_command": "insert_ctf",
-                "micrograph_name": ctf_micrograph.micrograph_name,
-                "astigmatism": ctf_micrograph.astigmatism,
-                "astigmatism_angle": ctf_micrograph.defocus_angle,
-                "max_estimated_resolution": ctf_micrograph.max_resolution,
-                "estimated_defocus": (
-                    float(ctf_micrograph.defocus_u) + float(ctf_micrograph.defocus_v)
-                )
-                / 2,
-                "cc_value": ctf_micrograph.fig_of_merit,
-                "amplitude_contrast": ctf_micrograph.amp_contrast,
-                "fft_theoretical_full_path": ctf_micrograph.diagnostic_plot_path,
-                "box_size_x": relion_options.ctffind_boxsize,
-                "box_size_y": relion_options.ctffind_boxsize,
-                "min_resolution": relion_options.ctffind_minres,
-                "max_resolution": relion_options.ctffind_maxres,
-                "min_defocus": relion_options.ctffind_defocus_min,
-                "max_defocus": relion_options.ctffind_defocus_max,
-                "defocus_step_size": relion_options.ctffind_defocus_step,
-            }
-        )
-    return ispyb_command_list
+@construct_message.register(MotionCorrectionTable)
+def _(table: MotionCorrectionTable, primary_key: int):
+    row = table.get_row_by_primary_key(primary_key)
+    buffered = ["motion_correction_id"]
+    buffer_store = row["motion_correction_id"]
+    results = {
+        "ispyb_command": "buffer",
+        "buffer_command": {
+            "ispyb_command": "insert_motion_correction",
+            **{k: v for k, v in row.items() if k not in buffered},
+        },
+        "buffer_store": buffer_store,
+    }
+    return results
 
 
-@ispyb_results.register(relion.MotionCorr)
-def _(
-    stage_object: relion.MotionCorr, job_string: str, relion_options: RelionItOptions
-):
-    logger.info("Generating ISPyB commands for %s ", job_string)
-    ispyb_command_list = []
-    for motion_corr_micrograph in stage_object[job_string]:
-        number_of_frames = len(motion_corr_micrograph.drift_data)
-        ispyb_command_list.append(
-            {
-                "ispyb_command": "insert_motion_correction",
-                "micrograph_name": motion_corr_micrograph.micrograph_name,
-                "total_motion": motion_corr_micrograph.total_motion,
-                "early_motion": motion_corr_micrograph.early_motion,
-                "late_motion": motion_corr_micrograph.late_motion,
-                "average_motion_per_frame": (float(motion_corr_micrograph.total_motion))
-                / number_of_frames,
-                "dose_per_frame": relion_options.motioncor_doseperframe,
-                "patches_used_x": relion_options.motioncor_patches_x,
-                "patches_used_y": relion_options.motioncor_patches_y,
-                "image_number": motion_corr_micrograph.micrograph_number,
-                "micrograph_snapshot_full_path": motion_corr_micrograph.micrograph_snapshot_full_path,
-                "drift_frames": [
-                    (frame.frame, frame.deltaX, frame.deltaY)
-                    for frame in motion_corr_micrograph.drift_data
-                ],
-            }
-        )
-    return ispyb_command_list
+@construct_message.register(CTFTable)
+def _(table: CTFTable, primary_key: int):
+    row = table.get_row_by_primary_key(primary_key)
+    buffered = ["motion_correction_id", "ctf_id"]
+    buffer_store = row["ctf_id"]
+    buffer_lookup = row["motion_correction_id"]
+    results = {
+        "ispyb_command": "buffer",
+        "buffer_lookup": {
+            "motion_correction_id": buffer_lookup,
+        },
+        "buffer_command": {
+            "ispyb_command": "insert_ctf",
+            **{k: v for k, v in row.items() if k not in buffered},
+        },
+        "buffer_store": buffer_store,
+    }
+    return results
 
 
-@ispyb_results.register(relion.AutoPick)
-def _(stage_object: relion.AutoPick, job_string: str, relion_options: RelionItOptions):
-    ispyb_command_list = [
-        {
+@construct_message.register(ParticlePickerTable)
+def _(table: ParticlePickerTable, primary_key: int):
+    row = table.get_row_by_primary_key(primary_key)
+    buffered = ["first_motion_correction_id", "particle_picker_id"]
+    buffer_store = row["particle_picker_id"]
+    buffer_lookup = row["first_motion_correction_id"]
+    results = {
+        "ispyb_command": "buffer",
+        "buffer_lookup": {
+            "motion_correction_id": buffer_lookup,
+        },
+        "buffer_command": {
             "ispyb_command": "insert_particle_picker",
-            "number_of_particles": mic.number_of_particles,
-            "particle_diameter": relion_options.autopick_LoG_diam_max
-            / 10,  # units are nm not Angstrom in the DB
-            "micrograph_name": mic.micrograph_full_path,
+            **{k: v for k, v in row.items() if k not in buffered},
+        },
+        "buffer_store": buffer_store,
+    }
+    return results
+
+
+@construct_message.register(ParticleClassificationGroupTable)
+def _(table: ParticleClassificationGroupTable, primary_key: int):
+    row = table.get_row_by_primary_key(primary_key)
+    buffered = ["particle_picker_id", "particle_classification_group_id"]
+    buffer_store = row["particle_classification_group_id"]
+    buffer_lookup = row["particle_picker_id"]
+    results = {
+        "ispyb_command": "buffer",
+        "buffer_lookup": {
+            "particle_picker_id": buffer_lookup,
+        },
+        "buffer_command": {
+            "ispyb_command": "insert_particle_classification_group",
+            **{k: v for k, v in row.items() if k not in buffered},
+        },
+        "buffer_store": buffer_store,
+    }
+    return results
+
+
+@construct_message.register(ParticleClassificationTable)
+def _(table: ParticleClassificationTable, primary_key: int):
+    row = table.get_row_by_primary_key(primary_key)
+    buffered = ["particle_classification_group_id", "particle_classification_id"]
+    buffer_store = row["particle_classification_id"]
+    buffer_lookup = row["particle_classification_group_id"]
+    results = {
+        "ispyb_command": "buffer",
+        "buffer_lookup": {
+            "particle_picker_id": buffer_lookup,
+        },
+        "buffer_command": {
+            "ispyb_command": "insert_particle_classification",
+            **{k: v for k, v in row.items() if k not in buffered},
+        },
+        "buffer_store": buffer_store,
+    }
+    return results
+
+
+@construct_message.register(CryoemInitialModelTable)
+def _(table: CryoemInitialModelTable, primary_key: int):
+    row = table.get_row_by_primary_key(primary_key)
+    class_ids = row["particle_classification_id"]
+    if not isinstance(class_ids, list):
+        class_ids = [class_ids]
+    results = []
+    for class_id in class_ids:
+        buffered = ["particle_classification_id", "cryoem_initial_model_id"]
+        this_result = {
+            "ispyb_command": "buffer",
+            "buffer_lookup": {
+                "particle_classification_id": class_id,
+            },
+            "buffer_command": {
+                "ispyb_command": "insert_cryoem_initial_model",
+                **{k: v for k, v in row.items() if k not in buffered},
+            },
         }
-        for mic in stage_object[job_string]
-    ]
-    return ispyb_command_list
-
-
-@ispyb_results.register(relion.Cryolo)
-def _(stage_object: relion.Cryolo, job_string: str, relion_options: RelionItOptions):
-    ispyb_command_list = [
-        {
-            "ispyb_command": "insert_particle_picker",
-            "number_of_particles": mic.number_of_particles,
-            "particle_diameter": int(
-                relion_options.extract_boxsize
-                * relion_options.angpix
-                / relion_options.motioncor_binning
-            )
-            / 10,
-            "particle_picking_template": relion_options.cryolo_gmodel,
-            "micrograph_name": mic.micrograph_full_path,
-        }
-        for mic in stage_object[job_string]
-    ]
-    return ispyb_command_list
-
-
-@ispyb_results.register(relion.Class2D)
-def _(stage_object: relion.Class2D, job_string: str, relion_options: RelionItOptions):
-    ispyb_command_list = []
-    sorted_jobs = sorted(
-        [st for st in stage_object.keys()], key=lambda st: int(st.replace("job", ""))
-    )
-    batch_number = sorted_jobs.index(job_string) + 1
-    for class_2d in stage_object[job_string]:
-        ispyb_command_list.append(
-            {
-                "ispyb_command": "insert_class2d",
-                "number_of_particles_per_batch": relion_options.batch_size,
-                "number_of_classes_per_batch": relion_options.class2d_nr_classes,
-                "type": "2D",
-                "symmetry": relion_options.symmetry,
-                "class_number": class_2d.particle_sum[0],
-                "particles_per_class": class_2d.particle_sum[1],
-                "rotation_accuracy": class_2d.accuracy_rotations,
-                "translation_accuracy": class_2d.accuracy_translations_angst,
-                "estimated_resolution": class_2d.estimated_resolution,
-                "overall_fourier_completeness": class_2d.overall_fourier_completeness,
-                "batch_number": batch_number,
-            }
-        )
-    return ispyb_command_list
-
-
-@ispyb_results.register(relion.Class3D)
-def _(stage_object: relion.Class3D, job_string: str, relion_options: RelionItOptions):
-    ispyb_command_list = []
-    sorted_jobs = sorted(
-        [st for st in stage_object.keys()], key=lambda st: int(st.replace("job", ""))
-    )
-    batch_number = sorted_jobs.index(job_string) + 1
-    for class_3d in stage_object[job_string]:
-        ispyb_command_list.append(
-            {
-                "ispyb_command": "insert_class3d",
-                "number_of_particles_per_batch": relion_options.batch_size,
-                "number_of_classes_per_batch": relion_options.class3d_nr_classes,
-                "type": "3D",
-                "symmetry": relion_options.symmetry,
-                "class_number": class_3d.particle_sum[0],
-                "particles_per_class": class_3d.particle_sum[1],
-                "rotation_accuracy": class_3d.accuracy_rotations,
-                "translation_accuracy": class_3d.accuracy_translations_angst,
-                "estimated_resolution": class_3d.estimated_resolution,
-                "overall_fourier_completeness": class_3d.overall_fourier_completeness,
-                "batch_number": batch_number,
-                "init_model_number_of_particles": class_3d.initial_model_num_particles,
-                "init_model_resolution": relion_options.inimodel_resol_final,
-            }
-        )
-    return ispyb_command_list
+        results.append(this_result)
+    return results
 
 
 def ispyb_attachment(attachment_path_object, file_type):
