@@ -32,6 +32,9 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
         # Enable log messages for relion.*
         logging.getLogger("relion").setLevel(logging.INFO)
 
+        # Report python-relion package version
+        self.status_thread.set_static_status_field("python-relion", relion.__version__)
+
         assert hasattr(self, "recwrap"), "No recipewrapper object found"
 
         self.params = self.recwrap.recipe_step["job_parameters"]
