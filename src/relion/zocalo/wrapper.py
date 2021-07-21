@@ -168,8 +168,8 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
                 )
                 logger.info("Sent %d commands to ISPyB", len(ispyb_command_list))
 
-            for img in images_command_list:
-                self.recwrap.send_to("images", {"file": img})
+            for imgcmd in images_command_list:
+                self.recwrap.send_to("images", imgcmd)
 
             ### Extract and send Icebreaker results as histograms if the Icebreaker grouping job has run
             if not self.opts.stop_after_ctf_estimation and (
