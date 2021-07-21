@@ -74,17 +74,26 @@ class Iterate:
     def __iter__(self):
         return iter(self.store)
 
-    def update(self, u):
+    def update(self, u, can_append_list=False):
         if isinstance(u, dict):
             for s in self.store:
                 s.update(u)
         if isinstance(u, list):
-            if self.store == [{}] or self.store == []:
+            if can_append_list:
+                self.appended.append(u)
+                return
+            if (
+                self.store == [{}]
+                or self.store == []
+                or self.store == ["__do not iterate__"]
+            ):
                 self.store = u
                 return
             if len(u) != len(self.store):
+                print("u", u)
+                print("store", self.store)
                 raise ValueError(
-                    "Attempted to update ProtoNode Environment with a list that was a different size to the pre-existing iterator"
+                    f"Attempted to update ProtoNode Environment with a list that was a different size to the pre-existing iterator: {len(u)} vs. {len(self.store)}"
                 )
             for i, tr in enumerate(u):
                 self.store[i].update(tr)
@@ -95,7 +104,7 @@ class Environment:
         set_base(base, self)
         self.propagate = Propagate()
         self.escalate = Escalate()
-        self.iterate = Iterate([])
+        # self.iterate = Iterate([{}])
         self.temp = {}
 
     def __getitem__(self, key):
@@ -148,7 +157,7 @@ class Environment:
                 self.base.update(traffic)
             return
         elif isinstance(traffic, list):
-            self.iterate.update(traffic)
+            self.iterate.update(traffic, can_append_list=can_append_list)
 
     def load_iterator(self):
         self.iterator = iter(self.iterate)

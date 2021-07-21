@@ -63,6 +63,7 @@ class Node:
         print("Node called", self.name)
         self.environment.load_iterator()
         incomplete = self.environment.step()
+        print("is it incomplete?", incomplete)
         self._in_multi_call = True
         while incomplete:
             curr_res = self.func(*args, **kwargs)
