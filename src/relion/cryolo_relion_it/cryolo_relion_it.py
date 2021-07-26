@@ -2978,9 +2978,10 @@ def run_pipeline(opts):
                                     alias=ibalias,
                                 )
 
-                                RunJobs(
-                                    [icebreaker_group_job], 1, 1, "ICEBREAKER_GROUP"
-                                )
+                                if not already_had_it:
+                                    RunJobs(
+                                        [icebreaker_group_job], 1, 1, "ICEBREAKER_GROUP"
+                                    )
 
                             class2d_options = [
                                 "Input images STAR file: == {}".format(
