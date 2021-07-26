@@ -25,7 +25,6 @@ class Graph(Node):
             if len(self.nodes) == len(other.nodes):
                 for n in self.nodes:
                     if n not in other.nodes:
-                        print(f"{n} not in {other.nodes}")
                         return False
                 return True
         return False
@@ -153,25 +152,18 @@ class Graph(Node):
 
     def traverse(self):
         for o in self.origins:
-            self._follow(o, traffic={}, share=[])
+            self._follow(o, traffic={}, share=[], append=o._can_append)
 
-    def _follow(self, node, traffic, share):
+    def _follow(self, node, traffic, share, append=False):
         called = False
         if node not in self.nodes:
             return
         if node.nodeid in self._called_nodes:
             called = True
-        node.environment.update(traffic)
+        node.environment.update(traffic, can_append_list=append)
 
         for sh in share:
             node.environment[sh[1]] = sh[0]
-
-        print(
-            "node in graph",
-            node.name,
-            all(n in node._completed for n in node._in),
-            node.nodeid not in self._called_nodes,
-        )
 
         if (
             all(n in node._completed for n in node._in)
@@ -197,12 +189,14 @@ class Graph(Node):
                     next_node,
                     next_traffic,
                     next_share,
+                    append=node._can_append,
                 )
             elif not called:
                 self._follow(
                     next_node,
                     next_traffic,
                     next_share,
+                    append=node._can_append,
                 )
 
     def show(self):

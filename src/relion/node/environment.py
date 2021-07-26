@@ -63,12 +63,20 @@ class Iterate:
             squashed_appended = []
             for a in self.appended:
                 squashed_appended.extend(a)
-            if len(squashed_appended) != len(self.store):
+            if (
+                len(squashed_appended) != len(self.store)
+                and len(self.store)
+                and self.store != ["__do not iterate__"]
+            ):
                 raise ValueError(
-                    "Attempted to update ProtoNode Environment with concatenated lists (from updating with can_append_list option) that was a different size to the pre-existing iterator"
+                    f"Attempted to update ProtoNode Environment with concatenated lists (from updating with can_append_list option) that was a different size to the pre-existing iterator: {len(squashed_appended)} vs. {len(self.store)}, {list(self.store)}"
                 )
-            for i, tr in enumerate(squashed_appended):
-                self.store[i].update(tr)
+            if self.store != ["__do not iterate__"]:
+                for i, tr in enumerate(squashed_appended):
+                    self.store[i].update(tr)
+            else:
+                print(squashed_appended)
+                self.store = squashed_appended
             self.appended = []
 
     def __iter__(self):
@@ -90,8 +98,8 @@ class Iterate:
                 self.store = u
                 return
             if len(u) != len(self.store):
-                print("u", u)
-                print("store", self.store)
+                # print("u", u)
+                # print("store", self.store)
                 raise ValueError(
                     f"Attempted to update ProtoNode Environment with a list that was a different size to the pre-existing iterator: {len(u)} vs. {len(self.store)}"
                 )
@@ -129,12 +137,12 @@ class Environment:
 
     def step(self):
         try:
-            print("calling step")
+            # print("calling step")
             self.iterate.squash()
-            print("squashed", self.iterate.store)
+            # print("squashed", self.iterate.store)
             self.temp = next(self.iterator)
-            print(self.temp)
-            print("that was temp")
+            # print(self.temp)
+            # print("that was temp")
             if self.temp == {}:
                 self.empty = True
             else:
