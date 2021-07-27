@@ -317,19 +317,6 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
                         checks[i] = True
                         checked_key = key
                         break
-                # keys = [
-                #    (j.environment["job"], j)
-                #    for j in relion_prj._jobtype_nodes
-                #    if j.name == "MotionCorr"
-                # ]
-                # for key, job in keys:
-                #    if any(
-                #        f.split(".")[0] in p.micrograph_name.split(".")[0]
-                #        for p in job.environment["result"][key]
-                #    ):
-                #        checks[i] = True
-                #        checked_key = key
-                #        break
             if all(checks):
                 completion_time = relion_prj._job_nodes.get_by_name(
                     "MotionCorr/" + checked_key
