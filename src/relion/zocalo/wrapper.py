@@ -633,7 +633,7 @@ def _(table: MotionCorrectionTable, primary_key: int):
     results = {
         "ispyb_command": "buffer",
         "buffer_command": {
-            "ispyb_command": "insert_motion_correction",
+            "ispyb_command": "insert_motion_correction_buffer",
             **{k: v for k, v in row.items() if k not in buffered},
         },
         "buffer_store": buffer_store,
@@ -653,7 +653,7 @@ def _(table: CTFTable, primary_key: int):
             "motion_correction_id": buffer_lookup,
         },
         "buffer_command": {
-            "ispyb_command": "insert_ctf",
+            "ispyb_command": "insert_ctf_buufer",
             **{k: v for k, v in row.items() if k not in buffered},
         },
         "buffer_store": buffer_store,
@@ -673,7 +673,7 @@ def _(table: ParticlePickerTable, primary_key: int):
             "motion_correction_id": buffer_lookup,
         },
         "buffer_command": {
-            "ispyb_command": "insert_particle_picker",
+            "ispyb_command": "insert_particle_picker_buffer",
             **{k: v for k, v in row.items() if k not in buffered},
         },
         "buffer_store": buffer_store,
