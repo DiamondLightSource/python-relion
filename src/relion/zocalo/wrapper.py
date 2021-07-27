@@ -480,6 +480,13 @@ def ispyb_results(
     raise ValueError(f"{relion_stage_object!r} is not a known Relion object")
 
 
+@ispyb_results.register(relion.InitialModel)
+def _(
+    stage_object: relion.InitialModel, job_string: str, relion_options: RelionItOptions
+):
+    return []
+
+
 @ispyb_results.register(relion.CTFFind)
 def _(stage_object: relion.CTFFind, job_string: str, relion_options: RelionItOptions):
     logger.info("Generating ISPyB commands for %s ", job_string)
