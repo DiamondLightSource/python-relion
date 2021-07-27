@@ -150,35 +150,12 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
 
             # Should only return results that have not previously been sent
 
-            for fr in relion_prj.results.fresh:
-                curr_res = ispyb_results(fr.stage_object, fr.job_name, self.opts)
-                ispyb_command_list.extend(curr_res)
-                images_command_list.extend(images_msgs(fr.stage_object, fr.job_name))
-                if curr_res:
-                    logger.info(f"Fresh results found for {fr.job_name}")
-
-            if ispyb_command_list:
-                logger.info(
-                    "Sending commands like this: %s", str(ispyb_command_list[0])
-                )
-                self.recwrap.send_to(
-                    "ispyb", {"ispyb_command_list": ispyb_command_list}
-                )
-                logger.info("Sent %d commands to ISPyB", len(ispyb_command_list))
-
-            for img in images_command_list:
-                self.recwrap.send_to("images", {"file": img})
-
-            # Should only return results that have not previously been sent
-
-            # for job_msg in relion_prj.messages:
-            #    if job_msg.get("ispyb") and job_msg["ispyb"]:
-            #        logger.info(
-            #            f"Found results that look like this: {job_msg['ispyb'][0]}"
-            #        )
-            #        ispyb_command_list.extend(job_msg["ispyb"])
-            #    if job_msg.get("images") and job_msg["images"]:
-            #        images_command_list.extend(job_msg["images"])
+            # for fr in relion_prj.results.fresh:
+            #    curr_res = ispyb_results(fr.stage_object, fr.job_name, self.opts)
+            #    ispyb_command_list.extend(curr_res)
+            #    images_command_list.extend(images_msgs(fr.stage_object, fr.job_name))
+            #    if curr_res:
+            #        logger.info(f"Fresh results found for {fr.job_name}")
 
             # if ispyb_command_list:
             #    logger.info(
@@ -189,8 +166,28 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
             #    )
             #    logger.info("Sent %d commands to ISPyB", len(ispyb_command_list))
 
-            # for imgcmd in images_command_list:
-            #    self.recwrap.send_to("images", imgcmd)
+            # Should only return results that have not previously been sent
+
+            for job_msg in relion_prj.messages:
+                if job_msg.get("ispyb") and job_msg["ispyb"]:
+                    logger.info(
+                        f"Found results that look like this: {job_msg['ispyb'][0]}"
+                    )
+                    ispyb_command_list.extend(job_msg["ispyb"])
+                if job_msg.get("images") and job_msg["images"]:
+                    images_command_list.extend(job_msg["images"])
+
+            if ispyb_command_list:
+                logger.info(
+                    "Sending commands like this: %s", str(ispyb_command_list[0])
+                )
+                self.recwrap.send_to(
+                    "ispyb", {"ispyb_command_list": ispyb_command_list}
+                )
+                logger.info("Sent %d commands to ISPyB", len(ispyb_command_list))
+
+            for imgcmd in images_command_list:
+                self.recwrap.send_to("images", imgcmd)
 
             ### Extract and send Icebreaker results as histograms if the Icebreaker grouping job has run
             if not self.opts.stop_after_ctf_estimation and (
@@ -449,30 +446,6 @@ def _(table: CTFTable, primary_key: int):
             "fft_theoretical_full_path"
         ].replace(".jpeg", ".ctf")
     }
-
-
-# @functools.singledispatch
-# def images_msgs(table, primary_key):
-#    logger.debug(f"{table!r} does not have associated images")
-#    return []
-
-
-# @images_msgs.register(MotionCorrectionTable)
-# def _(table: MotionCorrectionTable, primary_key: int):
-#    return {
-#        "file": table.get_row_by_primary_key(primary_key)[
-#            "micrograph_snapshot_full_path"
-#        ].replace(".jpeg", ".mrc")
-#    }
-
-
-# @images_msgs.register(CTFTable)
-# def _(table: CTFTable, primary_key: int):
-#    return {
-#        "file": table.get_row_by_primary_key(primary_key)[
-#            "fft_theoretical_full_path"
-#        ].replace(".jpeg", ".ctf")
-#    }
 
 
 @functools.singledispatch
