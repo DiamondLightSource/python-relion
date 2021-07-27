@@ -75,7 +75,6 @@ class Iterate:
                 for i, tr in enumerate(squashed_appended):
                     self.store[i].update(tr)
             else:
-                # print(squashed_appended)
                 self.store = squashed_appended
             self.appended = []
 
@@ -98,8 +97,6 @@ class Iterate:
                 self.store = u
                 return
             if len(u) != len(self.store):
-                # print("u", u)
-                # print("store", self.store)
                 raise ValueError(
                     f"Attempted to update ProtoNode Environment with a list that was a different size to the pre-existing iterator: {len(u)} vs. {len(self.store)}"
                 )
@@ -112,7 +109,6 @@ class Environment:
         set_base(base, self)
         self.propagate = Propagate()
         self.escalate = Escalate()
-        # self.iterate = Iterate([{}])
         self.temp = {}
 
     def __getitem__(self, key):
@@ -137,11 +133,7 @@ class Environment:
 
     def step(self):
         try:
-            # print("calling step")
-            # print("squashed", self.iterate.store)
             self.temp = next(self.iterator)
-            # print(self.temp)
-            # print("that was temp")
             if self.temp == {}:
                 self.empty = True
             else:

@@ -37,7 +37,6 @@ class DBNode(Node):
         return False
 
     def func(self, *args, **kwargs):
-        print("DBnode", self.name, self.environment.temp)
         if self.environment.empty:
             return []
         extra_options = self.environment["extra_options"]
