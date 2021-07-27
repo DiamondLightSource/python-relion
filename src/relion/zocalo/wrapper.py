@@ -640,7 +640,7 @@ def _(table: CTFTable, primary_key: int):
             "motion_correction_id": buffer_lookup,
         },
         "buffer_command": {
-            "ispyb_command": "insert_ctf_bufer",
+            "ispyb_command": "insert_ctf_buffer",
             **{k: v for k, v in row.items() if k not in buffered},
         },
         "buffer_store": buffer_store,
