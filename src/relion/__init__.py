@@ -26,7 +26,7 @@ except ModuleNotFoundError:
     pass
 import logging
 
-from relion.dbmodel import DBModel
+from relion.dbmodel import DBGraph, DBModel, DBNode
 from relion.node.graph import Graph
 
 logger = logging.getLogger("relion.Project")
@@ -189,6 +189,11 @@ class Project(RelionPipeline):
     def load(self, clear_cache=True):
         if clear_cache:
             self._clear_caches()
+        self._data_pipeline = Graph("DataPipeline", [])
+        for dbn in self._db_model.values():
+            for i_node in dbn._in:
+                if not isinstance(i_node, DBNode) and not isinstance(i_node, DBGraph):
+                    dbn._in.remove(i_node)
         self._jobs_collapsed = False
         self.load_nodes_from_star(self.basepath / "default_pipeline.star")
         self.check_job_node_statuses(self.basepath)
