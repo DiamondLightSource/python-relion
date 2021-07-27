@@ -63,6 +63,7 @@ class Node:
         res = []
         self.environment.load_iterator()
         incomplete = self.environment.step()
+        print(self.name, self.environment.temp)
         self._in_multi_call = True
         while incomplete:
             curr_res = self.func(*args, **kwargs)

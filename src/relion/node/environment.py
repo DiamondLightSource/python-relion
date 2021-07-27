@@ -75,7 +75,7 @@ class Iterate:
                 for i, tr in enumerate(squashed_appended):
                     self.store[i].update(tr)
             else:
-                print(squashed_appended)
+                # print(squashed_appended)
                 self.store = squashed_appended
             self.appended = []
 
@@ -138,7 +138,6 @@ class Environment:
     def step(self):
         try:
             # print("calling step")
-            self.iterate.squash()
             # print("squashed", self.iterate.store)
             self.temp = next(self.iterator)
             # print(self.temp)
@@ -168,6 +167,7 @@ class Environment:
             self.iterate.update(traffic, can_append_list=can_append_list)
 
     def load_iterator(self):
+        self.iterate.squash()
         self.iterator = iter(self.iterate)
 
     def set_escalate(self, esc):
