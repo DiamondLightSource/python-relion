@@ -40,6 +40,8 @@ class ProcessNode(Node):
         self.environment["end_time"] = datetime.timestamp(
             self.environment["end_time_stamp"]
         )
+        if not self.environment["status"]:
+            return {}
         if self.environment.get("results_last_collected") is None or self.environment[
             "results_last_collected"
         ] < datetime.timestamp(self.environment["end_time_stamp"]):
