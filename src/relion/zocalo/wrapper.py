@@ -288,7 +288,7 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
         if not icebreaker_particles_star_file_found:
             logger.warning("No particles.star file found for Icebreaker grouping.")
         logger.info("Done.")
-        success = True
+        success = False not in [n.environment["status"] for n in relion_prj if n._out]
 
         if preprocess_check.is_file():
             preprocess_check.unlink()
