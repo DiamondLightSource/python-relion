@@ -12,7 +12,7 @@ class Node:
     and child nodes are kept in _in and _out.
     """
 
-    def __init__(self, name, **kwargs):
+    def __init__(self, name, independent=False, **kwargs):
         self._name = name
         self.nodeid = str(uuid.uuid4())[:8]
         self._out = []
@@ -24,6 +24,7 @@ class Node:
         self._append_traffic = {}
         self._call_count = 0
         self._in_multi_call = False
+        self._can_append = independent
         self.shape = "oval"
         for key, value in kwargs.items():
             self.environment[key] = value
@@ -60,6 +61,7 @@ class Node:
 
     def __call__(self, *args, **kwargs):
         res = []
+        self.environment.load_iterator()
         incomplete = self.environment.step()
         self._in_multi_call = True
         while incomplete:

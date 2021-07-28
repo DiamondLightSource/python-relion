@@ -150,35 +150,12 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
 
             # Should only return results that have not previously been sent
 
-            for fr in relion_prj.results.fresh:
-                curr_res = ispyb_results(fr.stage_object, fr.job_name, self.opts)
-                ispyb_command_list.extend(curr_res)
-                images_command_list.extend(images_msgs(fr.stage_object, fr.job_name))
-                if curr_res:
-                    logger.info(f"Fresh results found for {fr.job_name}")
-
-            if ispyb_command_list:
-                logger.info(
-                    "Sending commands like this: %s", str(ispyb_command_list[0])
-                )
-                self.recwrap.send_to(
-                    "ispyb", {"ispyb_command_list": ispyb_command_list}
-                )
-                logger.info("Sent %d commands to ISPyB", len(ispyb_command_list))
-
-            for img in images_command_list:
-                self.recwrap.send_to("images", {"file": img})
-
-            # Should only return results that have not previously been sent
-
-            # for job_msg in relion_prj.messages:
-            #    if job_msg.get("ispyb") and job_msg["ispyb"]:
-            #        logger.info(
-            #            f"Found results that look like this: {job_msg['ispyb'][0]}"
-            #        )
-            #        ispyb_command_list.extend(job_msg["ispyb"])
-            #    if job_msg.get("images") and job_msg["images"]:
-            #        images_command_list.extend(job_msg["images"])
+            # for fr in relion_prj.results.fresh:
+            #    curr_res = ispyb_results(fr.stage_object, fr.job_name, self.opts)
+            #    ispyb_command_list.extend(curr_res)
+            #    images_command_list.extend(images_msgs(fr.stage_object, fr.job_name))
+            #    if curr_res:
+            #        logger.info(f"Fresh results found for {fr.job_name}")
 
             # if ispyb_command_list:
             #    logger.info(
@@ -189,8 +166,28 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
             #    )
             #    logger.info("Sent %d commands to ISPyB", len(ispyb_command_list))
 
-            # for imgcmd in images_command_list:
-            #    self.recwrap.send_to("images", imgcmd)
+            # Should only return results that have not previously been sent
+
+            for job_msg in relion_prj.messages:
+                if job_msg.get("ispyb") and job_msg["ispyb"]:
+                    logger.info(
+                        f"Found results that look like this: {job_msg['ispyb'][0]}"
+                    )
+                    ispyb_command_list.extend(job_msg["ispyb"])
+                if job_msg.get("images") and job_msg["images"]:
+                    images_command_list.extend(job_msg["images"])
+
+            if ispyb_command_list:
+                logger.info(
+                    "Sending commands like this: %s", str(ispyb_command_list[0])
+                )
+                self.recwrap.send_to(
+                    "ispyb", {"ispyb_command_list": ispyb_command_list}
+                )
+                logger.info("Sent %d commands to ISPyB", len(ispyb_command_list))
+
+            for imgcmd in images_command_list:
+                self.recwrap.send_to("images", imgcmd)
 
             ### Extract and send Icebreaker results as histograms if the Icebreaker grouping job has run
             if not self.opts.stop_after_ctf_estimation and (
@@ -307,27 +304,19 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
             checked_key = "job002"
             checks = [False for _ in range(len(imported))]
             for i, f in enumerate(imported):
-                for key in relion_prj.res._cache.keys():
+                keys = [
+                    (j.environment["job"], j)
+                    for j in relion_prj._jobtype_nodes
+                    if j.name == "MotionCorr"
+                ]
+                for key, job in keys:
                     if any(
-                        f.split(".")[0] in p.split(".")[0]
-                        for p in relion_prj.res._cache[key]
+                        f.split(".")[0] in p.micrograph_name.split(".")[0]
+                        for p in job.environment["result"][key]
                     ):
                         checks[i] = True
                         checked_key = key
                         break
-                # keys = [
-                #    (j.environment["job"], j)
-                #    for j in relion_prj._jobtype_nodes
-                #    if j.name == "MotionCorr"
-                # ]
-                # for key, job in keys:
-                #    if any(
-                #        f.split(".")[0] in p.micrograph_name.split(".")[0]
-                #        for p in job.environment["result"][key]
-                #    ):
-                #        checks[i] = True
-                #        checked_key = key
-                #        break
             if all(checks):
                 completion_time = relion_prj._job_nodes.get_by_name(
                     "MotionCorr/" + checked_key
@@ -423,49 +412,27 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
 
 
 @functools.singledispatch
-def images_msgs(relion_stage_object, job_string: str):
-    logger.debug(f"{relion_stage_object!r} does not have associated images")
+def images_msgs(table, primary_key):
+    logger.debug(f"{table!r} does not have associated images")
     return []
 
 
-@images_msgs.register(relion.MotionCorr)
-def _(stage_object: relion.MotionCorr, job_string: str):
-    return [
-        micrograph.micrograph_snapshot_full_path.replace(".jpeg", ".mrc")
-        for micrograph in stage_object[job_string]
-    ]
+@images_msgs.register(MotionCorrectionTable)
+def _(table: MotionCorrectionTable, primary_key: int):
+    return {
+        "file": table.get_row_by_primary_key(primary_key)[
+            "micrograph_snapshot_full_path"
+        ].replace(".jpeg", ".mrc")
+    }
 
 
-@images_msgs.register(relion.CTFFind)
-def _(stage_object: relion.CTFFind, job_string: str):
-    return [
-        ctf_micrograph.diagnostic_plot_path.replace(".jpeg", ".ctf")
-        for ctf_micrograph in stage_object[job_string]
-    ]
-
-
-# @functools.singledispatch
-# def images_msgs(table, primary_key):
-#    logger.debug(f"{table!r} does not have associated images")
-#    return []
-
-
-# @images_msgs.register(MotionCorrectionTable)
-# def _(table: MotionCorrectionTable, primary_key: int):
-#    return {
-#        "file": table.get_row_by_primary_key(primary_key)[
-#            "micrograph_snapshot_full_path"
-#        ].replace(".jpeg", ".mrc")
-#    }
-
-
-# @images_msgs.register(CTFTable)
-# def _(table: CTFTable, primary_key: int):
-#    return {
-#        "file": table.get_row_by_primary_key(primary_key)[
-#            "fft_theoretical_full_path"
-#        ].replace(".jpeg", ".ctf")
-#    }
+@images_msgs.register(CTFTable)
+def _(table: CTFTable, primary_key: int):
+    return {
+        "file": table.get_row_by_primary_key(primary_key)[
+            "fft_theoretical_full_path"
+        ].replace(".jpeg", ".ctf")
+    }
 
 
 @functools.singledispatch
@@ -653,7 +620,7 @@ def _(table: MotionCorrectionTable, primary_key: int):
     results = {
         "ispyb_command": "buffer",
         "buffer_command": {
-            "ispyb_command": "insert_motion_correction",
+            "ispyb_command": "insert_motion_correction_buffer",
             **{k: v for k, v in row.items() if k not in buffered},
         },
         "buffer_store": buffer_store,
@@ -673,7 +640,7 @@ def _(table: CTFTable, primary_key: int):
             "motion_correction_id": buffer_lookup,
         },
         "buffer_command": {
-            "ispyb_command": "insert_ctf",
+            "ispyb_command": "insert_ctf_buffer",
             **{k: v for k, v in row.items() if k not in buffered},
         },
         "buffer_store": buffer_store,
@@ -693,7 +660,7 @@ def _(table: ParticlePickerTable, primary_key: int):
             "motion_correction_id": buffer_lookup,
         },
         "buffer_command": {
-            "ispyb_command": "insert_particle_picker",
+            "ispyb_command": "insert_particle_picker_buffer",
             **{k: v for k, v in row.items() if k not in buffered},
         },
         "buffer_store": buffer_store,

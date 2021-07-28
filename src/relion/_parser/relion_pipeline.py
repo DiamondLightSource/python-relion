@@ -78,7 +78,7 @@ class RelionPipeline:
         return ProcessGraph(
             "job nodes",
             [
-                ProcessNode(pathlib.Path(p), alias=al)
+                ProcessNode(pathlib.Path(p), independent=True, alias=al)
                 for p, al in zip(
                     self._request_star_values(star_doc, "_rlnPipeLineProcessName"),
                     self._request_star_values(star_doc, "_rlnPipeLineProcessAlias"),
