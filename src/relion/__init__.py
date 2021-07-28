@@ -190,6 +190,8 @@ class Project(RelionPipeline):
         if clear_cache:
             self._clear_caches()
         self._data_pipeline = Graph("DataPipeline", [])
+        # reset the in and out lists of database nodes
+        # have to avoid removing the permanent connections from other database nodes
         for dbn in self._db_model.values():
             for i_node in dbn._in:
                 if not isinstance(i_node, DBNode) and not isinstance(i_node, DBGraph):

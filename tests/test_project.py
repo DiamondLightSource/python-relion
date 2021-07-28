@@ -131,6 +131,15 @@ def test_get_imported_files_from_job_directory(proj):
     assert imported[0] == "Movies/20170629_00021_frameImage.tiff"
 
 
+def test_mulitple_loads_do_not_grow_the_in_list_of_data_pipeline_nodes(proj):
+    mctabnode = proj._data_pipeline._node_list[2]
+    assert len(mctabnode._in) == 1
+    assert len(mctabnode._out) == 2
+    proj.load()
+    assert len(mctabnode._in) == 1
+    assert len(mctabnode._out) == 2
+
+
 @pytest.mark.skipif(sys.platform == "win32", reason="does not run on windows")
 def test_prepended_results_are_picked_up_correctly(dials_data, proj):
     corrected_star_path = os.fspath(
