@@ -657,7 +657,7 @@ def _(table: ParticlePickerTable, primary_key: int):
     results = {
         "ispyb_command": "buffer",
         "buffer_lookup": {
-            "motion_correction_id": buffer_lookup,
+            "first_motion_correction_id": buffer_lookup,
         },
         "buffer_command": {
             "ispyb_command": "insert_particle_picker_buffer",
