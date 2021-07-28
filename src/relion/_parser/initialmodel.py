@@ -31,12 +31,12 @@ class InitialModel(JobType):
     def _load_job_directory(self, jobdir):
         try:
             model_info_name = self._final_data(jobdir)
-        except (RuntimeError, FileNotFoundError):
+        except (RuntimeError, FileNotFoundError, OSError):
             return []
 
         try:
             model_info_file = self._read_star_file(jobdir, model_info_name)
-        except (RuntimeError, FileNotFoundError):
+        except (RuntimeError, FileNotFoundError, OSError):
             return []
 
         info_table = self._find_table_from_column_name(

@@ -40,7 +40,7 @@ class Cryolo(JobType):
                     file = self._read_star_file(
                         jobdir, star_file.relative_to(self._basepath / jobdir)
                     )
-                except (RuntimeError, FileNotFoundError, ValueError):
+                except (RuntimeError, FileNotFoundError, OSError, ValueError):
                     return []
 
                 info_table = self._find_table_from_column_name("_rlnCoordinateX", file)
@@ -59,7 +59,7 @@ class Cryolo(JobType):
         # all of this just tracks back to a micrograph name from the MotionCorrection job
         try:
             jobfile = self._read_star_file(jobdir, "job.star")
-        except (RuntimeError, FileNotFoundError, ValueError):
+        except (RuntimeError, FileNotFoundError, OSError, ValueError):
             return []
         info_table = self._find_table_from_column_name("_rlnJobOptionVariable", jobfile)
         if info_table is None:

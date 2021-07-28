@@ -91,7 +91,7 @@ class Project(RelionPipeline):
             self.run_options = run_options
         try:
             self.load()
-        except (FileNotFoundError, RuntimeError):
+        except (FileNotFoundError, OSError, RuntimeError):
             pass
             # raise RuntimeWarning(
             #    f"Relion Project was unable to load the relion pipeline from {self.basepath}/default_pipeline.star"
@@ -180,7 +180,7 @@ class Project(RelionPipeline):
     def origin_present(self):
         try:
             self.load_nodes_from_star(self.basepath / "default_pipeline.star")
-        except (TypeError, FileNotFoundError, RuntimeError):
+        except (TypeError, FileNotFoundError, OSError, RuntimeError):
             return False
         if len(self._nodes) == 0:
             return False
@@ -339,7 +339,7 @@ class Project(RelionPipeline):
             if not values:
                 return []
             return values
-        except (FileNotFoundError, RuntimeError, ValueError):
+        except (FileNotFoundError, OSError, RuntimeError, ValueError):
             return []
 
 

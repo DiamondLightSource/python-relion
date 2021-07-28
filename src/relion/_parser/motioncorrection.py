@@ -74,7 +74,7 @@ class MotionCorr(JobType):
     def _load_job_directory(self, jobdir):
         try:
             file = self._read_star_file(jobdir, "corrected_micrographs.star")
-        except (FileNotFoundError, RuntimeError, ValueError):
+        except (FileNotFoundError, OSError, RuntimeError, ValueError):
             return []
 
         info_table = self._find_table_from_column_name("_rlnAccumMotionTotal", file)
@@ -134,13 +134,13 @@ class MotionCorr(JobType):
             self._drift_cache[jobdir] = {}
         try:
             drift_star_file = self._read_star_file(jobdir, drift_star_file_path)
-        except (FileNotFoundError, RuntimeError, ValueError):
+        except (FileNotFoundError, OSError, RuntimeError, ValueError):
             return drift_data
         try:
             info_table = self._find_table_from_column_name(
                 "_rlnMicrographFrameNumber", drift_star_file
             )
-        except (FileNotFoundError, RuntimeError, ValueError):
+        except (FileNotFoundError, OSError, RuntimeError, ValueError):
             return drift_data
         if info_table is None:
             logger.debug(

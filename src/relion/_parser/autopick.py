@@ -34,7 +34,7 @@ class AutoPick(JobType):
     def _load_job_directory(self, jobdir):
         try:
             file = self._read_star_file(jobdir, "summary.star")
-        except (RuntimeError, FileNotFoundError, ValueError):
+        except (RuntimeError, FileNotFoundError, OSError, ValueError):
             return []
 
         info_table = self._find_table_from_column_name("_rlnGroupNrParticles", file)
