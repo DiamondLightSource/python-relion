@@ -127,7 +127,7 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
 
         while (
             self._relion_subthread.is_alive() or preprocess_check.is_file()
-        ) and False not in [n.environment["status"] for n in relion_prj]:
+        ) and False not in [n.environment["status"] for n in relion_prj if n._out]:
             time.sleep(1)
 
             # logger.info("Looking for results")
