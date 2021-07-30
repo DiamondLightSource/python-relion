@@ -697,7 +697,7 @@ def _(table: ParticleClassificationTable, primary_key: int):
     results = {
         "ispyb_command": "buffer",
         "buffer_lookup": {
-            "particle_picker_id": buffer_lookup,
+            "particle_classification_group_id": buffer_lookup,
         },
         "buffer_command": {
             "ispyb_command": "insert_particle_classification",
