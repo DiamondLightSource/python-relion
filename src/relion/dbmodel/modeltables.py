@@ -221,6 +221,7 @@ class ParticleClassificationGroupTable(Table):
             sqlalchemy.ParticleClassificationGroup
         )
         columns.append("job_string")
+        columns.append("class_images_stack")
         super().__init__(columns, prim_key, unique="job_string", required="job_string")
 
 

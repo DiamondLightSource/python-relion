@@ -110,7 +110,11 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
 
         relion_prj = relion.Project(
             self.working_directory,
-            message_constructors={"ispyb": construct_message, "images": images_msgs},
+            message_constructors={
+                "ispyb": construct_message,
+                "images": images_msgs,
+                "images_multi": images_multi_msgs,
+            },
         )
 
         while not relion_prj.origin_present() or not preprocess_check.is_file():
@@ -134,6 +138,7 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
 
             ispyb_command_list = []
             images_command_list = []
+            images_multi_command_list = []
 
             if pathlib.Path(self.params["stop_file"]).is_file():
                 relion_prj.load()
@@ -176,6 +181,8 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
                     ispyb_command_list.extend(job_msg["ispyb"])
                 if job_msg.get("images") and job_msg["images"]:
                     images_command_list.extend(job_msg["images"])
+                if job_msg.get("images_multi") and job_msg["images_multi"]:
+                    images_multi_command_list.extend(job_msg["images_multi"])
 
             if ispyb_command_list:
                 logger.info(
@@ -188,6 +195,8 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
 
             for imgcmd in images_command_list:
                 self.recwrap.send_to("images", imgcmd)
+            for imgcmd in images_multi_command_list:
+                self.recwrap.send_to("images_multi", imgcmd)
 
             ### Extract and send Icebreaker results as histograms if the Icebreaker grouping job has run
             if not self.opts.stop_after_ctf_estimation and (
@@ -433,6 +442,20 @@ def _(table: CTFTable, primary_key: int):
             "fft_theoretical_full_path"
         ].replace(".jpeg", ".ctf")
     }
+
+
+@functools.singledispatch
+def images_multi_msgs(table, primary_key):
+    logger.debug(f"{table!r} does not have associated images")
+    return []
+
+
+@images_multi_msgs.register(ParticleClassificationGroupTable)
+def _(table: ParticleClassificationGroupTable, primary_key: int):
+    image_path = table.get_row_by_primary_key(primary_key)["class_images_stack"]
+    if not image_path:
+        return {}
+    return {"file": image_path}
 
 
 @functools.singledispatch

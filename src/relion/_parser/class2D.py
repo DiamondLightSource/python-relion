@@ -124,7 +124,7 @@ class Class2D(JobType):
                 particle_class_list.append(
                     Class2DParticleClass(
                         checked_particle_list[j],
-                        reference_image[j],
+                        str(self._basepath.parent / reference_image[j].split("@")[1]),
                         float(class_distribution[j]),
                         accuracy_rotations[j],
                         accuracy_translations_angst[j],
@@ -206,7 +206,11 @@ class Class2D(JobType):
                 "translation_accuracy": cl.accuracy_translations_angst,
                 "estimated_resolution": cl.estimated_resolution,
                 "overall_fourier_completeness": cl.overall_fourier_completeness,
+                "class_image_full_path": cl.reference_image.replace(
+                    ".mrcs", f"_class{cl.particle_sum[0]}.jpeg"
+                ),
                 "job_string": cl.job,
+                "class_images_stack": cl.reference_image,
             }
             for cl in particle_class
         ]

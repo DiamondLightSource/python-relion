@@ -99,16 +99,17 @@ def test_output_is_serialisable(class2d):
     )
 
 
-def test_top_twenty_list(class2d):
+def test_top_twenty_list(class2d, dials_data):
     dictionary = dict(class2d)
     final_dictionary = class2d.top_twenty(dictionary)
     pprint(final_dictionary)
     assert len(final_dictionary["job008"]) == 20
     assert len(final_dictionary["job013"]) == 20
-    assert (
-        final_dictionary["job013"][0].reference_image
-        == "000016@Class2D/job013/run_it025_classes.mrcs"
+    assert final_dictionary["job013"][0].reference_image == str(
+        dials_data("relion_tutorial_data", pathlib=True)
+        / "Class2D/job013/run_it025_classes.mrcs"
     )
+    assert final_dictionary["job013"][0].particle_sum[0] == 16
 
 
 def test_sum_top_twenty(class2d):
