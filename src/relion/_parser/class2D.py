@@ -173,8 +173,12 @@ class Class2D(JobType):
     def _class_checker(
         self, tuple_list, length
     ):  # Makes sure every class has a number of associated particles
-        for i in range(1, length):
-            if i not in tuple_list[i - 1]:
+        for i in range(1, length + 1):
+            try:
+                if i not in tuple_list[i - 1]:
+                    tuple_list.insert(i - 1, (i, 0))
+                    print("No values found for class", i)
+            except IndexError:
                 tuple_list.insert(i - 1, (i, 0))
                 print("No values found for class", i)
         return tuple_list
