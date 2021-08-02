@@ -16,12 +16,22 @@ def run():
         default=".",
     )
     parser.add_argument(
+        "-p",
         "--param",
         help="Set a key, value pair of options as key=value",
         action="append",
         dest="params",
     )
+    parser.add_argument(
+        "-f", "--file", help="Load options from file", dest="options_file"
+    )
     args = parser.parse_args()
+
+    opts = RelionItOptions()
+    opts.update_from(vars(dls_options))
+
+    if args.options_file:
+        opts.update_from_file(args.options_file)
 
     if args.params:
         params_list = [p.split("=") for p in args.params]
@@ -41,8 +51,6 @@ def run():
     else:
         params_dict = {}
 
-    opts = RelionItOptions()
-    opts.update_from(vars(dls_options))
     opts.update_from(params_dict)
     options_file = pathlib.Path(args.working_directory) / cryolo_relion_it.OPTIONS_FILE
     if os.path.isfile(options_file):
