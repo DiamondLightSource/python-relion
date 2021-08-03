@@ -118,7 +118,11 @@ class CTFFind(JobType):
                 "micrograph_full_path": micrograph.micrograph_name,
                 "astigmatism": micrograph.astigmatism,
                 "astigmatism_angle": micrograph.defocus_angle,
-                "max_estimated_resolution": micrograph.max_resolution,
+                "estimated_resolution": micrograph.max_resolution,
+                "estimated_defocus": (
+                    float(micrograph.defocus_u) + float(micrograph.defocus_v)
+                )
+                / 2,
                 "cc_value": micrograph.fig_of_merit,
                 "amplitude_contrast": micrograph.amp_contrast,
                 "fft_theoretical_full_path": micrograph.diagnostic_plot_path,
