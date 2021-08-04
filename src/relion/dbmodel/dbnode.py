@@ -15,6 +15,7 @@ class DBNode(Node):
             table._last_update[self.name] = 0
         self._sent = [[] for _ in self.tables]
         self._unsent = [[] for _ in self.tables]
+        self._all_sent = [[] for _ in self.tables]
 
     def __eq__(self, other):
         if isinstance(other, DBNode):
@@ -77,8 +78,8 @@ class DBNode(Node):
             )
             if pid is not None:
                 self._unsent[i].append(pid)
-                if pid in self._sent:
-                    self._sent.remove(pid)
+                if pid in self._sent[i]:
+                    self._sent[i].remove(pid)
 
     def _do_check(self):
         try:
@@ -118,10 +119,17 @@ class DBNode(Node):
         for tab_index, ids in enumerate(self._unsent):
             for pid in ids:
                 for msg_type, constructor in constructors.items():
-                    message = constructor(
-                        self.tables[tab_index],
-                        pid,
-                    )
+                    if pid in self._all_sent:
+                        message = constructor(
+                            self.tables[tab_index],
+                            pid,
+                            resend=True,
+                        )
+                    else:
+                        message = constructor(
+                            self.tables[tab_index],
+                            pid,
+                        )
                     if isinstance(message, dict):
                         messages[msg_type].append(message)
                     elif isinstance(message, list):
@@ -132,6 +140,7 @@ class DBNode(Node):
                         )
                 self._unsent[tab_index].remove(pid)
                 self._sent[tab_index].append(pid)
+                self._all_sent[tab_index].append(pid)
         need_to_pop = []
         for key, value in messages.items():
             if not value:

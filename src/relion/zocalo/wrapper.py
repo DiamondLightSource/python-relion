@@ -415,13 +415,13 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
 
 
 @functools.singledispatch
-def images_msgs(table, primary_key):
+def images_msgs(table, primary_key, **kwargs):
     logger.debug(f"{table!r} does not have associated images")
     return []
 
 
 @images_msgs.register(MotionCorrectionTable)
-def _(table: MotionCorrectionTable, primary_key: int):
+def _(table: MotionCorrectionTable, primary_key: int, **kwargs):
     return {
         "file": table.get_row_by_primary_key(primary_key)[
             "micrograph_snapshot_full_path"
@@ -430,7 +430,7 @@ def _(table: MotionCorrectionTable, primary_key: int):
 
 
 @images_msgs.register(CTFTable)
-def _(table: CTFTable, primary_key: int):
+def _(table: CTFTable, primary_key: int, **kwargs):
     return {
         "file": table.get_row_by_primary_key(primary_key)[
             "fft_theoretical_full_path"
@@ -439,7 +439,7 @@ def _(table: CTFTable, primary_key: int):
 
 
 @images_msgs.register(ParticleClassificationGroupTable)
-def _(table: ParticleClassificationGroupTable, primary_key: int):
+def _(table: ParticleClassificationGroupTable, primary_key: int, **kwargs):
     image_path = table.get_row_by_primary_key(primary_key)["class_images_stack"]
     if not image_path:
         return {}
@@ -619,108 +619,170 @@ def _(stage_object: relion.Class3D, job_string: str, relion_options: RelionItOpt
 
 
 @functools.singledispatch
-def construct_message(table, primary_key):
+def construct_message(table, primary_key, resend=False):
     raise ValueError(f"{table!r} is not a known Table")
 
 
 @construct_message.register(MotionCorrectionTable)
-def _(table: MotionCorrectionTable, primary_key: int):
+def _(table: MotionCorrectionTable, primary_key: int, resend: bool = False):
     row = table.get_row_by_primary_key(primary_key)
     buffered = ["motion_correction_id"]
     buffer_store = row["motion_correction_id"]
-    results = {
-        "ispyb_command": "buffer",
-        "buffer_command": {
-            "ispyb_command": "insert_motion_correction_buffer",
-            **{k: v for k, v in row.items() if k not in buffered},
-        },
-        "buffer_store": buffer_store,
-    }
+    if resend:
+        results = {
+            "ispyb_command": "buffer",
+            "buffer_command": {
+                "ispyb_command": "insert_motion_correction_buffer",
+                **{k: v for k, v in row.items() if k not in buffered},
+            },
+            "buffer_store": buffer_store,
+        }
+    else:
+        results = {
+            "ispyb_command": "buffer",
+            "buffer_command": {
+                "ispyb_command": "insert_motion_correction_buffer",
+                **{k: v for k, v in row.items() if k not in buffered},
+            },
+            "buffer_store": buffer_store,
+        }
     return results
 
 
 @construct_message.register(CTFTable)
-def _(table: CTFTable, primary_key: int):
+def _(table: CTFTable, primary_key: int, resend: bool = False):
     row = table.get_row_by_primary_key(primary_key)
     buffered = ["motion_correction_id", "ctf_id"]
     buffer_store = row["ctf_id"]
     buffer_lookup = row["motion_correction_id"]
-    results = {
-        "ispyb_command": "buffer",
-        "buffer_lookup": {
-            "motion_correction_id": buffer_lookup,
-        },
-        "buffer_command": {
-            "ispyb_command": "insert_ctf_buffer",
-            **{k: v for k, v in row.items() if k not in buffered},
-        },
-        "buffer_store": buffer_store,
-    }
+    if resend:
+        results = {
+            "ispyb_command": "buffer",
+            "buffer_lookup": {
+                "motion_correction_id": buffer_lookup,
+                "ctf_id": buffer_store,
+            },
+            "buffer_command": {
+                "ispyb_command": "insert_ctf_buffer",
+                **{k: v for k, v in row.items() if k not in buffered},
+            },
+        }
+    else:
+        results = {
+            "ispyb_command": "buffer",
+            "buffer_lookup": {
+                "motion_correction_id": buffer_lookup,
+            },
+            "buffer_command": {
+                "ispyb_command": "insert_ctf_buffer",
+                **{k: v for k, v in row.items() if k not in buffered},
+            },
+            "buffer_store": buffer_store,
+        }
     return results
 
 
 @construct_message.register(ParticlePickerTable)
-def _(table: ParticlePickerTable, primary_key: int):
+def _(table: ParticlePickerTable, primary_key: int, resend: bool = False):
     row = table.get_row_by_primary_key(primary_key)
     buffered = ["first_motion_correction_id", "particle_picker_id"]
     buffer_store = row["particle_picker_id"]
     buffer_lookup = row["first_motion_correction_id"]
-    results = {
-        "ispyb_command": "buffer",
-        "buffer_lookup": {
-            "motion_correction_id": buffer_lookup,
-        },
-        "buffer_command": {
-            "ispyb_command": "insert_particle_picker_buffer",
-            **{k: v for k, v in row.items() if k not in buffered},
-        },
-        "buffer_store": buffer_store,
-    }
+    if resend:
+        results = {
+            "ispyb_command": "buffer",
+            "buffer_lookup": {
+                "motion_correction_id": buffer_lookup,
+                "particle_picker_id": buffer_store,
+            },
+            "buffer_command": {
+                "ispyb_command": "insert_particle_picker_buffer",
+                **{k: v for k, v in row.items() if k not in buffered},
+            },
+        }
+    else:
+        results = {
+            "ispyb_command": "buffer",
+            "buffer_lookup": {
+                "motion_correction_id": buffer_lookup,
+            },
+            "buffer_command": {
+                "ispyb_command": "insert_particle_picker_buffer",
+                **{k: v for k, v in row.items() if k not in buffered},
+            },
+            "buffer_store": buffer_store,
+        }
     return results
 
 
 @construct_message.register(ParticleClassificationGroupTable)
-def _(table: ParticleClassificationGroupTable, primary_key: int):
+def _(table: ParticleClassificationGroupTable, primary_key: int, resend: bool = False):
     row = table.get_row_by_primary_key(primary_key)
     buffered = ["particle_picker_id", "particle_classification_group_id"]
     buffer_store = row["particle_classification_group_id"]
     buffer_lookup = row["particle_picker_id"]
-    results = {
-        "ispyb_command": "buffer",
-        "buffer_lookup": {
-            "particle_picker_id": buffer_lookup,
-        },
-        "buffer_command": {
-            "ispyb_command": "insert_particle_classification_group",
-            **{k: v for k, v in row.items() if k not in buffered},
-        },
-        "buffer_store": buffer_store,
-    }
+    if resend:
+        results = {
+            "ispyb_command": "buffer",
+            "buffer_lookup": {
+                "particle_picker_id": buffer_lookup,
+                "particle_classification_group_id": buffer_store,
+            },
+            "buffer_command": {
+                "ispyb_command": "insert_particle_classification_group",
+                **{k: v for k, v in row.items() if k not in buffered},
+            },
+        }
+    else:
+        results = {
+            "ispyb_command": "buffer",
+            "buffer_lookup": {
+                "particle_picker_id": buffer_lookup,
+            },
+            "buffer_command": {
+                "ispyb_command": "insert_particle_classification_group",
+                **{k: v for k, v in row.items() if k not in buffered},
+            },
+            "buffer_store": buffer_store,
+        }
     return results
 
 
 @construct_message.register(ParticleClassificationTable)
-def _(table: ParticleClassificationTable, primary_key: int):
+def _(table: ParticleClassificationTable, primary_key: int, resend: bool = False):
     row = table.get_row_by_primary_key(primary_key)
     buffered = ["particle_classification_group_id", "particle_classification_id"]
     buffer_store = row["particle_classification_id"]
     buffer_lookup = row["particle_classification_group_id"]
-    results = {
-        "ispyb_command": "buffer",
-        "buffer_lookup": {
-            "particle_classification_group_id": buffer_lookup,
-        },
-        "buffer_command": {
-            "ispyb_command": "insert_particle_classification",
-            **{k: v for k, v in row.items() if k not in buffered},
-        },
-        "buffer_store": buffer_store,
-    }
+    if resend:
+        results = {
+            "ispyb_command": "buffer",
+            "buffer_lookup": {
+                "particle_classification_group_id": buffer_lookup,
+                "particle_classification_id": buffer_store,
+            },
+            "buffer_command": {
+                "ispyb_command": "insert_particle_classification",
+                **{k: v for k, v in row.items() if k not in buffered},
+            },
+        }
+    else:
+        results = {
+            "ispyb_command": "buffer",
+            "buffer_lookup": {
+                "particle_classification_group_id": buffer_lookup,
+            },
+            "buffer_command": {
+                "ispyb_command": "insert_particle_classification",
+                **{k: v for k, v in row.items() if k not in buffered},
+            },
+            "buffer_store": buffer_store,
+        }
     return results
 
 
 @construct_message.register(CryoemInitialModelTable)
-def _(table: CryoemInitialModelTable, primary_key: int):
+def _(table: CryoemInitialModelTable, primary_key: int, resend: bool = False):
     row = table.get_row_by_primary_key(primary_key)
     class_ids = row["particle_classification_id"]
     if not isinstance(class_ids, list):
