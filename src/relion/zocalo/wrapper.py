@@ -357,11 +357,6 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
                     pass
         pprint(self.params["ispyb_parameters"])
 
-        # Prepare options object
-        opts = RelionItOptions()
-        opts.update_from(vars(dls_options))
-        opts.update_from(self.params["ispyb_parameters"])
-
         # Write options to disk for a record of parameters used
         options_file = self.working_directory / cryolo_relion_it.OPTIONS_FILE
         logger.info(f"Writing all options to {options_file}")
@@ -371,13 +366,13 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
             )
             os.rename(options_file, f"{options_file}~")
         with open(options_file, "w") as optfile:
-            opts.print_options(optfile)
+            self.opts.print_options(optfile)
 
         success = False
         oldpwd = os.getcwd()
         try:
             os.chdir(self.working_directory)
-            cryolo_relion_it.run_pipeline(opts)
+            cryolo_relion_it.run_pipeline(self.opts)
             success = True
         except Exception as ex:
             logger.error(ex)
