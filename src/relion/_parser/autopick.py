@@ -68,7 +68,6 @@ class AutoPick(JobType):
                 "number_of_particles": pi.number_of_particles,
                 "job_string": pi.job,
                 "micrograph_full_path": pi.micrograph_full_path,
-                "first_motion_correction_micrograph": pi.first_micrograph_name,
             }
             for pi in partpickinfo
         ]

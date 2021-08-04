@@ -202,7 +202,6 @@ class ParticlePickerTable(Table):
         columns.extend(
             [
                 "micrograph_full_path",
-                "first_motion_correction_micrograph",
                 "job_string",
             ]
         )
