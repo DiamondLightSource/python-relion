@@ -84,16 +84,23 @@ class Table:
                     row_value = row.get(c)
                     if self._tab[c][index] != row_value:
                         # if column c is marked for appending to then append to it:
-                        # if current value is a set and the new row value is a list, set, or a tuple
-                        # then combine them as sets, otherwise add the new value as an item to the set
+                        # if current value is a list and the new row value is a list, set, or a tuple
+                        # then combine them as sets and cast back to list for json serialisation,
+                        # otherwise add the new value as an item to the set and cast to list
                         if c in self._append:
                             if row_value is not None:
-                                if not isinstance(self._tab[c][index], set):
-                                    self._tab[c][index] = {self._tab[c][index]}
+                                if not isinstance(self._tab[c][index], list):
+                                    if self._tab[c][index] is None:
+                                        self._tab[c][index] = []
+                                    else:
+                                        self._tab[c][index] = [self._tab[c][index]]
+                                curr_as_set = set(self._tab[c][index])
                                 if isinstance(row_value, (list, set, tuple)):
-                                    self._tab[c][index] |= set(row_value)
+                                    curr_as_set |= set(row_value)
+                                    self._tab[c][index] = list(curr_as_set)
                                 else:
-                                    self._tab[c][index].add(row_value)
+                                    curr_as_set.add(row_value)
+                                    self._tab[c][index] = list(curr_as_set)
                                 modified = True
                         else:
                             modified = True
@@ -221,7 +228,12 @@ class ParticleClassificationGroupTable(Table):
         columns.append("job_string")
         columns.append("class_images_stack")
         columns.append("class_images_modification_time")
-        super().__init__(columns, prim_key, unique="job_string", required="job_string")
+        super().__init__(
+            columns,
+            prim_key,
+            unique="job_string",
+            required=["job_string", "particle_picker_id"],
+        )
 
 
 class ParticleClassificationTable(Table):
@@ -232,7 +244,7 @@ class ParticleClassificationTable(Table):
             columns,
             prim_key,
             unique=["job_string", "class_number"],
-            required="class_number",
+            required=["class_number", "particle_classification_group_id"],
         )
 
 
@@ -246,6 +258,7 @@ class CryoemInitialModelTable(Table):
             prim_key,
             unique="ini_model_job_string",
             append="particle_classification_id",
+            required="particle_classification_id",
         )
 
 

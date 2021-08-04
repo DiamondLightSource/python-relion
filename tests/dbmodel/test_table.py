@@ -256,12 +256,12 @@ def test_appending(fake_table, unique_value):
     assert fake_table._tab["unique_value"] == [unique_value]
     assert fake_table._tab["count"] == [1]
     assert fake_table._tab["comment"] == ["first insert"]
-    assert fake_table._tab["appendable"] == [{4, 5}]
+    assert fake_table._tab["appendable"] == [[4, 5]]
     assert pid_insert == base_id + 1
     pid_insert = fake_table.add_row(
         {"unique_value": unique_value, "comment": "first insert", "appendable": 6}
     )
-    assert fake_table._tab["appendable"] == [{4, 5, 6}]
+    assert fake_table._tab["appendable"] == [[4, 5, 6]]
     assert pid_insert == base_id + 1
 
 
@@ -280,7 +280,7 @@ def test_appending_list_and_overlapping_list(fake_table, unique_value):
     assert fake_table._tab["unique_value"] == [unique_value]
     assert fake_table._tab["count"] == [1]
     assert fake_table._tab["comment"] == ["first insert"]
-    assert fake_table._tab["appendable"] == [{4, 5, 6}]
+    assert fake_table._tab["appendable"] == [[4, 5, 6]]
     assert pid_insert == base_id + 1
     pid_insert = fake_table.add_row(
         {
@@ -289,7 +289,7 @@ def test_appending_list_and_overlapping_list(fake_table, unique_value):
             "appendable": (4, 7, 8),
         }
     )
-    assert fake_table._tab["appendable"] == [{4, 5, 6, 7, 8}]
+    assert fake_table._tab["appendable"] == [[4, 5, 6, 7, 8]]
     assert pid_insert == base_id + 1
 
 
