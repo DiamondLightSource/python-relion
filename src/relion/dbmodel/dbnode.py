@@ -119,7 +119,7 @@ class DBNode(Node):
         for tab_index, ids in enumerate(self._unsent):
             for pid in ids:
                 for msg_type, constructor in constructors.items():
-                    if pid in self._all_sent:
+                    if pid in self._all_sent[tab_index]:
                         message = constructor(
                             self.tables[tab_index],
                             pid,
