@@ -97,6 +97,20 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
         imported_files = []
         mc_job_time_all_processed = None
 
+        for k, v in self.params["ispyb_parameters"].items():
+            if v.isnumeric():
+                self.params["ispyb_parameters"][k] = int(v)
+            elif v.lower() == "true":
+                self.params["ispyb_parameters"][k] = True
+            elif v.lower() == "false":
+                self.params["ispyb_parameters"][k] = False
+            else:
+                try:
+                    self.params["ispyb_parameters"][k] = float(v)
+                except ValueError:
+                    pass
+        pprint(self.params["ispyb_parameters"])
+
         self.opts = RelionItOptions()
         self.opts.update_from(vars(dls_options))
         self.opts.update_from(self.params["ispyb_parameters"])
@@ -342,20 +356,6 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
     def start_relion(self):
         print("Running RELION wrapper - stdout")
         logger.info("Running RELION wrapper - logger.info")
-
-        for k, v in self.params["ispyb_parameters"].items():
-            if v.isnumeric():
-                self.params["ispyb_parameters"][k] = int(v)
-            elif v.lower() == "true":
-                self.params["ispyb_parameters"][k] = True
-            elif v.lower() == "false":
-                self.params["ispyb_parameters"][k] = False
-            else:
-                try:
-                    self.params["ispyb_parameters"][k] = float(v)
-                except ValueError:
-                    pass
-        pprint(self.params["ispyb_parameters"])
 
         # Write options to disk for a record of parameters used
         options_file = self.working_directory / cryolo_relion_it.OPTIONS_FILE
