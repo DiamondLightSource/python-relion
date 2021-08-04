@@ -236,7 +236,7 @@ class Class3D(JobType):
                     print("No values found for class", i)
             except IndexError:
                 tuple_list.insert(i - 1, (i, 0))
-                print("No values found for class", i)
+                # print("No values found for class", i)
         return tuple_list
 
     def _count_all(self, list):
