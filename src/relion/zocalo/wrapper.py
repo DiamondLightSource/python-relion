@@ -628,24 +628,14 @@ def _(table: MotionCorrectionTable, primary_key: int, resend: bool = False):
     row = table.get_row_by_primary_key(primary_key)
     buffered = ["motion_correction_id"]
     buffer_store = row["motion_correction_id"]
-    if resend:
-        results = {
-            "ispyb_command": "buffer",
-            "buffer_command": {
-                "ispyb_command": "insert_motion_correction_buffer",
-                **{k: v for k, v in row.items() if k not in buffered},
-            },
-            "buffer_store": buffer_store,
-        }
-    else:
-        results = {
-            "ispyb_command": "buffer",
-            "buffer_command": {
-                "ispyb_command": "insert_motion_correction_buffer",
-                **{k: v for k, v in row.items() if k not in buffered},
-            },
-            "buffer_store": buffer_store,
-        }
+    results = {
+        "ispyb_command": "buffer",
+        "buffer_command": {
+            "ispyb_command": "insert_motion_correction_buffer",
+            **{k: v for k, v in row.items() if k not in buffered},
+        },
+        "buffer_store": buffer_store,
+    }
     return results
 
 
