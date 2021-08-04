@@ -97,6 +97,10 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
         imported_files = []
         mc_job_time_all_processed = None
 
+        self.opts = RelionItOptions()
+        self.opts.update_from(vars(dls_options))
+        self.opts.update_from(self.params["ispyb_parameters"])
+
         # Start Relion
         self._relion_subthread = threading.Thread(
             target=self.start_relion, name="relion_subprocess_runner", daemon=True
@@ -357,8 +361,6 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
         opts = RelionItOptions()
         opts.update_from(vars(dls_options))
         opts.update_from(self.params["ispyb_parameters"])
-
-        self.opts = opts
 
         # Write options to disk for a record of parameters used
         options_file = self.working_directory / cryolo_relion_it.OPTIONS_FILE
