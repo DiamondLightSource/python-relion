@@ -96,9 +96,8 @@ class Table:
                                     self._tab[c][index].add(row_value)
                                 modified = True
                         else:
-                            if self._tab[c][index] != row_value:
-                                modified = True
-                                self._tab[c][index] = row_value
+                            modified = True
+                            self._tab[c][index] = row_value
 
         if modified:
             if prim_key_arg is None:
