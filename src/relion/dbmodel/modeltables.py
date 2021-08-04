@@ -222,6 +222,7 @@ class ParticleClassificationGroupTable(Table):
         )
         columns.append("job_string")
         columns.append("class_images_stack")
+        columns.append("class_images_modification_time")
         super().__init__(columns, prim_key, unique="job_string", required="job_string")
 
 

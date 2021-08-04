@@ -1,4 +1,5 @@
 import logging
+import pathlib
 from collections import Counter, namedtuple
 from operator import attrgetter
 
@@ -197,6 +198,14 @@ class Class2D(JobType):
 
     @staticmethod
     def db_unpack(particle_class):
+        def _get_img_mod_time(img):
+            if not img:
+                return None
+            imgpath = pathlib.Path(img)
+            if not imgpath.exists():
+                return None
+            return imgpath.stat().st_mtime
+
         res = [
             {
                 "type": "2D",
@@ -211,6 +220,7 @@ class Class2D(JobType):
                 ),
                 "job_string": cl.job,
                 "class_images_stack": cl.reference_image,
+                "class_images_modification_time": _get_img_mod_time(cl.reference_image),
             }
             for cl in particle_class
         ]
