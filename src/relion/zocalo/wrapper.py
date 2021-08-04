@@ -110,6 +110,7 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
 
         relion_prj = relion.Project(
             self.working_directory,
+            run_options=self.opts,
             message_constructors={
                 "ispyb": construct_message,
                 "images": images_msgs,
