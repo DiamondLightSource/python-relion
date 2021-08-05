@@ -774,22 +774,42 @@ def _(table: ParticleClassificationTable, primary_key: int, resend: bool = False
 def _(table: CryoemInitialModelTable, primary_key: int, resend: bool = False):
     row = table.get_row_by_primary_key(primary_key)
     class_ids = row["particle_classification_id"]
+    buffer_store = row["cryoem_initial_model_id"]
     if not isinstance(class_ids, list):
         class_ids = [class_ids]
     results = []
-    for class_id in class_ids:
-        buffered = ["particle_classification_id", "cryoem_initial_model_id"]
-        this_result = {
-            "ispyb_command": "buffer",
-            "buffer_lookup": {
-                "particle_classification_id": class_id,
-            },
-            "buffer_command": {
-                "ispyb_command": "insert_cryoem_initial_model",
-                **{k: v for k, v in row.items() if k not in buffered},
-            },
-        }
-        results.append(this_result)
+    if resend:
+        for i, class_id in enumerate(class_ids):
+            buffered = ["particle_classification_id", "cryoem_initial_model_id"]
+            this_result = {
+                "ispyb_command": "buffer",
+                "buffer_lookup": {
+                    "particle_classification_id": class_id,
+                    "cryoem_initial_model_id": buffer_store,
+                },
+                "buffer_command": {
+                    "ispyb_command": "insert_cryoem_initial_model",
+                    **{k: v for k, v in row.items() if k not in buffered},
+                },
+            }
+    else:
+        for i, class_id in enumerate(class_ids):
+            buffered = ["particle_classification_id", "cryoem_initial_model_id"]
+            this_result = {
+                "ispyb_command": "buffer",
+                "buffer_lookup": {
+                    "particle_classification_id": class_id,
+                },
+                "buffer_command": {
+                    "ispyb_command": "insert_cryoem_initial_model",
+                    **{k: v for k, v in row.items() if k not in buffered},
+                },
+            }
+            if i == 0:
+                this_result["buffer_store"] = buffer_store
+            else:
+                this_result["buffer_lookup"]["cryoem_initial_model_id"] = buffer_store
+            results.append(this_result)
     return results
 
 

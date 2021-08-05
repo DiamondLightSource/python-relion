@@ -233,7 +233,7 @@ class Class3D(JobType):
             try:
                 if i not in tuple_list[i - 1]:
                     tuple_list.insert(i - 1, (i, 0))
-                    print("No values found for class", i)
+                    # print("No values found for class", i)
             except IndexError:
                 tuple_list.insert(i - 1, (i, 0))
                 # print("No values found for class", i)

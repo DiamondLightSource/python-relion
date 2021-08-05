@@ -101,7 +101,8 @@ class Table:
                                 else:
                                     curr_as_set.add(row_value)
                                     self._tab[c][index] = list(curr_as_set)
-                                modified = True
+                                if curr_as_set.intersection(set(self._tab[c][index])):
+                                    modified = True
                         else:
                             modified = True
                             self._tab[c][index] = row_value
