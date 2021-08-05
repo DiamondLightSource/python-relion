@@ -41,12 +41,12 @@ class Cryolo(JobType):
                         jobdir, star_file.relative_to(self._basepath / jobdir)
                     )
                 except (RuntimeError, FileNotFoundError, OSError, ValueError):
-                    return []
+                    continue
 
                 info_table = self._find_table_from_column_name("_rlnCoordinateX", file)
                 if info_table is None:
                     logger.debug(f"_rlnCoordinateX not found in file {file}")
-                    return []
+                    continue
 
                 all_particles = self.parse_star_file(
                     "_rlnCoordinateX", file, info_table
