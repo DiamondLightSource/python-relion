@@ -75,10 +75,17 @@ class RelionPipeline:
         )
 
     def _load_job_nodes_from_star(self, star_doc):
+        drops = {}
+        drops["InitialModel"] = ["batch_number"]
         return ProcessGraph(
             "job nodes",
             [
-                ProcessNode(pathlib.Path(p), independent=True, alias=al)
+                ProcessNode(
+                    pathlib.Path(p),
+                    independent=True,
+                    alias=al,
+                    drop=drops.get(p.split("/")[0]),
+                )
                 for p, al in zip(
                     self._request_star_values(star_doc, "_rlnPipeLineProcessName"),
                     self._request_star_values(star_doc, "_rlnPipeLineProcessAlias"),
@@ -131,9 +138,13 @@ class RelionPipeline:
                 self._nodes[self._nodes.index(f._path)].environment[
                     "batch_number"
                 ] = f._path.stem.replace("particles_split", "")
+                self._nodes[self._nodes.index(f._path)].environment["inject"] = [
+                    ("batch_number", "batch_number")
+                ]
                 self._nodes[self._nodes.index(f._path)].propagate(
                     ("batch_number", "batch_number")
                 )
+                self._nodes[self._nodes.index(f._path)].propagate(("inject", "inject"))
             if str(f._path.parent.parent) == "InitialModel" and "class" in f._path.name:
                 self._nodes[self._nodes.index(f._path)].environment[
                     "init_model_class_num"
@@ -182,7 +193,12 @@ class RelionPipeline:
         self._job_nodes = copy.deepcopy(self._nodes)
         file_nodes = self._load_file_nodes_from_star(star_doc)
         for fnode in file_nodes:
-            self._job_nodes.remove_node(fnode._path)
+            if str(
+                fnode._path.parent.parent
+            ) == "Select" and fnode._path.name.startswith("particles_split"):
+                self._job_nodes.remove_node(fnode._path, advance=True)
+            else:
+                self._job_nodes.remove_node(fnode._path)
         self._job_nodes._split_connected(
             self._connected_jobs, self.origin, self.job_origins
         )

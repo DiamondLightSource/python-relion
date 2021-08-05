@@ -13,6 +13,7 @@ class ProcessNode(Node):
         self.environment["end_time_stamp"] = kwargs.get("end_time_stamp")
         self.environment["start_time"] = kwargs.get("start_time")
         self.environment["end_time"] = kwargs.get("end_time")
+        self.environment["drop"] = kwargs.get("drop") or []
         self.db_node = None
 
     def __eq__(self, other):
@@ -52,6 +53,15 @@ class ProcessNode(Node):
             db_results = self.environment["result"].db_unpack(
                 self.environment["result"][self.environment["job"]]
             )
+            if self.environment["inject"]:
+                for inj in self.environment["inject"]:
+                    if inj[1] in self.environment["drop"]:
+                        continue
+                    if isinstance(db_results, dict):
+                        db_results[inj[0]] = self.environment[inj[1]]
+                    elif isinstance(db_results, list):
+                        for r in db_results:
+                            r[inj[0]] = self.environment[inj[1]]
             return db_results
         return {}
 

@@ -109,7 +109,7 @@ class Graph(Node):
         else:
             raise ValueError("Attempted to add a node that was not a Node")
 
-    def remove_node(self, node_name):
+    def remove_node(self, node_name, advance=False):
         behind_nodes = []
         for currnode in self._node_list:
             if currnode.name == str(node_name):
@@ -118,6 +118,10 @@ class Graph(Node):
                         next_node.environment.update_prop(
                             currnode.environment.propagate.store
                         )
+                        if advance:
+                            next_node.environment.update(
+                                currnode.environment.propagate.store
+                            )
             if node_name in currnode:
                 behind_nodes.append(currnode)
                 currnode.unlink_from(node_name)
