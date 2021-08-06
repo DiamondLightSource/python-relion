@@ -125,11 +125,19 @@ class DBNode(Node):
                     unsent_appended = {}
                     for acol in self.tables[tab_index]._append:
                         row = self.tables[tab_index].get_row_by_primary_key(pid)
-                        unsent_appended[acol] = [
-                            e
-                            for e in row[acol]
-                            if e not in self._append_sent[self.tables[tab_index]][acol]
-                        ]
+                        try:
+                            unsent_appended[acol] = [
+                                e
+                                for e in row[acol]
+                                if e
+                                not in self._append_sent[self.tables[tab_index]][acol]
+                            ]
+                        except TypeError:
+                            if (
+                                row[acol]
+                                not in self._append_sent[self.tables[tab_index]][acol]
+                            ):
+                                unsent_appended[acol] = [row[acol]]
                         if unsent_appended[acol]:
                             self._append_sent[self.tables[tab_index]][acol] = row[acol]
                         # if there are no new values in the append but there has been a change such that
