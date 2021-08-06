@@ -11,8 +11,11 @@ class DBNode(Node):
         if not isinstance(tables, list):
             raise TypeError(f"{self} could not be initialised: tables must be a list")
         self.tables = tables
+        self._append_sent = {}
         for table in self.tables:
             table._last_update[self.name] = 0
+            self._append_sent[table] = {a: [] for a in table._append}
+
         self._sent = [[] for _ in self.tables]
         self._unsent = [[] for _ in self.tables]
         self._all_sent = [[] for _ in self.tables]
@@ -119,16 +122,32 @@ class DBNode(Node):
         for tab_index, ids in enumerate(self._unsent):
             for pid in ids:
                 for msg_type, constructor in constructors.items():
+                    unsent_appended = {}
+                    for acol in self.tables[tab_index]._append:
+                        row = self.tables[tab_index].get_row_by_primary_key(pid)
+                        unsent_appended[acol] = [
+                            e
+                            for e in row[acol]
+                            if e not in self._append_sent[self.tables[tab_index]][acol]
+                        ]
+                        if unsent_appended[acol]:
+                            self._append_sent[self.tables[tab_index]][acol] = row[acol]
+                        # if there are no new values in the append but there has been a change such that
+                        # the pid has ended up in _unsent then send one message to pick up the changes
+                        elif row[acol]:
+                            unsent_appended[acol] = row[acol][0]
                     if pid in self._all_sent[tab_index]:
                         message = constructor(
                             self.tables[tab_index],
                             pid,
                             resend=True,
+                            unsent_appended=unsent_appended,
                         )
                     else:
                         message = constructor(
                             self.tables[tab_index],
                             pid,
+                            unsent_appended=unsent_appended,
                         )
                     if isinstance(message, dict):
                         messages[msg_type].append(message)
@@ -138,6 +157,8 @@ class DBNode(Node):
                         raise TypeError(
                             f"message must be a dictionary or list but was {type(message)}: {message}"
                         )
+                for acol in self.tables[tab_index]._append:
+                    self._append_sent
                 self._unsent[tab_index].remove(pid)
                 self._sent[tab_index].append(pid)
                 self._all_sent[tab_index].append(pid)

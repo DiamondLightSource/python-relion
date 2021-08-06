@@ -7,6 +7,7 @@ import pathlib
 import threading
 import time
 from pprint import pprint
+from typing import Union
 
 import zocalo.util.symlink
 import zocalo.wrapper
@@ -618,12 +619,17 @@ def _(stage_object: relion.Class3D, job_string: str, relion_options: RelionItOpt
 
 
 @functools.singledispatch
-def construct_message(table, primary_key, resend=False):
+def construct_message(table, primary_key, resend=False, unsent_appended=None):
     raise ValueError(f"{table!r} is not a known Table")
 
 
 @construct_message.register(MotionCorrectionTable)
-def _(table: MotionCorrectionTable, primary_key: int, resend: bool = False):
+def _(
+    table: MotionCorrectionTable,
+    primary_key: int,
+    resend: bool = False,
+    unsent_appended: Union[dict, None] = None,
+):
     row = table.get_row_by_primary_key(primary_key)
     buffered = ["motion_correction_id"]
     buffer_store = row["motion_correction_id"]
@@ -639,7 +645,12 @@ def _(table: MotionCorrectionTable, primary_key: int, resend: bool = False):
 
 
 @construct_message.register(CTFTable)
-def _(table: CTFTable, primary_key: int, resend: bool = False):
+def _(
+    table: CTFTable,
+    primary_key: int,
+    resend: bool = False,
+    unsent_appended: Union[dict, None] = None,
+):
     row = table.get_row_by_primary_key(primary_key)
     buffered = ["motion_correction_id", "ctf_id"]
     buffer_store = row["ctf_id"]
@@ -672,7 +683,12 @@ def _(table: CTFTable, primary_key: int, resend: bool = False):
 
 
 @construct_message.register(ParticlePickerTable)
-def _(table: ParticlePickerTable, primary_key: int, resend: bool = False):
+def _(
+    table: ParticlePickerTable,
+    primary_key: int,
+    resend: bool = False,
+    unsent_appended: Union[dict, None] = None,
+):
     row = table.get_row_by_primary_key(primary_key)
     buffered = ["first_motion_correction_id", "particle_picker_id"]
     buffer_store = row["particle_picker_id"]
@@ -705,7 +721,12 @@ def _(table: ParticlePickerTable, primary_key: int, resend: bool = False):
 
 
 @construct_message.register(ParticleClassificationGroupTable)
-def _(table: ParticleClassificationGroupTable, primary_key: int, resend: bool = False):
+def _(
+    table: ParticleClassificationGroupTable,
+    primary_key: int,
+    resend: bool = False,
+    unsent_appended: Union[dict, None] = None,
+):
     row = table.get_row_by_primary_key(primary_key)
     buffered = ["particle_picker_id", "particle_classification_group_id"]
     buffer_store = row["particle_classification_group_id"]
@@ -738,7 +759,12 @@ def _(table: ParticleClassificationGroupTable, primary_key: int, resend: bool = 
 
 
 @construct_message.register(ParticleClassificationTable)
-def _(table: ParticleClassificationTable, primary_key: int, resend: bool = False):
+def _(
+    table: ParticleClassificationTable,
+    primary_key: int,
+    resend: bool = False,
+    unsent_appended: Union[dict, None] = None,
+):
     row = table.get_row_by_primary_key(primary_key)
     buffered = ["particle_classification_group_id", "particle_classification_id"]
     buffer_store = row["particle_classification_id"]
@@ -771,9 +797,17 @@ def _(table: ParticleClassificationTable, primary_key: int, resend: bool = False
 
 
 @construct_message.register(CryoemInitialModelTable)
-def _(table: CryoemInitialModelTable, primary_key: int, resend: bool = False):
+def _(
+    table: CryoemInitialModelTable,
+    primary_key: int,
+    resend: bool = False,
+    unsent_appended: Union[dict, None] = None,
+):
+    if unsent_appended is None:
+        unsent_appended = {}
     row = table.get_row_by_primary_key(primary_key)
-    class_ids = row["particle_classification_id"]
+    class_ids = unsent_appended.get("particle_classification_id") or []
+    # class_ids = row["particle_classification_id"]
     buffer_store = row["cryoem_initial_model_id"]
     if not isinstance(class_ids, list):
         class_ids = [class_ids]
