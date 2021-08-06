@@ -631,13 +631,16 @@ def _(
     unsent_appended: Union[dict, None] = None,
 ):
     row = table.get_row_by_primary_key(primary_key)
-    buffered = ["motion_correction_id"]
+    drift_data = row["drift_data"]
+    buffered = ["motion_correction_id", "drift_data"]
     buffer_store = row["motion_correction_id"]
+    drift_frames = [(frame.frame, frame.deltaX, frame.deltaY) for frame in drift_data]
     results = {
         "ispyb_command": "buffer",
         "buffer_command": {
             "ispyb_command": "insert_motion_correction_buffer",
             **{k: v for k, v in row.items() if k not in buffered},
+            "drift_frames": drift_frames,
         },
         "buffer_store": buffer_store,
     }

@@ -197,6 +197,7 @@ class MotionCorr(JobType):
                 ),
                 "image_number": micrograph.micrograph_number,
                 "micrograph_snapshot_full_path": micrograph.micrograph_snapshot_full_path,
+                "drift_data": micrograph.drift_data,
             }
             for micrograph in micrograph_list
         ]
