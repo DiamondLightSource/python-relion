@@ -31,6 +31,7 @@ def empty_options():
         motioncor_binning: int = 1
         batch_size: int = 20000
         class2d_nr_classes: int = 50
+        class3d_nr_classes: int = 4
         symmetry: str = "C1"
         inimodel_resol_final: int = 15
 

@@ -342,10 +342,16 @@ def _(
     relion_options,
     row,
 ):
+    if row.get("type") == "2D":
+        ncpb = relion_options.class2d_nr_classes
+    elif row.get("type") == "3D":
+        ncpb = relion_options.class3d_nr_classes
+    else:
+        ncpb = 0
     row.update(
         {
             "number_of_particles_per_batch": relion_options.batch_size,
-            "number_of_classes_per_batch": relion_options.class2d_nr_classes,
+            "number_of_classes_per_batch": ncpb,
             "symmetry": relion_options.symmetry,
         }
     )

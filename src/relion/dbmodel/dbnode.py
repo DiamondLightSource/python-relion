@@ -138,12 +138,22 @@ class DBNode(Node):
                                 not in self._append_sent[self.tables[tab_index]][acol]
                             ):
                                 unsent_appended[acol] = [row[acol]]
-                        if unsent_appended[acol]:
-                            self._append_sent[self.tables[tab_index]][acol] = row[acol]
+                        if unsent_appended.get(acol):
+                            if isinstance(row[acol], list):
+                                self._append_sent[self.tables[tab_index]][acol].extend(
+                                    row[acol]
+                                )
+                            else:
+                                self._append_sent[self.tables[tab_index]][acol].append(
+                                    row[acol]
+                                )
                         # if there are no new values in the append but there has been a change such that
                         # the pid has ended up in _unsent then send one message to pick up the changes
                         elif row[acol]:
-                            unsent_appended[acol] = row[acol][0]
+                            try:
+                                unsent_appended[acol] = [row[acol][0]]
+                            except TypeError:
+                                unsent_appended[acol] = [row[acol]]
                     if pid in self._all_sent[tab_index]:
                         message = constructor(
                             self.tables[tab_index],
