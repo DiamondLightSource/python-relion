@@ -115,6 +115,7 @@ class DBModel(collections.abc.Mapping):
                 "foreign_key": "particle_classification_id",
                 "table_key": "particle_classification_id",
                 "foreign_table": self.class_db_node.tables[0],
+                "first": False,
             },
         )
         self.class3d_db_node = DBGraph(
