@@ -221,6 +221,7 @@ class Class2D(JobType):
                 "job_string": cl.job,
                 "class_images_stack": cl.reference_image,
                 "class_images_modification_time": _get_img_mod_time(cl.reference_image),
+                "class_distribution": cl.class_distribution,
             }
             for cl in particle_class
         ]

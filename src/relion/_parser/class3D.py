@@ -259,6 +259,7 @@ class Class3D(JobType):
                 "estimated_resolution": cl.estimated_resolution,
                 "overall_fourier_completeness": cl.overall_fourier_completeness,
                 "job_string": cl.job,
+                "class_distribution": cl.class_distribution,
             }
             for cl in particle_class
         ]
