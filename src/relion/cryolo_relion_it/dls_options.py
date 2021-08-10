@@ -84,6 +84,3 @@ minimum_batch_size = 250
 voltage = 300
 Cs = 2.7
 import_images = "Movies/*.tif"
-autopick_LoG_diam_max = ""
-autopick_LoG_diam_min = ""
-autopick_3dreference = ""

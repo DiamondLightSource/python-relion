@@ -95,13 +95,16 @@ class Table:
                                     else:
                                         self._tab[c][index] = [self._tab[c][index]]
                                 curr_as_set = set(self._tab[c][index])
+                                curr_orig = set(self._tab[c][index])
                                 if isinstance(row_value, (list, set, tuple)):
                                     curr_as_set |= set(row_value)
                                     self._tab[c][index] = list(curr_as_set)
                                 else:
                                     curr_as_set.add(row_value)
                                     self._tab[c][index] = list(curr_as_set)
-                                if curr_as_set.intersection(set(self._tab[c][index])):
+                                if curr_orig.symmetric_difference(
+                                    set(self._tab[c][index])
+                                ):
                                     modified = True
                         else:
                             modified = True

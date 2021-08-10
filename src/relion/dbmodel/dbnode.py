@@ -14,7 +14,7 @@ class DBNode(Node):
         self._append_sent = {}
         for table in self.tables:
             table._last_update[self.name] = 0
-            self._append_sent[table] = {a: [] for a in table._append}
+            self._append_sent[table] = {a: set() for a in table._append}
 
         self._sent = [[] for _ in self.tables]
         self._unsent = [[] for _ in self.tables]
@@ -140,11 +140,11 @@ class DBNode(Node):
                                 unsent_appended[acol] = [row[acol]]
                         if unsent_appended.get(acol):
                             if isinstance(row[acol], list):
-                                self._append_sent[self.tables[tab_index]][acol].extend(
-                                    row[acol]
+                                self._append_sent[self.tables[tab_index]][acol].update(
+                                    set(row[acol])
                                 )
                             else:
-                                self._append_sent[self.tables[tab_index]][acol].append(
+                                self._append_sent[self.tables[tab_index]][acol].add(
                                     row[acol]
                                 )
                         # if there are no new values in the append but there has been a change such that
@@ -175,8 +175,6 @@ class DBNode(Node):
                         raise TypeError(
                             f"message must be a dictionary or list but was {type(message)}: {message}"
                         )
-                for acol in self.tables[tab_index]._append:
-                    self._append_sent
                 self._unsent[tab_index].remove(pid)
                 self._sent[tab_index].append(pid)
                 self._all_sent[tab_index].append(pid)

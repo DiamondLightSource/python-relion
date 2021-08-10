@@ -809,7 +809,7 @@ def _(
     if unsent_appended is None:
         unsent_appended = {}
     row = table.get_row_by_primary_key(primary_key)
-    class_ids = unsent_appended.get("particle_classification_id") or []
+    class_ids = unsent_appended.get("particle_classification_id", [])
     # class_ids = row["particle_classification_id"]
     buffer_store = row["cryoem_initial_model_id"]
     if not isinstance(class_ids, list):
@@ -829,6 +829,7 @@ def _(
                     **{k: v for k, v in row.items() if k not in buffered},
                 },
             }
+            results.append(this_result)
     else:
         for i, class_id in enumerate(class_ids):
             buffered = ["particle_classification_id", "cryoem_initial_model_id"]
