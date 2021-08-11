@@ -26,7 +26,7 @@ def mrc_to_jpeg(plugin_params):
         logger.error(
             "File {filepath} could not be opened. It may be corrupted or not in mrc format"
         )
-        return
+        return None
     data = data - data.min()
     data = data * 255 / data.max()
     data = data.astype(np.uint8)
