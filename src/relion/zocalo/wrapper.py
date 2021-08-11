@@ -225,6 +225,7 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
                             "diameter": self.opts.mask_diameter,
                         }
                     )
+                    self.recwrap.send_to("images_particles", imgcmd)
 
             ### Extract and send Icebreaker results as histograms if the Icebreaker grouping job has run
             if not self.opts.stop_after_ctf_estimation and (
