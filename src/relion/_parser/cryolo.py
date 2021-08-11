@@ -127,7 +127,7 @@ class Cryolo(JobType):
                 "number_of_particles": pi.number_of_particles,
                 "job_string": pi.job,
                 "micrograph_full_path": pi.micrograph_full_path,
-                "highlighted_micrograph_full_path": pi.highlighted_micrograph,
+                "summary_image_full_path": pi.highlighted_micrograph,
             }
             for pi in partpickinfo
         ]

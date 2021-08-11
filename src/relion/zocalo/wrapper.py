@@ -468,7 +468,7 @@ def images_particles_msgs(table, primary_key, **kwargs):
 def _(table: ParticlePickerTable, primary_key: int, **kwargs):
     mc_image_path = table.get_row_by_primary_key(primary_key)["micrograph_full_path"]
     parpick_image_path = table.get_row_by_primary_key(primary_key)[
-        "highlighted_micrograph_full_path"
+        "summary_image_full_path"
     ]
     if not mc_image_path or not parpick_image_path:
         return {}
