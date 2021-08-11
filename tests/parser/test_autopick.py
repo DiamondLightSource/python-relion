@@ -95,11 +95,18 @@ def test_number_of_particles_value(input):
     assert ap_object["job011"][0].number_of_particles == 422
 
 
-def test_micrograph_path_name(input):
+def test_micrograph_path_name(input, proj):
     ap_object = input
     assert (
         ap_object["job006"][0].first_micrograph_name
         == "MotionCorr/job002/Movies/20170629_00021_frameImage.mrc"
+    )
+    assert ap_object["job006"][0].highlighted_micrograph == str(
+        proj.basepath
+        / "AutoPick"
+        / "job006"
+        / "Movies"
+        / "20170629_00021_frameImage.jpeg"
     )
 
 

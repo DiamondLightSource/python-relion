@@ -1,4 +1,5 @@
 import logging
+import pathlib
 from collections import namedtuple
 
 from relion._parser.jobtype import JobType
@@ -11,6 +12,7 @@ ParticlePickerInfo = namedtuple(
         "number_of_particles",
         "micrograph_full_path",
         "first_micrograph_name",
+        "highlighted_micrograph",
         "job",
     ],
 )
@@ -51,8 +53,22 @@ class AutoPick(JobType):
 
         particle_picker_info = []
         for mic, np in zip(mc_micrographs, all_particles):
+            mic_parts = pathlib.Path(mic).parts
+            highlighted_micrograph = (
+                self._basepath
+                / jobdir
+                / pathlib.Path(mic)
+                .relative_to(pathlib.Path(mic_parts[0]) / mic_parts[1])
+                .with_suffix(".jpeg")
+            )
             particle_picker_info.append(
-                ParticlePickerInfo(int(np), mic, first_mc_micrograph, jobdir)
+                ParticlePickerInfo(
+                    int(np),
+                    mic,
+                    first_mc_micrograph,
+                    str(highlighted_micrograph),
+                    jobdir,
+                )
             )
 
         return particle_picker_info
@@ -68,6 +84,7 @@ class AutoPick(JobType):
                 "number_of_particles": pi.number_of_particles,
                 "job_string": pi.job,
                 "micrograph_full_path": pi.micrograph_full_path,
+                "highlighted_micrograph_full_path": pi.highlighted_micrograph,
             }
             for pi in partpickinfo
         ]

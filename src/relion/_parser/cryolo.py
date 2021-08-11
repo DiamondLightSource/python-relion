@@ -83,6 +83,14 @@ class Cryolo(JobType):
 
         particle_picker_info = []
         for mic, num_particles in particles_per_micrograph.items():
+            mic_parts = pathlib.Path(mic).parts
+            highlighted_micrograph = (
+                self._basepath
+                / jobdir
+                / pathlib.Path(mic)
+                .relative_to(pathlib.Path(mic_parts[0]) / mic_parts[1])
+                .with_suffix(".jpeg")
+            )
             particle_picker_info.append(
                 ParticlePickerInfo(
                     num_particles,
@@ -90,6 +98,7 @@ class Cryolo(JobType):
                     str(first_mic.relative_to(self._basepath / jobdir)).replace(
                         "_autopick.star", ".mrc"
                     ),
+                    str(highlighted_micrograph),
                     jobdir,
                 )
             )
@@ -118,6 +127,7 @@ class Cryolo(JobType):
                 "number_of_particles": pi.number_of_particles,
                 "job_string": pi.job,
                 "micrograph_full_path": pi.micrograph_full_path,
+                "highlighted_micrograph_full_path": pi.highlighted_micrograph,
             }
             for pi in partpickinfo
         ]

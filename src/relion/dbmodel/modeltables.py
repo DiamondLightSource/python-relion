@@ -214,6 +214,7 @@ class ParticlePickerTable(Table):
         columns.extend(
             [
                 "micrograph_full_path",
+                "highlighted_micrograph_full_path",
                 "job_string",
             ]
         )
