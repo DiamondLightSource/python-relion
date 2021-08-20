@@ -97,7 +97,9 @@ class AutoPick(JobType):
         particle_data = []
         particle_star_file = pathlib.Path(
             str(
-                micrograph.relative_to(micrograph.parent.parent).with_suffix(".star")
+                micrograph.relative_to(micrograph.parent.parent.parent).with_suffix(
+                    ".star"
+                )
             ).replace(micrograph.stem, micrograph.stem + "_autopick")
         )
         if self._particle_cache.get(jobdir):

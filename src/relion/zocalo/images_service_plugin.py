@@ -64,18 +64,22 @@ def picked_particles(plugin_params):
         return None
     radius = (diam / angpix) // 2
     try:
-        with PIL.Image.open(basefilename) as bim:
+        with PIL.Image.open(basefilename).convert(mode="RGB") as bim:
             enhancer = ImageEnhance.Contrast(bim)
             enhanced = enhancer.enhance(contrast_factor)
             fim = enhanced.filter(ImageFilter.BLUR)
             dim = ImageDraw.Draw(fim)
             for x, y in coords:
                 dim.ellipse(
-                    [(x - radius, y - radius), (x + radius, y + radius)],
+                    [
+                        (float(x) - radius, float(y) - radius),
+                        (float(x) + radius, float(y) + radius),
+                    ],
                     width=8,
                     outline="#f58a07",
                 )
-            dim.save(outfile)
+            fim.save(outfile)
+            logger.info(f"Particle picker image {outfile} saved")
     except FileNotFoundError:
         logger.error(f"File {basefilename} could not be opened")
     return outfile
