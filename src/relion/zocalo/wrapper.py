@@ -466,7 +466,7 @@ def images_particles_msgs(table, primary_key, **kwargs):
 
 @images_particles_msgs.register(ParticlePickerTable)
 def _(table: ParticlePickerTable, primary_key: int, **kwargs):
-    mc_image_path = table.get_row_by_primary_key(primary_key)["micrograph_full_path"]
+    mc_image_path = table.get_row_by_primary_key(primary_key)["mc_image_full_path"]
     parpick_image_path = table.get_row_by_primary_key(primary_key)[
         "summary_image_full_path"
     ]

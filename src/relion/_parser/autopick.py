@@ -11,6 +11,7 @@ ParticlePickerInfo = namedtuple(
     [
         "number_of_particles",
         "micrograph_full_path",
+        "mc_image_full_path",
         "first_micrograph_name",
         "highlighted_micrograph",
         "coordinates",
@@ -82,6 +83,7 @@ class AutoPick(JobType):
                 ParticlePickerInfo(
                     int(np),
                     mic,
+                    str(self._basepath.parent / mic).replace(".mrc", ".jpeg"),
                     first_mc_micrograph,
                     str(highlighted_micrograph),
                     coords,
@@ -153,6 +155,7 @@ class AutoPick(JobType):
                 "number_of_particles": pi.number_of_particles,
                 "job_string": pi.job,
                 "micrograph_full_path": pi.micrograph_full_path,
+                "mc_image_full_path": pi.mc_image_full_path,
                 "summary_image_full_path": pi.highlighted_micrograph,
                 "particle_coordinates": pi.coordinates,
             }
