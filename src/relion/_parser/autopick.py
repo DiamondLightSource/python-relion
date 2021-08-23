@@ -95,12 +95,12 @@ class AutoPick(JobType):
 
     def _get_particle_info(self, jobdir, micrograph):
         particle_data = []
+        mic_parts = micrograph.parts
+        mc_job_path = pathlib.Path(mic_parts[0]) / mic_parts[1]
         particle_star_file = pathlib.Path(
-            str(
-                micrograph.relative_to(micrograph.parent.parent.parent).with_suffix(
-                    ".star"
-                )
-            ).replace(micrograph.stem, micrograph.stem + "_autopick")
+            str(micrograph.relative_to(mc_job_path).with_suffix(".star")).replace(
+                micrograph.stem, micrograph.stem + "_autopick"
+            )
         )
         if self._particle_cache.get(jobdir):
             if self._particle_cache[jobdir].get(micrograph):
