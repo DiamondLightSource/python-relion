@@ -598,6 +598,8 @@ class RelionItOptions(object):
     motioncor_doseperframe = 1.277
     # Gain-reference image in MRC format (only necessary if input movies are not yet gain-corrected, e.g. compressed TIFFs from K2)
     motioncor_gainreference = "Movies/gain.mrc"
+    eer_upsampling = 1
+    eer_grouping = 20
 
     ### CTF estimation parameters
     # Most cases won't need changes here...
@@ -2389,6 +2391,9 @@ def run_pipeline(opts):
             ]
 
             if opts.motioncor_do_own:
+                motioncorr_options.append(
+                    f"Additional arguments: == --eer_upsampling {opts.eer_upsampling} --eer_grouping {opts.eer_grouping}"
+                )
                 motioncorr_options.append("Use RELION's own implementation? == Yes")
                 if opts.use_ctffind_instead:
                     motioncorr_options.append("Save sum of power spectra? == Yes")
