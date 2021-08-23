@@ -25,6 +25,12 @@ def run():
     parser.add_argument(
         "-f", "--file", help="Load options from file", dest="options_file"
     )
+    parser.add_argument(
+        "-m",
+        "--movies",
+        help="Directory to the directory to make Movies symlink to",
+        dest="movies_dir",
+    )
     args = parser.parse_args()
 
     opts = RelionItOptions()
@@ -58,5 +64,9 @@ def run():
     with open(options_file, "w") as optfile:
         opts.print_options(optfile)
 
+    if args.movies_dir is not None:
+        (pathlib.Path(args.working_directory) / "Movies").symlink_to(args.movies_dir)
+
     os.chdir(args.working_directory)
+
     cryolo_relion_it.run_pipeline(opts)
