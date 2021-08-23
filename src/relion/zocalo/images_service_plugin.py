@@ -62,6 +62,9 @@ def picked_particles(plugin_params):
     if not outfile:
         logger.warning(f"Outfile incorrectly specified: {outfile}")
         return None
+    if not basefilename.is_file():
+        logger.error(f"File {basefilename} not found")
+        return None
     radius = (diam / angpix) // 2
     try:
         with PIL.Image.open(basefilename).convert(mode="RGB") as bim:

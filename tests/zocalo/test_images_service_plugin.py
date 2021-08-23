@@ -107,3 +107,12 @@ def test_picked_particles_processes_when_basefile_exists(tmp_path):
         picked_particles(plugin_params_parpick(base_jpeg_path, out_jpeg_path))
         == out_jpeg_path
     )
+
+
+def test_picked_particles_returns_None_when_basefile_does_not_exist(tmp_path):
+    base_jpeg_path = tmp_path / "base.jpeg"
+    out_jpeg_path = tmp_path / "processed.jpeg"
+
+    assert (
+        picked_particles(plugin_params_parpick(base_jpeg_path, out_jpeg_path)) is None
+    )
