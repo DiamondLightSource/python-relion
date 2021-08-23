@@ -552,8 +552,6 @@ from . import cryolo_external_job
 
 try:
     import tkinter as tk
-    import tkinter.filedialog
-    import tkinter.messagebox
 except ImportError:
     # The GUI is optional. If the user requests it, it will fail when it tries
     # to open so we can ignore the error for now.

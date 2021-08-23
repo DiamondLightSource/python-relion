@@ -16,6 +16,12 @@ class DBModel(collections.abc.Mapping):
     def __init__(self, db_name):
         self._db = self._make_db(db_name)
 
+    def __eq__(self, other):
+        if isinstance(other, DBModel):
+            if super().__eq__(other) and self._db == other._db:
+                return True
+        return False
+
     def __getitem__(self, key):
         return self._db[key]
 
