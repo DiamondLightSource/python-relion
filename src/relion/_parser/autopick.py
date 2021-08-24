@@ -31,10 +31,7 @@ ParticleCacheRecord = namedtuple(
 class AutoPick(JobType):
     def __init__(self, path, particle_cache=None):
         super().__init__(path)
-        if particle_cache is None:
-            self._particle_cache = {}
-        else:
-            self._particle_cache = particle_cache
+        self._particle_cache = particle_cache or {}
 
     def __eq__(self, other):
         if isinstance(other, AutoPick):  # check this
