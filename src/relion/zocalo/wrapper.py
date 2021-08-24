@@ -568,9 +568,7 @@ def _(stage_object: relion.Cryolo, job_string: str, relion_options: RelionItOpti
 @ispyb_results.register(relion.Class2D)
 def _(stage_object: relion.Class2D, job_string: str, relion_options: RelionItOptions):
     ispyb_command_list = []
-    sorted_jobs = sorted(
-        [st for st in stage_object.keys()], key=lambda st: int(st.replace("job", ""))
-    )
+    sorted_jobs = sorted(stage_object.keys(), key=lambda st: int(st.replace("job", "")))
     batch_number = sorted_jobs.index(job_string) + 1
     for class_2d in stage_object[job_string]:
         ispyb_command_list.append(
@@ -595,9 +593,7 @@ def _(stage_object: relion.Class2D, job_string: str, relion_options: RelionItOpt
 @ispyb_results.register(relion.Class3D)
 def _(stage_object: relion.Class3D, job_string: str, relion_options: RelionItOptions):
     ispyb_command_list = []
-    sorted_jobs = sorted(
-        [st for st in stage_object.keys()], key=lambda st: int(st.replace("job", ""))
-    )
+    sorted_jobs = sorted(stage_object.keys(), key=lambda st: int(st.replace("job", "")))
     batch_number = sorted_jobs.index(job_string) + 1
     for class_3d in stage_object[job_string]:
         ispyb_command_list.append(
