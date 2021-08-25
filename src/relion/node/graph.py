@@ -135,7 +135,7 @@ class Graph(Node):
     def find_origins(self):
         child_nodes = []
         for node in self.nodes:
-            child_nodes.extend([next_node for next_node in node])
+            child_nodes.extend(node)
         origins = [p for p in self.nodes if p not in child_nodes]
         return origins
 

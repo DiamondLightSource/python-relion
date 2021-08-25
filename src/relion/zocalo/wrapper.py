@@ -110,6 +110,9 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
                     self.params["ispyb_parameters"][k] = float(v)
                 except ValueError:
                     pass
+
+        if self.params["ispyb_parameters"]["import_images"].endswith(".eer"):
+            self.params["ispyb_parameters"]["motioncor_do_own"] = True
         pprint(self.params["ispyb_parameters"])
 
         self.opts = RelionItOptions()

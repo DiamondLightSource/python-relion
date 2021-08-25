@@ -268,12 +268,19 @@ class Project(RelionPipeline):
             try:
                 if results[node.nodeid] is not None:
                     d = {}
-                    for p in results[node.nodeid]:
-                        for key, val in p.items():
+                    if isinstance(results[node.nodeid], dict):
+                        for key, val in results[node.nodeid].items():
                             try:
-                                d[key].extend(val)
+                                d[key].append(val)
                             except KeyError:
-                                d[key] = val
+                                d[key] = [val]
+                    else:
+                        for p in results[node.nodeid]:
+                            for key, val in p.items():
+                                try:
+                                    d[key].extend(val)
+                                except KeyError:
+                                    d[key] = val
                     msgs.append(d)
             except KeyError:
                 logger.debug(
