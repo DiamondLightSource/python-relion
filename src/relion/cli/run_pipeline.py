@@ -48,10 +48,10 @@ def run():
             elif v.lower() == "true":
                 params_dict[k] = True
             elif v.lower() == "false":
-                params_dict["ispyb_parameters"][k] = False
+                params_dict[k] = False
             else:
                 try:
-                    params_dict["ispyb_parameters"][k] = float(v)
+                    params_dict[k] = float(v)
                 except ValueError:
                     pass
     else:
