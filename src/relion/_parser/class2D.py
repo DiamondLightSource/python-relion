@@ -216,7 +216,7 @@ class Class2D(JobType):
                 "estimated_resolution": cl.estimated_resolution,
                 "overall_fourier_completeness": cl.overall_fourier_completeness,
                 "class_image_full_path": cl.reference_image.replace(
-                    ".mrcs", f"_class{cl.particle_sum[0]}.jpeg"
+                    ".mrcs", f"_{cl.particle_sum[0]}.jpeg"
                 ),
                 "job_string": cl.job,
                 "class_images_stack": cl.reference_image,
