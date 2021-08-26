@@ -273,7 +273,7 @@ class Project(RelionPipeline):
                             try:
                                 d[key].append(val)
                             except KeyError:
-                                d[key] = [val]
+                                d[key] = val
                     else:
                         for p in results[node.nodeid]:
                             for key, val in p.items():
