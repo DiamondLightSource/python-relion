@@ -62,7 +62,7 @@ def picked_particles(plugin_params):
     if not outfile:
         logger.warning(f"Outfile incorrectly specified: {outfile}")
         return None
-    if not basefilename.is_file():
+    if not pathlib.Path(basefilename).is_file():
         logger.error(f"File {basefilename} not found")
         return None
     radius = (diam / angpix) // 2
