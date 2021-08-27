@@ -87,7 +87,7 @@ class Cryolo(JobType):
                 .relative_to(pathlib.Path(mic_parts[0]) / mic_parts[1])
                 .with_suffix(".jpeg")
             )
-            mc_mic_name = (self._get_micrograph_name(mic, micrograph_names, jobdir),)
+            mc_mic_name = self._get_micrograph_name(mic, micrograph_names, jobdir)
             particle_picker_info.append(
                 ParticlePickerInfo(
                     num_particles,
