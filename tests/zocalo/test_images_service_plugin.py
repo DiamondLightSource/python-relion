@@ -53,13 +53,13 @@ def test_contract_with_images_service():
 
     # Check that we do not declare any keys that are unknown upstream
     assert set(FunctionParameter._fields).issubset(
-        dlstbx_images.PluginParameter._fields
+        dlstbx_images.PluginInterface._fields
     )
 
     for key, annotation in FunctionParameter.__annotations__.items():
         if annotation is Any:
             continue
-        upstream_type = dlstbx_images.PluginParameter.__annotations__[key]
+        upstream_type = dlstbx_images.PluginInterface.__annotations__[key]
         if annotation == upstream_type:
             continue
         if not hasattr(annotation, "_name") or not hasattr(upstream_type, "_name"):
