@@ -79,15 +79,15 @@ class Cryolo(JobType):
 
         particle_picker_info = []
         for mic, num_particles in particles_per_micrograph.items():
-            mic_parts = pathlib.Path(mic).parts
+            mc_mic_name = self._get_micrograph_name(mic, micrograph_names, jobdir)
+            mic_parts = pathlib.Path(mc_mic_name).parts
             highlighted_micrograph = (
                 self._basepath
                 / jobdir
-                / pathlib.Path(mic)
+                / pathlib.Path(mc_mic_name)
                 .relative_to(pathlib.Path(mic_parts[0]) / mic_parts[1])
                 .with_suffix(".jpeg")
             )
-            mc_mic_name = self._get_micrograph_name(mic, micrograph_names, jobdir)
             particle_picker_info.append(
                 ParticlePickerInfo(
                     num_particles,
