@@ -1,5 +1,6 @@
 import logging
 import pathlib
+import time
 
 import mrcfile
 import numpy as np
@@ -13,12 +14,13 @@ def mrc_to_jpeg(plugin_params):
     filename = plugin_params.parameters("file")
     allframes = plugin_params.parameters("all_frames")
     if not filename or filename == "None":
-        logger.debug("Skipping mrc to jpeg conversion: filename not specified")
+        logger.error("Skipping mrc to jpeg conversion: filename not specified")
         return None
     filepath = pathlib.Path(filename)
     if not filepath.is_file():
         logger.error(f"File {filepath} not found")
         return None
+    start = time.perf_counter()
     try:
         with mrcfile.open(filepath) as mrc:
             data = mrc.data
@@ -45,8 +47,11 @@ def mrc_to_jpeg(plugin_params):
         else:
             im = PIL.Image.fromarray(data[0], mode="L")
             im.save(outfile)
+    timing = time.perf_counter() - start
 
-    logger.info(f"Converted mrc to jpeg {filename} -> {outfile}")
+    logger.info(
+        f"Converted mrc to jpeg {filename} -> {outfile} in {timing:.1f} seconds"
+    )
     if outfiles:
         return outfiles
     return outfile
