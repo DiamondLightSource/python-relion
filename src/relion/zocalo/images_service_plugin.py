@@ -92,4 +92,5 @@ def picked_particles(plugin_params):
         logger.info(f"Particle picker image {outfile} saved in {timing:.1f} seconds")
     except FileNotFoundError:
         logger.error(f"File {basefilename} could not be opened")
+        return None
     return outfile
