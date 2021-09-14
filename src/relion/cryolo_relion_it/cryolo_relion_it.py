@@ -540,7 +540,11 @@ important logic is in the `run_pipeline()' function so that's a good place to st
 import argparse
 import ast
 import glob
-import grp
+
+try:
+    import grp
+except ModuleNotFoundError:
+    grp = None
 import inspect
 import math
 import os
@@ -565,6 +569,19 @@ SETUP_CHECK_FILE = "RELION_IT_SUBMITTED_JOBS"
 PREPROCESS_SCHEDULE_PASS1 = "PREPROCESS"
 PREPROCESS_SCHEDULE_PASS2 = "PREPROCESS_PASS2"
 OPTIONS_FILE = "relion_it_options.py"
+
+
+def _is_industrial_user():
+    """Checking if industrial user is trying to use relion_it.."""
+    if not grp:
+        # We're not on a linux/unix system, therefore not at Diamond
+        return False
+
+    not_allowed = ["m10_valid_users", "m10_staff", "m08_valid_users", "m08_staff"]
+    uid = os.getegid()
+    fedid = grp.getgrgid(uid)[0]
+    groups = str(subprocess.check_output(["groups", str(fedid)]))
+    return any(group in groups for group in not_allowed)
 
 
 class RelionItOptions(object):
@@ -1290,15 +1307,9 @@ class RelionItGui(object):
         row += 1
 
         ### Checking if industrial user is trying to use relion_it...
-        not_allowed = ["m10_valid_users", "m10_staff", "m08_valid_users", "m08_staff"]
-        uid = os.getegid()
-        fedid = grp.getgrgid(uid)[0]
-        groups = str(subprocess.check_output(["groups", "{}".format(fedid)]))
-        if any(group in groups for group in not_allowed):
+        industrial_group = _is_industrial_user()
+        if industrial_group:
             print("Industrial use of crYOLO is prohibited")
-            industrial_group = True
-        else:
-            industrial_group = False
 
         tk.Label(pipeline_frame, text="Use crYOLO?").grid(row=row, sticky=tk.W)
         self.use_cryolo_var = tk.IntVar()
@@ -1606,14 +1617,7 @@ class RelionItGui(object):
         """
 
         ### Checking if industrial user is trying to use relion_it..
-        not_allowed = ["m10_valid_users", "m10_staff", "m08_valid_users", "m08_staff"]
-        uid = os.getegid()
-        fedid = grp.getgrgid(uid)[0]
-        groups = str(subprocess.check_output(["groups", "{}".format(fedid)]))
-        if any(group in groups for group in not_allowed):
-            industrial_group = True
-        else:
-            industrial_group = False
+        industrial_group = _is_industrial_user()
 
         opts = self.options
         warnings = []
