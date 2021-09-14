@@ -72,6 +72,7 @@ def picked_particles(plugin_params):
         return None
     radius = (diam / angpix) // 2
     try:
+        start = time.perf_counter()
         with PIL.Image.open(basefilename).convert(mode="RGB") as bim:
             enhancer = ImageEnhance.Contrast(bim)
             enhanced = enhancer.enhance(contrast_factor)
@@ -87,7 +88,8 @@ def picked_particles(plugin_params):
                     outline="#f58a07",
                 )
             fim.save(outfile)
-            logger.info(f"Particle picker image {outfile} saved")
+        timing = time.perf_counter() - start
+        logger.info(f"Particle picker image {outfile} saved in {timing:.1f} seconds")
     except FileNotFoundError:
         logger.error(f"File {basefilename} could not be opened")
     return outfile
