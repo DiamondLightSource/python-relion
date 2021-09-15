@@ -29,22 +29,28 @@ def mrc_to_jpeg(plugin_params):
             "File {filepath} could not be opened. It may be corrupted or not in mrc format"
         )
         return None
-    data = data - data.min()
-    data = data * 255 / data.max()
-    data = data.astype(np.uint8)
     outfile = filepath.with_suffix(".jpeg")
     outfiles = []
     if len(data.shape) == 2:
+        data = data - data.min()
+        data = data * 255 / data.max()
+        data = data.astype(np.uint8)
         im = PIL.Image.fromarray(data, mode="L")
         im.save(outfile)
     elif len(data.shape) == 3:
         if allframes:
             for i, frame in enumerate(data):
+                frame = frame - frame.min()
+                frame = frame * 255 / frame.max()
+                frame = frame.astype(np.uint8)
                 im = PIL.Image.fromarray(frame, mode="L")
                 frame_outfile = str(outfile).replace(".jpeg", f"_{i+1}.jpeg")
                 im.save(frame_outfile)
                 outfiles.append(frame_outfile)
         else:
+            data = data - data[0].min()
+            data = data * 255 / data[0].max()
+            data = data.astype(np.uint8)
             im = PIL.Image.fromarray(data[0], mode="L")
             im.save(outfile)
     timing = time.perf_counter() - start
