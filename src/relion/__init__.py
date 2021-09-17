@@ -193,9 +193,11 @@ class Project(RelionPipeline):
         # reset the in and out lists of database nodes
         # have to avoid removing the permanent connections from other database nodes
         for dbn in self._db_model.values():
-            for i_node in dbn._in:
-                if not isinstance(i_node, DBNode) and not isinstance(i_node, DBGraph):
-                    dbn._in.remove(i_node)
+            dbn._in = [
+                i_node
+                for i_node in dbn._in
+                if isinstance(i_node, DBNode) or isinstance(i_node, DBGraph)
+            ]
         self._jobs_collapsed = False
         self.load_nodes_from_star(self.basepath / "default_pipeline.star")
         self.check_job_node_statuses(self.basepath)
