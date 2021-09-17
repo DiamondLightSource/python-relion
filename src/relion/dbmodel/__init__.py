@@ -9,6 +9,7 @@ from relion.dbmodel.modeltables import (
     ParticleClassificationGroupTable,
     ParticleClassificationTable,
     ParticlePickerTable,
+    RelativeIceThicknessTable,
 )
 
 
@@ -57,6 +58,19 @@ class DBModel(collections.abc.Mapping):
         self.ctf_db_node = DBNode("CTFTable", [CTFTable()])
         self.mc_db_node.link_to(
             self.ctf_db_node,
+            traffic={
+                "check_for": "micrograph_full_path",
+                "foreign_key": "motion_correction_id",
+                "table_key": "motion_correction_id",
+                "foreign_table": self.mc_db_node.tables[0],
+            },
+        )
+
+        self.rel_ice_bd_node = DBNode(
+            "RelativeIceThicknessTable", [RelativeIceThicknessTable()]
+        )
+        self.mc_db_node.link_to(
+            self.rel_ice_bd_node,
             traffic={
                 "check_for": "micrograph_full_path",
                 "foreign_key": "motion_correction_id",
@@ -142,6 +156,7 @@ class DBModel(collections.abc.Mapping):
             "Class2D": self.class2d_db_node,
             "InitialModel": self.class3d_db_node,
             "Class3D": self.class3d_db_node,
+            "RelativeIceThickness": self.rel_ice_bd_node,
         }
 
         return db_dict
