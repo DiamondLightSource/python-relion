@@ -18,6 +18,7 @@ from relion._parser.cryolo import Cryolo
 from relion._parser.ctffind import CTFFind
 from relion._parser.initialmodel import InitialModel
 from relion._parser.motioncorrection import MotionCorr
+from relion._parser.relativeicethickness import RelativeIceThickness
 from relion._parser.relion_pipeline import RelionPipeline
 
 try:
@@ -127,6 +128,7 @@ class Project(RelionPipeline):
             "Class2D": self.class2D,
             "InitialModel": self.initialmodel,
             "Class3D": self.class3D,
+            "RelativeIceThickness": self.relativeicethickness,
         }
         return resd
 
@@ -176,6 +178,14 @@ class Project(RelionPipeline):
         Returns a dictionary-like object with job names as keys,
         and lists of Class3DParticleClass namedtuples as values."""
         return Class3D(self.basepath / "Class3D")
+
+    @property
+    @functools.lru_cache(maxsize=1)
+    def relativeicethickness(self):
+        """access the relative ice thicknesses for a mircograph.
+        Returns a dictionary-like object with job names as keys,
+        and lists of RelativeIceThicknessMicrograph namedtuples as values."""
+        return RelativeIceThickness(self.basepath / "RelativeIceThickness")
 
     def origin_present(self):
         try:
