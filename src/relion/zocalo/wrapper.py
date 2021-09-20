@@ -208,13 +208,21 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
                     images_particles_command_list.extend(job_msg["images_particles"])
 
             if ispyb_command_list:
-                logger.info(
-                    "Sending commands like this: %s", str(ispyb_command_list[0])
-                )
-                self.recwrap.send_to(
-                    "ispyb", {"ispyb_command_list": ispyb_command_list}
-                )
-                logger.info("Sent %d commands to ISPyB", len(ispyb_command_list))
+                # split up multi-part ISPyB messages into chunks of 200 to reduce load on the message broker
+                multipart_limit = 200
+                num_msgs = len(ispyb_command_list) // multipart_limit
+                if len(ispyb_command_list) % multipart_limit:
+                    num_msgs += 1
+                for imsg in range(num_msgs):
+                    if imsg == num_msgs - 1:
+                        this_msg = ispyb_command_list[multipart_limit * imsg :]
+                    else:
+                        this_msg = ispyb_command_list[
+                            multipart_limit * imsg : multipart_limit * (imsg + 1)
+                        ]
+                    logger.info("Sending commands like this: %s", str(this_msg[0]))
+                    self.recwrap.send_to("ispyb", {"ispyb_command_list": this_msg})
+                    logger.info("Sent %d commands to ISPyB", len(this_msg))
 
             for imgcmd in images_command_list:
                 if imgcmd:
