@@ -556,7 +556,11 @@ def _(
     unsent_appended: Union[dict, None] = None,
 ):
     row = table.get_row_by_primary_key(primary_key)
-    buffered = ["first_motion_correction_id", "particle_picker_id"]
+    buffered = [
+        "first_motion_correction_id",
+        "particle_picker_id",
+        "particle_coordinates",
+    ]
     buffer_store = row["particle_picker_id"]
     buffer_lookup = row["first_motion_correction_id"]
     if resend:
