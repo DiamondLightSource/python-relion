@@ -79,7 +79,18 @@ def picked_particles(plugin_params):
     radius = (diam / angpix) // 2
     try:
         start = time.perf_counter()
-        with PIL.Image.open(basefilename).convert(mode="RGB") as bim:
+        try:
+            with mrcfile.open(basefilename) as mrc:
+                data = mrc.data
+                data = data - data.min()
+                data = data * 255 / data.max()
+                data = data.astype(np.uint8)
+        except ValueError:
+            logger.error(
+                "File {filepath} could not be opened. It may be corrupted or not in mrc format"
+            )
+            return None
+        with PIL.Image.fromarray(data).convert(mode="RGB") as bim:
             enhancer = ImageEnhance.Contrast(bim)
             enhanced = enhancer.enhance(contrast_factor)
             fim = enhanced.filter(ImageFilter.BLUR)

@@ -5,7 +5,6 @@ from typing import Any, Callable, Dict, NamedTuple
 import mrcfile
 import numpy as np
 import pytest
-from PIL import Image
 
 import relion
 from relion.zocalo.images_service_plugin import mrc_to_jpeg, picked_particles
@@ -97,22 +96,20 @@ def test_mrc_to_jpeg_ack_when_file_exists(tmp_path):
 
 
 def test_picked_particles_processes_when_basefile_exists(tmp_path):
-    base_jpeg_path = tmp_path / "base.jpeg"
+    base_mrc_path = tmp_path / "base.mrc"
     out_jpeg_path = tmp_path / "processed.jpeg"
-    test_data = np.arange(9, dtype=np.int8).reshape(3, 3)
-    bimg = Image.fromarray(test_data, mode="L")
-    bimg.save(base_jpeg_path)
+    test_data = np.arange(16, dtype=np.int8).reshape(4, 4)
+    with mrcfile.new(base_mrc_path) as mrc:
+        mrc.set_data(test_data)
 
     assert (
-        picked_particles(plugin_params_parpick(base_jpeg_path, out_jpeg_path))
+        picked_particles(plugin_params_parpick(base_mrc_path, out_jpeg_path))
         == out_jpeg_path
     )
 
 
 def test_picked_particles_returns_None_when_basefile_does_not_exist(tmp_path):
-    base_jpeg_path = tmp_path / "base.jpeg"
+    base_mrc_path = tmp_path / "base.mrc"
     out_jpeg_path = tmp_path / "processed.jpeg"
 
-    assert (
-        picked_particles(plugin_params_parpick(base_jpeg_path, out_jpeg_path)) is None
-    )
+    assert picked_particles(plugin_params_parpick(base_mrc_path, out_jpeg_path)) is None
