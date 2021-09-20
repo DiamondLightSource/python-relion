@@ -1,6 +1,6 @@
-# import pathlib
 import csv
 import logging
+import pathlib
 from collections import namedtuple
 
 from relion._parser.jobtype import JobType
@@ -8,7 +8,8 @@ from relion._parser.jobtype import JobType
 logger = logging.getLogger("relion._parser.relativeicethickness")
 
 RelativeIceThicknessMicrograph = namedtuple(
-    "RelativeIceThicknessMicrograph", ["minimum", "q1", "median", "q3", "maximum"]
+    "RelativeIceThicknessMicrograph",
+    ["minimum", "q1", "median", "q3", "maximum", "micrograph_path"],
 )
 
 RelativeIceThicknessMicrograph.__doc__ = "Relative ice thickness data for a micrograph."
@@ -17,6 +18,7 @@ RelativeIceThicknessMicrograph.q1.__doc__ = "Quartile 1. Unitless"
 RelativeIceThicknessMicrograph.median.__doc__ = "Median ice thickness. Unitless"
 RelativeIceThicknessMicrograph.q3.__doc__ = "Quartile 3. Unitless"
 RelativeIceThicknessMicrograph.maximum.__doc__ = "Maximum ice thickness. Unitless"
+RelativeIceThicknessMicrograph.micrograph_path.__doc__ = "Micrograph path"
 
 
 class RelativeIceThickness(JobType):
@@ -55,6 +57,13 @@ class RelativeIceThickness(JobType):
         for j in range(len(list_micrograph_path)):
             micrograph_list.append(
                 RelativeIceThicknessMicrograph(
+                    str(
+                        pathlib.Path(
+                            list_micrograph_path[j].strip("_grouped")
+                        ).relative_to(self._basepath)
+                    ).strip(
+                        "External/Icebreaker_G"
+                    ),  # convert the full path to the similar path for Motion Correction micrograph
                     list_minimum[j],
                     list_q1[j],
                     list_median[j],
@@ -77,6 +86,7 @@ class RelativeIceThickness(JobType):
     def db_unpack(micrograph_list):
         res = [
             {
+                "micrograph_path": micrograph.micrograph_path,
                 "minimum": micrograph.minimum,
                 "q1": micrograph.q1,
                 "median": micrograph.median,
