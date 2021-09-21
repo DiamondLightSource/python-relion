@@ -96,8 +96,8 @@ def test_mrc_to_jpeg_ack_when_file_exists(tmp_path):
 
 
 def test_picked_particles_processes_when_basefile_exists(tmp_path):
-    base_mrc_path = tmp_path / "base.mrc"
-    out_jpeg_path = tmp_path / "processed.jpeg"
+    base_mrc_path = str(tmp_path / "base.mrc")
+    out_jpeg_path = str(tmp_path / "processed.jpeg")
     test_data = np.arange(16, dtype=np.int8).reshape(4, 4)
     with mrcfile.new(base_mrc_path) as mrc:
         mrc.set_data(test_data)
@@ -109,7 +109,7 @@ def test_picked_particles_processes_when_basefile_exists(tmp_path):
 
 
 def test_picked_particles_returns_None_when_basefile_does_not_exist(tmp_path):
-    base_mrc_path = tmp_path / "base.mrc"
-    out_jpeg_path = tmp_path / "processed.jpeg"
+    base_mrc_path = str(tmp_path / "base.mrc")
+    out_jpeg_path = str(tmp_path / "processed.jpeg")
 
     assert not picked_particles(plugin_params_parpick(base_mrc_path, out_jpeg_path))
