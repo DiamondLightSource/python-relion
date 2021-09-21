@@ -15,11 +15,11 @@ def mrc_to_jpeg(plugin_params):
     allframes = plugin_params.parameters("all_frames")
     if not filename or filename == "None":
         logger.error("Skipping mrc to jpeg conversion: filename not specified")
-        return None
+        return False
     filepath = pathlib.Path(filename)
     if not filepath.is_file():
         logger.error(f"File {filepath} not found")
-        return None
+        return False
     start = time.perf_counter()
     try:
         with mrcfile.open(filepath) as mrc:
@@ -28,7 +28,7 @@ def mrc_to_jpeg(plugin_params):
         logger.error(
             f"File {filepath} could not be opened. It may be corrupted or not in mrc format"
         )
-        return None
+        return False
     outfile = filepath.with_suffix(".jpeg")
     outfiles = []
     if len(data.shape) == 2:
@@ -71,43 +71,41 @@ def picked_particles(plugin_params):
     contrast_factor = plugin_params.parameters("contrast_factor", default=6)
     outfile = plugin_params.parameters("outfile")
     if not outfile:
-        logger.warning(f"Outfile incorrectly specified: {outfile}")
-        return None
+        logger.error(f"Outfile incorrectly specified: {outfile}")
+        return False
     if not pathlib.Path(basefilename).is_file():
         logger.error(f"File {basefilename} not found")
-        return None
+        return False
     radius = (diam / angpix) // 2
+    start = time.perf_counter()
     try:
-        start = time.perf_counter()
-        try:
-            with mrcfile.open(basefilename) as mrc:
-                data = mrc.data
-                data = data - data.min()
-                data = data * 255 / data.max()
-                data = data.astype(np.uint8)
-        except ValueError:
-            logger.error(
-                f"File {basefilename} could not be opened. It may be corrupted or not in mrc format"
-            )
-            return None
-        with PIL.Image.fromarray(data).convert(mode="RGB") as bim:
-            enhancer = ImageEnhance.Contrast(bim)
-            enhanced = enhancer.enhance(contrast_factor)
-            fim = enhanced.filter(ImageFilter.BLUR)
-            dim = ImageDraw.Draw(fim)
-            for x, y in coords:
-                dim.ellipse(
-                    [
-                        (float(x) - radius, float(y) - radius),
-                        (float(x) + radius, float(y) + radius),
-                    ],
-                    width=8,
-                    outline="#f58a07",
-                )
-            fim.save(outfile)
-        timing = time.perf_counter() - start
-        logger.info(f"Particle picker image {outfile} saved in {timing:.1f} seconds")
+        with mrcfile.open(basefilename) as mrc:
+            data = mrc.data
+    except ValueError:
+        logger.error(
+            f"File {basefilename} could not be opened. It may be corrupted or not in mrc format"
+        )
+        return False
     except FileNotFoundError:
         logger.error(f"File {basefilename} could not be opened")
-        return None
-    return outfile
+        return False
+    data = data - data.min()
+    data = data * 255 / data.max()
+    data = data.astype(np.uint8)
+    with PIL.Image.fromarray(data).convert(mode="RGB") as bim:
+        enhancer = ImageEnhance.Contrast(bim)
+        enhanced = enhancer.enhance(contrast_factor)
+        fim = enhanced.filter(ImageFilter.BLUR)
+        dim = ImageDraw.Draw(fim)
+        for x, y in coords:
+            dim.ellipse(
+                [
+                    (float(x) - radius, float(y) - radius),
+                    (float(x) + radius, float(y) + radius),
+                ],
+                width=8,
+                outline="#f58a07",
+            )
+        fim.save(outfile)
+    timing = time.perf_counter() - start
+    logger.info(f"Particle picker image {outfile} saved in {timing:.1f} seconds")
