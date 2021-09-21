@@ -26,7 +26,7 @@ def mrc_to_jpeg(plugin_params):
             data = mrc.data
     except ValueError:
         logger.error(
-            "File {filepath} could not be opened. It may be corrupted or not in mrc format"
+            f"File {filepath} could not be opened. It may be corrupted or not in mrc format"
         )
         return None
     outfile = filepath.with_suffix(".jpeg")
@@ -87,7 +87,7 @@ def picked_particles(plugin_params):
                 data = data.astype(np.uint8)
         except ValueError:
             logger.error(
-                "File {filepath} could not be opened. It may be corrupted or not in mrc format"
+                f"File {basefilename} could not be opened. It may be corrupted or not in mrc format"
             )
             return None
         with PIL.Image.fromarray(data).convert(mode="RGB") as bim:
