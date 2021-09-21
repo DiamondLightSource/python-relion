@@ -152,11 +152,11 @@ class DBModel(collections.abc.Mapping):
             "MotionCorr": self.mc_db_node,
             "CtfFind": self.ctf_db_node,
             "AutoPick": self.parpick_db_node,
-            "External:crYOLO": self.parpick_db_node,
+            "crYOLO_AutoPick": self.parpick_db_node,
             "Class2D": self.class2d_db_node,
             "InitialModel": self.class3d_db_node,
             "Class3D": self.class3d_db_node,
-            "RelativeIceThickness": self.rel_ice_bd_node,
+            "icebreaker_job_??": self.rel_ice_bd_node,
         }
 
         return db_dict

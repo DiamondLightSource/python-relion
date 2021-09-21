@@ -124,11 +124,11 @@ class Project(RelionPipeline):
             "CtfFind": self.ctffind,
             "MotionCorr": self.motioncorrection,
             "AutoPick": self.autopick,
-            "External:crYOLO": self.cryolo,
+            "crYOLO_AutoPick": self.cryolo,
             "Class2D": self.class2D,
             "InitialModel": self.initialmodel,
             "Class3D": self.class3D,
-            "RelativeIceThickness": self.relativeicethickness,
+            "icebreaker_job_??": self.relativeicethickness,
         }
         return resd
 
@@ -229,10 +229,15 @@ class Project(RelionPipeline):
                     self._update_pipeline(
                         jobnode, jobnode.name, prop=("job_string", "parpick_job_string")
                     )
+                elif jobnode.name == "External":
+                    self._update_pipeline(
+                        jobnode,
+                        jobnode.environment.get("alias"),
+                    )
                 elif "crYOLO" in jobnode.environment.get("alias"):
                     self._update_pipeline(
                         jobnode,
-                        f"{jobnode._path}:crYOLO",
+                        jobnode.environment.get("alias"),
                         prop=("job_string", "parpick_job_string"),
                     )
                 else:
