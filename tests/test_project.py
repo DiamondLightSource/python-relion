@@ -135,10 +135,10 @@ def test_get_imported_files_from_job_directory(proj):
 def test_mulitple_loads_do_not_grow_the_in_list_of_data_pipeline_nodes(proj):
     mctabnode = proj._data_pipeline._node_list[2]
     assert len(mctabnode._in) == 1
-    assert len(mctabnode._out) == 2
+    assert len(mctabnode._out) == 3
     proj.load()
     assert len(mctabnode._in) == 1
-    assert len(mctabnode._out) == 2
+    assert len(mctabnode._out) == 3
 
 
 @pytest.mark.skipif(sys.platform == "win32", reason="does not run on windows")
