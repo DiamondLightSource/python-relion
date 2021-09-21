@@ -271,7 +271,7 @@ class CryoemInitialModelTable(Table):
 
 class RelativeIceThicknessTable(Table):
     def __init__(self):
-        columns, prim_key = parse_sqlalchemy_table(sqlalchemy.RelativeIceThicknessTable)
+        columns, prim_key = parse_sqlalchemy_table(sqlalchemy.RelativeIceThickness)
         super().__init__(
             columns,
             prim_key,
