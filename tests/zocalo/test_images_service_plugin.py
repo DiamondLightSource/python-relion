@@ -80,7 +80,7 @@ def test_mrc_to_jpeg_nack_when_file_not_found(proj):
     )
     assert ctf_data[0].diagnostic_plot_path == os.fspath(jpeg_path)
 
-    assert mrc_to_jpeg(plugin_params(jpeg_path)) is None
+    assert not mrc_to_jpeg(plugin_params(jpeg_path))
 
 
 def test_mrc_to_jpeg_ack_when_file_exists(tmp_path):
@@ -112,4 +112,4 @@ def test_picked_particles_returns_None_when_basefile_does_not_exist(tmp_path):
     base_mrc_path = tmp_path / "base.mrc"
     out_jpeg_path = tmp_path / "processed.jpeg"
 
-    assert picked_particles(plugin_params_parpick(base_mrc_path, out_jpeg_path)) is None
+    assert not picked_particles(plugin_params_parpick(base_mrc_path, out_jpeg_path))

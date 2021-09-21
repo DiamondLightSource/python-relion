@@ -109,3 +109,4 @@ def picked_particles(plugin_params):
         fim.save(outfile)
     timing = time.perf_counter() - start
     logger.info(f"Particle picker image {outfile} saved in {timing:.1f} seconds")
+    return outfile
