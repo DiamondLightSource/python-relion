@@ -346,6 +346,7 @@ class Project(RelionPipeline):
         Project.class2D.fget.cache_clear()
         Project.initialmodel.fget.cache_clear()
         Project.class3D.fget.cache_clear()
+        Project.relativeicethickness.fget.cache_clear()
 
     def get_imported(self):
         try:
