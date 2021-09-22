@@ -18,6 +18,7 @@ from relion._parser.cryolo import Cryolo
 from relion._parser.ctffind import CTFFind
 from relion._parser.initialmodel import InitialModel
 from relion._parser.motioncorrection import MotionCorr
+from relion._parser.relativeicethickness import RelativeIceThickness
 from relion._parser.relion_pipeline import RelionPipeline
 
 try:
@@ -123,10 +124,11 @@ class Project(RelionPipeline):
             "CtfFind": self.ctffind,
             "MotionCorr": self.motioncorrection,
             "AutoPick": self.autopick,
-            "External:crYOLO": self.cryolo,
+            "crYOLO_AutoPick": self.cryolo,
             "Class2D": self.class2D,
             "InitialModel": self.initialmodel,
             "Class3D": self.class3D,
+            "icebreaker_job_??": self.relativeicethickness,
         }
         return resd
 
@@ -177,6 +179,14 @@ class Project(RelionPipeline):
         and lists of Class3DParticleClass namedtuples as values."""
         return Class3D(self.basepath / "Class3D")
 
+    @property
+    @functools.lru_cache(maxsize=1)
+    def relativeicethickness(self):
+        """access the relative ice thicknesses for a mircograph.
+        Returns a dictionary-like object with job names as keys,
+        and lists of RelativeIceThicknessMicrograph namedtuples as values."""
+        return RelativeIceThickness(self.basepath / "RelativeIceThickness")
+
     def origin_present(self):
         try:
             self.load_nodes_from_star(self.basepath / "default_pipeline.star")
@@ -219,10 +229,15 @@ class Project(RelionPipeline):
                     self._update_pipeline(
                         jobnode, jobnode.name, prop=("job_string", "parpick_job_string")
                     )
+                elif jobnode.name == "External":
+                    self._update_pipeline(
+                        jobnode,
+                        jobnode.environment.get("alias"),
+                    )
                 elif "crYOLO" in jobnode.environment.get("alias"):
                     self._update_pipeline(
                         jobnode,
-                        f"{jobnode._path}:crYOLO",
+                        jobnode.environment.get("alias"),
                         prop=("job_string", "parpick_job_string"),
                     )
                 else:
@@ -310,6 +325,7 @@ class Project(RelionPipeline):
         Project.class2D.fget.cache_clear()
         Project.initialmodel.fget.cache_clear()
         Project.class3D.fget.cache_clear()
+        Project.relativeicethickness.fget.cache_clear()
 
     def get_imported(self):
         try:

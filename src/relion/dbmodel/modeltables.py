@@ -269,6 +269,17 @@ class CryoemInitialModelTable(Table):
         )
 
 
+class RelativeIceThicknessTable(Table):
+    def __init__(self):
+        columns, prim_key = parse_sqlalchemy_table(sqlalchemy.RelativeIceThickness)
+        super().__init__(
+            columns,
+            prim_key,
+            unique="motion_correction_id",
+            required="motion_correction_id",
+        )
+
+
 @functools.singledispatch
 def insert(primary_table, end_time, source, relion_options, **kwargs):
     raise ValueError(f"{primary_table!r} is not a known Table")
@@ -388,5 +399,17 @@ def _(
         row["init_model_class_num"]
     ]
     row.update({"resolution": relion_options.inimodel_resol_final})
+    pid = primary_table.add_row(row)
+    return pid
+
+
+@insert.register(RelativeIceThicknessTable)
+def _(
+    primary_table: RelativeIceThicknessTable,
+    end_time,
+    source,
+    relion_options,
+    row,
+):
     pid = primary_table.add_row(row)
     return pid

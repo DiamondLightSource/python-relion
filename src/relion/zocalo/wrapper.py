@@ -22,6 +22,7 @@ from relion.dbmodel.modeltables import (
     ParticleClassificationGroupTable,
     ParticleClassificationTable,
     ParticlePickerTable,
+    RelativeIceThicknessTable,
 )
 
 logger = logging.getLogger("relion.zocalo.wrapper")
@@ -723,6 +724,44 @@ def _(
             else:
                 this_result["buffer_lookup"]["cryoem_initial_model_id"] = buffer_store
             results.append(this_result)
+    return results
+
+
+@construct_message.register(RelativeIceThicknessTable)
+def _(
+    table: RelativeIceThicknessTable,
+    primary_key: int,
+    resend: bool = False,
+    unsent_appended: Union[dict, None] = None,
+):
+    row = table.get_row_by_primary_key(primary_key)
+    buffered = ["motion_correction_id", "relative_ice_thickness_id"]
+    buffer_store = row["relative_ice_thickness_id"]
+    buffer_lookup = row["motion_correction_id"]
+    if resend:
+        results = {
+            "ispyb_command": "buffer",
+            "buffer_lookup": {
+                "motion_correction_id": buffer_lookup,
+                "relative_ice_thickness_id": buffer_store,
+            },
+            "buffer_command": {
+                "ispyb_command": "insert_relative_ice_thickness",
+                **{k: v for k, v in row.items() if k not in buffered},
+            },
+        }
+    else:
+        results = {
+            "ispyb_command": "buffer",
+            "buffer_lookup": {
+                "motion_correction_id": buffer_lookup,
+            },
+            "buffer_command": {
+                "ispyb_command": "insert_relative_ice_thickness",
+                **{k: v for k, v in row.items() if k not in buffered},
+            },
+            "buffer_store": buffer_store,
+        }
     return results
 
 
