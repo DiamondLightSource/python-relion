@@ -67,7 +67,7 @@ def picked_particles(plugin_params):
     basefilename = plugin_params.parameters("file")
     if basefilename.endswith(".jpeg"):
         logger.info(f"Replacing jpeg extension with mrc extension for {basefilename}")
-        basefilename.replace(".jpeg", ".mrc")
+        basefilename = basefilename.replace(".jpeg", ".mrc")
     coords = plugin_params.parameters("coordinates")
     angpix = plugin_params.parameters("angpix")
     diam = plugin_params.parameters("diameter")
