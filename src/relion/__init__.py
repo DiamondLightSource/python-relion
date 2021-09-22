@@ -291,27 +291,6 @@ class Project(RelionPipeline):
         return msgs
 
     @property
-    def results(self):
-        self._clear_caches()
-        res = []
-        for jtnode in self:
-            if jtnode.environment["status"]:
-                if "crYOLO" in jtnode.environment["alias"]:
-                    res_obj = self._results_dict.get(f"{jtnode._path}:crYOLO")
-                else:
-                    res_obj = self._results_dict.get(str(jtnode._path))
-                if res_obj is not None:
-                    res.append(
-                        RelionJobResult(
-                            res_obj,
-                            jtnode.environment["job"],
-                            jtnode.environment["end_time_stamp"],
-                        )
-                    )
-        self.res.consume(res)
-        return self.res
-
-    @property
     def current_jobs(self):
         self.load()
         currj = super().current_jobs
