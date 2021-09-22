@@ -9,7 +9,7 @@ logger = logging.getLogger("relion._parser.relativeicethickness")
 
 RelativeIceThicknessMicrograph = namedtuple(
     "RelativeIceThicknessMicrograph",
-    ["minimum", "q1", "median", "q3", "maximum", "micrograph_path"],
+    ["micrograph_path", "minimum", "q1", "median", "q3", "maximum"],
 )
 
 RelativeIceThicknessMicrograph.__doc__ = "Relative ice thickness data for a micrograph."
@@ -86,7 +86,7 @@ class RelativeIceThickness(JobType):
     def db_unpack(micrograph_list):
         res = [
             {
-                "micrograph_path": micrograph.micrograph_path,
+                "micrograph_full_path": micrograph.micrograph_path,
                 "minimum": micrograph.minimum,
                 "q1": micrograph.q1,
                 "median": micrograph.median,
