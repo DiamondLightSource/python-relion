@@ -510,7 +510,7 @@ def _(
     results = {
         "ispyb_command": "buffer",
         "buffer_command": {
-            "ispyb_command": "insert_motion_correction_buffer",
+            "ispyb_command": "insert_motion_correction",
             **{k: v for k, v in row.items() if k not in buffered},
             "drift_frames": drift_frames,
         },
@@ -538,7 +538,7 @@ def _(
                 "ctf_id": buffer_store,
             },
             "buffer_command": {
-                "ispyb_command": "insert_ctf_buffer",
+                "ispyb_command": "insert_ctf",
                 **{k: v for k, v in row.items() if k not in buffered},
             },
         }
@@ -549,7 +549,7 @@ def _(
                 "motion_correction_id": buffer_lookup,
             },
             "buffer_command": {
-                "ispyb_command": "insert_ctf_buffer",
+                "ispyb_command": "insert_ctf",
                 **{k: v for k, v in row.items() if k not in buffered},
             },
             "buffer_store": buffer_store,
@@ -580,7 +580,7 @@ def _(
                 "particle_picker_id": buffer_store,
             },
             "buffer_command": {
-                "ispyb_command": "insert_particle_picker_buffer",
+                "ispyb_command": "insert_particle_picker",
                 **{k: v for k, v in row.items() if k not in buffered},
             },
         }
@@ -591,7 +591,7 @@ def _(
                 "motion_correction_id": buffer_lookup,
             },
             "buffer_command": {
-                "ispyb_command": "insert_particle_picker_buffer",
+                "ispyb_command": "insert_particle_picker",
                 **{k: v for k, v in row.items() if k not in buffered},
             },
             "buffer_store": buffer_store,
