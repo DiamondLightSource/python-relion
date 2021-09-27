@@ -2458,6 +2458,25 @@ def run_pipeline(opts):
                 alias="Icebreaker_F",
             )
 
+        #### Set up the Icebreaker five-figures job
+        if opts.do_icebreaker_group:
+            icebreaker_options = [
+                "External executable: == ib_5fig.py",
+                f"Input micrographs:  == {icebreaker_job_group}grouped_micrographs.star",
+                f"Number of threads: == {opts.icebreaker_threads_number}",
+                "Param1 - label: == o",
+                "Param1 - value: == External/Icebreaker_5fig",
+            ]
+            if opts.motioncor_submit_to_queue:
+                icebreaker_options.extend(queue_options_cpu)
+            icebreaker_5fig, already_had_it = addJob(
+                "External",
+                "icebreaker_5fig",
+                SETUP_CHECK_FILE,
+                icebreaker_options,
+                alias="Icebreaker_5fig",
+            )
+
         #### Set up the CtfFind job
         ctffind_options = [
             "Amount of astigmatism (A): == {}".format(opts.ctffind_astigmatism),
@@ -2525,6 +2544,8 @@ def run_pipeline(opts):
             runjobs.append(icebreaker_job_group)
         if opts.do_icebreaker_job_flatten:
             runjobs.append(icebreaker_job_flatten)
+        if opts.do_icebreaker_group:
+            runjobs.append(icebreaker_5fig)
         runjobs.append(ctffind_job)
 
         # There is an option to stop on-the-fly processing after CTF estimation
