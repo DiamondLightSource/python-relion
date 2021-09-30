@@ -128,7 +128,7 @@ class Project(RelionPipeline):
             "Class2D": self.class2D,
             "InitialModel": self.initialmodel,
             "Class3D": self.class3D,
-            "icebreaker_job_??": self.relativeicethickness,
+            "Icebreaker_5fig": self.relativeicethickness,
         }
         return resd
 
@@ -182,10 +182,7 @@ class Project(RelionPipeline):
     @property
     @functools.lru_cache(maxsize=1)
     def relativeicethickness(self):
-        """access the relative ice thicknesses for a mircograph.
-        Returns a dictionary-like object with job names as keys,
-        and lists of RelativeIceThicknessMicrograph namedtuples as values."""
-        return RelativeIceThickness(self.basepath / "RelativeIceThickness")
+        return RelativeIceThickness(self.basepath / "External")
 
     def origin_present(self):
         try:
