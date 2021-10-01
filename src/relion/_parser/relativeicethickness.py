@@ -57,11 +57,7 @@ class RelativeIceThickness(JobType):
         for j in range(len(list_micrograph_path)):
             micrograph_list.append(
                 RelativeIceThicknessMicrograph(
-                    str(
-                        pathlib.Path(
-                            list_micrograph_path[j].strip("_grouped")
-                        ).relative_to(self._basepath)
-                    ).strip(
+                    str(pathlib.Path(list_micrograph_path[j].strip("_grouped"))).strip(
                         "External/Icebreaker_G"
                     ),  # convert the full path to the similar path for Motion Correction micrograph
                     list_minimum[j],
