@@ -124,11 +124,11 @@ class Project(RelionPipeline):
             "CtfFind": self.ctffind,
             "MotionCorr": self.motioncorrection,
             "AutoPick": self.autopick,
-            "crYOLO_AutoPick": self.cryolo,
+            "External/crYOLO_AutoPick/": self.cryolo,
             "Class2D": self.class2D,
             "InitialModel": self.initialmodel,
             "Class3D": self.class3D,
-            "Icebreaker_5fig": self.relativeicethickness,
+            "External/Icebreaker_5fig/": self.relativeicethickness,
         }
         return resd
 
@@ -212,9 +212,10 @@ class Project(RelionPipeline):
             list(self.schedule_files), self.basepath / "pipeline_PREPROCESS.log"
         )
         for jobnode in self:
-            if self._results_dict.get(
-                jobnode.name
-            ) or "crYOLO" in jobnode.environment.get("alias"):
+            if (
+                self._results_dict.get(jobnode.name)
+                or jobnode.environment.get("alias") in self._results_dict
+            ):
                 if jobnode.name == "InitialModel":
                     self._update_pipeline(
                         jobnode,
