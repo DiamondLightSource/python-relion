@@ -100,7 +100,12 @@ class MotionCorr(JobType):
         micrograph_list = []
         for j in range(len(micrograph_name)):
             drift_data, movie_name = self.collect_drift_data(micrograph_name[j], jobdir)
-
+            try:
+                movie_creation_time = (
+                    (self._basepath / movie_name).resolve().stat().st_ctime
+                )
+            except FileNotFoundError:
+                movie_creation_time = None
             micrograph_list.append(
                 MCMicrograph(
                     micrograph_name[j],
@@ -111,7 +116,7 @@ class MotionCorr(JobType):
                     accum_motion_total[j],
                     accum_motion_early[j],
                     accum_motion_late[j],
-                    (self._basepath / movie_name).resolve().stat().st_ctime,
+                    movie_creation_time,
                     drift_data,
                 )
             )
@@ -146,9 +151,9 @@ class MotionCorr(JobType):
             info_table = self._find_table_from_column_name(
                 "_rlnMicrographFrameNumber", drift_star_file
             )
-            movie_table = self._find_table_from_column_name(
-                "_rlnMicrographMovieName", drift_star_file
-            )
+            movie_table = 0
+            print("into table", info_table)
+            print("movie table", movie_table)
         except (FileNotFoundError, OSError, RuntimeError, ValueError):
             return drift_data
         if info_table is None:
@@ -165,9 +170,10 @@ class MotionCorr(JobType):
         deltays = self.parse_star_file(
             "_rlnMicrographShiftY", drift_star_file, info_table
         )
-        movie_name = self.parse_star_file(
+        movie_name = self.parse_star_file_pair(
             "_rlnMicrographMovieName", drift_star_file, movie_table
         )
+        print("movie name", movie_name)
         for f, dx, dy in zip(frame_numbers, deltaxs, deltays):
             drift_data.append(MCMicrographDrift(int(f), float(dx), float(dy)))
         try:
