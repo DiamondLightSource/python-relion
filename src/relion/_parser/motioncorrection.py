@@ -111,7 +111,7 @@ class MotionCorr(JobType):
                     accum_motion_total[j],
                     accum_motion_early[j],
                     accum_motion_late[j],
-                    (self._basepath / movie_name).stat().st_ctime,
+                    (self._basepath / movie_name).resolve().stat().st_ctime,
                     drift_data,
                 )
             )
