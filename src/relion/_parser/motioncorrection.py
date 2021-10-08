@@ -152,8 +152,6 @@ class MotionCorr(JobType):
                 "_rlnMicrographFrameNumber", drift_star_file
             )
             movie_table = 0
-            print("into table", info_table)
-            print("movie table", movie_table)
         except (FileNotFoundError, OSError, RuntimeError, ValueError):
             return drift_data
         if info_table is None:
@@ -173,7 +171,6 @@ class MotionCorr(JobType):
         movie_name = self.parse_star_file_pair(
             "_rlnMicrographMovieName", drift_star_file, movie_table
         )
-        print("movie name", movie_name)
         for f, dx, dy in zip(frame_numbers, deltaxs, deltays):
             drift_data.append(MCMicrographDrift(int(f), float(dx), float(dy)))
         try:
