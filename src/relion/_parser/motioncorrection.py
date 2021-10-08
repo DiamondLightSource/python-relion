@@ -14,6 +14,7 @@ MCMicrograph = namedtuple(
         "total_motion",
         "early_motion",
         "late_motion",
+        "micrograph_timestamp",
         "drift_data",
     ],
 )
@@ -29,6 +30,9 @@ MCMicrograph.total_motion.__doc__ = (
 )
 MCMicrograph.early_motion.__doc__ = "Early motion."
 MCMicrograph.late_motion.__doc__ = "Late motion."
+MCMicrograph.micrograph_timestamp.__doc__ = (
+    "Time stamp at which the micrograph was created."
+)
 
 
 MCMicrographDrift = namedtuple(
@@ -95,7 +99,13 @@ class MotionCorr(JobType):
 
         micrograph_list = []
         for j in range(len(micrograph_name)):
-            drift_data = self.collect_drift_data(micrograph_name[j], jobdir)
+            drift_data, movie_name = self.collect_drift_data(micrograph_name[j], jobdir)
+            try:
+                movie_creation_time = (
+                    (self._basepath / movie_name).resolve().stat().st_ctime
+                )
+            except FileNotFoundError:
+                movie_creation_time = None
             micrograph_list.append(
                 MCMicrograph(
                     micrograph_name[j],
@@ -106,6 +116,7 @@ class MotionCorr(JobType):
                     accum_motion_total[j],
                     accum_motion_early[j],
                     accum_motion_late[j],
+                    movie_creation_time,
                     drift_data,
                 )
             )
@@ -140,11 +151,12 @@ class MotionCorr(JobType):
             info_table = self._find_table_from_column_name(
                 "_rlnMicrographFrameNumber", drift_star_file
             )
+            movie_table = 0
         except (FileNotFoundError, OSError, RuntimeError, ValueError):
             return drift_data
         if info_table is None:
             logger.debug(
-                f"_rlnMicrographFrameNumber not found in file {drift_star_file}"
+                f"_rlnMicrographFrameNumber or _rlnMicrographMovieName not found in file {drift_star_file}"
             )
             return drift_data
         frame_numbers = self.parse_star_file(
@@ -156,6 +168,9 @@ class MotionCorr(JobType):
         deltays = self.parse_star_file(
             "_rlnMicrographShiftY", drift_star_file, info_table
         )
+        movie_name = self.parse_star_file_pair(
+            "_rlnMicrographMovieName", drift_star_file, movie_table
+        )
         for f, dx, dy in zip(frame_numbers, deltaxs, deltays):
             drift_data.append(MCMicrographDrift(int(f), float(dx), float(dy)))
         try:
@@ -165,7 +180,7 @@ class MotionCorr(JobType):
             )
         except FileNotFoundError:
             return []
-        return drift_data
+        return drift_data, movie_name
 
     @staticmethod
     def for_cache(mcmicrograph):
@@ -198,6 +213,7 @@ class MotionCorr(JobType):
                 "image_number": micrograph.micrograph_number,
                 "micrograph_snapshot_full_path": micrograph.micrograph_snapshot_full_path,
                 "drift_data": micrograph.drift_data,
+                "created_time_stamp": micrograph.micrograph_timestamp,
             }
             for micrograph in micrograph_list
         ]

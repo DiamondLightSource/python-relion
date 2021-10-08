@@ -77,6 +77,11 @@ class JobType(collections.abc.Mapping):
             print("Warning - no values found for", loop_name)
         return values_list
 
+    def parse_star_file_pair(self, key, star_doc, block_number):
+        data_block = star_doc[block_number]
+        value = data_block.find_pair(key)[-1]
+        return value
+
     @staticmethod
     def _find_table_from_column_name(cname, star_doc):
         for block_index, block in enumerate(star_doc):
