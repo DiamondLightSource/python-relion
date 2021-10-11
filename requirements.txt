@@ -1,4 +1,4 @@
-gemmi==0.4.8
+gemmi==0.4.9
 matplotlib==3.3.2; python_version < '3.7'
 matplotlib==3.4.2; python_version >= '3.7'
 mrcfile==1.3
