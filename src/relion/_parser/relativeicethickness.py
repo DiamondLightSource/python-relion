@@ -47,11 +47,11 @@ class RelativeIceThickness(JobType):
         except (FileNotFoundError, OSError, RuntimeError, ValueError):
             return []
         list_micrograph_path = ice_dict["path"]
-        list_minimum = ice_dict[" min"]
-        list_q1 = ice_dict[" q1"]
-        list_median = ice_dict[" q2=median"]
-        list_q3 = ice_dict[" q3"]
-        list_maximum = ice_dict[" max"]
+        list_minimum = ice_dict["min"]
+        list_q1 = ice_dict["q1"]
+        list_median = ice_dict["q2=median"]
+        list_q3 = ice_dict["q3"]
+        list_maximum = ice_dict["max"]
 
         micrograph_list = []
         for j in range(len(list_micrograph_path)):
