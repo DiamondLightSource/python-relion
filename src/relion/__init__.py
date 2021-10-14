@@ -124,11 +124,11 @@ class Project(RelionPipeline):
             "CtfFind": self.ctffind,
             "MotionCorr": self.motioncorrection,
             "AutoPick": self.autopick,
-            "crYOLO_AutoPick": self.cryolo,
+            "External/crYOLO_AutoPick/": self.cryolo,
             "Class2D": self.class2D,
             "InitialModel": self.initialmodel,
             "Class3D": self.class3D,
-            "icebreaker_job_??": self.relativeicethickness,
+            "External/Icebreaker_5fig/": self.relativeicethickness,
         }
         return resd
 
@@ -182,10 +182,7 @@ class Project(RelionPipeline):
     @property
     @functools.lru_cache(maxsize=1)
     def relativeicethickness(self):
-        """access the relative ice thicknesses for a mircograph.
-        Returns a dictionary-like object with job names as keys,
-        and lists of RelativeIceThicknessMicrograph namedtuples as values."""
-        return RelativeIceThickness(self.basepath / "RelativeIceThickness")
+        return RelativeIceThickness(self.basepath / "External")
 
     def origin_present(self):
         try:
@@ -215,9 +212,10 @@ class Project(RelionPipeline):
             list(self.schedule_files), self.basepath / "pipeline_PREPROCESS.log"
         )
         for jobnode in self:
-            if self._results_dict.get(
-                jobnode.name
-            ) or "crYOLO" in jobnode.environment.get("alias"):
+            if (
+                self._results_dict.get(jobnode.name)
+                or jobnode.environment.get("alias") in self._results_dict
+            ):
                 if jobnode.name == "InitialModel":
                     self._update_pipeline(
                         jobnode,
