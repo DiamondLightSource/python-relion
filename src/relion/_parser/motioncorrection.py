@@ -100,11 +100,14 @@ class MotionCorr(JobType):
         micrograph_list = []
         for j in range(len(micrograph_name)):
             drift_data, movie_name = self.collect_drift_data(micrograph_name[j], jobdir)
-            try:
-                movie_creation_time = (
-                    (self._basepath / movie_name).resolve().stat().st_ctime
-                )
-            except FileNotFoundError:
+            if movie_name:
+                try:
+                    movie_creation_time = (
+                        (self._basepath / movie_name).resolve().stat().st_ctime
+                    )
+                except FileNotFoundError:
+                    movie_creation_time = None
+            else:
                 movie_creation_time = None
             micrograph_list.append(
                 MCMicrograph(
@@ -140,25 +143,25 @@ class MotionCorr(JobType):
                         "Could not find expected file containing drift data",
                         exc_info=True,
                     )
-                    return []
+                    return [], ""
         else:
             self._drift_cache[jobdir] = {}
         try:
             drift_star_file = self._read_star_file(jobdir, drift_star_file_path)
         except (FileNotFoundError, OSError, RuntimeError, ValueError):
-            return drift_data
+            return drift_data, ""
         try:
             info_table = self._find_table_from_column_name(
                 "_rlnMicrographFrameNumber", drift_star_file
             )
             movie_table = 0
         except (FileNotFoundError, OSError, RuntimeError, ValueError):
-            return drift_data
+            return drift_data, ""
         if info_table is None:
             logger.debug(
                 f"_rlnMicrographFrameNumber or _rlnMicrographMovieName not found in file {drift_star_file}"
             )
-            return drift_data
+            return drift_data, ""
         frame_numbers = self.parse_star_file(
             "_rlnMicrographFrameNumber", drift_star_file, info_table
         )
