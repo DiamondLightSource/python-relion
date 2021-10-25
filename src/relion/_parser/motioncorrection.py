@@ -140,7 +140,7 @@ class MotionCorr(JobType):
                     ):
                         return (
                             self._drift_cache[jobdir][mic_name].data,
-                            self._dirft_cache[jobdir][mic_name].movie_name,
+                            self._drift_cache[jobdir][mic_name].movie_name,
                         )
                 except FileNotFoundError:
                     logger.debug(
