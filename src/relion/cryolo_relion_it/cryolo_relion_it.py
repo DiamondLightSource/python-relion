@@ -2419,7 +2419,7 @@ def run_pipeline(opts):
         #### Set up Icebreaker job - group
         if opts.do_icebreaker_job_group:
             icebreaker_options = [
-                "External executable: == ib_job.py",
+                "External executable: == ib_job",
                 f"Input micrographs:  == {motioncorr_job}corrected_micrographs.star",
                 f"Number of threads: == {opts.icebreaker_threads_number}",
                 "Param1 - label: == o",
@@ -2440,7 +2440,7 @@ def run_pipeline(opts):
         ####Set up Icebreaker job - flatten
         if opts.do_icebreaker_job_flatten:
             icebreaker_options = [
-                "External executable: == ib_job.py",
+                "External executable: == ib_job",
                 f"Input micrographs:  == {motioncorr_job}corrected_micrographs.star",
                 f"Number of threads: == {opts.icebreaker_threads_number}",
                 "Param1 - label: == o",
@@ -2461,7 +2461,7 @@ def run_pipeline(opts):
         #### Set up the Icebreaker five-figures job
         if opts.do_icebreaker_group:
             icebreaker_options = [
-                "External executable: == ib_5fig.py",
+                "External executable: == ib_5fig",
                 f"Input micrographs:  == {icebreaker_job_group}grouped_micrographs.star",
                 "Number of threads: == 1",
                 "Param1 - label: == o",
