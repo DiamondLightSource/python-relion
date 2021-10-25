@@ -49,6 +49,7 @@ MCDriftCacheRecord = namedtuple(
     [
         "data",
         "file_size",
+        "movie_name",
     ],
 )
 
@@ -137,7 +138,10 @@ class MotionCorr(JobType):
                         .stat()
                         .st_size
                     ):
-                        return self._drift_cache[jobdir][mic_name].data
+                        return (
+                            self._drift_cache[jobdir][mic_name].data,
+                            self._dirft_cache[jobdir][mic_name].movie_name,
+                        )
                 except FileNotFoundError:
                     logger.debug(
                         "Could not find expected file containing drift data",
@@ -180,9 +184,10 @@ class MotionCorr(JobType):
             self._drift_cache[jobdir][mic_name] = MCDriftCacheRecord(
                 drift_data,
                 (self._basepath / jobdir / drift_star_file_path).stat().st_size,
+                movie_name,
             )
         except FileNotFoundError:
-            return []
+            return [], ""
         return drift_data, movie_name
 
     @staticmethod
