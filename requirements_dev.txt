@@ -1,5 +1,5 @@
 bump2version==1.0.1
-dials_data==2.2.13
+dials_data==2.2.19
 gemmi==0.4.9
 graphviz==0.17
 ispyb==6.9.0
@@ -10,8 +10,8 @@ numpy==1.19; python_version < '3.7'
 numpy==1.21; python_version >= '3.7'
 pandas==1.1.5; python_version < '3.7'
 pandas==1.2.4; python_version >= '3.7'
-pillow==8.3.2
+pillow==8.4.0
 plotly==5.3.1
 pytest-cov==3.0.0
 pytest==6.2.5
-zocalo==0.10.0
+zocalo==0.11.0
