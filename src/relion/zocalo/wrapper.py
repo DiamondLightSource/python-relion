@@ -507,15 +507,26 @@ def _(
     buffered = ["motion_correction_id", "drift_data"]
     buffer_store = row["motion_correction_id"]
     drift_frames = [(frame.frame, frame.deltaX, frame.deltaY) for frame in drift_data]
-    results = {
-        "ispyb_command": "buffer",
-        "buffer_command": {
-            "ispyb_command": "insert_motion_correction",
-            **{k: v for k, v in row.items() if k not in buffered},
-            "drift_frames": drift_frames,
-        },
-        "buffer_store": buffer_store,
-    }
+    if resend:
+        results = {
+            "ispyb_command": "buffer",
+            "buffer_lookup": {"motion_correction_id": buffer_store},
+            "buffer_command": {
+                "ispyb_command": "insert_motion_correction",
+                **{k: v for k, v in row.items() if k not in buffered},
+                "drift_frames": drift_frames,
+            },
+        }
+    else:
+        results = {
+            "ispyb_command": "buffer",
+            "buffer_command": {
+                "ispyb_command": "insert_motion_correction",
+                **{k: v for k, v in row.items() if k not in buffered},
+                "drift_frames": drift_frames,
+            },
+            "buffer_store": buffer_store,
+        }
     return results
 
 
