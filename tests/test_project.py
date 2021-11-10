@@ -107,6 +107,14 @@ def test_create_Project_on_inaccessible_path_fails(tmp_path):
         relion.Project(tmp_path / "does_not_exist", run_options=empty_options)
 
 
+def test_create_Project_with_cluster_information_collection_does_not_fail(dials_data):
+    relion.Project(
+        dials_data("relion_tutorial_data", pathlib=True),
+        run_options=empty_options,
+        cluster=True,
+    )
+
+
 def test_Project_schedule_files_property_contains_the_correct_files(dials_data, proj):
     assert (
         dials_data("relion_tutorial_data", pathlib=True) / "pipeline_PREPROCESS.log"
