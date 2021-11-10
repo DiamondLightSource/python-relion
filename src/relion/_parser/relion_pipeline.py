@@ -384,7 +384,7 @@ class RelionPipeline:
                             minute=int(time_split[1]),
                             second=int(time_split[2]),
                         )
-                        if time is None or dtime < time:
+                        if time is None or dtime > time:
                             time = dtime
                         jobcount += 1
         return time, jobcount
