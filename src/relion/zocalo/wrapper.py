@@ -7,7 +7,7 @@ import pathlib
 import threading
 import time
 from pprint import pprint
-from typing import Union
+from typing import Optional
 
 import zocalo.util.symlink
 import zocalo.wrapper
@@ -500,7 +500,7 @@ def _(
     table: MotionCorrectionTable,
     primary_key: int,
     resend: bool = False,
-    unsent_appended: Union[dict, None] = None,
+    unsent_appended: Optional[dict] = None,
 ):
     row = table.get_row_by_primary_key(primary_key)
     drift_data = row["drift_data"]
@@ -535,7 +535,7 @@ def _(
     table: CTFTable,
     primary_key: int,
     resend: bool = False,
-    unsent_appended: Union[dict, None] = None,
+    unsent_appended: Optional[dict] = None,
 ):
     row = table.get_row_by_primary_key(primary_key)
     buffered = ["motion_correction_id", "ctf_id"]
@@ -573,7 +573,7 @@ def _(
     table: ParticlePickerTable,
     primary_key: int,
     resend: bool = False,
-    unsent_appended: Union[dict, None] = None,
+    unsent_appended: Optional[dict] = None,
 ):
     row = table.get_row_by_primary_key(primary_key)
     buffered = [
@@ -615,7 +615,7 @@ def _(
     table: ParticleClassificationGroupTable,
     primary_key: int,
     resend: bool = False,
-    unsent_appended: Union[dict, None] = None,
+    unsent_appended: Optional[dict] = None,
 ):
     row = table.get_row_by_primary_key(primary_key)
     buffered = ["particle_picker_id", "particle_classification_group_id"]
@@ -653,7 +653,7 @@ def _(
     table: ParticleClassificationTable,
     primary_key: int,
     resend: bool = False,
-    unsent_appended: Union[dict, None] = None,
+    unsent_appended: Optional[dict] = None,
 ):
     row = table.get_row_by_primary_key(primary_key)
     buffered = ["particle_classification_group_id", "particle_classification_id"]
@@ -691,7 +691,7 @@ def _(
     table: CryoemInitialModelTable,
     primary_key: int,
     resend: bool = False,
-    unsent_appended: Union[dict, None] = None,
+    unsent_appended: Optional[dict] = None,
 ):
     if unsent_appended is None:
         unsent_appended = {}
@@ -743,7 +743,7 @@ def _(
     table: RelativeIceThicknessTable,
     primary_key: int,
     resend: bool = False,
-    unsent_appended: Union[dict, None] = None,
+    unsent_appended: Optional[dict] = None,
 ):
     row = table.get_row_by_primary_key(primary_key)
     buffered = ["motion_correction_id", "relative_ice_thickness_id"]
