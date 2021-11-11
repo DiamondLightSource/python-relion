@@ -43,6 +43,9 @@ ctffind4_exe = "ctffind"
 
 queue_submission_template = "/dls_sw/apps/EM/relion/qsub_template_hamilton"
 queue_submission_template_cpu = "/dls_sw/apps/EM/relion/qsub_template_hamilton_cpu"
+queue_submission_template_cpu_smp = (
+    "/dls_sw/apps/EM/relion/qsub_template_hamilton_cpu_smp"
+)
 
 motioncor_gpu = ""
 motioncor_do_own = False

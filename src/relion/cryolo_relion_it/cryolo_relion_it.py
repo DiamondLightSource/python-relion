@@ -949,6 +949,9 @@ class RelionItOptions(object):
     # The template for your standard queue job submission script
     queue_submission_template = "/public/EM/RELION/relion/bin/qsub.csh"
     queue_submission_template_cpu = "/public/EM/RELION/relion/bin/qsub_cpu.csh"
+    # Template for CPU submissions using an SMP environment rather than MPI for applications that do not have
+    # MPI support but do support other parallelistaion
+    queue_submisstion_template_cpu_smp = "/public/EM/RELION/relion/bin/qsub_cpu_smp.csh"
     # Minimum number of dedicated cores that need to be requested on each node
     queue_minimum_dedicated = 1
 
@@ -2302,6 +2305,16 @@ def run_pipeline(opts):
         "Minimum dedicated cores per node: == {}".format(opts.queue_minimum_dedicated),
     ]
 
+    queue_options_cpu_smp = [
+        "Submit to queue? == Yes",
+        "Queue name:  == {}".format(opts.queue_name),
+        "Queue submit command: == {}".format(opts.queue_submit_command),
+        "Standard submission script: == {}".format(
+            opts.queue_submission_template_cpu_smp
+        ),
+        "Minimum dedicated cores per node: == {}".format(opts.queue_minimum_dedicated),
+    ]
+
     # If we're only doing motioncorr and ctf estimation, then forget about the second pass and the batch processing
     if opts.stop_after_ctf_estimation:
         opts.do_class2d = False
@@ -2428,7 +2441,7 @@ def run_pipeline(opts):
                 "Param2 - value: == group",
             ]
             if opts.motioncor_submit_to_queue:
-                icebreaker_options.extend(queue_options_cpu)
+                icebreaker_options.extend(queue_options_cpu_smp)
             icebreaker_job_group, already_had_it = addJob(
                 "External",
                 "icebreaker_job_group",
@@ -2449,7 +2462,7 @@ def run_pipeline(opts):
                 "Param2 - value: == flatten",
             ]
             if opts.motioncor_submit_to_queue:
-                icebreaker_options.extend(queue_options_cpu)
+                icebreaker_options.extend(queue_options_cpu_smp)
             icebreaker_job_flatten, already_had_it = addJob(
                 "External",
                 "icebreaker_job_flatten",
@@ -2468,7 +2481,7 @@ def run_pipeline(opts):
                 "Param1 - value: == External/Icebreaker_5fig",
             ]
             if opts.motioncor_submit_to_queue:
-                icebreaker_options.extend(queue_options_cpu)
+                icebreaker_options.extend(queue_options_cpu_smp)
             icebreaker_5fig, already_had_it = addJob(
                 "External",
                 "icebreaker_5fig",
