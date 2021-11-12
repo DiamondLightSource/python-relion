@@ -951,7 +951,7 @@ class RelionItOptions(object):
     queue_submission_template_cpu = "/public/EM/RELION/relion/bin/qsub_cpu.csh"
     # Template for CPU submissions using an SMP environment rather than MPI for applications that do not have
     # MPI support but do support other parallelistaion
-    queue_submisstion_template_cpu_smp = "/public/EM/RELION/relion/bin/qsub_cpu_smp.csh"
+    queue_submission_template_cpu_smp = "/public/EM/RELION/relion/bin/qsub_cpu_smp.csh"
     # Minimum number of dedicated cores that need to be requested on each node
     queue_minimum_dedicated = 1
 
