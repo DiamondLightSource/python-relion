@@ -21,6 +21,7 @@ steps:
     destinationFolder: "$(Pipeline.Workspace)/src"
 
 - script: |
+    pip install --disable-pip-version-check wheel
     pip install --disable-pip-version-check -r "$(Pipeline.Workspace)/src/requirements_dev.txt" pytest-azurepipelines
     pip install --no-deps --disable-pip-version-check -e "$(Pipeline.Workspace)/src"
   displayName: Install package

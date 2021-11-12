@@ -15,15 +15,24 @@ stages:
     pool:
       vmImage: ubuntu-20.04
     steps:
+      # Run syntax validation using oldest and latest Python
       - task: UsePythonVersion@0
         displayName: Set up python
         inputs:
-          versionSpec: 3.9
+          versionSpec: 3.6
 
-      - bash: |
-          python .azure-pipelines/syntax-validation.py
-        displayName: Syntax validation
+      - bash: python .azure-pipelines/syntax-validation.py
+        displayName: Syntax validation (3.6)
 
+      - task: UsePythonVersion@0
+        displayName: Set up python
+        inputs:
+          versionSpec: 3.10
+
+      - bash: python .azure-pipelines/syntax-validation.py
+        displayName: Syntax validation (3.10)
+
+      # Run flake8 validation on a shallow clone
       - bash: |
           pip install --disable-pip-version-check flake8
           python .azure-pipelines/flake8-validation.py
@@ -41,7 +50,7 @@ stages:
       - task: UsePythonVersion@0
         displayName: Set up python
         inputs:
-          versionSpec: 3.9
+          versionSpec: 3.10
 
       - bash: |
           pip install --disable-pip-version-check collective.checkdocs wheel
@@ -85,6 +94,8 @@ stages:
           PYTHON_VERSION: 3.8
         python39:
           PYTHON_VERSION: 3.9
+        python310:
+          PYTHON_VERSION: 3.10
     steps:
     - template: .azure-pipelines/ci-unix.yml
 
@@ -101,6 +112,8 @@ stages:
           PYTHON_VERSION: 3.8
         python39:
           PYTHON_VERSION: 3.9
+        python310:
+          PYTHON_VERSION: 3.10
     steps:
     - template: .azure-pipelines/ci-unix.yml
 
@@ -117,6 +130,8 @@ stages:
           PYTHON_VERSION: 3.8
         python39:
           PYTHON_VERSION: 3.9
+        python310:
+          PYTHON_VERSION: 3.10
     steps:
     - template: .azure-pipelines/ci-windows.yml
 
@@ -136,7 +151,7 @@ stages:
       - task: UsePythonVersion@0
         displayName: Set up python
         inputs:
-          versionSpec: 3.8
+          versionSpec: 3.10
 
       - task: DownloadBuildArtifacts@0
         displayName: Get pre-built package
