@@ -2993,7 +2993,7 @@ def run_pipeline(opts):
                                 )
 
                                 icebreaker_group_options = [
-                                    "External executable: == ib_group.py",
+                                    "External executable: == ib_group",
                                     f"Input micrographs:  == {icebreaker_job_group}grouped_micrographs.star",
                                     f"Number of threads: == {opts.icebreaker_threads_number}",
                                     "Param1 - label: == o",
