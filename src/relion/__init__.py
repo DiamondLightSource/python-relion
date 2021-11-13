@@ -227,16 +227,16 @@ class Project(RelionPipeline):
                     self._update_pipeline(
                         jobnode, jobnode.name, prop=("job_string", "parpick_job_string")
                     )
-                elif jobnode.name == "External":
-                    self._update_pipeline(
-                        jobnode,
-                        jobnode.environment.get("alias"),
-                    )
                 elif "crYOLO" in jobnode.environment.get("alias"):
                     self._update_pipeline(
                         jobnode,
                         jobnode.environment.get("alias"),
                         prop=("job_string", "parpick_job_string"),
+                    )
+                elif jobnode.name == "External":
+                    self._update_pipeline(
+                        jobnode,
+                        jobnode.environment.get("alias"),
                     )
                 else:
                     self._update_pipeline(jobnode, jobnode.name)
