@@ -56,7 +56,8 @@ def mrc_to_jpeg(plugin_params):
     timing = time.perf_counter() - start
 
     logger.info(
-        f"Converted mrc to jpeg {filename} -> {outfile} in {timing:.1f} seconds"
+        f"Converted mrc to jpeg {filename} -> {outfile} in {timing:.1f} seconds",
+        extra={"image-processing-time": timing},
     )
     if outfiles:
         return outfiles
@@ -111,5 +112,8 @@ def picked_particles(plugin_params):
             )
         fim.save(outfile)
     timing = time.perf_counter() - start
-    logger.info(f"Particle picker image {outfile} saved in {timing:.1f} seconds")
+    logger.info(
+        f"Particle picker image {outfile} saved in {timing:.1f} seconds",
+        extra={"image-processing-time": timing},
+    )
     return outfile
