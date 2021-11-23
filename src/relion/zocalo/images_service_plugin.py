@@ -105,14 +105,14 @@ def picked_particles(plugin_params):
         xscale = sizex / data.shape[0]
         yscale = sizey / data.shape[1]
     else:
-        xscale = 1
-        yscale = 1
+        xscale = plugin_params.parameters("xscale") or 1
+        yscale = plugin_params.parameters("yscale") or 1
     data = data - data.min()
     data = data * 255 / data.max()
     data = data.astype(np.uint8)
     with PIL.Image.fromarray(data).convert(mode="RGB") as bim:
-        if sizex:
-            bim.thumbnail((sizex, sizey))
+        if xscale != 1:
+            bim.thumbnail((xscale * data.shape[0], yscale * data.shape[1]))
         enhancer = ImageEnhance.Contrast(bim)
         enhanced = enhancer.enhance(contrast_factor)
         fim = enhanced.filter(ImageFilter.BLUR)
