@@ -487,7 +487,13 @@ def _(table: ParticlePickerTable, primary_key: int, **kwargs):
     if not mc_image_path or not parpick_image_path:
         return {}
     coords = table.get_row_by_primary_key(primary_key)["particle_coordinates"]
-    return {"file": mc_image_path, "outfile": parpick_image_path, "coordinates": coords}
+    return {
+        "file": mc_image_path,
+        "outfile": parpick_image_path,
+        "coordinates": coords,
+        "xscale": 0.5,
+        "yscale": 0.5,
+    }
 
 
 @functools.singledispatch
