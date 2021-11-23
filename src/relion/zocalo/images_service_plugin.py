@@ -76,7 +76,7 @@ def picked_particles(plugin_params):
     outfile = plugin_params.parameters("outfile")
     sizex = plugin_params.parameters("size-x")
     sizey = plugin_params.parameters("size-y")
-    sizes = set(sizex, sizey)
+    sizes = {sizex, sizey}
     if None in sizes and len(sizes) > 1:
         logger.error(
             f"One downscaling size was specified but not the other. size-x: {sizex}, size-y: {sizey}"
