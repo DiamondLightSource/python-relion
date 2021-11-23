@@ -74,6 +74,14 @@ def picked_particles(plugin_params):
     diam = plugin_params.parameters("diameter")
     contrast_factor = plugin_params.parameters("contrast_factor", default=6)
     outfile = plugin_params.parameters("outfile")
+    sizex = plugin_params.parameters("size-x")
+    sizey = plugin_params.parameters("size-y")
+    sizes = set(sizex, sizey)
+    if None in sizes and len(sizes) > 1:
+        logger.error(
+            f"One downscaling size was specified but not the other. size-x: {sizex}, size-y: {sizey}"
+        )
+        return False
     if not outfile:
         logger.error(f"Outfile incorrectly specified: {outfile}")
         return False
@@ -93,10 +101,18 @@ def picked_particles(plugin_params):
     except FileNotFoundError:
         logger.error(f"File {basefilename} could not be opened")
         return False
+    if sizex:
+        xscale = sizex / data.shape[0]
+        yscale = sizey / data.shape[1]
+    else:
+        xscale = 1
+        yscale = 1
     data = data - data.min()
     data = data * 255 / data.max()
     data = data.astype(np.uint8)
     with PIL.Image.fromarray(data).convert(mode="RGB") as bim:
+        if sizex:
+            bim.thumbnail((sizex, sizey))
         enhancer = ImageEnhance.Contrast(bim)
         enhanced = enhancer.enhance(contrast_factor)
         fim = enhanced.filter(ImageFilter.BLUR)
@@ -104,8 +120,8 @@ def picked_particles(plugin_params):
         for x, y in coords:
             dim.ellipse(
                 [
-                    (float(x) - radius, float(y) - radius),
-                    (float(x) + radius, float(y) + radius),
+                    xscale * (float(x) - radius, float(y) - radius),
+                    yscale * (float(x) + radius, float(y) + radius),
                 ],
                 width=8,
                 outline="#f58a07",
