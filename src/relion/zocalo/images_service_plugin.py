@@ -106,7 +106,7 @@ def picked_particles(plugin_params):
         yscale = sizey / data.shape[1]
     else:
         xscale = plugin_params.parameters("xscale") or 1
-        yscale = plugin_params.parameters("yscale") or 1
+        yscale = plugin_params.parameters("yscale") or xscale
     data = data - data.min()
     data = data * 255 / data.max()
     data = data.astype(np.uint8)
