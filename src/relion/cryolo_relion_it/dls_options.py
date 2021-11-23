@@ -12,7 +12,7 @@ Defaults for all options not defined here are as in the original relion_it.py sc
 # Run Cryolo picking or autopicking
 autopick_do_cryolo = True
 # Threshold for cryolo autopicking (higher the threshold the more *discriminative the cryolo picker) ((* But beware it may still not be picking what you want! ))
-cryolo_threshold = 0.3
+cryolo_threshold = 0.15
 # Finetune the cryolo general model by selecting good classes from 2D classification
 cryolo_finetune = False
 
