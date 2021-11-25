@@ -102,8 +102,8 @@ def picked_particles(plugin_params):
         logger.error(f"File {basefilename} could not be opened")
         return False
     if sizex:
-        xscale = sizex / data.shape[0]
-        yscale = sizey / data.shape[1]
+        xscale = sizex / data.shape[1]
+        yscale = sizey / data.shape[0]
     else:
         xscale = plugin_params.parameters("xscale") or 1
         yscale = plugin_params.parameters("yscale") or xscale
@@ -112,7 +112,7 @@ def picked_particles(plugin_params):
     data = data.astype(np.uint8)
     with PIL.Image.fromarray(data).convert(mode="RGB") as bim:
         if xscale != 1:
-            bim = bim.resize((int(xscale * data.shape[0]), int(yscale * data.shape[1])))
+            bim = bim.resize((int(xscale * data.shape[1]), int(yscale * data.shape[0])))
         enhancer = ImageEnhance.Contrast(bim)
         enhanced = enhancer.enhance(contrast_factor)
         fim = enhanced.filter(ImageFilter.BLUR)
@@ -123,7 +123,7 @@ def picked_particles(plugin_params):
                     (xscale * (float(x) - radius), yscale * (float(y) - radius)),
                     (xscale * (float(x) + radius), yscale * (float(y) + radius)),
                 ],
-                width=8 * xscale,
+                width=int(8 * xscale),
                 outline="#f58a07",
             )
         fim.save(outfile)
