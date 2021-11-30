@@ -114,6 +114,10 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
 
         if self.params["ispyb_parameters"]["import_images"].endswith(".eer"):
             self.params["ispyb_parameters"]["motioncor_do_own"] = True
+        if self.params["ispyb_parameters"].get("extract_small_boxsize"):
+            self.params["ispyb_parameters"]["extract_downscale"] = True
+        if self.params["ispyb_parameters"].get("extract2_small_boxsize"):
+            self.params["ispyb_parameters"]["extract2_downscale"] = True
         pprint(self.params["ispyb_parameters"])
 
         self.opts = RelionItOptions()
