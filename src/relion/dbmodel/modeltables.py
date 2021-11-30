@@ -342,7 +342,7 @@ def _(
             "particle_diameter": int(
                 relion_options.extract_boxsize
                 * relion_options.angpix
-                / relion_options.motioncor_binning
+                * relion_options.motioncor_binning
             )
             / 10,
         }
