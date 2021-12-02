@@ -104,9 +104,12 @@ class MotionCorr(JobType):
             if movie_name:
                 try:
                     movie_creation_time = (
-                        (self._basepath / movie_name).resolve().stat().st_ctime
+                        (self._basepath.parent / movie_name).resolve().stat().st_ctime
                     )
                 except FileNotFoundError:
+                    logger.debug(
+                        f"failed to find movie {self._basepath.parent / movie_name} so using default timestamp"
+                    )
                     movie_creation_time = None
             else:
                 movie_creation_time = None
