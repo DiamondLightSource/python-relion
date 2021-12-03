@@ -767,6 +767,7 @@ class RelionItOptions(object):
     #### Icebreaker
     do_icebreaker_job_group = True
     do_icebreaker_job_flatten = True
+    do_icebreaker_fivefig = False
     do_icebreaker_group = True
     icebreaker_threads_number = 10
 
@@ -2472,7 +2473,7 @@ def run_pipeline(opts):
             )
 
         #### Set up the Icebreaker five-figures job
-        if opts.do_icebreaker_group:
+        if opts.do_icebreaker_fivefig:
             icebreaker_options = [
                 "External executable: == ib_5fig",
                 f"Input micrographs:  == {icebreaker_job_group}grouped_micrographs.star",
@@ -2557,7 +2558,7 @@ def run_pipeline(opts):
             runjobs.append(icebreaker_job_group)
         if opts.do_icebreaker_job_flatten:
             runjobs.append(icebreaker_job_flatten)
-        if opts.do_icebreaker_group:
+        if opts.do_icebreaker_fivefig:
             runjobs.append(icebreaker_5fig)
         runjobs.append(ctffind_job)
 
