@@ -1,9 +1,12 @@
+import functools
+import os
 import pathlib
 import queue
 import threading
 import time
 from typing import Dict, Optional, Set, Union
 
+from gemmi import cif
 from pipeliner.api.api_utils import (
     edit_jobstar,
     job_parameters_dict,
@@ -68,6 +71,7 @@ class PipelineRunner:
             "dfstep": self.options.ctffind_defocus_step,
             "resmax": self.options.ctffind_maxres,
             "resmin": self.options.ctffind_minres,
+            "gpu_ids": "0:1:2:3",
             "nr_mpi": self.options.ctffind_mpi,
         }
         if self.options.ctffind_submit_to_queue:
@@ -83,11 +87,40 @@ class PipelineRunner:
         if self.options.cryolo_submit_to_queue:
             cryolo_options.update(queue_options)
 
+        class2d_options = {
+            "nr_classes": self.options.class2d_nr_classes,
+            "nr_iter_em": self.options.class2d_nr_iter,
+            "psi_sampling": self.options.class2d_angle_step,
+            "offset_range": self.options.class2d_offset_range,
+            "offset_step": self.options.class2d_offset_step,
+            "ctf_intact_first_peak": self.options.class2d_ctf_ign1stpeak,
+            "do_preread_images": self.options.refine_preread_images,
+            "scratch_dir": self.options.refine_scratch_disk,
+            "nr_pool": self.options.refine_nr_pool,
+            "use_gpu": self.options.refine_do_gpu,
+            "gpu_ids": "0:1:2:3",
+            "nr_mpi": self.options.refine_mpi,
+            "nr_threads": self.options.refine_threads,
+        }
+        if self.options.refine_submit_to_queue:
+            class2d_options.update(queue_options)
+
+        inimodel_options = {
+            "nr_classes": self.options.inimodel_nr_classes,
+            "sampling": self.options.inimodel_angle_step,
+            "offset_step": self.options.inimodel_offset_step,
+            "offset_range": self.options.inimodel_offset_range,
+        }
+        if self.options.refine_submit_to_queue:
+            inimodel_options.update(queue_options)
+
         return {
             "relion.import.movies": import_options,
             "relion.motioncorr.motioncorr2": motioncorr_options,
             "relion.ctffind.ctffind4": ctffind_options,
             "plugin.cryolo": cryolo_options,
+            "relion.class2d": class2d_options,
+            "relion.initialmodel": inimodel_options,
         }
 
     def _extra_options(self, job: str) -> dict:
@@ -185,6 +218,37 @@ class PipelineRunner:
                 self.project.continue_job(self.job_paths[job])
         return self._get_split_files(self.job_paths["relion.select.split"])
 
+    @property
+    @functools.lru_cache(maxsize=1)
+    def _best_inimodel_class(self) -> Optional[str]:
+        model_file_candidates = list(
+            (self.path / self.job_paths["relion.initialmodel"]).glob("*_model.star")
+        )
+        if len(model_file_candidates) != 1:
+            return None
+        model_file = model_file_candidates[0]
+        try:
+            star_doc = cif.read_file(os.fspath(model_file))
+            ref = star_doc["model_classes"]["rlnReferenceImage"][0]
+            ref_size = 0
+            ref_resolution = None
+            for i, image in star_doc["model_classes"]["rlnReferenceImage"]:
+                size = float(star_doc["model_classes"]["rlnClassDistribution"][i])
+                resolution = float(
+                    star_doc["model_classes"]["rlnEstimatedResolution"][i]
+                )
+                if ref_resolution is None or resolution < ref_resolution:
+                    ref_resolution = resolution
+                    ref_size = size
+                    ref = image
+                elif resolution == ref_resolution and size > ref_size:
+                    ref_resolution = resolution
+                    ref_size = size
+                    ref = image
+            return ref
+        except Exception:
+            return None
+
     def classification(self):
         first_batch = ""
         while True:
@@ -209,7 +273,11 @@ class PipelineRunner:
                         "relion.initialmodel"
                     )
                     self.job_paths["relion.class3d"][first_batch] = self.fresh_job(
-                        "relion.class3d", extra_params={"fn_img": batch_file}
+                        "relion.class3d",
+                        extra_params={
+                            "fn_img": batch_file,
+                            "fn_ref": self._best_inimodel_class,
+                        },
                     )
                 self.job_paths["relion.class2d"][batch_file] = self.fresh_class2d_job(
                     "relion.class2d", extra_params={"fn_img": batch_file}
@@ -218,7 +286,11 @@ class PipelineRunner:
                     self.job_paths["relion.class3d"][
                         batch_file
                     ] = self.fresh_class3d_job(
-                        "relion.class3d", extra_params={"fn_img": batch_file}
+                        "relion.class3d",
+                        extra_params={
+                            "fn_img": batch_file,
+                            "fn_ref": self._best_inimodel_class,
+                        },
                     )
 
     def run(self, timeout: int):
