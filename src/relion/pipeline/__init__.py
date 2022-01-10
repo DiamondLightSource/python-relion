@@ -19,9 +19,16 @@ from relion.cryolo_relion_it.cryolo_relion_it import RelionItOptions
 
 class PipelineRunner:
     def __init__(
-        self, projpath: pathlib.Path, stopfile: pathlib.Path, options: RelionItOptions
+        self,
+        projpath: pathlib.Path,
+        stopfile: pathlib.Path,
+        options: RelionItOptions,
+        moviesdir: str = "Movies",
+        movietype: str = "mrc",
     ):
         self.path = projpath
+        self.movies_path = projpath / moviesdir
+        self.movietype = movietype
         self.project = PipelinerProject()
         self.stopfile = stopfile
         self.options = options
@@ -30,6 +37,7 @@ class PipelineRunner:
         self._past_class_threshold = False
         self._class_queue = queue.Queue()
         self._batches: Set[str] = set()
+        self._num_seen_movies = 0
 
     def _generate_pipeline_options(self):
         import_options = {
@@ -256,6 +264,10 @@ class PipelineRunner:
         sorted_batch_numbers = sorted(with_batch_numbers, key=lambda x: x[0])
         return {s[1] for s in sorted_batch_numbers[:-1]}
 
+    def _get_num_movies(self, star_file: str) -> int:
+        star_doc = cif.read_file(os.fspath(star_file))
+        return len(star_doc[1]["_rlnMocrographMovieName"])
+
     def preprocessing(self) -> Set[str]:
         jobs = [
             "relion.import.movies",
@@ -270,6 +282,9 @@ class PipelineRunner:
                 )
             else:
                 self.project.continue_job(self.job_paths[job])
+        self._num_seen_movies = self._get_num_movies(
+            self.job_paths["relion.import.movies"] + "/movies.star"
+        )
         if self.options.stop_after_ctf_estimation:
             return set()
         if self.options.autopick_do_cryolo:
@@ -312,6 +327,25 @@ class PipelineRunner:
             return ref
         except Exception:
             return None
+
+    def _wait_for_movies(self, wait_for: int = 10):
+        num_movies = len(
+            [
+                m
+                for m in self.movies_path.glob("**/*")
+                if m.suffix == "." + self.movietype
+            ]
+        )
+        while num_movies == self._num_seen_movies:
+            time.sleep(wait_for)
+            num_movies = len(
+                [
+                    m
+                    for m in self.movies_path.glob("**/*")
+                    if m.suffix == "." + self.movietype
+                ]
+            )
+        self._num_seen_movies = num_movies
 
     def classification(self):
         first_batch = ""
