@@ -168,7 +168,7 @@ class PipelineRunner:
             "relion.import.movies": import_options,
             "relion.motioncorr.motioncorr2": motioncorr_options,
             "relion.ctffind.ctffind4": ctffind_options,
-            "plugin.cryolo": cryolo_options,
+            "cryolo.autopick": cryolo_options,
             "relion.extract": extract_options,
             "relion.select.split": select_options,
             "relion.class2d": class2d_options,
@@ -201,7 +201,7 @@ class PipelineRunner:
                     "input_star_mics": self.job_paths["relion.import.movies"]
                     + "/micrographs.star"
                 }
-        if job == "plugin.cryolo":
+        if job == "cryolo.autopick":
             if self.options.use_ctffind_instead:
                 return {
                     "input_file": self.job_paths["relion.ctffind.ctffind4"]
@@ -214,7 +214,7 @@ class PipelineRunner:
         if job == "relion.extract":
             if self.options.autopick_do_cryolo:
                 coords = (
-                    self.job_paths["plugin.cryolo"] + "/coords_suffix_autopick.star"
+                    self.job_paths["cryolo.autopick"] + "/coords_suffix_autopick.star"
                 )
             else:
                 coords = (
@@ -265,7 +265,7 @@ class PipelineRunner:
 
     def _get_num_movies(self, star_file: str) -> int:
         star_doc = cif.read_file(os.fspath(star_file))
-        return len(star_doc[1]["_rlnMocrographMovieName"])
+        return len(star_doc[1]["movies"]["_rlnMicrographMovieName"])
 
     def preprocessing(self) -> Set[str]:
         jobs = [
@@ -287,7 +287,7 @@ class PipelineRunner:
         if self.options.stop_after_ctf_estimation:
             return set()
         if self.options.autopick_do_cryolo:
-            next_jobs = ["plugin.cryolo"]
+            next_jobs = ["cryolo.autopick"]
         next_jobs.extend(["relion.extract", "relion.select.split"])
         for job in next_jobs:
             if not self.job_paths.get(job):
@@ -327,7 +327,7 @@ class PipelineRunner:
         except Exception:
             return None
 
-    def _wait_for_movies(self, wait_for: int = 10):
+    def _new_movies(self) -> bool:
         num_movies = len(
             [
                 m
@@ -335,16 +335,7 @@ class PipelineRunner:
                 if m.suffix == "." + self.movietype
             ]
         )
-        while num_movies == self._num_seen_movies:
-            time.sleep(wait_for)
-            num_movies = len(
-                [
-                    m
-                    for m in self.movies_path.glob("**/*")
-                    if m.suffix == "." + self.movietype
-                ]
-            )
-        self._num_seen_movies = num_movies
+        return not num_movies == self._num_seen_movies
 
     def classification(self):
         first_batch = ""
@@ -395,20 +386,22 @@ class PipelineRunner:
         current_time = start_time
         class_thread = None
         while current_time - start_time < timeout and not self.stopfile.exists():
-            self._wait_for_movies()
-            split_files = self.preprocessing()
-            if self.options.do_class2d:
-                if len(split_files) == 1:
-                    if class_thread is None:
-                        class_thread = threading.Thread(
-                            target=self.classification, name="classification_runner"
-                        )
-                    self._class_queue.put(list(split_files)[0])
-                    self._batches.update(split_files)
-                else:
-                    new_batches = split_files - self._batches
-                    if not self._past_class_threshold:
-                        self._past_class_threshold = True
-                    for sf in new_batches:
-                        self._class_queue.put(sf)
-                    self._batches.update(new_batches)
+            if self._new_movies():
+                split_files = self.preprocessing()
+                if self.options.do_class2d:
+                    if len(split_files) == 1:
+                        if class_thread is None:
+                            class_thread = threading.Thread(
+                                target=self.classification, name="classification_runner"
+                            )
+                        self._class_queue.put(list(split_files)[0])
+                        self._batches.update(split_files)
+                    else:
+                        new_batches = split_files - self._batches
+                        if not self._past_class_threshold:
+                            self._past_class_threshold = True
+                        for sf in new_batches:
+                            self._class_queue.put(sf)
+                        self._batches.update(new_batches)
+            time.sleep(10)
+            current_time = time.time()
