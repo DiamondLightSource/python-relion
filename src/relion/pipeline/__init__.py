@@ -40,7 +40,6 @@ class PipelineRunner:
         queue_options = {
             "do_queue": "Yes",
             "qsubscript": self.options.queue_submission_template,
-            "queuename": "motioncorr2_gpu",
         }
 
         motioncorr_options = {
@@ -62,6 +61,7 @@ class PipelineRunner:
         }
         if self.options.motioncor_submit_to_queue:
             motioncorr_options.update(queue_options)
+            motioncorr_options["queuename"] = "motioncorr2_gpu"
 
         ctffind_options = {
             "dast": self.options.ctffind_astigmatism,
@@ -76,6 +76,7 @@ class PipelineRunner:
         }
         if self.options.ctffind_submit_to_queue:
             ctffind_options.update(queue_options)
+            ctffind_options["queuename"] = "ctffind_gpu"
 
         cryolo_options = {
             "model_path": self.options.cryolo_gmodel,
@@ -86,6 +87,25 @@ class PipelineRunner:
         }
         if self.options.cryolo_submit_to_queue:
             cryolo_options.update(queue_options)
+            cryolo_options["queuename"] = "cryolo_gpu"
+
+        bin_corrected_box_size = int(
+            self.options.extract_boxsize / self.options.motioncor_binning
+        )
+        extract_options = {
+            "bg_diameter": self.options.extract_bg_diameter,
+            "extract_size": bin_corrected_box_size + bin_corrected_box_size % 2,
+            "do_rescale": bool(self.options.extract_downscale),
+            "rescale": self.options.extract_small_boxsize,
+            "nr_mpi": self.options.extract_mpi,
+        }
+        if self.options.extract_submit_to_queue:
+            extract_options.update(queue_options)
+            extract_options["queuename"] = "relion_extract"
+
+        select_options = {
+            "split_size": self.options.batch_size,
+        }
 
         class2d_options = {
             "nr_classes": self.options.class2d_nr_classes,
@@ -104,6 +124,7 @@ class PipelineRunner:
         }
         if self.options.refine_submit_to_queue:
             class2d_options.update(queue_options)
+            class2d_options["queuename"] = "class2d_gpu"
 
         inimodel_options = {
             "nr_classes": self.options.inimodel_nr_classes,
@@ -113,23 +134,27 @@ class PipelineRunner:
         }
         if self.options.refine_submit_to_queue:
             inimodel_options.update(queue_options)
+            inimodel_options["queuename"] = "inimodel_gpu"
 
-        bin_corrected_box_size = int(
-            self.options.extract_boxsize / self.options.motioncor_binning
-        )
-        extract_options = {
-            "bg_diameter": self.options.extract_bg_diameter,
-            "extract_size": bin_corrected_box_size + bin_corrected_box_size % 2,
-            "do_rescale": bool(self.options.extract_downscale),
-            "rescale": self.options.extract_small_boxsize,
-            "nr_mpi": self.options.extract_mpi,
+        class3d_options = {
+            "fn_mask": self.options.class3d_reference,
+            "nr_classes": self.options.class3d_nr_classes,
+            "sym_name": self.options.symmetry,
+            "ini_high": self.options.class3d_ini_lowpass,
+            "tau_fudge": self.options.class3d_T_value,
+            "particle_diameter": self.options.mask_diameter,
+            "nr_iter": self.options.class3d_nr_iter,
+            "sampling": self.options.class3d_angle_step,
+            "offset_range": self.options.class3d_offset_range,
+            "offset_step": self.options.class3d_offset_step,
+            "ref_correct_greyscale": self.options.class3d_ref_is_correct_greyscale,
+            "do_ctf_correction": self.options.class3d_ref_is_ctf_corrected,
+            "ctf_intact_first_peak": self.options.class3d_ctf_ign1stpeak,
+            "do_preread_images": self.options.refine_preread_images,
         }
-        if self.options.extract_submit_to_queue:
-            extract_options.update(queue_options)
-
-        select_options = {
-            "split_size": self.options.batch_size,
-        }
+        if self.options.refine_submit_to_queue:
+            class3d_options.update(queue_options)
+            class3d_options["queuename"] = "class3d_gpu"
 
         return {
             "relion.import.movies": import_options,
@@ -140,6 +165,7 @@ class PipelineRunner:
             "relion.select.split": select_options,
             "relion.class2d": class2d_options,
             "relion.initialmodel": inimodel_options,
+            "relion.class3d": class3d_options,
         }
 
     def _extra_options(self, job: str) -> dict:
