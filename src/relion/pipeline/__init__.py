@@ -114,11 +114,30 @@ class PipelineRunner:
         if self.options.refine_submit_to_queue:
             inimodel_options.update(queue_options)
 
+        bin_corrected_box_size = int(
+            self.options.extract_boxsize / self.options.motioncor_binning
+        )
+        extract_options = {
+            "bg_diameter": self.options.extract_bg_diameter,
+            "extract_size": bin_corrected_box_size + bin_corrected_box_size % 2,
+            "do_rescale": bool(self.options.extract_downscale),
+            "rescale": self.options.extract_small_boxsize,
+            "nr_mpi": self.options.extract_mpi,
+        }
+        if self.options.extract_submit_to_queue:
+            extract_options.update(queue_options)
+
+        select_options = {
+            "split_size": self.options.batch_size,
+        }
+
         return {
             "relion.import.movies": import_options,
             "relion.motioncorr.motioncorr2": motioncorr_options,
             "relion.ctffind.ctffind4": ctffind_options,
             "plugin.cryolo": cryolo_options,
+            "relion.extract": extract_options,
+            "relion.select.split": select_options,
             "relion.class2d": class2d_options,
             "relion.initialmodel": inimodel_options,
         }
@@ -158,6 +177,25 @@ class PipelineRunner:
                 "input_file": self.job_paths["relion.ctffind.gctf"]
                 + "/micrographs_ctf.star"
             }
+        if job == "relion.extract":
+            if self.options.autopick_do_cryolo:
+                coords = (
+                    self.job_paths["plugin.cryolo"] + "/coords_suffix_autopick.star"
+                )
+            else:
+                coords = (
+                    self.job_paths["relion.autopick"] + "/coords_suffix_autopick.star"
+                )
+            if self.options.use_ctffind_instead:
+                star_mics = self.job_paths["relion.ctffind.ctffind4"] + "/particle.star"
+            else:
+                star_mics = self.job_paths["relion.ctffind.gctf"] + "/particle.star"
+            return {
+                "coords_suffix": coords,
+                "star_mics": star_mics,
+            }
+        if job == "relion.select.split":
+            return {"fn_data": self.job_paths["relion.extract"] + "/particle.star"}
         return {}
 
     def fresh_job(self, job: str, extra_params: Optional[dict] = None) -> str:
