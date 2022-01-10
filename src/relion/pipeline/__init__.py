@@ -86,6 +86,19 @@ class PipelineRunner:
             ctffind_options.update(queue_options)
             ctffind_options["queuename"] = "ctffind_gpu"
 
+        autopick_LoG_options = {
+            "log_diam_min": self.options.autopick_LoG_diam_min,
+            "log_diam_max": self.options.autopick_LoG_diam_max,
+            "log_maxres": self.options.autopick_lowpass,
+            "log_adjust_thr": self.options.autopick_LoG_adjust_threshold,
+            "log_upper_thr": self.options.autopick_LoG_upper_threshold,
+            "gpu_ids": "0:1:2:3",
+            "nr_mpi": self.options.autopick_mpi,
+        }
+        if self.options.autopick_submit_to_queue:
+            autopick_LoG_options.update(queue_options)
+            autopick_LoG_options["queuename"] = "relion_autopick_gpu"
+
         cryolo_options = {
             "model_path": self.options.cryolo_gmodel,
             "box_size": int(
@@ -168,6 +181,7 @@ class PipelineRunner:
             "relion.import.movies": import_options,
             "relion.motioncorr.motioncorr2": motioncorr_options,
             "relion.ctffind.ctffind4": ctffind_options,
+            "relion.autopick.log": autopick_LoG_options,
             "cryolo.autopick": cryolo_options,
             "relion.extract": extract_options,
             "relion.select.split": select_options,
@@ -201,6 +215,16 @@ class PipelineRunner:
                     "input_star_mics": self.job_paths["relion.import.movies"]
                     + "/micrographs.star"
                 }
+        if job == "relion.autopick.log":
+            if self.options.use_ctffind_instead:
+                return {
+                    "fn_input_autopick": self.job_paths["relion.ctffind.ctffind4"]
+                    + "/micrographs_ctf.star"
+                }
+            return {
+                "fn_input_autopick": self.job_paths["relion.ctffind.gctf"]
+                + "/micrographs_ctf.star"
+            }
         if job == "cryolo.autopick":
             if self.options.use_ctffind_instead:
                 return {
@@ -288,6 +312,8 @@ class PipelineRunner:
             return set()
         if self.options.autopick_do_cryolo:
             next_jobs = ["cryolo.autopick"]
+        elif self.options.autopick_do_LoG:
+            next_jobs = ["relion.autopick.log"]
         next_jobs.extend(["relion.extract", "relion.select.split"])
         for job in next_jobs:
             if not self.job_paths.get(job):
