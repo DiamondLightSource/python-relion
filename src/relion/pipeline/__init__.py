@@ -240,7 +240,6 @@ class PipelineRunner:
             params.update(extra_params)
         params = {k: str(v) for k, v in params.items() if not isinstance(v, bool)}
         edit_jobstar(
-            None,
             f"{job.replace('.', '_')}_job.star",
             params,
             f"{job.replace('.', '_')}_job.star",
