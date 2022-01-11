@@ -4,7 +4,7 @@ import pathlib
 import queue
 import threading
 import time
-from typing import Dict, Optional, Set, Union
+from typing import Dict, List, Optional, Set, Union
 
 from gemmi import cif
 from pipeliner.api.api_utils import (
@@ -156,6 +156,7 @@ class PipelineRunner:
             "sampling": self.options.inimodel_angle_step,
             "offset_step": self.options.inimodel_offset_step,
             "offset_range": self.options.inimodel_offset_range,
+            "use_gpu": self.options.refine_do_gpu,
             "gpu_ids": "0:1:2:3",
             "nr_mpi": self.options.refine_mpi,
             "nr_threads": self.options.refine_threads,
@@ -300,7 +301,7 @@ class PipelineRunner:
             self.project.wait_for_queued_job_completion(job_path)
         return job_path
 
-    def _get_split_files(self, select_job: str) -> Set[str]:
+    def _get_split_files(self, select_job: str) -> List[str]:
         all_split_files = list(pathlib.Path(select_job).glob("*particles_split*.star"))
         if len(all_split_files) == 1:
             return {str(all_split_files[0])}
@@ -311,7 +312,7 @@ class PipelineRunner:
 
         with_batch_numbers = [(batch(str(f)), str(f)) for f in all_split_files]
         sorted_batch_numbers = sorted(with_batch_numbers, key=lambda x: x[0])
-        return {s[1] for s in sorted_batch_numbers[:-1]}
+        return sorted_batch_numbers[:-1]
 
     def _get_num_movies(self, star_file: str) -> int:
         star_doc = cif.read_file(os.fspath(star_file))
@@ -482,7 +483,7 @@ class PipelineRunner:
                         self._class2d_queue.put(list(split_files)[0])
                         self._batches.update(split_files)
                     else:
-                        new_batches = split_files - self._batches
+                        new_batches = [f for f in split_files if f not in self._batches]
                         if not self._past_class_threshold:
                             self._past_class_threshold = True
                         for sf in new_batches:
