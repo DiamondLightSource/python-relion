@@ -35,7 +35,8 @@ class PipelineRunner:
         self.pipeline_options: Dict[str, dict] = self._generate_pipeline_options()
         self.job_paths: Dict[str, Union[str, dict]] = {}
         self._past_class_threshold = False
-        self._class_queue = queue.Queue()
+        self._class2d_queue = queue.Queue()
+        self._class3d_queue = queue.Queue()
         self._batches: Set[str] = set()
         self._num_seen_movies = 0
 
@@ -130,6 +131,8 @@ class PipelineRunner:
 
         class2d_options = {
             "nr_classes": self.options.class2d_nr_classes,
+            "do_em": "Yes",
+            "do_grad": "No",
             "nr_iter_em": self.options.class2d_nr_iter,
             "psi_sampling": self.options.class2d_angle_step,
             "offset_range": self.options.class2d_offset_range,
@@ -255,10 +258,12 @@ class PipelineRunner:
                 "star_mics": star_mics,
             }
         if job == "relion.select.split":
-            return {"fn_data": self.job_paths["relion.extract"] + "/particle.star"}
+            return {"fn_data": self.job_paths["relion.extract"] + "/particles.star"}
         return {}
 
-    def fresh_job(self, job: str, extra_params: Optional[dict] = None) -> str:
+    def fresh_job(
+        self, job: str, extra_params: Optional[dict] = None, wait: bool = True
+    ) -> str:
         write_default_jobstar(job)
         params = job_parameters_dict(job)
         params.update(self.pipeline_options[job])
@@ -272,7 +277,7 @@ class PipelineRunner:
         )
         job_path = self.project.run_job(
             f"{job.replace('.', '_')}_job.star",
-            wait_for_queued=True,
+            wait_for_queued=wait,
         )
         return job_path
 
@@ -367,49 +372,57 @@ class PipelineRunner:
         )
         return not num_movies == self._num_seen_movies
 
+    def _classification_3d(self):
+        self.job_paths["relion.initialmodel"] = self.fresh_job(
+            "relion.initialmodel",
+        )
+        while True:
+            batch_file = self._class3d_queue.get()
+            if batch_file == "__terminate__":
+                return
+            self.job_paths["relion.class3d"][batch_file] = self.fresh_job(
+                "relion.class3d",
+                extra_params={
+                    "fn_img": batch_file,
+                    "fn_ref": self._best_inimodel_class,
+                },
+            )
+
     def classification(self):
         first_batch = ""
+        class3d_thread = None
         while True:
-            batch_file = self._class_queue.get()
+            batch_file = self._class2d_queue.get()
             if batch_file == "__terminate__":
+                if class3d_thread is None:
+                    return
+                self._class3d_queue.put("__terminate__")
+                class3d_thread.join()
                 return
             if not self.job_paths.get("relion.class2d"):
                 first_batch = batch_file
                 self.job_paths["relion.class2d"] = {}
                 self.job_paths["relion.class2d"][batch_file] = self.fresh_job(
-                    "relion.class2d", extra_params={"fn_img": batch_file}
+                    "relion.class2d",
+                    extra_params={"fn_img": batch_file},
                 )
             elif self.job_paths["relion.class2d"].get(batch_file):
                 self.project.continue_job(
                     self.job_paths["relion.class2d"].get(batch_file)
                 )
             else:
-                if self.options.do_class3d and not self.job_paths.get(
-                    "relion.initialmodel"
-                ):
-                    self.job_paths["relion.initialmodel"] = self.fresh_job(
-                        "relion.initialmodel"
+                if self.options.do_class3d and class3d_thread is None:
+                    class3d_thread = threading.Thread(
+                        target=self._classification_3d, name="3D_classification_runner"
                     )
-                    self.job_paths["relion.class3d"][first_batch] = self.fresh_job(
-                        "relion.class3d",
-                        extra_params={
-                            "fn_img": batch_file,
-                            "fn_ref": self._best_inimodel_class,
-                        },
-                    )
+                    class3d_thread.start()
+                    self._class3d_queue.put(first_batch)
                 self.job_paths["relion.class2d"][batch_file] = self.fresh_class2d_job(
-                    "relion.class2d", extra_params={"fn_img": batch_file}
+                    "relion.class2d",
+                    extra_params={"fn_img": batch_file},
                 )
                 if self.options.do_class3d:
-                    self.job_paths["relion.class3d"][
-                        batch_file
-                    ] = self.fresh_class3d_job(
-                        "relion.class3d",
-                        extra_params={
-                            "fn_img": batch_file,
-                            "fn_ref": self._best_inimodel_class,
-                        },
-                    )
+                    self._class3d_queue.put(batch_file)
 
     def run(self, timeout: int):
         start_time = time.time()
@@ -424,14 +437,18 @@ class PipelineRunner:
                             class_thread = threading.Thread(
                                 target=self.classification, name="classification_runner"
                             )
-                        self._class_queue.put(list(split_files)[0])
+                            class_thread.start()
+                        self._class2d_queue.put(list(split_files)[0])
                         self._batches.update(split_files)
                     else:
                         new_batches = split_files - self._batches
                         if not self._past_class_threshold:
                             self._past_class_threshold = True
                         for sf in new_batches:
-                            self._class_queue.put(sf)
+                            self._class2d_queue.put(sf)
                         self._batches.update(new_batches)
             time.sleep(10)
             current_time = time.time()
+        if class_thread is not None:
+            self._class2d_queue.put("__terminate__")
+            class_thread.join()
