@@ -39,6 +39,7 @@ class PipelineRunner:
         self._class3d_queue = queue.Queue()
         self._batches: Set[str] = set()
         self._num_seen_movies = 0
+        self._lock = threading.RLock()
 
     def _generate_pipeline_options(self):
         import_options = {
@@ -155,6 +156,9 @@ class PipelineRunner:
             "sampling": self.options.inimodel_angle_step,
             "offset_step": self.options.inimodel_offset_step,
             "offset_range": self.options.inimodel_offset_range,
+            "gpu_ids": "0:1:2:3",
+            "nr_mpi": self.options.refine_mpi,
+            "nr_threads": self.options.refine_threads,
         }
         if self.options.refine_submit_to_queue:
             inimodel_options.update(queue_options)
@@ -265,7 +269,11 @@ class PipelineRunner:
         return {}
 
     def fresh_job(
-        self, job: str, extra_params: Optional[dict] = None, wait: bool = True
+        self,
+        job: str,
+        extra_params: Optional[dict] = None,
+        wait: bool = True,
+        lock: Optional[threading.RLock] = None,
     ) -> str:
         write_default_jobstar(job)
         params = job_parameters_dict(job)
@@ -278,10 +286,18 @@ class PipelineRunner:
             params,
             f"{job.replace('.', '_')}_job.star",
         )
-        job_path = self.project.run_job(
-            f"{job.replace('.', '_')}_job.star",
-            wait_for_queued=wait,
-        )
+        if lock is None:
+            job_path = self.project.run_job(
+                f"{job.replace('.', '_')}_job.star",
+                wait_for_queued=wait,
+            )
+        else:
+            with lock:
+                job_path = self.project.run_job(
+                    f"{job.replace('.', '_')}_job.star",
+                    wait_for_queued=False,
+                )
+            self.project.wait_for_queued_job_completion(job_path)
         return job_path
 
     def _get_split_files(self, select_job: str) -> Set[str]:
@@ -293,13 +309,13 @@ class PipelineRunner:
             spfname = fname.split("particles_split")
             return int(spfname[-1].replace(".star", ""))
 
-        with_batch_numbers = [(batch(f), f) for f in all_split_files]
+        with_batch_numbers = [(batch(str(f)), str(f)) for f in all_split_files]
         sorted_batch_numbers = sorted(with_batch_numbers, key=lambda x: x[0])
         return {s[1] for s in sorted_batch_numbers[:-1]}
 
     def _get_num_movies(self, star_file: str) -> int:
         star_doc = cif.read_file(os.fspath(star_file))
-        return len(list(star_doc[1].find_loop(["_rlnMicrographMovieName"])))
+        return len(list(star_doc[1].find_loop("_rlnMicrographMovieName")))
 
     def preprocessing(self) -> Set[str]:
         jobs = [
@@ -311,7 +327,9 @@ class PipelineRunner:
         for job in jobs:
             if not self.job_paths.get(job):
                 self.job_paths[job] = self.fresh_job(
-                    job, extra_params=self._extra_options(job)
+                    job,
+                    extra_params=self._extra_options(job),
+                    lock=self._lock,
                 )
             else:
                 self.project.continue_job(self.job_paths[job])
@@ -328,7 +346,9 @@ class PipelineRunner:
         for job in next_jobs:
             if not self.job_paths.get(job):
                 self.job_paths[job] = self.fresh_job(
-                    job, extra_params=self._extra_options(job)
+                    job,
+                    extra_params=self._extra_options(job),
+                    lock=self._lock,
                 )
             else:
                 self.project.continue_job(self.job_paths[job])
@@ -376,11 +396,14 @@ class PipelineRunner:
         return not num_movies == self._num_seen_movies
 
     def _classification_3d(self):
-        self.job_paths["relion.initialmodel"] = self.fresh_job(
-            "relion.initialmodel",
-        )
         while True:
             batch_file = self._class3d_queue.get()
+            if self.job_paths.get("relion.initialmodel") is None:
+                self.job_paths["relion.initialmodel"] = self.fresh_job(
+                    "relion.initialmodel",
+                    extra_params={"fn_img": batch_file},
+                    lock=self._lock,
+                )
             if batch_file == "__terminate__":
                 return
             self.job_paths["relion.class3d"][batch_file] = self.fresh_job(
@@ -389,6 +412,7 @@ class PipelineRunner:
                     "fn_img": batch_file,
                     "fn_ref": self._best_inimodel_class,
                 },
+                lock=self._lock,
             )
 
     def classification(self):
@@ -408,11 +432,24 @@ class PipelineRunner:
                 self.job_paths["relion.class2d"][batch_file] = self.fresh_job(
                     "relion.class2d",
                     extra_params={"fn_img": batch_file},
+                    lock=self._lock,
                 )
+                if self._past_class_threshold and self.options.do_class3d:
+                    class3d_thread = threading.Thread(
+                        target=self._classification_3d, name="3D_classification_runner"
+                    )
+                    class3d_thread.start()
+                    self._class3d_queue.put(first_batch)
             elif self.job_paths["relion.class2d"].get(batch_file):
                 self.project.continue_job(
                     self.job_paths["relion.class2d"].get(batch_file)
                 )
+                if self._past_class_threshold and self.options.do_class3d:
+                    class3d_thread = threading.Thread(
+                        target=self._classification_3d, name="3D_classification_runner"
+                    )
+                    class3d_thread.start()
+                    self._class3d_queue.put(first_batch)
             else:
                 if self.options.do_class3d and class3d_thread is None:
                     class3d_thread = threading.Thread(
@@ -420,9 +457,10 @@ class PipelineRunner:
                     )
                     class3d_thread.start()
                     self._class3d_queue.put(first_batch)
-                self.job_paths["relion.class2d"][batch_file] = self.fresh_class2d_job(
+                self.job_paths["relion.class2d"][batch_file] = self.fresh_job(
                     "relion.class2d",
                     extra_params={"fn_img": batch_file},
+                    lock=self._lock,
                 )
                 if self.options.do_class3d:
                     self._class3d_queue.put(batch_file)
@@ -435,12 +473,12 @@ class PipelineRunner:
             if self._new_movies():
                 split_files = self.preprocessing()
                 if self.options.do_class2d:
+                    if class_thread is None:
+                        class_thread = threading.Thread(
+                            target=self.classification, name="classification_runner"
+                        )
+                        class_thread.start()
                     if len(split_files) == 1:
-                        if class_thread is None:
-                            class_thread = threading.Thread(
-                                target=self.classification, name="classification_runner"
-                            )
-                            class_thread.start()
                         self._class2d_queue.put(list(split_files)[0])
                         self._batches.update(split_files)
                     else:
