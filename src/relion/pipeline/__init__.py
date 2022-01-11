@@ -175,6 +175,9 @@ class PipelineRunner:
             "do_ctf_correction": self.options.class3d_ref_is_ctf_corrected,
             "ctf_intact_first_peak": self.options.class3d_ctf_ign1stpeak,
             "do_preread_images": self.options.refine_preread_images,
+            "gpu_ids": "0:1:2:3",
+            "nr_mpi": self.options.refine_mpi,
+            "nr_threads": self.options.refine_threads,
         }
         if self.options.refine_submit_to_queue:
             class3d_options.update(queue_options)
