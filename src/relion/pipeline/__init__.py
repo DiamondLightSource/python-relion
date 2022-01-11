@@ -241,13 +241,15 @@ class PipelineRunner:
                     self.job_paths["cryolo.autopick"] + "/coords_suffix_autopick.star"
                 )
             else:
-                coords = (
-                    self.job_paths["relion.autopick"] + "/coords_suffix_autopick.star"
-                )
+                coords = self.job_paths["relion.autopick.log"] + "/autopick.star"
             if self.options.use_ctffind_instead:
-                star_mics = self.job_paths["relion.ctffind.ctffind4"] + "/particle.star"
+                star_mics = (
+                    self.job_paths["relion.ctffind.ctffind4"] + "/micrographs_ctf.star"
+                )
             else:
-                star_mics = self.job_paths["relion.ctffind.gctf"] + "/particle.star"
+                star_mics = (
+                    self.job_paths["relion.ctffind.gctf"] + "/micrographs_ctf.star"
+                )
             return {
                 "coords_suffix": coords,
                 "star_mics": star_mics,
@@ -289,7 +291,7 @@ class PipelineRunner:
 
     def _get_num_movies(self, star_file: str) -> int:
         star_doc = cif.read_file(os.fspath(star_file))
-        return len(star_doc[1]["movies"]["_rlnMicrographMovieName"])
+        return len(list(star_doc[1].find_loop(["_rlnMicrographMovieName"])))
 
     def preprocessing(self) -> Set[str]:
         jobs = [
@@ -317,7 +319,9 @@ class PipelineRunner:
         next_jobs.extend(["relion.extract", "relion.select.split"])
         for job in next_jobs:
             if not self.job_paths.get(job):
-                self.fresh_job(job, extra_params=self._extra_options(job))
+                self.job_paths[job] = self.fresh_job(
+                    job, extra_params=self._extra_options(job)
+                )
             else:
                 self.project.continue_job(self.job_paths[job])
         return self._get_split_files(self.job_paths["relion.select.split"])
