@@ -13,6 +13,7 @@ from pipeliner.api.api_utils import (
     write_default_jobstar,
 )
 from pipeliner.api.manage_project import PipelinerProject
+from pipeliner.job_runner import JobRunner
 
 from relion.cryolo_relion_it.cryolo_relion_it import RelionItOptions
 
@@ -160,7 +161,7 @@ class PipelineRunner:
             "offset_range": self.options.inimodel_offset_range,
             "use_gpu": self.options.refine_do_gpu,
             "gpu_ids": "0:1:2:3",
-            "nr_mpi": self.options.refine_mpi,
+            "nr_mpi": 1,
             "nr_threads": self.options.refine_threads,
         }
         if self.options.refine_submit_to_queue:
@@ -312,7 +313,8 @@ class PipelineRunner:
                     f"{job.replace('.', '_')}_job.star",
                     wait_for_queued=False,
                 )
-            self.project.wait_for_queued_job_completion(job_path)
+            runner = JobRunner(self.project.pipeline.name)
+            runner.wait_for_queued_job_completion(job_path)
         return job_path
 
     def _get_split_files(self, select_job: str) -> List[str]:
