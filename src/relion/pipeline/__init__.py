@@ -38,6 +38,7 @@ class PipelineRunner:
         self._past_class_threshold = False
         self._class2d_queue = queue.Queue()
         self._class3d_queue = queue.Queue()
+        self._ib_group_queue = queue.Queue()
         self._batches: Set[str] = set()
         self._num_seen_movies = 0
         self._lock = threading.RLock()
@@ -51,6 +52,10 @@ class PipelineRunner:
         queue_options = {
             "do_queue": "Yes",
             "qsubscript": self.options.queue_submission_template,
+        }
+        queue_options_cpu = {
+            "do_queue": "Yes",
+            "qsubscript": self.options.queue_submission_template_cpu_smp,
         }
 
         motioncorr_options = {
@@ -74,7 +79,12 @@ class PipelineRunner:
             motioncorr_options.update(queue_options)
             motioncorr_options["queuename"] = "motioncorr2_gpu"
 
-        icebreaker_options = {"nr_threads": self.options.icebreaker_threads_number}
+        icebreaker_options = {
+            "nr_threads": self.options.icebreaker_threads_number,
+            "nr_mpi": 1,
+        }
+        icebreaker_options.update(queue_options_cpu)
+        icebreaker_options["queuename"] = "icebreaker"
 
         ctffind_options = {
             "dast": self.options.ctffind_astigmatism,
@@ -416,14 +426,16 @@ class PipelineRunner:
     def _classification_3d(self):
         while True:
             batch_file = self._class3d_queue.get()
+            if batch_file == "__terminate__":
+                return
             if self.job_paths.get("relion.initialmodel") is None:
                 self.job_paths["relion.initialmodel"] = self.fresh_job(
                     "relion.initialmodel",
                     extra_params={"fn_img": batch_file},
                     lock=self._lock,
                 )
-            if batch_file == "__terminate__":
-                return
+            if not self.job_paths.get("relion.class3d"):
+                self.job_paths["relion.class3d"] = {}
             self.job_paths["relion.class3d"][batch_file] = self.fresh_job(
                 "relion.class3d",
                 extra_params={
@@ -483,13 +495,42 @@ class PipelineRunner:
                 if self.options.do_class3d:
                     self._class3d_queue.put(batch_file)
 
+    def ib_group(self):
+        while True:
+            batch_file = self._ib_group_queue.get()
+            if batch_file == "__terminate__":
+                return
+            if not self.job_paths.get("icebreaker.analysis.particles"):
+                self.job_paths["icebreaker.analysis.particles"] = {}
+            self.job_paths["icebreaker.analysis.particles"][
+                batch_file
+            ] = self.fresh_job(
+                "icebreaker.analysis.particles",
+                extra_params={
+                    "in_mics": self.job_paths["icebreaker.analysis.micrographs"]
+                    + "grouped_micrographs.star",
+                    "in_parts": batch_file,
+                },
+                lock=self._lock,
+            )
+
     def run(self, timeout: int):
         start_time = time.time()
         current_time = start_time
         class_thread = None
+        ib_thread = None
         while current_time - start_time < timeout and not self.stopfile.exists():
             if self._new_movies():
                 split_files = self.preprocessing()
+                if self.options.do_icebreaker_group:
+                    if ib_thread is None:
+                        ib_thread = threading.Thread(
+                            target=self.ib_group, name="ib_group_runner"
+                        )
+                        ib_thread.start()
+                    new_batches = [f for f in split_files if f not in self._batches]
+                    for sf in new_batches:
+                        self._ib_group_queue.put(sf)
                 if self.options.do_class2d:
                     if class_thread is None:
                         class_thread = threading.Thread(
@@ -508,6 +549,11 @@ class PipelineRunner:
                         self._batches.update(new_batches)
             time.sleep(10)
             current_time = time.time()
+        if ib_thread is not None:
+            self._ib_group_queue.put("__terminate__")
         if class_thread is not None:
             self._class2d_queue.put("__terminate__")
+        if ib_thread is not None:
+            ib_thread.join()
+        if class_thread is not None:
             class_thread.join()
