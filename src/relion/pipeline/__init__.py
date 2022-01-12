@@ -73,6 +73,8 @@ class PipelineRunner:
             motioncorr_options.update(queue_options)
             motioncorr_options["queuename"] = "motioncorr2_gpu"
 
+        icebreaker_options = {"nr_threads": self.options.icebreaker_threads_number}
+
         ctffind_options = {
             "dast": self.options.ctffind_astigmatism,
             "box": self.options.ctffind_boxsize,
@@ -191,6 +193,8 @@ class PipelineRunner:
         return {
             "relion.import.movies": import_options,
             "relion.motioncorr.motioncorr2": motioncorr_options,
+            "icebreaker.analysis.micrographs": icebreaker_options,
+            "icebreaker.enhancecontrast": icebreaker_options,
             "relion.ctffind.ctffind4": ctffind_options,
             "relion.autopick.log": autopick_LoG_options,
             "cryolo.autopick": cryolo_options,
@@ -206,6 +210,16 @@ class PipelineRunner:
             return {
                 "input_star_mics": self.job_paths["relion.import.movies"]
                 + "/movies.star"
+            }
+        if job == "icebreaker.analysis.micrographs":
+            return {
+                "in_mics": self.job_paths["relion.motioncorr.motioncorr2"]
+                + "corrected_micrographs.star"
+            }
+        if job == "icebreaker.enhancecontrast":
+            return {
+                "in_mics": self.job_paths["relion.motioncorr.motioncorr2"]
+                + "corrected_micrographs.star"
             }
         if job == "relion.ctffind.ctffind4":
             if self.options.images_are_movies:
@@ -319,11 +333,12 @@ class PipelineRunner:
         return len(list(star_doc[1].find_loop("_rlnMicrographMovieName")))
 
     def preprocessing(self) -> Set[str]:
-        jobs = [
-            "relion.import.movies",
-            "relion.motioncorr.motioncorr2",
-            "relion.ctffind.ctffind4",
-        ]
+        jobs = ["relion.import.movies", "relion.motioncorr.motioncorr2"]
+        if self.options.do_icebreaker_job_group:
+            jobs.append("icebreaker.analysis.micrographs")
+        if self.options.do_icebreaker_job_flatten:
+            jobs.append("icebreaker.enhancecontrast")
+        jobs.append("relion.ctffind.ctffind4")
 
         for job in jobs:
             if not self.job_paths.get(job):
