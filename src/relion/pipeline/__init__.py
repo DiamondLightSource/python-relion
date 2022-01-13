@@ -114,6 +114,20 @@ class PipelineRunner:
             autopick_LoG_options.update(queue_options)
             autopick_LoG_options["queuename"] = "relion_autopick_gpu"
 
+        autopick_3dref_options = {
+            "ref3d_symmetry": self.options.autopick_3dref_symmetry,
+            "ref3d_sampling": self.options.autopick_3dref_sampling,
+            "lowpass": self.options.autopick_lowpass,
+            "angpix_ref": self.options.autopick_ref_angpix,
+            "threshold_autopick": self.options.autopick_refs_threshold,
+            "mindist_autopick": self.options.autopick_refs_min_distance,
+            "maxstddevnoise_autopick": self.options.autopick_stddev_noise,
+            "minavgnoise_autopick": self.options.autopick_avg_noise,
+        }
+        if self.options.autopick_submit_to_queue:
+            autopick_3dref_options.update(queue_options)
+            autopick_3dref_options["queuename"] = "relion_autopick_gpu"
+
         cryolo_options = {
             "model_path": self.options.cryolo_gmodel,
             "box_size": int(
@@ -208,6 +222,7 @@ class PipelineRunner:
             "icebreaker.enhancecontrast": icebreaker_options,
             "relion.ctffind.ctffind4": ctffind_options,
             "relion.autopick.log": autopick_LoG_options,
+            "relion.autopick.ref3d": autopick_3dref_options,
             "cryolo.autopick": cryolo_options,
             "relion.extract": extract_options,
             "relion.select.split": select_options,
@@ -252,7 +267,7 @@ class PipelineRunner:
                     "input_star_mics": self.job_paths["relion.import.movies"]
                     + "/micrographs.star"
                 }
-        if job == "relion.autopick.log":
+        if job == "relion.autopick.log" or job == "relion.autopick.ref3d":
             if self.options.use_ctffind_instead:
                 return {
                     "fn_input_autopick": self.job_paths["relion.ctffind.ctffind4"]
@@ -272,13 +287,17 @@ class PipelineRunner:
                 "input_file": self.job_paths["relion.ctffind.gctf"]
                 + "/micrographs_ctf.star"
             }
-        if job == "relion.extract":
+        if job.startswith("relion.extract"):
+            ref = job.replace("relion.extract", "")
             if self.options.autopick_do_cryolo:
                 coords = (
                     self.job_paths["cryolo.autopick"] + "/coords_suffix_autopick.star"
                 )
             else:
-                coords = self.job_paths["relion.autopick.log"] + "/autopick.star"
+                if ref:
+                    coords = self.job_paths["relion.autopick.ref3d"] + "/autopick.star"
+                else:
+                    coords = self.job_paths["relion.autopick.log"] + "/autopick.star"
             if self.options.use_ctffind_instead:
                 star_mics = (
                     self.job_paths["relion.ctffind.ctffind4"] + "/micrographs_ctf.star"
@@ -291,8 +310,11 @@ class PipelineRunner:
                 "coords_suffix": coords,
                 "star_mics": star_mics,
             }
-        if job == "relion.select.split":
-            return {"fn_data": self.job_paths["relion.extract"] + "/particles.star"}
+        if job.startswith("relion.select.split"):
+            ref = job.replace("relion.select.split", "")
+            return {
+                "fn_data": self.job_paths["relion.extract" + ref] + "/particles.star"
+            }
         return {}
 
     def fresh_job(
@@ -373,16 +395,28 @@ class PipelineRunner:
 
         if self.options.autopick_do_cryolo:
             next_jobs = ["cryolo.autopick"]
-        elif self.options.autopick_do_LoG:
-            next_jobs = ["relion.autopick.log" + ref3d]
+        elif self.options.autopick_do_LoG and not ref3d:
+            next_jobs = ["relion.autopick.log"]
+        else:
+            next_jobs = ["relion.autopick.ref3d"]
         next_jobs.extend(["relion.extract" + ref3d, "relion.select.split" + ref3d])
         for job in next_jobs:
             if not self.job_paths.get(job):
-                self.job_paths[job] = self.fresh_job(
-                    job,
-                    extra_params=self._extra_options(job),
-                    lock=self._lock,
-                )
+                if job == "relion.autopick.ref3d":
+                    self.job_paths[job] = self.fresh_job(
+                        job,
+                        extra_params={
+                            **self._extra_options(job),
+                            **{"fn_ref3d_autopick": ref3d},
+                        },
+                        lock=self._lock,
+                    )
+                else:
+                    self.job_paths[job] = self.fresh_job(
+                        job,
+                        extra_params=self._extra_options(job),
+                        lock=self._lock,
+                    )
             else:
                 self.project.continue_job(self.job_paths[job])
         return self._get_split_files(self.job_paths["relion.select.split" + ref3d])
