@@ -36,9 +36,9 @@ class PipelineRunner:
         self.pipeline_options: Dict[str, dict] = self._generate_pipeline_options()
         self.job_paths: Dict[str, Union[str, dict]] = {}
         self._past_class_threshold = False
-        self._class2d_queue = queue.Queue()
-        self._class3d_queue = queue.Queue()
-        self._ib_group_queue = queue.Queue()
+        self._class2d_queue = [queue.Queue()]
+        self._class3d_queue = [queue.Queue()]
+        self._ib_group_queue = [queue.Queue()]
         self._batches: Set[str] = set()
         self._num_seen_movies = 0
         self._lock = threading.RLock()
@@ -345,33 +345,37 @@ class PipelineRunner:
         star_doc = cif.read_file(os.fspath(star_file))
         return len(list(star_doc[1].find_loop("_rlnMicrographMovieName")))
 
-    def preprocessing(self) -> Set[str]:
-        jobs = ["relion.import.movies", "relion.motioncorr.motioncorr2"]
-        if self.options.do_icebreaker_job_group:
-            jobs.append("icebreaker.analysis.micrographs")
-        if self.options.do_icebreaker_job_flatten:
-            jobs.append("icebreaker.enhancecontrast")
-        jobs.append("relion.ctffind.ctffind4")
+    def preprocessing(self, ref3d: str = "") -> List[str]:
+        if ref3d and self.options.autopick_do_cryolo:
+            return []
+        if not ref3d:
+            jobs = ["relion.import.movies", "relion.motioncorr.motioncorr2"]
+            if self.options.do_icebreaker_job_group:
+                jobs.append("icebreaker.analysis.micrographs")
+            if self.options.do_icebreaker_job_flatten:
+                jobs.append("icebreaker.enhancecontrast")
+            jobs.append("relion.ctffind.ctffind4")
 
-        for job in jobs:
-            if not self.job_paths.get(job):
-                self.job_paths[job] = self.fresh_job(
-                    job,
-                    extra_params=self._extra_options(job),
-                    lock=self._lock,
-                )
-            else:
-                self.project.continue_job(self.job_paths[job])
-        self._num_seen_movies = self._get_num_movies(
-            self.job_paths["relion.import.movies"] + "/movies.star"
-        )
-        if self.options.stop_after_ctf_estimation:
-            return set()
+            for job in jobs:
+                if not self.job_paths.get(job):
+                    self.job_paths[job] = self.fresh_job(
+                        job,
+                        extra_params=self._extra_options(job),
+                        lock=self._lock,
+                    )
+                else:
+                    self.project.continue_job(self.job_paths[job])
+            self._num_seen_movies = self._get_num_movies(
+                self.job_paths["relion.import.movies"] + "/movies.star"
+            )
+            if self.options.stop_after_ctf_estimation:
+                return []
+
         if self.options.autopick_do_cryolo:
             next_jobs = ["cryolo.autopick"]
         elif self.options.autopick_do_LoG:
-            next_jobs = ["relion.autopick.log"]
-        next_jobs.extend(["relion.extract", "relion.select.split"])
+            next_jobs = ["relion.autopick.log" + ref3d]
+        next_jobs.extend(["relion.extract" + ref3d, "relion.select.split" + ref3d])
         for job in next_jobs:
             if not self.job_paths.get(job):
                 self.job_paths[job] = self.fresh_job(
@@ -381,14 +385,18 @@ class PipelineRunner:
                 )
             else:
                 self.project.continue_job(self.job_paths[job])
-        return self._get_split_files(self.job_paths["relion.select.split"])
+        return self._get_split_files(self.job_paths["relion.select.split" + ref3d])
 
-    @property
     @functools.lru_cache(maxsize=1)
-    def _best_inimodel_class(self) -> Optional[str]:
-        model_file_candidates = list(
-            (self.path / self.job_paths["relion.initialmodel"]).glob("*_model.star")
-        )
+    def _best_class(self, job: str = "relion.initialmodel") -> Optional[str]:
+        if isinstance(self.job_paths[job], list):
+            model_file_candidates = list(
+                (self.path / self.job_paths[job][0]).glob("*_model.star")
+            )
+        else:
+            model_file_candidates = list(
+                (self.path / self.job_paths[job]).glob("*_model.star")
+            )
         if len(model_file_candidates) != 1:
             return None
         model_file = model_file_candidates[0]
@@ -424,9 +432,9 @@ class PipelineRunner:
         )
         return not num_movies == self._num_seen_movies
 
-    def _classification_3d(self):
+    def _classification_3d(self, iteration: int = 0):
         while True:
-            batch_file = self._class3d_queue.get()
+            batch_file = self._class3d_queue[iteration].get()
             if batch_file == "__terminate__":
                 return
             if self.job_paths.get("relion.initialmodel") is None:
@@ -441,20 +449,20 @@ class PipelineRunner:
                 "relion.class3d",
                 extra_params={
                     "fn_img": batch_file,
-                    "fn_ref": self._best_inimodel_class,
+                    "fn_ref": self._best_class(),
                 },
                 lock=self._lock,
             )
 
-    def classification(self):
+    def classification(self, iteration: int = 0):
         first_batch = ""
         class3d_thread = None
         while True:
-            batch_file = self._class2d_queue.get()
+            batch_file = self._class2d_queue[iteration].get()
             if batch_file == "__terminate__":
                 if class3d_thread is None:
                     return
-                self._class3d_queue.put("__terminate__")
+                self._class3d_queue[iteration].put("__terminate__")
                 class3d_thread.join()
                 return
             if not self.job_paths.get("relion.class2d"):
@@ -467,38 +475,44 @@ class PipelineRunner:
                 )
                 if self._past_class_threshold and self.options.do_class3d:
                     class3d_thread = threading.Thread(
-                        target=self._classification_3d, name="3D_classification_runner"
+                        target=self._classification_3d,
+                        name="3D_classification_runner",
+                        kwargs={"iteration": iteration},
                     )
                     class3d_thread.start()
-                    self._class3d_queue.put(first_batch)
+                    self._class3d_queue[iteration].put(first_batch)
             elif self.job_paths["relion.class2d"].get(batch_file):
                 self.project.continue_job(
                     self.job_paths["relion.class2d"].get(batch_file)
                 )
                 if self._past_class_threshold and self.options.do_class3d:
                     class3d_thread = threading.Thread(
-                        target=self._classification_3d, name="3D_classification_runner"
+                        target=self._classification_3d,
+                        name="3D_classification_runner",
+                        kwargs={"iteration": iteration},
                     )
                     class3d_thread.start()
-                    self._class3d_queue.put(first_batch)
+                    self._class3d_queue[iteration].put(first_batch)
             else:
                 if self.options.do_class3d and class3d_thread is None:
                     class3d_thread = threading.Thread(
-                        target=self._classification_3d, name="3D_classification_runner"
+                        target=self._classification_3d,
+                        name="3D_classification_runner",
+                        kwargs={"iteration": iteration},
                     )
                     class3d_thread.start()
-                    self._class3d_queue.put(first_batch)
+                    self._class3d_queue[iteration].put(first_batch)
                 self.job_paths["relion.class2d"][batch_file] = self.fresh_job(
                     "relion.class2d",
                     extra_params={"fn_img": batch_file},
                     lock=self._lock,
                 )
                 if self.options.do_class3d:
-                    self._class3d_queue.put(batch_file)
+                    self._class3d_queue[iteration].put(batch_file)
 
-    def ib_group(self):
+    def ib_group(self, iteration: int = 0):
         while True:
-            batch_file = self._ib_group_queue.get()
+            batch_file = self._ib_group_queue[iteration].get()
             if batch_file == "__terminate__":
                 return
             if not self.job_paths.get("icebreaker.analysis.particles"):
@@ -520,40 +534,60 @@ class PipelineRunner:
         current_time = start_time
         class_thread = None
         ib_thread = None
+        ref3d = ""
+        iteration = 0
         while current_time - start_time < timeout and not self.stopfile.exists():
             if self._new_movies():
-                split_files = self.preprocessing()
+                split_files = self.preprocessing(ref3d=ref3d)
                 if self.options.do_icebreaker_group:
                     if ib_thread is None:
                         ib_thread = threading.Thread(
-                            target=self.ib_group, name="ib_group_runner"
+                            target=self.ib_group,
+                            name="ib_group_runner",
+                            kwargs={"iteration": iteration},
                         )
                         ib_thread.start()
                     new_batches = [f for f in split_files if f not in self._batches]
                     for sf in new_batches:
-                        self._ib_group_queue.put(sf)
+                        self._ib_group_queue[0].put(sf)
                 if self.options.do_class2d:
                     if class_thread is None:
                         class_thread = threading.Thread(
-                            target=self.classification, name="classification_runner"
+                            target=self.classification,
+                            name="classification_runner",
+                            kwargs={"iteration": iteration},
                         )
                         class_thread.start()
                     if len(split_files) == 1:
-                        self._class2d_queue.put(list(split_files)[0])
+                        self._class2d_queue[0].put(list(split_files)[0])
                         self._batches.update(split_files)
                     else:
                         new_batches = [f for f in split_files if f not in self._batches]
                         if not self._past_class_threshold:
                             self._past_class_threshold = True
                         for sf in new_batches:
-                            self._class2d_queue.put(sf)
+                            self._class2d_queue[0].put(sf)
                         self._batches.update(new_batches)
+                if (
+                    self.options.do_second_pass
+                    and self.options.do_class2d
+                    and self.options.do_class3d
+                    and not self.options.autopick_do_cryolo
+                    and not iteration
+                ):
+                    self._ib_group_queue[0].put("__terminate__")
+                    self._class2d_queue[0].put("__terminate__")
+                    ib_thread.join()
+                    class_thread.join()
+                    ref3d = self._best_class("relion.class3d")
+                    iteration = 1
+
             time.sleep(10)
             current_time = time.time()
         if ib_thread is not None:
-            self._ib_group_queue.put("__terminate__")
+            self._ib_group_queue[0].put("__terminate__")
         if class_thread is not None:
-            self._class2d_queue.put("__terminate__")
+            self._class2d_queue[0].put("__terminate__")
         if ib_thread is not None:
             ib_thread.join()
         if class_thread is not None:
