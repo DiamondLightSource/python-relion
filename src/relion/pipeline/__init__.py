@@ -211,6 +211,7 @@ class PipelineRunner:
             "cryolo.autopick": cryolo_options,
             "relion.extract": extract_options,
             "relion.select.split": select_options,
+            "icebreaker.analysis.particles": icebreaker_options,
             "relion.class2d": class2d_options,
             "relion.initialmodel": inimodel_options,
             "relion.class3d": class3d_options,
@@ -303,7 +304,7 @@ class PipelineRunner:
     ) -> str:
         write_default_jobstar(job)
         params = job_parameters_dict(job)
-        params.update(self.pipeline_options[job])
+        params.update(self.pipeline_options.get(job, {}))
         if extra_params is not None:
             params.update(extra_params)
         params = {k: str(v) for k, v in params.items() if not isinstance(v, bool)}
@@ -338,7 +339,7 @@ class PipelineRunner:
 
         with_batch_numbers = [(batch(str(f)), str(f)) for f in all_split_files]
         sorted_batch_numbers = sorted(with_batch_numbers, key=lambda x: x[0])
-        return sorted_batch_numbers[:-1]
+        return [s[1] for s in sorted_batch_numbers[:-1]]
 
     def _get_num_movies(self, star_file: str) -> int:
         star_doc = cif.read_file(os.fspath(star_file))
