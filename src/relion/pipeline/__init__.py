@@ -574,9 +574,14 @@ class PipelineRunner:
         ref3d = ""
         iteration = 0
         first_batch = ""
-        while current_time - start_time < timeout and not self.stopfile.exists():
+        continue_anyway = False
+        while (
+            current_time - start_time < timeout and not self.stopfile.exists()
+        ) or continue_anyway:
             old_iteration = iteration
             if self._new_movies() or iteration - old_iteration:
+                if iteration - old_iteration:
+                    continue_anyway = False
                 split_files = self.preprocessing(ref3d=ref3d)
                 if not first_batch:
                     first_batch = split_files[0]
@@ -622,6 +627,7 @@ class PipelineRunner:
                     class_thread.join()
                     ref3d = self._best_class("relion.class3d", first_batch)
                     iteration = 1
+                    continue_anyway = True
 
             time.sleep(10)
             current_time = time.time()
