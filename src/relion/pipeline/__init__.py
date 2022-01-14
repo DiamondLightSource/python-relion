@@ -571,7 +571,8 @@ class PipelineRunner:
         ref3d = ""
         iteration = 0
         while current_time - start_time < timeout and not self.stopfile.exists():
-            if self._new_movies():
+            old_iteration = iteration
+            if self._new_movies() or iteration - old_iteration:
                 split_files = self.preprocessing(ref3d=ref3d)
                 if self.options.do_icebreaker_group:
                     if ib_thread is None:
