@@ -36,9 +36,9 @@ class PipelineRunner:
         self.pipeline_options: Dict[str, dict] = self._generate_pipeline_options()
         self.job_paths: Dict[str, Union[str, dict]] = {}
         self._past_class_threshold = False
-        self._class2d_queue = [queue.Queue()]
-        self._class3d_queue = [queue.Queue()]
-        self._ib_group_queue = [queue.Queue()]
+        self._class2d_queue: List[queue.Queue] = [queue.Queue()]
+        self._class3d_queue: List[queue.Queue] = [queue.Queue()]
+        self._ib_group_queue: List[queue.Queue] = [queue.Queue()]
         self._batches: Set[str] = set()
         self._num_seen_movies = 0
         self._lock = threading.RLock()
@@ -183,6 +183,7 @@ class PipelineRunner:
             "sampling": self.options.inimodel_angle_step,
             "offset_step": self.options.inimodel_offset_step,
             "offset_range": self.options.inimodel_offset_range,
+            "nr_iter": self.options.inimodel_nr_iter_inbetween,
             "use_gpu": self.options.refine_do_gpu,
             "gpu_ids": "0:1:2:3",
             "nr_mpi": 1,
@@ -353,7 +354,7 @@ class PipelineRunner:
     def _get_split_files(self, select_job: str) -> List[str]:
         all_split_files = list(pathlib.Path(select_job).glob("*particles_split*.star"))
         if len(all_split_files) == 1:
-            return {str(all_split_files[0])}
+            return [str(all_split_files[0])]
         # drop the most recent batch if there is more than one as it probably isn't complete
         def batch(fname: str) -> int:
             spfname = fname.split("particles_split")
@@ -422,10 +423,12 @@ class PipelineRunner:
         return self._get_split_files(self.job_paths["relion.select.split" + ref3d])
 
     @functools.lru_cache(maxsize=1)
-    def _best_class(self, job: str = "relion.initialmodel") -> Optional[str]:
-        if isinstance(self.job_paths[job], list):
+    def _best_class(
+        self, job: str = "relion.initialmodel", batch: str = ""
+    ) -> Optional[str]:
+        if isinstance(self.job_paths[job], dict):
             model_file_candidates = list(
-                (self.path / self.job_paths[job][0]).glob("*_model.star")
+                (self.path / self.job_paths[job][batch]).glob("*_model.star")
             )
         else:
             model_file_candidates = list(
@@ -570,10 +573,13 @@ class PipelineRunner:
         ib_thread = None
         ref3d = ""
         iteration = 0
+        first_batch = ""
         while current_time - start_time < timeout and not self.stopfile.exists():
             old_iteration = iteration
             if self._new_movies() or iteration - old_iteration:
                 split_files = self.preprocessing(ref3d=ref3d)
+                if not first_batch:
+                    first_batch = split_files[0]
                 if self.options.do_icebreaker_group:
                     if ib_thread is None:
                         ib_thread = threading.Thread(
@@ -594,7 +600,7 @@ class PipelineRunner:
                         )
                         class_thread.start()
                     if len(split_files) == 1:
-                        self._class2d_queue[0].put(list(split_files)[0])
+                        self._class2d_queue[0].put(split_files[0])
                         self._batches.update(split_files)
                     else:
                         new_batches = [f for f in split_files if f not in self._batches]
@@ -614,7 +620,7 @@ class PipelineRunner:
                     self._class2d_queue[0].put("__terminate__")
                     ib_thread.join()
                     class_thread.join()
-                    ref3d = self._best_class("relion.class3d")
+                    ref3d = self._best_class("relion.class3d", first_batch)
                     iteration = 1
 
             time.sleep(10)
