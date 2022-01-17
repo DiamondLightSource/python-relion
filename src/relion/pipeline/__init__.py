@@ -430,23 +430,38 @@ class PipelineRunner:
             model_file_candidates = list(
                 (self.path / self.job_paths[job][batch]).glob("*_model.star")
             )
+
+            def iteration_count(x: pathlib.Path) -> int:
+                parts = str(x).split("_")
+                for _x in parts:
+                    if _x.startswith("it"):
+                        return int(_x.replace("it", ""))
+
+            model_file_candidates = sorted(model_file_candidates, key=iteration_count)
+            model_file_candidates.reverse()
         else:
             model_file_candidates = list(
                 (self.path / self.job_paths[job]).glob("*_model.star")
             )
-        if len(model_file_candidates) != 1:
-            return None
+            if len(model_file_candidates) != 1:
+                return None
         model_file = model_file_candidates[0]
         try:
             star_doc = cif.read_file(os.fspath(model_file))
-            ref = star_doc["model_classes"]["rlnReferenceImage"][0]
+            block_num = None
+            for block_index, block in enumerate(star_doc):
+                if list(block.find_loop("_rlnReferenceImage")):
+                    block_num = block_index
+                    break
+            if block_num is None:
+                return None
+            star_block = star_doc[block_num]
+            ref = star_block.find_loop("_rlnReferenceImage")[0]
             ref_size = 0
             ref_resolution = None
-            for i, image in star_doc["model_classes"]["rlnReferenceImage"]:
-                size = float(star_doc["model_classes"]["rlnClassDistribution"][i])
-                resolution = float(
-                    star_doc["model_classes"]["rlnEstimatedResolution"][i]
-                )
+            for i, image in enumerate(star_block.find_loop("_rlnReferenceImage")):
+                size = float(star_block.find_loop("_rlnClassDistribution")[i])
+                resolution = float(star_block.find_loop("_rlnEstimatedResolution")[i])
                 if ref_resolution is None or resolution < ref_resolution:
                     ref_resolution = resolution
                     ref_size = size
@@ -455,7 +470,7 @@ class PipelineRunner:
                     ref_resolution = resolution
                     ref_size = size
                     ref = image
-            return ref
+            return ref.split("@")[-1]
         except Exception:
             return None
 
