@@ -19,7 +19,7 @@ stages:
       - task: UsePythonVersion@0
         displayName: Set up python
         inputs:
-          versionSpec: 3.6
+          versionSpec: 3.7
 
       - bash: python .azure-pipelines/syntax-validation.py
         displayName: Syntax validation (3.6)
@@ -86,8 +86,6 @@ stages:
       vmImage: ubuntu-20.04
     strategy:
       matrix:
-        python36:
-          PYTHON_VERSION: 3.6
         python37:
           PYTHON_VERSION: 3.7
         python38:
@@ -120,8 +118,6 @@ stages:
       vmImage: windows-latest
     strategy:
       matrix:
-        python36:
-          PYTHON_VERSION: 3.6
         python37:
           PYTHON_VERSION: 3.7
         python38:
