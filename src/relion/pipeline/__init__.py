@@ -123,6 +123,8 @@ class PipelineRunner:
             "mindist_autopick": self.options.autopick_refs_min_distance,
             "maxstddevnoise_autopick": self.options.autopick_stddev_noise,
             "minavgnoise_autopick": self.options.autopick_avg_noise,
+            "gpu_ids": "0:1:2:3",
+            "nr_mpi": self.options.autopick_mpi,
         }
         if self.options.autopick_submit_to_queue:
             autopick_3dref_options.update(queue_options)
@@ -405,7 +407,7 @@ class PipelineRunner:
             if not self.job_paths.get(job):
                 if job == "relion.autopick.ref3d":
                     self.job_paths[job] = self.fresh_job(
-                        job,
+                        job.replace(ref3d, ""),
                         extra_params={
                             **self._extra_options(job),
                             **{"fn_ref3d_autopick": ref3d},
@@ -414,7 +416,7 @@ class PipelineRunner:
                     )
                 else:
                     self.job_paths[job] = self.fresh_job(
-                        job,
+                        job.replace(ref3d, ""),
                         extra_params=self._extra_options(job),
                         lock=self._lock,
                     )
@@ -588,12 +590,12 @@ class PipelineRunner:
         ib_thread = None
         ref3d = ""
         iteration = 0
+        old_iteration = 0
         first_batch = ""
         continue_anyway = False
         while (
             current_time - start_time < timeout and not self.stopfile.exists()
         ) or continue_anyway:
-            old_iteration = iteration
             if self._new_movies() or iteration - old_iteration:
                 if iteration - old_iteration:
                     continue_anyway = False
@@ -629,6 +631,7 @@ class PipelineRunner:
                         for sf in new_batches:
                             self._class2d_queue[0].put(sf)
                         self._batches.update(new_batches)
+                old_iteration = iteration
                 if (
                     self.options.do_second_pass
                     and self.options.do_class2d
