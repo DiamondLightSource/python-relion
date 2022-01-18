@@ -16,6 +16,7 @@ from pipeliner.api.manage_project import PipelinerProject
 from pipeliner.job_runner import JobRunner
 
 from relion.cryolo_relion_it.cryolo_relion_it import RelionItOptions
+from relion.pipeline.options import generate_pipeline_options
 
 
 class PipelineRunner:
@@ -44,6 +45,25 @@ class PipelineRunner:
         self._lock = threading.RLock()
 
     def _generate_pipeline_options(self):
+        pipeline_jobs = {
+            "relion.import.movies": "",
+            "relion.motioncorr.motioncorr2": "gpu",
+            "icebreaker.analysis.micrographs": "cpu",
+            "icebreaker.enhancecontrast": "cpu",
+            "relion.ctffind.ctffind4": "gpu",
+            "relion.autopick.log": "gpu",
+            "relion.autopick.ref3d": "gpu",
+            "cryolo.autopick": "gpu",
+            "relion.extract": "gpu",
+            "relion.select.split": "",
+            "icebreaker.analysis.particles": "cpu",
+            "relion.class2d": "gpu",
+            "relion.initialmodel": "gpu",
+            "relion.class3d": "gpu",
+        }
+        return generate_pipeline_options(self.options, pipeline_jobs)
+
+    def _generate_pipeline_options_old(self):
         import_options = {
             "fn_in_raw": self.options.import_images,
             "angpix": self.options.angpix,
