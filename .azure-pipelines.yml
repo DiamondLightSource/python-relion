@@ -22,7 +22,7 @@ stages:
           versionSpec: 3.7
 
       - bash: python .azure-pipelines/syntax-validation.py
-        displayName: Syntax validation (3.6)
+        displayName: Syntax validation (3.7)
 
       - task: UsePythonVersion@0
         displayName: Set up python
