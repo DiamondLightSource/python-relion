@@ -317,7 +317,7 @@ class PipelineRunner:
     def _classification_3d(self, iteration: int = 0):
         while True:
             batch_file = self._class3d_queue[iteration].get()
-            if batch_file == "__terminate__":
+            if not batch_file:
                 return
             if self.job_paths.get("relion.initialmodel") is None:
                 self.job_paths["relion.initialmodel"] = self.fresh_job(
@@ -341,10 +341,10 @@ class PipelineRunner:
         class3d_thread = None
         while True:
             batch_file = self._class2d_queue[iteration].get()
-            if batch_file == "__terminate__":
+            if not batch_file:
                 if class3d_thread is None:
                     return
-                self._class3d_queue[iteration].put("__terminate__")
+                self._class3d_queue[iteration].put("")
                 class3d_thread.join()
                 return
             if not self.job_paths.get("relion.class2d"):
@@ -395,7 +395,7 @@ class PipelineRunner:
     def ib_group(self, iteration: int = 0):
         while True:
             batch_file = self._ib_group_queue[iteration].get()
-            if batch_file == "__terminate__":
+            if not batch_file:
                 return
             if not self.job_paths.get("icebreaker.analysis.particles"):
                 self.job_paths["icebreaker.analysis.particles"] = {}
@@ -467,8 +467,8 @@ class PipelineRunner:
                     and not self.options.autopick_do_cryolo
                     and not iteration
                 ):
-                    self._ib_group_queue[0].put("__terminate__")
-                    self._class2d_queue[0].put("__terminate__")
+                    self._ib_group_queue[0].put("")
+                    self._class2d_queue[0].put("")
                     ib_thread.join()
                     class_thread.join()
                     ref3d = self._best_class("relion.class3d", first_batch)
@@ -478,9 +478,9 @@ class PipelineRunner:
             time.sleep(10)
             current_time = time.time()
         if ib_thread is not None:
-            self._ib_group_queue[0].put("__terminate__")
+            self._ib_group_queue[0].put("")
         if class_thread is not None:
-            self._class2d_queue[0].put("__terminate__")
+            self._class2d_queue[0].put("")
         if ib_thread is not None:
             ib_thread.join()
         if class_thread is not None:
