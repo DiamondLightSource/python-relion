@@ -57,7 +57,7 @@ class PipelineRunner:
             "relion.extract": "gpu",
             "relion.select.split": "",
             "icebreaker.analysis.particles": "cpu",
-            "relion.class2d": "gpu",
+            "relion.class2d.em": "gpu",
             "relion.initialmodel": "gpu",
             "relion.class3d": "gpu",
         }
@@ -347,11 +347,11 @@ class PipelineRunner:
                 self._class3d_queue[iteration].put("")
                 class3d_thread.join()
                 return
-            if not self.job_paths.get("relion.class2d"):
+            if not self.job_paths.get("relion.class2d.em"):
                 first_batch = batch_file
-                self.job_paths["relion.class2d"] = {}
-                self.job_paths["relion.class2d"][batch_file] = self.fresh_job(
-                    "relion.class2d",
+                self.job_paths["relion.class2d.em"] = {}
+                self.job_paths["relion.class2d.em"][batch_file] = self.fresh_job(
+                    "relion.class2d.em",
                     extra_params={"fn_img": batch_file},
                     lock=self._lock,
                 )
@@ -363,9 +363,9 @@ class PipelineRunner:
                     )
                     class3d_thread.start()
                     self._class3d_queue[iteration].put(first_batch)
-            elif self.job_paths["relion.class2d"].get(batch_file):
+            elif self.job_paths["relion.class2d.em"].get(batch_file):
                 self.project.continue_job(
-                    self.job_paths["relion.class2d"].get(batch_file)
+                    self.job_paths["relion.class2d.em"].get(batch_file)
                 )
                 if self._past_class_threshold and self.options.do_class3d:
                     class3d_thread = threading.Thread(
@@ -384,8 +384,8 @@ class PipelineRunner:
                     )
                     class3d_thread.start()
                     self._class3d_queue[iteration].put(first_batch)
-                self.job_paths["relion.class2d"][batch_file] = self.fresh_job(
-                    "relion.class2d",
+                self.job_paths["relion.class2d.em"][batch_file] = self.fresh_job(
+                    "relion.class2d.em",
                     extra_params={"fn_img": batch_file},
                     lock=self._lock,
                 )
