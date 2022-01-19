@@ -2,6 +2,7 @@ import functools
 import os
 import pathlib
 import queue
+import subprocess
 import threading
 import time
 from typing import Dict, List, Optional, Set, Union
@@ -472,6 +473,31 @@ class PipelineRunner:
                     ib_thread.join()
                     class_thread.join()
                     ref3d = self._best_class("relion.class3d", first_batch)
+                    new_angpix = self.options.angpix * self.options.motioncor_binning
+                    if self.options.extract2_downscale:
+                        new_angpix *= (
+                            self.options.extract_boxsize
+                            / self.options.extract2_small_boxsize
+                        )
+                    if abs(new_angpix - float(self.options.autopick_ref_angpix)) > 1e-3:
+                        command = [
+                            "relion_image_handler",
+                            "--i",
+                            str(self.options.autopick_3dreference),
+                            "--o",
+                            str(self.options.class3d_reference),
+                            "--angpix",
+                            str(self.options.autopick_ref_angpix),
+                            "--rescale_angpix",
+                            str(new_angpix),
+                            "--new_box",
+                            str(
+                                self.options.extract2_small_boxsize
+                                if self.options.extract2_downscale
+                                else self.options.extract_boxsize
+                            ),
+                        ]
+                        subprocess.run(command)
                     iteration = 1
                     continue_anyway = True
 
