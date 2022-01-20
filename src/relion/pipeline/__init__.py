@@ -59,8 +59,8 @@ class PipelineRunner:
             "relion.select.split": "",
             "icebreaker.analysis.particles": "cpu",
             "relion.class2d.em": "gpu",
-            "relion.initialmodel": "gpu",
-            "relion.class3d": "gpu",
+            "relion.initialmodel": "gpu-smp",
+            "relion.class3d": "gpu-smp",
         }
         return generate_pipeline_options(self.options, pipeline_jobs)
 

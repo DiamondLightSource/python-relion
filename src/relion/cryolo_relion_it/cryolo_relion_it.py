@@ -949,6 +949,7 @@ class RelionItOptions(object):
     queue_submit_command = "qsub"
     # The template for your standard queue job submission script
     queue_submission_template = "/public/EM/RELION/relion/bin/qsub.csh"
+    queue_submission_template_smp = "/public/EM/RELION/relion/bin/qsub_smp.csh"
     queue_submission_template_cpu = "/public/EM/RELION/relion/bin/qsub_cpu.csh"
     # Template for CPU submissions using an SMP environment rather than MPI for applications that do not have
     # MPI support but do support other parallelistaion
