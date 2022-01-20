@@ -5,7 +5,7 @@ import queue
 import subprocess
 import threading
 import time
-from typing import Dict, List, Optional, Set, Union
+from typing import Dict, List, Optional, Set, Tuple, Union
 
 from gemmi import cif
 from pipeliner.api.api_utils import (
@@ -199,7 +199,7 @@ class PipelineRunner:
         star_doc = cif.read_file(os.fspath(star_file))
         return len(list(star_doc[1].find_loop("_rlnMicrographMovieName")))
 
-    def preprocessing(self, ref3d: str = "") -> List[str]:
+    def preprocessing(self, ref3d: str = "", ref3d_angpix: float = -1) -> List[str]:
         if ref3d and self.options.autopick_do_cryolo:
             return []
         if not ref3d:
@@ -239,7 +239,7 @@ class PipelineRunner:
                         job.replace(ref3d, ""),
                         extra_params={
                             **self._extra_options(job),
-                            **{"fn_ref3d_autopick": ref3d},
+                            **{"fn_ref3d_autopick": ref3d, "angpix_ref": ref3d_angpix},
                         },
                         lock=self._lock,
                     )
@@ -256,7 +256,7 @@ class PipelineRunner:
     @functools.lru_cache(maxsize=1)
     def _best_class(
         self, job: str = "relion.initialmodel", batch: str = ""
-    ) -> Optional[str]:
+    ) -> Tuple[Optional[str], Optional[float]]:
         if isinstance(self.job_paths[job], dict):
             model_file_candidates = list(
                 (self.path / self.job_paths[job][batch]).glob("*_model.star")
@@ -275,7 +275,7 @@ class PipelineRunner:
                 (self.path / self.job_paths[job]).glob("*_model.star")
             )
             if len(model_file_candidates) != 1:
-                return None
+                return None, None
         model_file = model_file_candidates[0]
         try:
             star_doc = cif.read_file(os.fspath(model_file))
@@ -285,7 +285,7 @@ class PipelineRunner:
                     block_num = block_index
                     break
             if block_num is None:
-                return None
+                return None, None
             star_block = star_doc[block_num]
             ref = star_block.find_loop("_rlnReferenceImage")[0]
             ref_size = 0
@@ -301,9 +301,9 @@ class PipelineRunner:
                     ref_resolution = resolution
                     ref_size = size
                     ref = image
-            return ref.split("@")[-1]
+            return ref.split("@")[-1], float(star_doc[0].find_loop("_rlnPixelSize"))
         except Exception:
-            return None
+            return None, None
 
     def _new_movies(self) -> bool:
         num_movies = len(
@@ -332,7 +332,7 @@ class PipelineRunner:
                 "relion.class3d",
                 extra_params={
                     "fn_img": batch_file,
-                    "fn_ref": self._best_class(),
+                    "fn_ref": self._best_class()[0],
                 },
                 lock=self._lock,
             )
@@ -418,6 +418,7 @@ class PipelineRunner:
         class_thread = None
         ib_thread = None
         ref3d = ""
+        ref3d_angpix = 1
         iteration = 0
         old_iteration = 0
         first_batch = ""
@@ -428,7 +429,7 @@ class PipelineRunner:
             if self._new_movies() or iteration - old_iteration:
                 if iteration - old_iteration:
                     continue_anyway = False
-                split_files = self.preprocessing(ref3d=ref3d)
+                split_files = self.preprocessing(ref3d=ref3d, ref3d_angpix=ref3d_angpix)
                 if not first_batch:
                     first_batch = split_files[0]
                 if self.options.do_icebreaker_group:
@@ -472,22 +473,25 @@ class PipelineRunner:
                     self._class2d_queue[0].put("")
                     ib_thread.join()
                     class_thread.join()
-                    ref3d = self._best_class("relion.class3d", first_batch)
+                    ref3d, ref3d_angpix = self._best_class(
+                        "relion.class3d", first_batch
+                    )
                     new_angpix = self.options.angpix * self.options.motioncor_binning
                     if self.options.extract2_downscale:
                         new_angpix *= (
                             self.options.extract_boxsize
                             / self.options.extract2_small_boxsize
                         )
+
                     if abs(new_angpix - float(self.options.autopick_ref_angpix)) > 1e-3:
                         command = [
                             "relion_image_handler",
                             "--i",
-                            str(self.options.autopick_3dreference),
+                            str(ref3d),
                             "--o",
-                            str(self.options.class3d_reference),
+                            str("ref3d"),
                             "--angpix",
-                            str(self.options.autopick_ref_angpix),
+                            str(ref3d_angpix),
                             "--rescale_angpix",
                             str(new_angpix),
                             "--new_box",
@@ -497,6 +501,7 @@ class PipelineRunner:
                                 else self.options.extract_boxsize
                             ),
                         ]
+                        ref3d = ref3d.replace(".mrcs", "_ref3d.mrcs")
                         subprocess.run(command)
                     iteration = 1
                     continue_anyway = True

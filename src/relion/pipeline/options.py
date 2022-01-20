@@ -131,8 +131,6 @@ def generate_pipeline_options(
 
     job_options["relion.class2d.em"] = {
         "nr_classes": relion_it_options.class2d_nr_classes,
-        "do_em": "Yes",
-        "do_grad": "No",
         "nr_iter_em": relion_it_options.class2d_nr_iter,
         "psi_sampling": relion_it_options.class2d_angle_step,
         "offset_range": relion_it_options.class2d_offset_range,
