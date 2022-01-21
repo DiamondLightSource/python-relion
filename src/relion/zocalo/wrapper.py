@@ -349,6 +349,9 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
 
         if all_process_check.is_file():
             all_process_check.unlink()
+        else:
+            # if the running file is not there it was removed for a failure reason
+            success = False
 
         return success
 

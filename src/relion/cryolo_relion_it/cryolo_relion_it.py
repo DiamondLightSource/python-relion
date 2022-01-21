@@ -1992,7 +1992,8 @@ def RunJobs(jobs, repeat, wait, schedulename):
         runjobsstring,
     ]
     # Popen rather than run because we want to run the process in the background
-    subprocess.Popen(command)
+    popen = subprocess.Popen(command)
+    return popen
 
 
 def WaitForJob(wait_for_this_job, seconds_wait):
@@ -2808,7 +2809,7 @@ def run_pipeline(opts):
         else:
             preprocess_schedule_name = PREPROCESS_SCHEDULE_PASS2
 
-        RunJobs(
+        preproc = RunJobs(
             runjobs,
             opts.preprocess_repeat_times,
             opts.preprocess_repeat_wait,
@@ -3600,6 +3601,11 @@ def run_pipeline(opts):
                                 break
 
                 if not have_new_batch:
+                    # if there isn't a new batch then check if the preprocessing is still running
+                    preprocstatus = preproc.poll()
+                    if preprocstatus is not None:
+                        os.remove(RUNNING_FILE)
+                        return False
                     if CheckForExit():
                         return
                     # The following prevents checking the particles.star file too often
