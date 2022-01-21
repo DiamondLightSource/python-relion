@@ -3604,8 +3604,9 @@ def run_pipeline(opts):
                     # if there isn't a new batch then check if the preprocessing is still running
                     preprocstatus = preproc.poll()
                     if preprocstatus is not None:
-                        os.remove(RUNNING_FILE)
-                        return False
+                        if preprocstatus != 0:
+                            os.remove(RUNNING_FILE)
+                        return
                     if CheckForExit():
                         return
                     # The following prevents checking the particles.star file too often
