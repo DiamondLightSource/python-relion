@@ -767,7 +767,7 @@ class RelionItOptions(object):
     #### Icebreaker
     do_icebreaker_job_group = True
     do_icebreaker_job_flatten = True
-    do_icebreaker_fivefig = False
+    do_icebreaker_fivefig = True
     do_icebreaker_group = True
     icebreaker_threads_number = 10
 
