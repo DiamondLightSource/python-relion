@@ -39,6 +39,12 @@ def run_job(project_dir, job_dir, args_list):
     parser.add_argument("--gmodel", help="cryolo general model")
     parser.add_argument("--config", help="cryolo config")
     parser.add_argument("--gpu", help='GPUs to use (e.g. "0 1 2 3")')
+    parser.add_argument(
+        "--from_movies",
+        type=int,
+        help="Whether or not initial images were movies",
+        default=1,
+    )
     args = parser.parse_args(args_list)
     thresh = args.threshold
     box_size = args.box_size
@@ -148,10 +154,11 @@ def run_job(project_dir, job_dir, args_list):
     loop.add_row([os.path.join(job_dir, "coords_suffix_autopick.star"), "2"])
     out_doc.write_file("RELION_OUTPUT_NODES.star")
     ctf_star = os.path.join(project_dir, args.in_mics)
-    correct_paths(ctf_star)
+    path_drop = 2 if args.from_movies else 0
+    correct_paths(ctf_star, path_drop=path_drop)
 
 
-def correct_paths(ctf_star):
+def correct_paths(ctf_star, path_drop: int = 2):
     in_doc = gemmi.cif.read_file(ctf_star)
     data_as_dict = json.loads(in_doc.as_json())["micrographs"]
 
@@ -159,7 +166,7 @@ def correct_paths(ctf_star):
         name = data_as_dict["_rlnmicrographname"][i]
         dirs, mic_file = os.path.split(name)
         full_dir = ""
-        for d in dirs.split("/")[2:]:
+        for d in dirs.split("/")[path_drop:]:
             full_dir = os.path.join(full_dir, d)
         os.makedirs(full_dir, exist_ok=True)
         picked_star = os.path.splitext(mic_file)[0] + "_autopick.star"

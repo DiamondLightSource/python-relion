@@ -2581,6 +2581,8 @@ def run_pipeline(opts):
                     f"Param4 - value: == {opts.cryolo_config}",
                     "Param5 - label: == gpu",
                     f'Param5 - value: == "{opts.cryolo_pick_gpus}"',
+                    "Param6 - label: == from_movies",
+                    f"Param6 - value: == {1 if opts.images_are_movies else 0}",
                 ]
 
                 # TODO: fix fine tune for running as External job
