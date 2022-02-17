@@ -202,28 +202,28 @@ class PipelineRunner:
     def preprocessing(self, ref3d: str = "", ref3d_angpix: float = -1) -> List[str]:
         if ref3d and self.options.autopick_do_cryolo:
             return []
-        if not ref3d:
-            jobs = ["relion.import.movies", "relion.motioncorr.motioncorr2"]
-            if self.options.do_icebreaker_job_group:
-                jobs.append("icebreaker.analysis.micrographs")
-            if self.options.do_icebreaker_job_flatten:
-                jobs.append("icebreaker.enhancecontrast")
-            jobs.append("relion.ctffind.ctffind4")
 
-            for job in jobs:
-                if not self.job_paths.get(job):
-                    self.job_paths[job] = self.fresh_job(
-                        job,
-                        extra_params=self._extra_options(job),
-                        lock=self._lock,
-                    )
-                else:
-                    self.project.continue_job(self.job_paths[job])
-            self._num_seen_movies = self._get_num_movies(
-                self.job_paths["relion.import.movies"] + "/movies.star"
-            )
-            if self.options.stop_after_ctf_estimation:
-                return []
+        jobs = ["relion.import.movies", "relion.motioncorr.motioncorr2"]
+        if self.options.do_icebreaker_job_group:
+            jobs.append("icebreaker.analysis.micrographs")
+        if self.options.do_icebreaker_job_flatten:
+            jobs.append("icebreaker.enhancecontrast")
+        jobs.append("relion.ctffind.ctffind4")
+
+        for job in jobs:
+            if not self.job_paths.get(job):
+                self.job_paths[job] = self.fresh_job(
+                    job,
+                    extra_params=self._extra_options(job),
+                    lock=self._lock,
+                )
+            else:
+                self.project.continue_job(self.job_paths[job])
+        self._num_seen_movies = self._get_num_movies(
+            self.job_paths["relion.import.movies"] + "/movies.star"
+        )
+        if self.options.stop_after_ctf_estimation:
+            return []
 
         if self.options.autopick_do_cryolo:
             next_jobs = ["cryolo.autopick"]
