@@ -31,7 +31,7 @@ class PipelineRunner:
     ):
         self.path = projpath
         self.movies_path = projpath / moviesdir
-        self.movietype = movietype
+        self.movietype = movietype if not movietype[0] == "." else movietype[1:]
         self.project = PipelinerProject()
         self.stopfile = stopfile
         self.options = options
