@@ -287,12 +287,14 @@ class PipelineRunner:
             if block_num is None:
                 return None, None
             star_block = star_doc[block_num]
-            ref = star_block.find_loop("_rlnReferenceImage")[0]
+            ref = list(star_block.find_loop("_rlnReferenceImage"))[0]
             ref_size = 0
             ref_resolution = None
             for i, image in enumerate(star_block.find_loop("_rlnReferenceImage")):
-                size = float(star_block.find_loop("_rlnClassDistribution")[i])
-                resolution = float(star_block.find_loop("_rlnEstimatedResolution")[i])
+                size = float(list(star_block.find_loop("_rlnClassDistribution"))[i])
+                resolution = float(
+                    list(star_block.find_loop("_rlnEstimatedResolution"))[i]
+                )
                 if ref_resolution is None or resolution < ref_resolution:
                     ref_resolution = resolution
                     ref_size = size
@@ -301,8 +303,9 @@ class PipelineRunner:
                     ref_resolution = resolution
                     ref_size = size
                     ref = image
-            return ref.split("@")[-1], float(star_doc[0].find_loop("_rlnPixelSize"))
-        except Exception:
+            return ref.split("@")[-1], float(star_doc[0].find_value("_rlnPixelSize"))
+        except Exception as e:
+            print(e)
             return None, None
 
     def _new_movies(self) -> bool:
