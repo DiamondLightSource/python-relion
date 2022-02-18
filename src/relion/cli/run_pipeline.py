@@ -39,6 +39,13 @@ def run():
         type=float,
         default=3.1,
     )
+    parser.add_argument(
+        "--timeout",
+        help="Stop importing movies if no new movies have been seen after this many seconds",
+        dest="timeout",
+        type=int,
+        default=2 * 24 * 3600,
+    )
     args = parser.parse_args()
 
     opts = RelionItOptions()
@@ -89,4 +96,4 @@ def run():
             opts,
             movietype=movietype,
         )
-        pipeline.run(2 * 24 * 3600)
+        pipeline.run(args.timeout)
