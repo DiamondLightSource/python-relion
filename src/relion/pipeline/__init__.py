@@ -220,10 +220,11 @@ class PipelineRunner:
         if ref3d and self.options.autopick_do_cryolo:
             return []
 
+        jobs = ["relion.import.movies"]
         if self.options.motioncor_do_own:
-            jobs = ["relion.import.movies", "relion.motioncorr.own"]
+            jobs.append("relion.motioncorr.own")
         else:
-            jobs = ["relion.import.movies", "relion.motioncorr.motioncorr2"]
+            jobs.append("relion.motioncorr.motioncorr2")
         if self.options.do_icebreaker_job_group:
             jobs.append("icebreaker.analysis.micrographs")
         if self.options.do_icebreaker_job_flatten:
@@ -518,10 +519,12 @@ class PipelineRunner:
                     and not iteration
                 ):
                     cleared = _clear_queue(self._ib_group_queue[0])
-                    self._ib_group_queue[0].put(cleared[0])
+                    if cleared:
+                        self._ib_group_queue[0].put(cleared[0])
                     self._ib_group_queue[0].put("")
                     cleared = _clear_queue(self._class2d_queue[0])
-                    self._class2d_queue[0].put(cleared[0])
+                    if cleared:
+                        self._class2d_queue[0].put(cleared[0])
                     self._class2d_queue[0].put("")
                     ib_thread.join()
                     class_thread.join()
