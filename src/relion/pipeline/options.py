@@ -56,6 +56,8 @@ def generate_pipeline_options(
         "nr_threads": relion_it_options.motioncor_threads,
     }
 
+    job_options["relion.motioncorr.own"] = job_options["relion.motioncorr.motioncorr2"]
+
     job_options["icebreaker.analysis.micrographs"] = {
         "nr_threads": relion_it_options.icebreaker_threads_number,
         "nr_mpi": 1,

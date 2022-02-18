@@ -20,6 +20,13 @@ from relion.cryolo_relion_it.cryolo_relion_it import RelionItOptions
 from relion.pipeline.options import generate_pipeline_options
 
 
+def _clear_queue(q: queue.Queue) -> List[str]:
+    results = []
+    while not q.empty():
+        results.append(q.get())
+    return results
+
+
 class PipelineRunner:
     def __init__(
         self,
@@ -44,11 +51,16 @@ class PipelineRunner:
         self._batches: List[Set[str]] = [set(), set()]
         self._num_seen_movies = 0
         self._lock = threading.RLock()
+        if self.options.do_second_pass:
+            self._class2d_queue.append(queue.Queue())
+            self._class3d_queue.append(queue.Queue())
+            self._ib_group_queue.append(queue.Queue())
 
     def _generate_pipeline_options(self):
         pipeline_jobs = {
             "relion.import.movies": "",
             "relion.motioncorr.motioncorr2": "gpu",
+            "relion.motioncorr.own": "cpu",
             "icebreaker.analysis.micrographs": "cpu",
             "icebreaker.enhancecontrast": "cpu",
             "relion.ctffind.ctffind4": "gpu",
@@ -66,6 +78,11 @@ class PipelineRunner:
 
     def _extra_options(self, job: str) -> dict:
         if job == "relion.motioncorr.motioncorr2":
+            return {
+                "input_star_mics": self.job_paths["relion.import.movies"]
+                + "/movies.star"
+            }
+        if job == "relion.motioncorr.own":
             return {
                 "input_star_mics": self.job_paths["relion.import.movies"]
                 + "/movies.star"
@@ -203,7 +220,10 @@ class PipelineRunner:
         if ref3d and self.options.autopick_do_cryolo:
             return []
 
-        jobs = ["relion.import.movies", "relion.motioncorr.motioncorr2"]
+        if self.options.motioncor_do_own:
+            jobs = ["relion.import.movies", "relion.motioncorr.own"]
+        else:
+            jobs = ["relion.import.movies", "relion.motioncorr.motioncorr2"]
         if self.options.do_icebreaker_job_group:
             jobs.append("icebreaker.analysis.micrographs")
         if self.options.do_icebreaker_job_flatten:
@@ -257,25 +277,23 @@ class PipelineRunner:
     def _best_class(
         self, job: str = "relion.initialmodel", batch: str = ""
     ) -> Tuple[Optional[str], Optional[float]]:
-        if isinstance(self.job_paths[job], dict):
+        try:
             model_file_candidates = list(
                 (self.path / self.job_paths[job][batch]).glob("*_model.star")
             )
-
-            def iteration_count(x: pathlib.Path) -> int:
-                parts = str(x).split("_")
-                for _x in parts:
-                    if _x.startswith("it"):
-                        return int(_x.replace("it", ""))
-
-            model_file_candidates = sorted(model_file_candidates, key=iteration_count)
-            model_file_candidates.reverse()
-        else:
+        except TypeError:
             model_file_candidates = list(
                 (self.path / self.job_paths[job]).glob("*_model.star")
             )
-            if len(model_file_candidates) != 1:
-                return None, None
+
+        def iteration_count(x: pathlib.Path) -> int:
+            parts = str(x).split("_")
+            for _x in parts:
+                if _x.startswith("it"):
+                    return int(_x.replace("it", ""))
+
+        model_file_candidates = sorted(model_file_candidates, key=iteration_count)
+        model_file_candidates.reverse()
         model_file = model_file_candidates[0]
         try:
             star_doc = cif.read_file(os.fspath(model_file))
@@ -354,7 +372,7 @@ class PipelineRunner:
             if batch_file == "__kill__":
                 if class3d_thread is None:
                     return
-                self._class3d_queue[iteration].clear()
+                _clear_queue(self._class3d_queue[iteration])
                 self._class3d_queue[iteration].put("")
                 class3d_thread.join()
                 return
@@ -499,10 +517,12 @@ class PipelineRunner:
                     and not self.options.autopick_do_cryolo
                     and not iteration
                 ):
-                    self._ib_group_queue[0].clear()
+                    cleared = _clear_queue(self._ib_group_queue[0])
+                    self._ib_group_queue[0].put(cleared[0])
                     self._ib_group_queue[0].put("")
-                    self._class2d_queue[0].clear()
-                    self._class2d_queue[0].put("__kill__")
+                    cleared = _clear_queue(self._class2d_queue[0])
+                    self._class2d_queue[0].put(cleared[0])
+                    self._class2d_queue[0].put("")
                     ib_thread.join()
                     class_thread.join()
                     ref3d, ref3d_angpix = self._best_class(
