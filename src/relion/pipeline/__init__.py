@@ -41,7 +41,7 @@ class PipelineRunner:
         self._class2d_queue: List[queue.Queue] = [queue.Queue()]
         self._class3d_queue: List[queue.Queue] = [queue.Queue()]
         self._ib_group_queue: List[queue.Queue] = [queue.Queue()]
-        self._batches: Set[str] = set()
+        self._batches: List[Set[str]] = [set(), set()]
         self._num_seen_movies = 0
         self._lock = threading.RLock()
 
@@ -351,6 +351,13 @@ class PipelineRunner:
                 self._class3d_queue[iteration].put("")
                 class3d_thread.join()
                 return
+            if batch_file == "__kill__":
+                if class3d_thread is None:
+                    return
+                self._class3d_queue[iteration].clear()
+                self._class3d_queue[iteration].put("")
+                class3d_thread.join()
+                return
             if not self.job_paths.get("relion.class2d.em"):
                 first_batch = batch_file
                 self.job_paths["relion.class2d.em"] = {}
@@ -420,6 +427,8 @@ class PipelineRunner:
         current_time = start_time
         class_thread = None
         ib_thread = None
+        class_thread_second_pass = None
+        ib_thread_second_pass = None
         ref3d = ""
         ref3d_angpix = 1
         iteration = 0
@@ -436,34 +445,52 @@ class PipelineRunner:
                 if not first_batch:
                     first_batch = split_files[0]
                 if self.options.do_icebreaker_group:
-                    if ib_thread is None:
+                    if ib_thread is None and not iteration:
                         ib_thread = threading.Thread(
                             target=self.ib_group,
                             name="ib_group_runner",
                             kwargs={"iteration": iteration},
                         )
                         ib_thread.start()
-                    new_batches = [f for f in split_files if f not in self._batches]
+                    elif ib_thread_second_pass is None and iteration:
+                        ib_thread_second_pass = threading.Thread(
+                            target=self.ib_group,
+                            name="ib_group_runner_second_pass",
+                            kwargs={"iteration": iteration},
+                        )
+                        ib_thread_second_pass.start()
+                    new_batches = [
+                        f for f in split_files if f not in self._batches[iteration]
+                    ]
                     for sf in new_batches:
-                        self._ib_group_queue[0].put(sf)
+                        self._ib_group_queue[iteration].put(sf)
                 if self.options.do_class2d:
-                    if class_thread is None:
+                    if class_thread is None and not iteration:
                         class_thread = threading.Thread(
                             target=self.classification,
                             name="classification_runner",
                             kwargs={"iteration": iteration},
                         )
                         class_thread.start()
+                    elif class_thread_second_pass is None and iteration:
+                        class_thread_second_pass = threading.Thread(
+                            target=self.classification,
+                            name="classification_runner_second_pass",
+                            kwargs={"iteration": iteration},
+                        )
+                        class_thread_second_pass.start()
                     if len(split_files) == 1:
-                        self._class2d_queue[0].put(split_files[0])
-                        self._batches.update(split_files)
+                        self._class2d_queue[iteration].put(split_files[0])
+                        self._batches[iteration].update(split_files)
                     else:
-                        new_batches = [f for f in split_files if f not in self._batches]
+                        new_batches = [
+                            f for f in split_files if f not in self._batches[iteration]
+                        ]
                         if not self._past_class_threshold:
                             self._past_class_threshold = True
                         for sf in new_batches:
-                            self._class2d_queue[0].put(sf)
-                        self._batches.update(new_batches)
+                            self._class2d_queue[iteration].put(sf)
+                        self._batches[iteration].update(new_batches)
                 old_iteration = iteration
                 if (
                     self.options.do_second_pass
@@ -472,8 +499,10 @@ class PipelineRunner:
                     and not self.options.autopick_do_cryolo
                     and not iteration
                 ):
+                    self._ib_group_queue[0].clear()
                     self._ib_group_queue[0].put("")
-                    self._class2d_queue[0].put("")
+                    self._class2d_queue[0].clear()
+                    self._class2d_queue[0].put("__kill__")
                     ib_thread.join()
                     class_thread.join()
                     ref3d, ref3d_angpix = self._best_class(
