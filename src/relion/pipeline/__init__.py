@@ -210,6 +210,9 @@ class PipelineRunner:
 
         with_batch_numbers = [(batch(str(f)), str(f)) for f in all_split_files]
         sorted_batch_numbers = sorted(with_batch_numbers, key=lambda x: x[0])
+        # if there is more than one batch then we are past the threshold for a single batch
+        if len(sorted_batch_numbers) > 1:
+            self._past_class_threshold = True
         return [s[1] for s in sorted_batch_numbers[:-1]]
 
     def _get_num_movies(self, star_file: str) -> int:
@@ -518,13 +521,13 @@ class PipelineRunner:
                     and not self.options.autopick_do_cryolo
                     and not iteration
                 ):
-                    cleared = _clear_queue(self._ib_group_queue[0])
-                    if cleared:
-                        self._ib_group_queue[0].put(cleared[0])
+                    # cleared = _clear_queue(self._ib_group_queue[0])
+                    # if cleared:
+                    #    self._ib_group_queue[0].put(cleared[0])
                     self._ib_group_queue[0].put("")
-                    cleared = _clear_queue(self._class2d_queue[0])
-                    if cleared:
-                        self._class2d_queue[0].put(cleared[0])
+                    # cleared = _clear_queue(self._class2d_queue[0])
+                    # if cleared:
+                    #    self._class2d_queue[0].put(cleared[0])
                     self._class2d_queue[0].put("")
                     ib_thread.join()
                     class_thread.join()
