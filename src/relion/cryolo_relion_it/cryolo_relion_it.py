@@ -941,6 +941,8 @@ class RelionItOptions(object):
     inimodel_other_args = " --sgd_skip_anneal "
     # Option to use FSC based criterion for selecting the best SGD initial model
     use_fsc_criterion = False
+    # Number of threads to use for initial model job
+    inimodel_threads = 12
 
     ### Cluster submission settings
     # Name of the queue to which to submit the job

@@ -7,9 +7,9 @@ def generate_pipeline_options(
     relion_it_options: RelionItOptions, submission_types: List[Dict[str, str]]
 ) -> dict:
     for queue in submission_types.values():
-        if queue not in ("gpu", "cpu", "gpu-smp", ""):
+        if queue not in ("gpu", "cpu", "gpu-smp", "cpu-smp", ""):
             raise ValueError(
-                f'The queue for a job must be either gpu, cpu or "", not {queue}'
+                f'The queue for a job must be either gpu, cpu, gpu-smp, cpu-smp or "", not {queue}'
             )
 
     queue_options_gpu = {
@@ -22,12 +22,17 @@ def generate_pipeline_options(
     }
     queue_options_cpu = {
         "do_queue": "Yes",
+        "qsubscript": relion_it_options.queue_submission_template_cpu,
+    }
+    queue_options_cpu_smp = {
+        "do_queue": "Yes",
         "qsubscript": relion_it_options.queue_submission_template_cpu_smp,
     }
     queue_options = {
         "gpu": queue_options_gpu,
         "cpu": queue_options_cpu,
         "gpu-smp": queue_options_gpu_smp,
+        "cpu-smp": queue_options_cpu_smp,
         "": {},
     }
 
@@ -58,12 +63,12 @@ def generate_pipeline_options(
 
     job_options["relion.motioncorr.own"] = job_options["relion.motioncorr.motioncorr2"]
 
-    job_options["icebreaker.analysis.micrographs"] = {
+    job_options["icebreaker.micrograph_analysis.micrographs"] = {
         "nr_threads": relion_it_options.icebreaker_threads_number,
         "nr_mpi": 1,
     }
 
-    job_options["icebreaker.enhancecontrast"] = {
+    job_options["icebreaker.micrograph_analysis.enhancecontrast"] = {
         "nr_threads": relion_it_options.icebreaker_threads_number,
         "nr_mpi": 1,
     }
@@ -126,7 +131,7 @@ def generate_pipeline_options(
         "split_size": relion_it_options.batch_size,
     }
 
-    job_options["icebreaker.analysis.particles"] = {
+    job_options["icebreaker.micrograph_analysis.particles"] = {
         "nr_threads": relion_it_options.icebreaker_threads_number,
         "nr_mpi": 1,
     }
@@ -156,7 +161,7 @@ def generate_pipeline_options(
         "use_gpu": relion_it_options.refine_do_gpu,
         "gpu_ids": "0:1:2:3",
         "nr_mpi": 1,
-        "nr_threads": relion_it_options.refine_threads,
+        "nr_threads": relion_it_options.inimodel_threads,
     }
 
     job_options["relion.class3d"] = {

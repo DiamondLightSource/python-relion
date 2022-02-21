@@ -1,11 +1,12 @@
 import functools
+import math
 import os
 import pathlib
 import queue
 import subprocess
 import threading
 import time
-from typing import Dict, List, Optional, Set, Tuple, Union
+from typing import Dict, List, Optional, Set, Tuple
 
 from gemmi import cif
 from pipeliner.api.api_utils import (
@@ -17,6 +18,8 @@ from pipeliner.api.manage_project import PipelinerProject
 from pipeliner.job_runner import JobRunner
 
 from relion.cryolo_relion_it.cryolo_relion_it import RelionItOptions
+from relion.pipeline.extra_options import generate_extra_options
+from relion.pipeline.job_tracker import JobTracker
 from relion.pipeline.options import generate_pipeline_options
 
 
@@ -43,14 +46,15 @@ class PipelineRunner:
         self.stopfile = stopfile
         self.options = options
         self.pipeline_options: Dict[str, dict] = self._generate_pipeline_options()
-        self.job_paths: Dict[str, Union[str, dict]] = {}
+        self.job_paths: JobTracker = JobTracker()  # {}
         self._past_class_threshold = False
         self._class2d_queue: List[queue.Queue] = [queue.Queue()]
         self._class3d_queue: List[queue.Queue] = [queue.Queue()]
         self._ib_group_queue: List[queue.Queue] = [queue.Queue()]
-        self._batches: List[Set[str]] = [set(), set()]
+        self._passes: List[Set[str]] = [set(), set()]
         self._num_seen_movies = 0
         self._lock = threading.RLock()
+        self._extra_options = generate_extra_options
         if self.options.do_second_pass:
             self._class2d_queue.append(queue.Queue())
             self._class3d_queue.append(queue.Queue())
@@ -61,110 +65,20 @@ class PipelineRunner:
             "relion.import.movies": "",
             "relion.motioncorr.motioncorr2": "gpu",
             "relion.motioncorr.own": "cpu",
-            "icebreaker.analysis.micrographs": "cpu",
-            "icebreaker.enhancecontrast": "cpu",
-            "relion.ctffind.ctffind4": "gpu",
+            "icebreaker.micrograph_analysis.micrographs": "cpu-smp",
+            "icebreaker.micrograph_analysis.enhancecontrast": "cpu-smp",
+            "relion.ctffind.ctffind4": "cpu",
             "relion.autopick.log": "gpu",
             "relion.autopick.ref3d": "gpu",
             "cryolo.autopick": "gpu",
-            "relion.extract": "gpu",
+            "relion.extract": "cpu",
             "relion.select.split": "",
-            "icebreaker.analysis.particles": "cpu",
+            "icebreaker.micrograph_analysis.particles": "cpu-smp",
             "relion.class2d.em": "gpu",
             "relion.initialmodel": "gpu-smp",
             "relion.class3d": "gpu-smp",
         }
         return generate_pipeline_options(self.options, pipeline_jobs)
-
-    def _extra_options(self, job: str) -> dict:
-        if job == "relion.motioncorr.motioncorr2":
-            return {
-                "input_star_mics": self.job_paths["relion.import.movies"]
-                + "/movies.star"
-            }
-        if job == "relion.motioncorr.own":
-            return {
-                "input_star_mics": self.job_paths["relion.import.movies"]
-                + "/movies.star"
-            }
-        if job == "icebreaker.analysis.micrographs":
-            return {
-                "in_mics": self.job_paths["relion.motioncorr.motioncorr2"]
-                + "corrected_micrographs.star"
-            }
-        if job == "icebreaker.enhancecontrast":
-            return {
-                "in_mics": self.job_paths["relion.motioncorr.motioncorr2"]
-                + "corrected_micrographs.star"
-            }
-        if job == "relion.ctffind.ctffind4":
-            if self.options.images_are_movies:
-                if self.job_paths.get("relion.motioncorr.motioncorr2"):
-                    return {
-                        "input_star_mics": self.job_paths[
-                            "relion.motioncorr.motioncorr2"
-                        ]
-                        + "/corrected_micrographs.star"
-                    }
-                else:
-                    return {
-                        "input_star_mics": self.job_paths["relion.motioncorr.own"]
-                        + "/corrected_micrographs.star"
-                    }
-            else:
-                return {
-                    "input_star_mics": self.job_paths["relion.import.movies"]
-                    + "/micrographs.star"
-                }
-        if job == "relion.autopick.log" or job == "relion.autopick.ref3d":
-            if self.options.use_ctffind_instead:
-                return {
-                    "fn_input_autopick": self.job_paths["relion.ctffind.ctffind4"]
-                    + "/micrographs_ctf.star"
-                }
-            return {
-                "fn_input_autopick": self.job_paths["relion.ctffind.gctf"]
-                + "/micrographs_ctf.star"
-            }
-        if job == "cryolo.autopick":
-            if self.options.use_ctffind_instead:
-                return {
-                    "input_file": self.job_paths["relion.ctffind.ctffind4"]
-                    + "/micrographs_ctf.star"
-                }
-            return {
-                "input_file": self.job_paths["relion.ctffind.gctf"]
-                + "/micrographs_ctf.star"
-            }
-        if job.startswith("relion.extract"):
-            ref = job.replace("relion.extract", "")
-            if self.options.autopick_do_cryolo:
-                coords = (
-                    self.job_paths["cryolo.autopick"] + "/coords_suffix_autopick.star"
-                )
-            else:
-                if ref:
-                    coords = self.job_paths["relion.autopick.ref3d"] + "/autopick.star"
-                else:
-                    coords = self.job_paths["relion.autopick.log"] + "/autopick.star"
-            if self.options.use_ctffind_instead:
-                star_mics = (
-                    self.job_paths["relion.ctffind.ctffind4"] + "/micrographs_ctf.star"
-                )
-            else:
-                star_mics = (
-                    self.job_paths["relion.ctffind.gctf"] + "/micrographs_ctf.star"
-                )
-            return {
-                "coords_suffix": coords,
-                "star_mics": star_mics,
-            }
-        if job.startswith("relion.select.split"):
-            ref = job.replace("relion.select.split", "")
-            return {
-                "fn_data": self.job_paths["relion.extract" + ref] + "/particles.star"
-            }
-        return {}
 
     def fresh_job(
         self,
@@ -172,6 +86,7 @@ class PipelineRunner:
         extra_params: Optional[dict] = None,
         wait: bool = True,
         lock: Optional[threading.RLock] = None,
+        alias: str = "",
     ) -> str:
         write_default_jobstar(job)
         params = job_parameters_dict(job)
@@ -189,12 +104,16 @@ class PipelineRunner:
                 f"{job.replace('.', '_')}_job.star",
                 wait_for_queued=wait,
             )
+            if alias:
+                self.project.set_alias(job_path, alias)
         else:
             with lock:
                 job_path = self.project.run_job(
                     f"{job.replace('.', '_')}_job.star",
                     wait_for_queued=False,
                 )
+                if alias:
+                    self.project.set_alias(job_path, alias)
             runner = JobRunner(self.project.pipeline.name)
             runner.wait_for_queued_job_completion(job_path)
         return job_path
@@ -229,20 +148,21 @@ class PipelineRunner:
         else:
             jobs.append("relion.motioncorr.motioncorr2")
         if self.options.do_icebreaker_job_group:
-            jobs.append("icebreaker.analysis.micrographs")
+            jobs.append("icebreaker.micrograph_analysis.micrographs")
         if self.options.do_icebreaker_job_flatten:
-            jobs.append("icebreaker.enhancecontrast")
+            jobs.append("icebreaker.micrograph_analysis.enhancecontrast")
         jobs.append("relion.ctffind.ctffind4")
 
         for job in jobs:
             if not self.job_paths.get(job):
                 self.job_paths[job] = self.fresh_job(
                     job,
-                    extra_params=self._extra_options(job),
+                    extra_params=self._extra_options(job, self.job_paths, self.options),
                     lock=self._lock,
                 )
             else:
                 self.project.continue_job(self.job_paths[job])
+        assert isinstance(self.job_paths["relion.import.movies"], str)
         self._num_seen_movies = self._get_num_movies(
             self.job_paths["relion.import.movies"] + "/movies.star"
         )
@@ -262,7 +182,7 @@ class PipelineRunner:
                     self.job_paths[job] = self.fresh_job(
                         job.replace(ref3d, ""),
                         extra_params={
-                            **self._extra_options(job),
+                            **self._extra_options(job, self.job_paths, self.options),
                             **{"fn_ref3d_autopick": ref3d, "angpix_ref": ref3d_angpix},
                         },
                         lock=self._lock,
@@ -270,12 +190,19 @@ class PipelineRunner:
                 else:
                     self.job_paths[job] = self.fresh_job(
                         job.replace(ref3d, ""),
-                        extra_params=self._extra_options(job),
+                        extra_params=self._extra_options(
+                            job, self.job_paths, self.options
+                        ),
                         lock=self._lock,
                     )
             else:
                 self.project.continue_job(self.job_paths[job])
-        return self._get_split_files(self.job_paths["relion.select.split" + ref3d])
+        select_path = self.job_paths["relion.select.split" + ref3d]
+        if not isinstance(select_path, str):
+            raise TypeError(
+                f"The tracker path to the select job should be a string, not {type(select_path)}: {select_path}"
+            )
+        return self._get_split_files(select_path)
 
     @functools.lru_cache(maxsize=1)
     def _best_class(
@@ -283,11 +210,11 @@ class PipelineRunner:
     ) -> Tuple[Optional[str], Optional[float]]:
         try:
             model_file_candidates = list(
-                (self.path / self.job_paths[job][batch]).glob("*_model.star")
+                (self.path / self.job_paths.get_member(job, batch)).glob("*_model.star")
             )
         except TypeError:
             model_file_candidates = list(
-                (self.path / self.job_paths[job]).glob("*_model.star")
+                (self.path / self.job_paths.get_str(job)).glob("*_model.star")
             )
 
         def iteration_count(x: pathlib.Path) -> int:
@@ -295,6 +222,7 @@ class PipelineRunner:
             for _x in parts:
                 if _x.startswith("it"):
                     return int(_x.replace("it", ""))
+            return 0
 
         model_file_candidates = sorted(model_file_candidates, key=iteration_count)
         model_file_candidates.reverse()
@@ -310,7 +238,7 @@ class PipelineRunner:
                 return None, None
             star_block = star_doc[block_num]
             ref = list(star_block.find_loop("_rlnReferenceImage"))[0]
-            ref_size = 0
+            ref_size: float = 0
             ref_resolution = None
             for i, image in enumerate(star_block.find_loop("_rlnReferenceImage")):
                 size = float(list(star_block.find_loop("_rlnClassDistribution"))[i])
@@ -330,6 +258,126 @@ class PipelineRunner:
             print(e)
             return None, None
 
+    @functools.lru_cache(maxsize=1)
+    def _best_class_fsc(
+        self,
+        angpix: float,
+        boxsize: int,
+        job: str = "relion.initialmodel",
+        batch: str = "",
+    ) -> Tuple[Optional[str], Optional[float]]:
+        fsc_files = ""
+        try:
+            model_file_candidates = list(
+                (self.path / self.job_paths.get_member(job, batch)).glob("*_model.star")
+            )
+        except TypeError:
+            model_file_candidates = list(
+                (self.path / self.job_paths.get_str(job)).glob("*_model.star")
+            )
+
+        def iteration_count(x: pathlib.Path) -> int:
+            parts = str(x).split("_")
+            for _x in parts:
+                if _x.startswith("it"):
+                    return int(_x.replace("it", ""))
+            return 0
+
+        model_file_candidates = sorted(model_file_candidates, key=iteration_count)
+        model_file_candidates.reverse()
+        model_file = model_file_candidates[0]
+        data_file = pathlib.Path(str(model_file).replace("model", "data"))
+        try:
+            star_doc = cif.read_file(os.fspath(model_file))
+            block_num = None
+            for block_index, block in enumerate(star_doc):
+                if list(block.find_loop("_rlnReferenceImage")):
+                    block_num = block_index
+                    break
+            if block_num is None:
+                return None, None
+            star_block = star_doc[block_num]
+        except Exception:
+            return None, None
+
+        mask_outer_radius = math.floor(0.98 * self.options.mask_diameter / (2 * angpix))
+        self.job_paths["relion.external.mask_soft_edge"] = self.fresh_job(
+            "relion.external",
+            extra_params={
+                "fn_exe": "external_job_mask_soft_edge",
+                "param1_label": "box_size",
+                "param1_value": str(boxsize),
+                "param2_label": "angpix",
+                "param2_value": str(angpix),
+                "param3_label": "outer_radius",
+                "param3_value": str(mask_outer_radius),
+            },
+            alias="MaskSoftEdge",
+        )
+        for iclass in range(1, len(star_block.find_loop["rlnReferenceImage"]) + 1):
+            self.job_paths[
+                f"relion.external.select_and_split_{iclass}"
+            ] = self.fresh_job(
+                "relion.external",
+                extra_params={
+                    "fn_exe": "external_job_select_and_split",
+                    "in_mics": str(data_file),
+                    "param1_label": "in_dir",
+                    "param1_value": f"{self.job_paths[job]}",
+                    "param2_label": "outfile",
+                    "param2_value": f"particles_class{iclass}.star",
+                    "param3_label": "class_number",
+                    "param3_value": str(iclass),
+                },
+                alias=f"SelectAndSplit_{iclass}",
+            )
+            self.job_paths[
+                f"relion.external.reconstruct_halves_{iclass}"
+            ] = self.fresh_job(
+                "relion.external",
+                extra_params={
+                    "fn_exe": "external_job_reconstruct_halves",
+                    "in_mics": f"External/SelectAndSplit_{iclass}/particles_class{iclass}.star",
+                    "param1_label": "in_dir",
+                    "param1_value": f"External/SelectAndSplit_{iclass}",
+                    "param2_label": "i",
+                    "param2_value": f"particles_class{iclass}.star",
+                    "param3_label": "mask_diameter",
+                    "param3_value": f"{self.options.mask_diameter}",
+                    "param4_label": "class_number",
+                    "param4_value": str(iclass),
+                },
+                alias=f"ReconstructHalves_{iclass}",
+            )
+            self.job_paths[f"relion.postprocess_{iclass}"] = self.fresh_job(
+                "relion.postprocess",
+                extra_params={
+                    "fn_mask": "External/MaskSoftEdge/mask.mrc",
+                    "fn_in": f"External/ReconstructHalves_{iclass}/3d_half1_model{iclass}.mrc",
+                    "angpix": str(angpix),
+                },
+                alias=f"GetFSC_{iclass}",
+            )
+            fsc_files += f" PostProcess/GetFSC_{iclass+1}/postprocess.star"
+
+        self.job_paths["relion.external.fsc_fitting"] = self.fresh_job(
+            "relion.external",
+            extra_params={
+                "fn_exe": "external_job_fsc_fitting",
+                "param1_label": "i",
+                "param1_value": fsc_files,
+            },
+            alias="FSCFitting",
+        )
+        with open(
+            self.job_paths.path_to("relion.external.fsc_fitting", "BestClass.txt"), "r"
+        ) as f:
+            class_index = int(f.readline())
+        return (
+            list(star_block.find_loop["rlnReferenceImage"])[class_index].split("@")[-1],
+            float(star_doc[0].find_value("_rlnPixelSize")),
+        )
+
     def _new_movies(self) -> bool:
         num_movies = len(
             [
@@ -340,7 +388,7 @@ class PipelineRunner:
         )
         return not num_movies == self._num_seen_movies
 
-    def _classification_3d(self, iteration: int = 0):
+    def _classification_3d(self, angpix: Optional[float] = None, iteration: int = 0):
         while True:
             batch_file = self._class3d_queue[iteration].get()
             if not batch_file:
@@ -353,16 +401,26 @@ class PipelineRunner:
                 )
             if not self.job_paths.get("relion.class3d"):
                 self.job_paths["relion.class3d"] = {}
-            self.job_paths["relion.class3d"][batch_file] = self.fresh_job(
+            if self.options.use_fsc_criterion and angpix is None:
+                raise ValueError(
+                    "use_fsc_criterion is True but angpix has not been specified"
+                )
+            self.job_paths.set_member(
                 "relion.class3d",
-                extra_params={
-                    "fn_img": batch_file,
-                    "fn_ref": self._best_class()[0],
-                },
-                lock=self._lock,
+                batch_file,
+                self.fresh_job(
+                    "relion.class3d",
+                    extra_params={
+                        "fn_img": batch_file,
+                        "fn_ref": self._best_class_fsc(angpix)[0]
+                        if self.options.use_fsc_criterion
+                        else self._best_class()[0],
+                    },
+                    lock=self._lock,
+                ),
             )
 
-    def classification(self, iteration: int = 0):
+    def classification(self, angpix: Optional[float] = None, iteration: int = 0):
         first_batch = ""
         class3d_thread = None
         while True:
@@ -383,28 +441,32 @@ class PipelineRunner:
             if not self.job_paths.get("relion.class2d.em"):
                 first_batch = batch_file
                 self.job_paths["relion.class2d.em"] = {}
-                self.job_paths["relion.class2d.em"][batch_file] = self.fresh_job(
+                self.job_paths.set_member(
                     "relion.class2d.em",
-                    extra_params={"fn_img": batch_file},
-                    lock=self._lock,
+                    batch_file,
+                    self.fresh_job(
+                        "relion.class2d.em",
+                        extra_params={"fn_img": batch_file},
+                        lock=self._lock,
+                    ),
                 )
                 if self._past_class_threshold and self.options.do_class3d:
                     class3d_thread = threading.Thread(
                         target=self._classification_3d,
                         name="3D_classification_runner",
-                        kwargs={"iteration": iteration},
+                        kwargs={"iteration": iteration, "angpix": angpix},
                     )
                     class3d_thread.start()
                     self._class3d_queue[iteration].put(first_batch)
-            elif self.job_paths["relion.class2d.em"].get(batch_file):
+            elif self.job_paths.get_member("relion.class2d.em", batch_file):
                 self.project.continue_job(
-                    self.job_paths["relion.class2d.em"].get(batch_file)
+                    self.job_paths.get_member("relion.class2d.em", batch_file)
                 )
                 if self._past_class_threshold and self.options.do_class3d:
                     class3d_thread = threading.Thread(
                         target=self._classification_3d,
                         name="3D_classification_runner",
-                        kwargs={"iteration": iteration},
+                        kwargs={"iteration": iteration, "angpix": angpix},
                     )
                     class3d_thread.start()
                     self._class3d_queue[iteration].put(first_batch)
@@ -413,14 +475,18 @@ class PipelineRunner:
                     class3d_thread = threading.Thread(
                         target=self._classification_3d,
                         name="3D_classification_runner",
-                        kwargs={"iteration": iteration},
+                        kwargs={"iteration": iteration, "angpix": angpix},
                     )
                     class3d_thread.start()
                     self._class3d_queue[iteration].put(first_batch)
-                self.job_paths["relion.class2d.em"][batch_file] = self.fresh_job(
+                self.job_paths.set_member(
                     "relion.class2d.em",
-                    extra_params={"fn_img": batch_file},
-                    lock=self._lock,
+                    batch_file,
+                    self.fresh_job(
+                        "relion.class2d.em",
+                        extra_params={"fn_img": batch_file},
+                        lock=self._lock,
+                    ),
                 )
                 if self.options.do_class3d:
                     self._class3d_queue[iteration].put(batch_file)
@@ -430,18 +496,24 @@ class PipelineRunner:
             batch_file = self._ib_group_queue[iteration].get()
             if not batch_file:
                 return
-            if not self.job_paths.get("icebreaker.analysis.particles"):
-                self.job_paths["icebreaker.analysis.particles"] = {}
-            self.job_paths["icebreaker.analysis.particles"][
-                batch_file
-            ] = self.fresh_job(
-                "icebreaker.analysis.particles",
-                extra_params={
-                    "in_mics": self.job_paths["icebreaker.analysis.micrographs"]
-                    + "grouped_micrographs.star",
-                    "in_parts": batch_file,
-                },
-                lock=self._lock,
+            if not self.job_paths.get("icebreaker.micrograph_analysis.particles"):
+                self.job_paths["icebreaker.micrograph_analysis.particles"] = {}
+            self.job_paths.set_member(
+                "icebreaker.micrograph_analysis.particles",
+                batch_file,
+                self.fresh_job(
+                    "icebreaker.micrograph_analysis.particles",
+                    extra_params={
+                        "in_mics": str(
+                            self.job_paths.path_to(
+                                "icebreaker.micrograph_analysis.micrographs",
+                                "grouped_micrographs.star",
+                            )
+                        ),
+                        "in_parts": batch_file,
+                    },
+                    lock=self._lock,
+                ),
             )
 
     def run(self, timeout: int):
@@ -451,8 +523,8 @@ class PipelineRunner:
         ib_thread = None
         class_thread_second_pass = None
         ib_thread_second_pass = None
-        ref3d = ""
-        ref3d_angpix = 1
+        ref3d: str = ""
+        ref3d_angpix: float = 1
         iteration = 0
         old_iteration = 0
         first_batch = ""
@@ -482,37 +554,53 @@ class PipelineRunner:
                         )
                         ib_thread_second_pass.start()
                     new_batches = [
-                        f for f in split_files if f not in self._batches[iteration]
+                        f for f in split_files if f not in self._passes[iteration]
                     ]
                     for sf in new_batches:
                         self._ib_group_queue[iteration].put(sf)
                 if self.options.do_class2d:
                     if class_thread is None and not iteration:
+                        curr_angpix = (
+                            self.options.angpix * self.options.motioncor_binning
+                        )
+                        if self.options.extract_downscale:
+                            curr_angpix *= (
+                                self.options.extract_boxsize
+                                / self.options.extract_small_boxsize
+                            )
                         class_thread = threading.Thread(
                             target=self.classification,
                             name="classification_runner",
-                            kwargs={"iteration": iteration},
+                            kwargs={"iteration": iteration, "angpix": curr_angpix},
                         )
                         class_thread.start()
                     elif class_thread_second_pass is None and iteration:
+                        curr_angpix = (
+                            self.options.angpix * self.options.motioncor_binning
+                        )
+                        if self.options.extract2_downscale:
+                            curr_angpix *= (
+                                self.options.extract_boxsize
+                                / self.options.extract2_small_boxsize
+                            )
                         class_thread_second_pass = threading.Thread(
                             target=self.classification,
                             name="classification_runner_second_pass",
-                            kwargs={"iteration": iteration},
+                            kwargs={"iteration": iteration, "angpix": curr_angpix},
                         )
                         class_thread_second_pass.start()
                     if len(split_files) == 1:
                         self._class2d_queue[iteration].put(split_files[0])
-                        self._batches[iteration].update(split_files)
+                        self._passes[iteration].update(split_files)
                     else:
                         new_batches = [
-                            f for f in split_files if f not in self._batches[iteration]
+                            f for f in split_files if f not in self._passes[iteration]
                         ]
                         if not self._past_class_threshold:
                             self._past_class_threshold = True
                         for sf in new_batches:
                             self._class2d_queue[iteration].put(sf)
-                        self._batches[iteration].update(new_batches)
+                        self._passes[iteration].update(new_batches)
                 old_iteration = iteration
                 if (
                     self.options.do_second_pass
@@ -521,19 +609,17 @@ class PipelineRunner:
                     and not self.options.autopick_do_cryolo
                     and not iteration
                 ):
-                    # cleared = _clear_queue(self._ib_group_queue[0])
-                    # if cleared:
-                    #    self._ib_group_queue[0].put(cleared[0])
                     self._ib_group_queue[0].put("")
-                    # cleared = _clear_queue(self._class2d_queue[0])
-                    # if cleared:
-                    #    self._class2d_queue[0].put(cleared[0])
                     self._class2d_queue[0].put("")
-                    ib_thread.join()
-                    class_thread.join()
-                    ref3d, ref3d_angpix = self._best_class(
+                    if ib_thread:
+                        ib_thread.join()
+                    if class_thread:
+                        class_thread.join()
+                    _ref3d, _ref3d_angpix = self._best_class(
                         "relion.class3d", first_batch
                     )
+                    ref3d = _ref3d or ""
+                    ref3d_angpix = _ref3d_angpix or ref3d_angpix
                     new_angpix = self.options.angpix * self.options.motioncor_binning
                     if self.options.extract2_downscale:
                         new_angpix *= (
