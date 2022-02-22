@@ -62,7 +62,7 @@ def main():
     )
     parser.add_argument("--in_mics", dest="starin", help="Input star file name")
     parser.add_argument("--outfile", dest="starout", help="Output star file name")
-    parser.add_argument("--o", help="Output star file name")
+    # parser.add_argument("--of", help="Output star file name")
     parser.add_argument(
         "--pipeline_control", help="Directory for pipeline control files"
     )
