@@ -388,7 +388,12 @@ class PipelineRunner:
         )
         return not num_movies == self._num_seen_movies
 
-    def _classification_3d(self, angpix: Optional[float] = None, iteration: int = 0):
+    def _classification_3d(
+        self,
+        angpix: Optional[float] = None,
+        boxsize: Optional[int] = None,
+        iteration: int = 0,
+    ):
         while True:
             batch_file = self._class3d_queue[iteration].get()
             if not batch_file:
@@ -412,7 +417,7 @@ class PipelineRunner:
                     "relion.class3d",
                     extra_params={
                         "fn_img": batch_file,
-                        "fn_ref": self._best_class_fsc(angpix)[0]
+                        "fn_ref": self._best_class_fsc(angpix, boxsize)[0]
                         if self.options.use_fsc_criterion
                         else self._best_class()[0],
                     },
@@ -420,7 +425,12 @@ class PipelineRunner:
                 ),
             )
 
-    def classification(self, angpix: Optional[float] = None, iteration: int = 0):
+    def classification(
+        self,
+        angpix: Optional[float] = None,
+        boxsize: Optional[int] = None,
+        iteration: int = 0,
+    ):
         first_batch = ""
         class3d_thread = None
         while True:
@@ -454,7 +464,11 @@ class PipelineRunner:
                     class3d_thread = threading.Thread(
                         target=self._classification_3d,
                         name="3D_classification_runner",
-                        kwargs={"iteration": iteration, "angpix": angpix},
+                        kwargs={
+                            "iteration": iteration,
+                            "angpix": angpix,
+                            "boxsize": boxsize,
+                        },
                     )
                     class3d_thread.start()
                     self._class3d_queue[iteration].put(first_batch)
@@ -466,7 +480,11 @@ class PipelineRunner:
                     class3d_thread = threading.Thread(
                         target=self._classification_3d,
                         name="3D_classification_runner",
-                        kwargs={"iteration": iteration, "angpix": angpix},
+                        kwargs={
+                            "iteration": iteration,
+                            "angpix": angpix,
+                            "boxsize": boxsize,
+                        },
                     )
                     class3d_thread.start()
                     self._class3d_queue[iteration].put(first_batch)
@@ -475,7 +493,11 @@ class PipelineRunner:
                     class3d_thread = threading.Thread(
                         target=self._classification_3d,
                         name="3D_classification_runner",
-                        kwargs={"iteration": iteration, "angpix": angpix},
+                        kwargs={
+                            "iteration": iteration,
+                            "angpix": angpix,
+                            "boxsize": boxsize,
+                        },
                     )
                     class3d_thread.start()
                     self._class3d_queue[iteration].put(first_batch)
@@ -563,30 +585,50 @@ class PipelineRunner:
                         curr_angpix = (
                             self.options.angpix * self.options.motioncor_binning
                         )
+                        bcb = int(
+                            self.options.extract_boxsize
+                            / self.options.motioncor_binning
+                        )
+                        curr_boxsize = bcb + bcb % 2
                         if self.options.extract_downscale:
                             curr_angpix *= (
                                 self.options.extract_boxsize
                                 / self.options.extract_small_boxsize
                             )
+                            curr_boxsize = self.options.extract_small_boxsize
                         class_thread = threading.Thread(
                             target=self.classification,
                             name="classification_runner",
-                            kwargs={"iteration": iteration, "angpix": curr_angpix},
+                            kwargs={
+                                "iteration": iteration,
+                                "angpix": curr_angpix,
+                                "boxsize": curr_boxsize,
+                            },
                         )
                         class_thread.start()
                     elif class_thread_second_pass is None and iteration:
                         curr_angpix = (
                             self.options.angpix * self.options.motioncor_binning
                         )
+                        bcb = int(
+                            self.options.extract_boxsize
+                            / self.options.motioncor_binning
+                        )
+                        curr_boxsize = bcb + bcb % 2
                         if self.options.extract2_downscale:
                             curr_angpix *= (
                                 self.options.extract_boxsize
                                 / self.options.extract2_small_boxsize
                             )
+                            curr_boxsize = self.options.extract2_small_boxsize
                         class_thread_second_pass = threading.Thread(
                             target=self.classification,
                             name="classification_runner_second_pass",
-                            kwargs={"iteration": iteration, "angpix": curr_angpix},
+                            kwargs={
+                                "iteration": iteration,
+                                "angpix": curr_angpix,
+                                "boxsize": curr_boxsize,
+                            },
                         )
                         class_thread_second_pass.start()
                     if len(split_files) == 1:
