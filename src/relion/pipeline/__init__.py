@@ -314,7 +314,7 @@ class PipelineRunner:
             },
             alias="MaskSoftEdge",
         )
-        for iclass in range(1, len(star_block.find_loop["rlnReferenceImage"]) + 1):
+        for iclass in range(1, len(star_block.find_loop("_rlnReferenceImage")) + 1):
             self.job_paths[
                 f"relion.external.select_and_split_{iclass}"
             ] = self.fresh_job(
