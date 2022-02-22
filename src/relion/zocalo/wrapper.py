@@ -42,6 +42,10 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
         # Enable log messages for relion.*
         logging.getLogger("relion").setLevel(logging.INFO)
 
+        # declare success here so we can mark a failure detected within processing thread
+        # assume good things to start with
+        success = True
+
         # Report python-relion package version
         self.status_thread.set_static_status_field("python-relion", relion.__version__)
 
@@ -340,24 +344,28 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
                 logger.info(
                     f"Ending all processing: current time {currtime}, most recent movie {most_recent_movie}"
                 )
-                all_process_check.unlink()
+                if all_process_check.is_file():
+                    all_process_check.unlink()
+                else:
+                    # if the running file is not there it was removed for a failure reason
+                    logger.warning(
+                        "Preprocessing exited unexpectedly. Relion wrapper returning failure status"
+                    )
+                    success = False
 
         if not icebreaker_particles_star_file_found:
             logger.warning("No particles.star file found for Icebreaker grouping.")
         logger.info("Done.")
-        success = False not in [n.environment["status"] for n in relion_prj if n._out]
+        if success:
+            success = False not in [
+                n.environment["status"] for n in relion_prj if n._out
+            ]
 
         if preprocess_check.is_file():
             preprocess_check.unlink()
 
         if all_process_check.is_file():
             all_process_check.unlink()
-        else:
-            # if the running file is not there it was removed for a failure reason
-            logger.warning(
-                "Preprocessing exited unexpectedly. Relion wrapper returning failure status"
-            )
-            success = False
 
         return success
 
