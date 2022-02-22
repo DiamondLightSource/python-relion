@@ -59,7 +59,10 @@ def main():
     """Change to the job working directory, then call run_job()"""
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--out_dir", dest="out_dir", help="Directory for the FSC fitting External job"
+        "--out_dir",
+        "--o",
+        dest="out_dir",
+        help="Directory for the FSC fitting External job",
     )
     parser.add_argument(
         "--i",
