@@ -286,7 +286,9 @@ class PipelineRunner:
         model_file_candidates = sorted(model_file_candidates, key=iteration_count)
         model_file_candidates.reverse()
         model_file = model_file_candidates[0]
+        print(model_file)
         data_file = pathlib.Path(str(model_file).replace("model", "data"))
+        print(data_file)
         try:
             star_doc = cif.read_file(os.fspath(model_file))
             block_num = None
@@ -321,7 +323,7 @@ class PipelineRunner:
                 "relion.external",
                 extra_params={
                     "fn_exe": "external_job_select_and_split",
-                    "in_mics": str(data_file),
+                    "in_mic": str(data_file.relative_to(self.path)),
                     "param1_label": "in_dir",
                     "param1_value": f"{self.job_paths[job]}",
                     "param2_label": "outfile",
@@ -337,7 +339,7 @@ class PipelineRunner:
                 "relion.external",
                 extra_params={
                     "fn_exe": "external_job_reconstruct_halves",
-                    "in_mics": f"External/SelectAndSplit_{iclass}/particles_class{iclass}.star",
+                    "in_mic": f"External/SelectAndSplit_{iclass}/particles_class{iclass}.star",
                     "param1_label": "in_dir",
                     "param1_value": f"External/SelectAndSplit_{iclass}",
                     "param2_label": "i",
@@ -346,6 +348,8 @@ class PipelineRunner:
                     "param3_value": f"{self.options.mask_diameter}",
                     "param4_label": "class_number",
                     "param4_value": str(iclass),
+                    # "do_queue": "Yes",
+                    # "qsubscript": self.options.queue_submission_template_cpu_smp,
                 },
                 alias=f"ReconstructHalves_{iclass}",
             )
@@ -355,10 +359,12 @@ class PipelineRunner:
                     "fn_mask": "External/MaskSoftEdge/mask.mrc",
                     "fn_in": f"External/ReconstructHalves_{iclass}/3d_half1_model{iclass}.mrc",
                     "angpix": str(angpix),
+                    "do_queue": "Yes",
+                    "qsubscript": self.options.queue_submission_template_cpu_smp,
                 },
                 alias=f"GetFSC_{iclass}",
             )
-            fsc_files += f" PostProcess/GetFSC_{iclass+1}/postprocess.star"
+            fsc_files += f" PostProcess/GetFSC_{iclass}/postprocess.star"
 
         self.job_paths["relion.external.fsc_fitting"] = self.fresh_job(
             "relion.external",
