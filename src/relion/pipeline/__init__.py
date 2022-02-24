@@ -68,15 +68,15 @@ class PipelineRunner:
             "icebreaker.micrograph_analysis.micrographs": "cpu-smp",
             "icebreaker.micrograph_analysis.enhancecontrast": "cpu-smp",
             "relion.ctffind.ctffind4": "cpu",
-            "relion.autopick.log": "gpu",
-            "relion.autopick.ref3d": "gpu",
+            "relion.autopick.log": "cpu",
+            "relion.autopick.ref3d": "cpu",
             "cryolo.autopick": "gpu",
             "relion.extract": "cpu",
             "relion.select.split": "",
             "icebreaker.micrograph_analysis.particles": "cpu-smp",
             "relion.class2d.em": "gpu",
             "relion.initialmodel": "gpu-smp",
-            "relion.class3d": "gpu-smp",
+            "relion.class3d": "gpu",
         }
         return generate_pipeline_options(self.options, pipeline_jobs)
 
@@ -93,7 +93,17 @@ class PipelineRunner:
         params.update(self.pipeline_options.get(job, {}))
         if extra_params is not None:
             params.update(extra_params)
-        params = {k: str(v) for k, v in params.items() if not isinstance(v, bool)}
+        _params = {k: str(v) for k, v in params.items() if not isinstance(v, bool)}
+
+        def _b2s(bv: bool) -> str:
+            if bv:
+                return "Yes"
+            return "No"
+
+        _params.update({k: _b2s(v) for k, v in params.items() if isinstance(v, bool)})
+        params = _params
+        if job == "relion.class2d.em":
+            print(f"2D params: {params}")
         edit_jobstar(
             f"{job.replace('.', '_')}_job.star",
             params,
@@ -266,7 +276,7 @@ class PipelineRunner:
         job: str = "relion.initialmodel",
         batch: str = "",
     ) -> Tuple[Optional[str], Optional[float]]:
-        fsc_files = ""
+        fsc_files = []
         try:
             model_file_candidates = list(
                 (self.path / self.job_paths.get_member(job, batch)).glob("*_model.star")
@@ -364,14 +374,14 @@ class PipelineRunner:
                 },
                 alias=f"GetFSC_{iclass}",
             )
-            fsc_files += f" PostProcess/GetFSC_{iclass}/postprocess.star"
+            fsc_files.append(f"PostProcess/GetFSC_{iclass}/postprocess.star")
 
         self.job_paths["relion.external.fsc_fitting"] = self.fresh_job(
             "relion.external",
             extra_params={
                 "fn_exe": "external_job_fsc_fitting",
                 "param1_label": "i",
-                "param1_value": fsc_files,
+                "param1_value": " ".join(fsc_files),
             },
             alias="FSCFitting",
         )
