@@ -182,8 +182,8 @@ def generate_pipeline_options(
         "do_ctf_correction": relion_it_options.class3d_ref_is_ctf_corrected,
         "ctf_intact_first_peak": relion_it_options.class3d_ctf_ign1stpeak,
         "do_preread_images": relion_it_options.refine_preread_images,
+        "use_gpu": relion_it_options.refine_do_gpu,
         "gpu_ids": "0:1:2:3",
-        "nr_mpi": relion_it_options.refine_mpi,
         "nr_threads": relion_it_options.refine_threads,
     }
 

@@ -76,7 +76,7 @@ class PipelineRunner:
             "icebreaker.micrograph_analysis.particles": "cpu-smp",
             "relion.class2d.em": "gpu",
             "relion.initialmodel": "gpu-smp",
-            "relion.class3d": "gpu",
+            "relion.class3d": "gpu-smp",
         }
         return generate_pipeline_options(self.options, pipeline_jobs)
 
@@ -378,7 +378,10 @@ class PipelineRunner:
 
         fsc_params = {}
         for i, f in enumerate(fsc_files):
-            fsc_params[f"param{i+1}_label"] = "i"
+            if not i:
+                fsc_params[f"param{i+1}_label"] = "i"
+            else:
+                fsc_params[f"param{i+1}_label"] = ""
             fsc_params[f"param{i+1}_value"] = f
         self.job_paths["relion.external.fsc_fitting"] = self.fresh_job(
             "relion.external",
@@ -392,7 +395,7 @@ class PipelineRunner:
             self.job_paths.path_to("relion.external.fsc_fitting", "BestClass.txt"), "r"
         ) as f:
             class_index = int(f.readline())
-        split_ref_img = list(star_block.find_loop("rlnReferenceImage"))[
+        split_ref_img = list(star_block.find_loop("_rlnReferenceImage"))[
             class_index
         ].split("@")
         return (
