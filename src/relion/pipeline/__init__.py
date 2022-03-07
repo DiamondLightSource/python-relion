@@ -392,8 +392,11 @@ class PipelineRunner:
             self.job_paths.path_to("relion.external.fsc_fitting", "BestClass.txt"), "r"
         ) as f:
             class_index = int(f.readline())
+        split_ref_img = list(star_block.find_loop("rlnReferenceImage"))[
+            class_index
+        ].split("@")
         return (
-            list(star_block.find_loop["rlnReferenceImage"])[class_index].split("@")[-1],
+            split_ref_img[-1],
             float(star_doc[0].find_value("_rlnPixelSize")),
         )
 
