@@ -1,6 +1,9 @@
 import os
 import pathlib
 import warnings
+from concurrent.futures import ThreadPoolExecutor
+from threading import RLock
+from typing import Optional, Tuple
 
 from gemmi import cif
 
@@ -173,17 +176,17 @@ class RelionPipeline:
                 pass
             try:
                 node.environment["end_time_stamp"] = datetime.datetime.fromtimestamp(
-                    aborted.stat().st_mtime
+                    success.stat().st_mtime
                 )
-                node.environment["status"] = False
+                node.environment["status"] = True
                 continue
             except FileNotFoundError:
                 pass
             try:
                 node.environment["end_time_stamp"] = datetime.datetime.fromtimestamp(
-                    success.stat().st_mtime
+                    aborted.stat().st_mtime
                 )
-                node.environment["status"] = True
+                node.environment["status"] = False
                 continue
             except FileNotFoundError:
                 pass
@@ -314,6 +317,161 @@ class RelionPipeline:
                 else:
                     digraph.edge(nodename, next_nodename, label="??? / ???")
         digraph.render(basepath / "Pipeline" / "relion_pipeline_jobs.gv")
+
+    def collect_cluster_info(self, basepath: pathlib.Path):
+        # preload schedule log files
+        logs = {
+            "preproc": self._get_log(basepath / "pipeline_PREPROCESS.log"),
+            "class2d": self._get_log(basepath / "pipeline_CLASS2D.log"),
+            "inimodel": self._get_log(basepath / "pipeline_INIMODEL.log"),
+            "class3d": self._get_log(basepath / "pipeline_CLASS3D.log"),
+            "ibgroup": self._get_log(basepath / "pipeline_ICEBREAKER_GROUP.log"),
+        }
+        with ThreadPoolExecutor(max_workers=10) as pool:
+            lock = RLock()
+            threads = []
+            for job in self._job_nodes:
+                sched = ""
+                if (
+                    str(job._path.parent)
+                    in [
+                        "Import",
+                        "MotionCorr",
+                        "CtfFind",
+                        "External",
+                        "AutoPick",
+                        "Select",
+                        "Extract",
+                    ]
+                    and job.environment["alias"]
+                    and "Icebreaker_group" not in job.environment["alias"]
+                ):
+                    sched = "preproc"
+                elif str(job._path.parent) == "Class2D":
+                    sched = "class2d"
+                elif str(job._path.parent) == "InitialModel":
+                    sched = "inimodel"
+                elif str(job._path.parent) == "Class3D":
+                    sched = "class3d"
+                elif (
+                    job.environment["alias"]
+                    and "Icebreaker_group" in job.environment["alias"]
+                ):
+                    sched = "ibgroup"
+                pool_sub = pool.submit(
+                    self._job_cluster_info,
+                    job,
+                    basepath,
+                    lock,
+                    schedule_log=logs.get(sched),
+                )
+                threads.append(pool_sub)
+            # wait for threads to finish
+            [t.result() for t in threads]
+            # use the motion correction num micrographs processed counts as
+            # the icebreaker counts as those aren't written to the log files
+            # needs to be done after all cluster job info is collected
+            for job in self._job_nodes:
+                if (
+                    str(job._path.parent) == "External"
+                    and "Icebreaker" in job.environment["alias"]
+                ):
+                    if (
+                        job.environment["cluster_job_ids"]
+                        and job._in[0].environment["cluster_job_mic_counts"] is not None
+                    ):
+                        job.environment["cluster_job_mic_counts"] = job._in[
+                            0
+                        ].environment["cluster_job_mic_counts"][
+                            : len(job.environment["cluster_job_ids"])
+                        ]
+
+    def _job_cluster_info(
+        self,
+        job: str,
+        basepath: pathlib.Path,
+        lock: RLock,
+        schedule_log: Optional[list] = None,
+    ):
+        try:
+            with open(basepath / job._path / "run.out") as logfile:
+                log = logfile.readlines()
+                (
+                    job.environment["cluster_job_ids"],
+                    job.environment["cluster_job_start_times"],
+                    job.environment["cluster_job_mic_counts"],
+                ) = self._parse_out_log(log)
+            with open(basepath / job._path / "note.txt") as logfile:
+                log = logfile.readlines()
+                cmd = None
+                for line in log:
+                    if "which" in line:
+                        cmd = line.split()[1].replace("`", "")
+                job.environment["cluster_command"] = cmd
+        except FileNotFoundError:
+            job.environment["cluster_job_ids"] = []
+            job.environment["cluster_job_start_times"] = []
+            job.environment["cluster_job_mic_counts"] = []
+        if schedule_log:
+            with lock:
+                job.environment["job_start_times"] = self._get_job_times(
+                    schedule_log, job._path
+                )
+
+    def _parse_out_log(self, outlog: list) -> Tuple[list]:
+        cluster_ids = []
+        job_count = 0
+        mic_counts = []
+        t = []
+        for line in outlog:
+            if "with job ID" in line:
+                cluster_ids.append(line.split()[-1])
+                job_count += 1
+                mic_counts.append(0)
+                # all of this is annoying stuff to deal with Relion writing its progress bar
+                # while the cluster info we're interested in is written on the same line of the
+                # output log
+                time_string = ":".join(line.split(":")[:3])
+                time_string = time_string.split(".")[-2]
+                for c in ("~", ",", "_", '"', ">", "(", ")", "[", "o", "]"):
+                    time_string = time_string.replace(c, "")
+                time_string = " ".join(time_string.split(" ")[-2:])
+                t.append(datetime.datetime.strptime(time_string, "%Y-%m-%d %H:%M:%S"))
+            if (
+                ("*" in line or "Filtering" in line)
+                and (".mrc" in line or ".tiff" in line)
+                and job_count
+            ):
+                mic_counts[job_count - 1] += 1
+        if all(cid.isnumeric() for cid in cluster_ids):
+            mic_counts = None
+        return cluster_ids, t, mic_counts
+
+    def _get_job_times(self, log: list, job_path: pathlib.Path) -> list:
+        times = []
+        for lindex, line in enumerate(log):
+            if "Executing" in line and str(job_path) in line:
+                split_line = log[lindex - 1].split()
+                time_split = split_line[4].split(":")
+                dtime = datetime.datetime(
+                    year=int(split_line[5]),
+                    month=list(calendar.month_abbr).index(split_line[2]),
+                    day=int(split_line[3]),
+                    hour=int(time_split[0]),
+                    minute=int(time_split[1]),
+                    second=int(time_split[2]),
+                )
+                times.append(dtime)
+        return times
+
+    @staticmethod
+    def _get_log(log_path):
+        try:
+            with open(log_path) as f:
+                log = f.readlines()
+            return log
+        except FileNotFoundError:
+            return []
 
     def collect_job_times(self, schedule_logs, preproc_log=None):
         for job in self._job_nodes:

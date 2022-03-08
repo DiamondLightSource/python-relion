@@ -66,7 +66,12 @@ class Project(RelionPipeline):
     """
 
     def __init__(
-        self, path, database="ISPyB", run_options=None, message_constructors=None
+        self,
+        path,
+        database="ISPyB",
+        run_options=None,
+        message_constructors=None,
+        cluster=False,
     ):
         """
         Create an object representing a Relion project.
@@ -91,7 +96,7 @@ class Project(RelionPipeline):
         else:
             self.run_options = run_options
         try:
-            self.load()
+            self.load(cluster=cluster)
         except (FileNotFoundError, OSError, RuntimeError):
             pass
             # raise RuntimeWarning(
@@ -193,7 +198,7 @@ class Project(RelionPipeline):
             return False
         return (self.basepath / self.origin / "RELION_JOB_EXIT_SUCCESS").is_file()
 
-    def load(self, clear_cache=True):
+    def load(self, clear_cache=True, cluster=False):
         if clear_cache:
             self._clear_caches()
         self._data_pipeline = Graph("DataPipeline", [])
@@ -211,6 +216,8 @@ class Project(RelionPipeline):
         self.collect_job_times(
             list(self.schedule_files), self.basepath / "pipeline_PREPROCESS.log"
         )
+        if cluster:
+            self.collect_cluster_info(self.basepath)
         for jobnode in self:
             if (
                 self._results_dict.get(jobnode.name)
@@ -305,7 +312,7 @@ class Project(RelionPipeline):
 
     @property
     def current_jobs(self):
-        self.load()
+        self.load(cluster=True)
         currj = super().current_jobs
         if currj is None:
             return None
