@@ -376,18 +376,12 @@ class PipelineRunner:
             )
             fsc_files.append(f"PostProcess/GetFSC_{iclass}/postprocess.star")
 
-        fsc_params = {}
-        for i, f in enumerate(fsc_files):
-            if not i:
-                fsc_params[f"param{i+1}_label"] = "i"
-            else:
-                fsc_params[f"param{i+1}_label"] = ""
-            fsc_params[f"param{i+1}_value"] = f
         self.job_paths["relion.external.fsc_fitting"] = self.fresh_job(
             "relion.external",
             extra_params={
                 "fn_exe": "external_job_fsc_fitting",
-                **fsc_params,
+                "param1_label": "i",
+                "param1_value": " ".join(fsc_files),
             },
             alias="FSCFitting",
         )
