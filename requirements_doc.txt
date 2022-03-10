@@ -1,8 +1,7 @@
 gemmi==0.5.2
 ispyb==6.10.0
 matplotlib==3.5.1
-pandas==1.2.5; python_version < '3.8'
-pandas==1.4.1; python_version >= '3.8'
+pandas==1.4.1
 plotly==5.6.0
 Sphinx==4.4.0
 sphinx-rtd-theme==1.0.0
