@@ -3,7 +3,6 @@ import pathlib
 import time
 
 import mrcfile
-import numpy as np
 import PIL.Image
 from PIL import ImageDraw, ImageEnhance, ImageFilter
 
@@ -34,7 +33,7 @@ def mrc_to_jpeg(plugin_params):
     if len(data.shape) == 2:
         data = data - data.min()
         data = data * 255 / data.max()
-        data = data.astype(np.uint8)
+        data = data.astype("uint8")
         im = PIL.Image.fromarray(data, mode="L")
         im.save(outfile)
     elif len(data.shape) == 3:
@@ -42,7 +41,7 @@ def mrc_to_jpeg(plugin_params):
             for i, frame in enumerate(data):
                 frame = frame - frame.min()
                 frame = frame * 255 / frame.max()
-                frame = frame.astype(np.uint8)
+                frame = frame.astype("uint8")
                 im = PIL.Image.fromarray(frame, mode="L")
                 frame_outfile = str(outfile).replace(".jpeg", f"_{i+1}.jpeg")
                 im.save(frame_outfile)
@@ -50,7 +49,7 @@ def mrc_to_jpeg(plugin_params):
         else:
             data = data - data[0].min()
             data = data * 255 / data[0].max()
-            data = data.astype(np.uint8)
+            data = data.astype("uint8")
             im = PIL.Image.fromarray(data[0], mode="L")
             im.save(outfile)
     timing = time.perf_counter() - start
@@ -95,7 +94,7 @@ def picked_particles(plugin_params):
         return False
     data = data - data.min()
     data = data * 255 / data.max()
-    data = data.astype(np.uint8)
+    data = data.astype("uint8")
     with PIL.Image.fromarray(data).convert(mode="RGB") as bim:
         enhancer = ImageEnhance.Contrast(bim)
         enhanced = enhancer.enhance(contrast_factor)
