@@ -1,10 +1,10 @@
-from typing import Dict, List
+from typing import Any, Dict
 
 from relion.cryolo_relion_it.cryolo_relion_it import RelionItOptions
 
 
 def generate_pipeline_options(
-    relion_it_options: RelionItOptions, submission_types: List[Dict[str, str]]
+    relion_it_options: RelionItOptions, submission_types: Dict[str, str]
 ) -> dict:
     for queue in submission_types.values():
         if queue not in ("gpu", "cpu", "gpu-smp", "cpu-smp", ""):
@@ -28,7 +28,7 @@ def generate_pipeline_options(
         "do_queue": "Yes",
         "qsubscript": relion_it_options.queue_submission_template_cpu_smp,
     }
-    queue_options = {
+    queue_options: Dict[str, dict] = {
         "gpu": queue_options_gpu,
         "cpu": queue_options_cpu,
         "gpu-smp": queue_options_gpu_smp,
@@ -36,7 +36,7 @@ def generate_pipeline_options(
         "": {},
     }
 
-    job_options = {}
+    job_options: Dict[str, Any] = {}
 
     job_options["relion.import.movies"] = {
         "fn_in_raw": relion_it_options.import_images,
@@ -192,8 +192,13 @@ def generate_pipeline_options(
         "nr_threads": relion_it_options.refine_threads,
     }
 
+<<<<<<< HEAD
     pipeline_options = {
         key: {**job_options[key], **queue_options[q]}
         for key, q in submission_types.items()
+=======
+    pipeline_options: dict = {
+        key: {**job_options[key], **queue_options[q]} for key, q in job_types.items()
+>>>>>>> mypy fixes
     }
     return pipeline_options

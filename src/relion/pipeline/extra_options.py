@@ -1,5 +1,5 @@
 from functools import partial
-from typing import Any, Dict
+from typing import Any, Callable, Dict
 
 from relion.cryolo_relion_it.cryolo_relion_it import RelionItOptions
 from relion.pipeline.job_tracker import JobTracker
@@ -83,7 +83,7 @@ def _select(
     return {"fn_data": str(tracker.path_to("relion.extract" + ref, "particles.star"))}
 
 
-_extra_options = {
+_extra_options: Dict[str, Callable] = {
     "relion.motioncorr.motioncorr2": _from_import,
     "relion.motioncorr.own": _from_import,
     "icebreaker.micrograph_analysis.micrographs": partial(
@@ -109,8 +109,8 @@ def generate_extra_options(
     job: str, tracker: JobTracker, options: RelionItOptions
 ) -> Dict[str, Any]:
     if job.startswith("relion.extract"):
-        ref = bool(job.replace("relion.extract", ""))
-        return _extra_options["relion.extract"](tracker, options, ref=ref)
+        refb = bool(job.replace("relion.extract", ""))
+        return _extra_options["relion.extract"](tracker, options, ref=refb)
     elif job.startswith("relion.select.split"):
         ref = job.replace("relion.select.split", "")
         return _extra_options["relion.select.split"](tracker, options, ref=ref)
