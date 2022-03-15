@@ -45,6 +45,18 @@ def _from_ctf(
     return {in_key: str(tracker.path_to("relion.ctffind.gctf", "micrographs_ctf.star"))}
 
 
+def _from_ib(
+    tracker: JobTracker, options: RelionItOptions, in_key: str = "in_mics"
+) -> Dict[str, Any]:
+    return {
+        in_key: str(
+            tracker.path_to(
+                "icebreaker.micrograph_analysis.micrographs", "grouped_micrographs.star"
+            )
+        )
+    }
+
+
 def _extract(
     tracker: JobTracker, options: RelionItOptions, ref: bool = False
 ) -> Dict[str, Any]:
@@ -79,6 +91,9 @@ _extra_options = {
     ),
     "icebreaker.micrograph_analysis.enhancecontrast": partial(
         _from_motioncorr, in_key="in_mics"
+    ),
+    "icebreaker.micrograph_analysis.summary": partial(
+        _from_ib,
     ),
     "relion.ctffind.ctffind4": _from_motioncorr,
     "relion.ctffind.gctf": _from_motioncorr,

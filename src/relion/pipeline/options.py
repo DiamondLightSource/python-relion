@@ -73,6 +73,11 @@ def generate_pipeline_options(
         "nr_mpi": 1,
     }
 
+    job_options["icebreaker.micrograph_analysis.summary"] = {
+        "nr_threads": relion_it_options.icebreaker_threads_number,
+        "nr_mpi": 1,
+    }
+
     job_options["relion.ctffind.ctffind4"] = {
         "dast": relion_it_options.ctffind_astigmatism,
         "box": relion_it_options.ctffind_boxsize,

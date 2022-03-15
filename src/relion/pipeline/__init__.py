@@ -67,6 +67,7 @@ class PipelineRunner:
             "relion.motioncorr.own": "cpu",
             "icebreaker.micrograph_analysis.micrographs": "cpu-smp",
             "icebreaker.micrograph_analysis.enhancecontrast": "cpu-smp",
+            "icebreaker.micrograph_analysis.summary": "cpu-smp",
             "relion.ctffind.ctffind4": "cpu",
             "relion.autopick.log": "cpu",
             "relion.autopick.ref3d": "cpu",
@@ -161,6 +162,8 @@ class PipelineRunner:
             jobs.append("icebreaker.micrograph_analysis.micrographs")
         if self.options.do_icebreaker_job_flatten:
             jobs.append("icebreaker.micrograph_analysis.enhancecontrast")
+        if self.options.do_icebreaker_fivefig:
+            jobs.append("icebreaker.micrograph_analysis.summary")
         jobs.append("relion.ctffind.ctffind4")
 
         for job in jobs:
