@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Any, Dict, Union
+from typing import Any, Dict, Optional, Union
 
 
 class JobTracker:
@@ -25,15 +25,17 @@ class JobTracker:
             return stringy_return
         raise TypeError(f"The key {key} does not get a string from JobTracker {self}")
 
-    def get_member(self, key: str, second_key: str, validate: bool = True) -> str:
+    def get_member(
+        self, key: str, second_key: str, validate: bool = True
+    ) -> Optional[str]:
         job_path = self._job_paths[key]
         if isinstance(job_path, str):
             if validate:
                 raise TypeError(
                     f"The key {key} returned a string from get_member method of JobTracker"
                 )
-            return ""
-        return job_path[second_key]
+            return None
+        return job_path.get(second_key)
 
     def set_member(
         self, key: str, second_key: str, value: str, validate: bool = True
