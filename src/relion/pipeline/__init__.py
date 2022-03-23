@@ -480,7 +480,7 @@ class PipelineRunner:
                     )
                     class3d_thread.start()
                     self._queues["class3D"][iteration].put(first_batch)
-            elif self.job_paths_batch["relion.class2d.em"][batch_file]:
+            elif self.job_paths_batch["relion.class2d.em"].get(batch_file):
                 self.project.continue_job(
                     str(self.job_paths_batch["relion.class2d.em"][batch_file])
                 )
