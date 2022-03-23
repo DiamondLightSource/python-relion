@@ -87,9 +87,9 @@ def run():
     if args.version == 3.1:
         cryolo_relion_it.run_pipeline(opts)
     elif args.version == 4:
-        movietype = list(
+        movietype = next(
             (pathlib.Path(args.working_directory) / "Movies").glob("**/*")
-        )[0].suffix
+        ).suffix
         pipeline = PipelineRunner(
             pathlib.Path(args.working_directory),
             pathlib.Path(args.working_directory) / "stop.stop",
