@@ -45,20 +45,21 @@ class PipelineRunner:
         self.stopfile = stopfile
         self.options = options
         self.pipeline_options: Dict[str, dict] = self._generate_pipeline_options()
-        self.job_paths: Dict[str, pathlib.Path] = {}  # {}
+        self.job_paths: Dict[str, pathlib.Path] = {}
         self.job_paths_batch: Dict[str, Dict[str, pathlib.Path]] = {}
         self._past_class_threshold = False
-        self._class2d_queue: List[queue.Queue] = [queue.Queue()]
-        self._class3d_queue: List[queue.Queue] = [queue.Queue()]
-        self._ib_group_queue: List[queue.Queue] = [queue.Queue()]
+        self._queues: Dict[str, List[queue.Queue]] = {
+            "class2D": [queue.Queue()],
+            "class3D": [queue.Queue()],
+            "ib_group": [queue.Queue()],
+        }
         self._passes: List[Set[str]] = [set(), set()]
         self._num_seen_movies = 0
         self._lock = threading.RLock()
         self._extra_options = generate_extra_options
         if self.options.do_second_pass:
-            self._class2d_queue.append(queue.Queue())
-            self._class3d_queue.append(queue.Queue())
-            self._ib_group_queue.append(queue.Queue())
+            for q in self._queues.items():
+                q.append(queue.Queue())
 
     def _generate_pipeline_options(self):
         pipeline_jobs = {
@@ -447,18 +448,18 @@ class PipelineRunner:
         first_batch = ""
         class3d_thread = None
         while True:
-            batch_file = self._class2d_queue[iteration].get()
+            batch_file = self._queues["class2D"][iteration].get()
             if not batch_file:
                 if class3d_thread is None:
                     return
-                self._class3d_queue[iteration].put("")
+                self._queues["class3D"][iteration].put("")
                 class3d_thread.join()
                 return
             if batch_file == "__kill__":
                 if class3d_thread is None:
                     return
-                _clear_queue(self._class3d_queue[iteration])
-                self._class3d_queue[iteration].put("")
+                _clear_queue(self._queues["class3D"][iteration])
+                self._queues["class3D"][iteration].put("")
                 class3d_thread.join()
                 return
             if not self.job_paths_batch.get("relion.class2d.em"):
@@ -497,7 +498,7 @@ class PipelineRunner:
                         },
                     )
                     class3d_thread.start()
-                    self._class3d_queue[iteration].put(first_batch)
+                    self._queues["class3D"][iteration].put(first_batch)
             else:
                 if self.options.do_class3d and class3d_thread is None:
                     class3d_thread = threading.Thread(
@@ -510,7 +511,7 @@ class PipelineRunner:
                         },
                     )
                     class3d_thread.start()
-                    self._class3d_queue[iteration].put(first_batch)
+                    self._queues["class3D"][iteration].put(first_batch)
                 self.job_paths_batch["relion.class2d.em"][batch_file] = self.fresh_job(
                     "relion.class2d.em",
                     extra_params={"fn_img": batch_file},
@@ -518,11 +519,11 @@ class PipelineRunner:
                 )
 
                 if self.options.do_class3d:
-                    self._class3d_queue[iteration].put(batch_file)
+                    self._queues["class3D"][iteration].put(batch_file)
 
     def ib_group(self, iteration: int = 0):
         while True:
-            batch_file = self._ib_group_queue[iteration].get()
+            batch_file = self._queues["ib_group"][iteration].get()
             if not batch_file:
                 return
             if not self.job_paths_batch.get("icebreaker.micrograph_analysis.particles"):
@@ -582,7 +583,7 @@ class PipelineRunner:
                         f for f in split_files if f not in self._passes[iteration]
                     ]
                     for sf in new_batches:
-                        self._ib_group_queue[iteration].put(sf)
+                        self._queues["ib_group"][iteration].put(sf)
                 if self.options.do_class2d:
                     if class_thread is None and not iteration:
                         curr_angpix = (
@@ -635,7 +636,7 @@ class PipelineRunner:
                         )
                         class_thread_second_pass.start()
                     if len(split_files) == 1:
-                        self._class2d_queue[iteration].put(split_files[0])
+                        self._queues["class2D"][iteration].put(split_files[0])
                         self._passes[iteration].update(split_files)
                     else:
                         new_batches = [
@@ -644,7 +645,7 @@ class PipelineRunner:
                         if not self._past_class_threshold:
                             self._past_class_threshold = True
                         for sf in new_batches:
-                            self._class2d_queue[iteration].put(sf)
+                            self._queues["class2D"][iteration].put(sf)
                         self._passes[iteration].update(new_batches)
                 old_iteration = iteration
                 if (
@@ -654,8 +655,8 @@ class PipelineRunner:
                     and not self.options.autopick_do_cryolo
                     and not iteration
                 ):
-                    self._ib_group_queue[0].put("")
-                    self._class2d_queue[0].put("")
+                    self._queues["ib_group"][0].put("")
+                    self._queues["class2D"][0].put("")
                     if ib_thread:
                         ib_thread.join()
                     if class_thread:
@@ -698,9 +699,9 @@ class PipelineRunner:
             time.sleep(10)
             current_time = time.time()
         if ib_thread is not None:
-            self._ib_group_queue[0].put("")
+            self._queues["ib_group"][0].put("")
         if class_thread is not None:
-            self._class2d_queue[0].put("")
+            self._queues["class2D"][0].put("")
         if ib_thread is not None:
             ib_thread.join()
         if class_thread is not None:
