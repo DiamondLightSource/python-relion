@@ -103,8 +103,6 @@ class PipelineRunner:
 
         _params.update({k: _b2s(v) for k, v in params.items() if isinstance(v, bool)})
         params = _params
-        if job == "relion.class2d.em":
-            print(f"2D params: {params}")
         edit_jobstar(
             f"{job.replace('.', '_')}_job.star",
             params,
