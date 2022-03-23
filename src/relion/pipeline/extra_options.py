@@ -1,86 +1,77 @@
 from functools import partial
+from pathlib import Path
 from typing import Any, Callable, Dict
 
 from relion.cryolo_relion_it.cryolo_relion_it import RelionItOptions
-from relion.pipeline.job_tracker import JobTracker
 
 
 def _from_import(
-    tracker: JobTracker, *args, in_key: str = "input_star_mics"
+    tracker: Dict[str, Path], *args, in_key: str = "input_star_mics"
 ) -> Dict[str, Any]:
-    return {in_key: str(tracker.path_to("relion.import.movies", "movies.star"))}
+    return {in_key: str(tracker["relion.import.movies"] / "movies.star")}
 
 
 def _from_motioncorr(
-    tracker: JobTracker, options: RelionItOptions, in_key: str = "input_star_mics"
+    tracker: Dict[str, Path], options: RelionItOptions, in_key: str = "input_star_mics"
 ) -> Dict[str, Any]:
     if options.images_are_movies:
         if options.motioncor_do_own:
             return {
                 in_key: str(
-                    tracker.path_to(
-                        "relion.motioncorr.own", "corrected_micrographs.star"
-                    )
+                    tracker["relion.motioncorr.own"] / "corrected_micrographs.star"
                 )
             }
         return {
             in_key: str(
-                tracker.path_to(
-                    "relion.motioncorr.motioncorr2", "corrected_micrographs.star"
-                )
+                tracker["relion.motioncorr.motioncorr2"] / "corrected_micrographs.star"
             )
         }
     return _from_import(tracker, in_key=in_key)
 
 
 def _from_ctf(
-    tracker: JobTracker, options: RelionItOptions, in_key: str = "fn_input_autopick"
+    tracker: Dict[str, Path],
+    options: RelionItOptions,
+    in_key: str = "fn_input_autopick",
 ) -> Dict[str, Any]:
     if options.use_ctffind_instead:
         return {
-            in_key: str(
-                tracker.path_to("relion.ctffind.ctffind4", "micrographs_ctf.star")
-            )
+            in_key: str(tracker["relion.ctffind.ctffind4"] / "micrographs_ctf.star")
         }
-    return {in_key: str(tracker.path_to("relion.ctffind.gctf", "micrographs_ctf.star"))}
+    return {in_key: str(tracker["relion.ctffind.gctf"] / "micrographs_ctf.star")}
 
 
 def _from_ib(
-    tracker: JobTracker, options: RelionItOptions, in_key: str = "in_mics"
+    tracker: Dict[str, Path], options: RelionItOptions, in_key: str = "in_mics"
 ) -> Dict[str, Any]:
     return {
         in_key: str(
-            tracker.path_to(
-                "icebreaker.micrograph_analysis.micrographs", "grouped_micrographs.star"
-            )
+            tracker["icebreaker.micrograph_analysis.micrographs"]
+            / "grouped_micrographs.star"
         )
     }
 
 
 def _extract(
-    tracker: JobTracker, options: RelionItOptions, ref: bool = False
+    tracker: Dict[str, Path], options: RelionItOptions, ref: bool = False
 ) -> Dict[str, Any]:
     res = {}
     if options.autopick_do_cryolo:
         res["coords_suffix"] = str(
-            tracker.path_to("cryolo.autopick", "coords_suffix_autopick.star")
+            tracker["cryolo.autopick"] / "coords_suffix_autopick.star"
         )
     elif ref:
-        res["coords_suffix"] = str(
-            tracker.path_to("relion.autopick.ref3d", "autopick.star")
-        )
+        res["coords_suffix"] = str(tracker["relion.autopick.ref3d"] / "autopick.star")
     else:
-        res["coords_suffix"] = str(
-            tracker.path_to("relion.autopick.log", "autopick.star")
-        )
+        res["coords_suffix"] = str(tracker["relion.autopick.log"] / "autopick.star")
     res.update(_from_ctf(tracker, options, in_key="star_mics"))
     return res
 
 
 def _select(
-    tracker: JobTracker, options: RelionItOptions, ref: str = ""
+    tracker: Dict[str, Path], options: RelionItOptions, ref: str = ""
 ) -> Dict[str, Any]:
-    return {"fn_data": str(tracker.path_to("relion.extract" + ref, "particles.star"))}
+    return {"fn_data": str(tracker["relion.extract" + ref] / "particles.star")}
 
 
 _extra_options: Dict[str, Callable] = {
@@ -106,7 +97,7 @@ _extra_options: Dict[str, Callable] = {
 
 
 def generate_extra_options(
-    job: str, tracker: JobTracker, options: RelionItOptions
+    job: str, tracker: Dict[str, Path], options: RelionItOptions
 ) -> Dict[str, Any]:
     if job.startswith("relion.extract"):
         refb = bool(job.replace("relion.extract", ""))

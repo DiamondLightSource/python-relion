@@ -125,7 +125,7 @@ class PipelineRunner:
                     self.project.set_alias(job_path, alias)
             runner = JobRunner(self.project.pipeline.name)
             runner.wait_for_queued_job_completion(job_path)
-        return self.path / job_path
+        return pathlib.Path(job_path)
 
     def _get_split_files(self, select_job: str) -> List[str]:
         all_split_files = list(pathlib.Path(select_job).glob("*particles_split*.star"))
@@ -143,12 +143,9 @@ class PipelineRunner:
             self._past_class_threshold = True
         return [s[1] for s in sorted_batch_numbers[:-1]]
 
-    def _get_num_movies(self, star_file: str) -> int:
+    def _get_num_movies(self, star_file: pathlib.Path) -> int:
         star_doc = cif.read_file(os.fspath(star_file))
         return len(list(star_doc[1].find_loop("_rlnMicrographMovieName")))
-
-    def relion_path(self, path: pathlib.Path) -> str:
-        return str(path.relative_to(self.path))
 
     def preprocessing(self, ref3d: str = "", ref3d_angpix: float = -1) -> List[str]:
         if ref3d and self.options.autopick_do_cryolo:
@@ -175,10 +172,9 @@ class PipelineRunner:
                     lock=self._lock,
                 )
             else:
-                self.project.continue_job(self.job_paths[job])
-        assert isinstance(self.job_paths["relion.import.movies"], str)
+                self.project.continue_job(str(self.job_paths[job]))
         self._num_seen_movies = self._get_num_movies(
-            self.job_paths["relion.import.movies"] + "/movies.star"
+            self.job_paths["relion.import.movies"] / "movies.star"
         )
         if self.options.stop_after_ctf_estimation:
             return []
@@ -210,7 +206,7 @@ class PipelineRunner:
                         lock=self._lock,
                     )
             else:
-                self.project.continue_job(self.relion_path(self.job_paths[job]))
+                self.project.continue_job(str(self.job_paths[job]))
         select_path = self.job_paths["relion.select.split" + ref3d]
         if not isinstance(select_path, str):
             raise TypeError(
@@ -224,10 +220,12 @@ class PipelineRunner:
     ) -> Tuple[Optional[str], Optional[float]]:
         try:
             model_file_candidates = list(
-                self.job_paths_batch[job][batch].glob("*_model.star")
+                (self.path / self.job_paths_batch[job][batch]).glob("*_model.star")
             )
         except TypeError:
-            model_file_candidates = list(self.job_paths[job].glob("*_model.star"))
+            model_file_candidates = list(
+                (self.path / self.job_paths[job]).glob("*_model.star")
+            )
 
         def iteration_count(x: pathlib.Path) -> int:
             parts = str(x).split("_")
@@ -281,10 +279,12 @@ class PipelineRunner:
         fsc_files = []
         try:
             model_file_candidates = list(
-                self.job_paths_batch[job][batch].glob("*_model.star")
+                (self.path / self.job_paths_batch[job][batch]).glob("*_model.star")
             )
         except TypeError:
-            model_file_candidates = list(self.job_paths[job].glob("*_model.star"))
+            model_file_candidates = list(
+                (self.path / self.job_paths[job]).glob("*_model.star")
+            )
 
         def iteration_count(x: pathlib.Path) -> int:
             parts = str(x).split("_")
@@ -296,9 +296,7 @@ class PipelineRunner:
         model_file_candidates = sorted(model_file_candidates, key=iteration_count)
         model_file_candidates.reverse()
         model_file = model_file_candidates[0]
-        print(model_file)
         data_file = pathlib.Path(str(model_file).replace("model", "data"))
-        print(data_file)
         try:
             star_doc = cif.read_file(os.fspath(model_file))
             block_num = None
@@ -463,10 +461,10 @@ class PipelineRunner:
                 self._class3d_queue[iteration].put("")
                 class3d_thread.join()
                 return
-            if not self.job_paths.get("relion.class2d.em"):
+            if not self.job_paths_batch.get("relion.class2d.em"):
                 first_batch = batch_file
-                self.job_paths["relion.class2d.em"] = {}
-                self.job_paths["relion.class2d.em"][batch_file] = self.fresh_job(
+                self.job_paths_batch["relion.class2d.em"] = {}
+                self.job_paths_batch["relion.class2d.em"][batch_file] = self.fresh_job(
                     "relion.class2d.em",
                     extra_params={"fn_img": batch_file},
                     lock=self._lock,
@@ -484,9 +482,9 @@ class PipelineRunner:
                     )
                     class3d_thread.start()
                     self._class3d_queue[iteration].put(first_batch)
-            elif self.job_paths["relion.class2d.em"][batch_file]:
+            elif self.job_paths_batch["relion.class2d.em"][batch_file]:
                 self.project.continue_job(
-                    self.relion_path(self.job_paths["relion.class2d.em"][batch_file])
+                    str(self.job_paths_batch["relion.class2d.em"][batch_file])
                 )
                 if self._past_class_threshold and self.options.do_class3d:
                     class3d_thread = threading.Thread(
@@ -513,7 +511,7 @@ class PipelineRunner:
                     )
                     class3d_thread.start()
                     self._class3d_queue[iteration].put(first_batch)
-                self.job_paths["relion.class2d.em"][batch_file] = self.fresh_job(
+                self.job_paths_batch["relion.class2d.em"][batch_file] = self.fresh_job(
                     "relion.class2d.em",
                     extra_params={"fn_img": batch_file},
                     lock=self._lock,
@@ -527,18 +525,16 @@ class PipelineRunner:
             batch_file = self._ib_group_queue[iteration].get()
             if not batch_file:
                 return
-            if not self.job_paths.get("icebreaker.micrograph_analysis.particles"):
-                self.job_paths["icebreaker.micrograph_analysis.particles"] = {}
-            self.job_paths["icebreaker.micrograph_analysis.particles"][
+            if not self.job_paths_batch.get("icebreaker.micrograph_analysis.particles"):
+                self.job_paths_batch["icebreaker.micrograph_analysis.particles"] = {}
+            self.job_paths_batch["icebreaker.micrograph_analysis.particles"][
                 batch_file
             ] = self.fresh_job(
                 "icebreaker.micrograph_analysis.particles",
                 extra_params={
                     "in_mics": str(
-                        self.job_paths.path_to(
-                            "icebreaker.micrograph_analysis.micrographs",
-                            "grouped_micrographs.star",
-                        )
+                        self.job_paths["icebreaker.micrograph_analysis.micrographs"]
+                        / "grouped_micrographs.star"
                     ),
                     "in_parts": batch_file,
                 },
