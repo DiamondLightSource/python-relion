@@ -57,8 +57,9 @@ class PipelineRunner:
         self._num_seen_movies = 0
         self._lock = threading.RLock()
         self._extra_options = generate_extra_options
+        print(self._queues)
         if self.options.do_second_pass:
-            for q in self._queues.items():
+            for q in self._queues.values():
                 q.append(queue.Queue())
 
     def _generate_pipeline_options(self):
@@ -209,10 +210,6 @@ class PipelineRunner:
             else:
                 self.project.continue_job(str(self.job_paths[job]))
         select_path = self.job_paths["relion.select.split" + ref3d]
-        if not isinstance(select_path, str):
-            raise TypeError(
-                f"The tracker path to the select job should be a string, not {type(select_path)}: {select_path}"
-            )
         return self._get_split_files(select_path)
 
     @functools.lru_cache(maxsize=1)
@@ -223,7 +220,7 @@ class PipelineRunner:
             model_file_candidates = list(
                 (self.path / self.job_paths_batch[job][batch]).glob("*_model.star")
             )
-        except TypeError:
+        except (TypeError, KeyError):
             model_file_candidates = list(
                 (self.path / self.job_paths[job]).glob("*_model.star")
             )
@@ -282,7 +279,7 @@ class PipelineRunner:
             model_file_candidates = list(
                 (self.path / self.job_paths_batch[job][batch]).glob("*_model.star")
             )
-        except TypeError:
+        except (TypeError, KeyError):
             model_file_candidates = list(
                 (self.path / self.job_paths[job]).glob("*_model.star")
             )
@@ -357,8 +354,8 @@ class PipelineRunner:
                     "param3_value": f"{self.options.mask_diameter}",
                     "param4_label": "class_number",
                     "param4_value": str(iclass),
-                    # "do_queue": "Yes",
-                    # "qsubscript": self.options.queue_submission_template_cpu_smp,
+                    "do_queue": "Yes",
+                    "qsubscript": self.options.queue_submission_template_cpu_smp,
                 },
                 alias=f"ReconstructHalves_{iclass}",
             )
