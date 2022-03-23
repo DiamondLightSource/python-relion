@@ -37,6 +37,7 @@ def run():
         help="Relion version; options are 3.1 or 4",
         dest="version",
         type=float,
+        choices=[3.1, 4],
         default=3.1,
     )
     parser.add_argument(
