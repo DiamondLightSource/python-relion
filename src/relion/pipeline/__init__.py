@@ -413,7 +413,7 @@ class PipelineRunner:
         iteration: int = 0,
     ):
         while True:
-            batch_file = self._class3d_queue[iteration].get()
+            batch_file = self._queues["class3D"][iteration].get()
             if not batch_file:
                 return
             if self.job_paths.get("relion.initialmodel") is None:
@@ -482,7 +482,7 @@ class PipelineRunner:
                         },
                     )
                     class3d_thread.start()
-                    self._class3d_queue[iteration].put(first_batch)
+                    self._queues["class3D"][iteration].put(first_batch)
             elif self.job_paths_batch["relion.class2d.em"][batch_file]:
                 self.project.continue_job(
                     str(self.job_paths_batch["relion.class2d.em"][batch_file])
