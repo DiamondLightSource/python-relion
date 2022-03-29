@@ -22,7 +22,8 @@ def run_job(project_dir, job_dir, args_list):
     )
     args = parser.parse_args(args_list)
 
-    os.chdir(job_dir)
+    if job_dir:
+        os.chdir(job_dir)
 
     # need to remove the hard coding of outer_radius and width_soft_edge
 
@@ -46,14 +47,17 @@ def run_job(project_dir, job_dir, args_list):
 def main():
     """Change to the job working directory, then call run_job()"""
     parser = argparse.ArgumentParser()
-    parser.add_argument("--out_dir", dest="out_dir", help="Output directory name")
+    parser.add_argument(
+        "--out_dir", "--o", dest="out_dir", help="Output directory name"
+    )
     parser.add_argument(
         "--pipeline_control", help="Directory for pipeline control files"
     )
     known_args, other_args = parser.parse_known_args()
     project_dir = os.getcwd()
-    os.makedirs(known_args.out_dir, exist_ok=True)
-    os.chdir(known_args.out_dir)
+    if known_args.out_dir:
+        os.makedirs(known_args.out_dir, exist_ok=True)
+        os.chdir(known_args.out_dir)
     if os.path.isfile(RELION_JOB_FAILURE_FILENAME):
         print(" mask_soft_edge_external_job: Removing previous failure indicator file")
         os.remove(RELION_JOB_FAILURE_FILENAME)

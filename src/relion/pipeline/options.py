@@ -1,15 +1,15 @@
-from typing import Dict, List
+from typing import Any, Dict
 
 from relion.cryolo_relion_it.cryolo_relion_it import RelionItOptions
 
 
 def generate_pipeline_options(
-    relion_it_options: RelionItOptions, submission_types: List[Dict[str, str]]
+    relion_it_options: RelionItOptions, submission_types: Dict[str, str]
 ) -> dict:
     for queue in submission_types.values():
-        if queue not in ("gpu", "cpu", "gpu-smp", ""):
+        if queue not in ("gpu", "cpu", "gpu-smp", "cpu-smp", ""):
             raise ValueError(
-                f'The queue for a job must be either gpu, cpu or "", not {queue}'
+                f'The queue for a job must be either gpu, cpu, gpu-smp, cpu-smp or "", not {queue}'
             )
 
     queue_options_gpu = {
@@ -22,16 +22,21 @@ def generate_pipeline_options(
     }
     queue_options_cpu = {
         "do_queue": "Yes",
+        "qsubscript": relion_it_options.queue_submission_template_cpu,
+    }
+    queue_options_cpu_smp = {
+        "do_queue": "Yes",
         "qsubscript": relion_it_options.queue_submission_template_cpu_smp,
     }
-    queue_options = {
+    queue_options: Dict[str, dict] = {
         "gpu": queue_options_gpu,
         "cpu": queue_options_cpu,
         "gpu-smp": queue_options_gpu_smp,
+        "cpu-smp": queue_options_cpu_smp,
         "": {},
     }
 
-    job_options = {}
+    job_options: Dict[str, Any] = {}
 
     job_options["relion.import.movies"] = {
         "fn_in_raw": relion_it_options.import_images,
@@ -56,12 +61,19 @@ def generate_pipeline_options(
         "nr_threads": relion_it_options.motioncor_threads,
     }
 
-    job_options["icebreaker.analysis.micrographs"] = {
+    job_options["relion.motioncorr.own"] = job_options["relion.motioncorr.motioncorr2"]
+
+    job_options["icebreaker.micrograph_analysis.micrographs"] = {
         "nr_threads": relion_it_options.icebreaker_threads_number,
         "nr_mpi": 1,
     }
 
-    job_options["icebreaker.enhancecontrast"] = {
+    job_options["icebreaker.micrograph_analysis.enhancecontrast"] = {
+        "nr_threads": relion_it_options.icebreaker_threads_number,
+        "nr_mpi": 1,
+    }
+
+    job_options["icebreaker.micrograph_analysis.summary"] = {
         "nr_threads": relion_it_options.icebreaker_threads_number,
         "nr_mpi": 1,
     }
@@ -124,7 +136,7 @@ def generate_pipeline_options(
         "split_size": relion_it_options.batch_size,
     }
 
-    job_options["icebreaker.analysis.particles"] = {
+    job_options["icebreaker.micrograph_analysis.particles"] = {
         "nr_threads": relion_it_options.icebreaker_threads_number,
         "nr_mpi": 1,
     }
@@ -151,10 +163,13 @@ def generate_pipeline_options(
         "offset_step": relion_it_options.inimodel_offset_step,
         "offset_range": relion_it_options.inimodel_offset_range,
         "nr_iter": relion_it_options.inimodel_nr_iter_inbetween,
+        "do_preread_images": relion_it_options.refine_preread_images,
+        "scratch_dir": relion_it_options.refine_scratch_disk,
+        "nr_pool": relion_it_options.refine_nr_pool,
         "use_gpu": relion_it_options.refine_do_gpu,
         "gpu_ids": "0:1:2:3",
         "nr_mpi": 1,
-        "nr_threads": relion_it_options.refine_threads,
+        "nr_threads": relion_it_options.inimodel_threads,
     }
 
     job_options["relion.class3d"] = {
@@ -172,8 +187,8 @@ def generate_pipeline_options(
         "do_ctf_correction": relion_it_options.class3d_ref_is_ctf_corrected,
         "ctf_intact_first_peak": relion_it_options.class3d_ctf_ign1stpeak,
         "do_preread_images": relion_it_options.refine_preread_images,
+        "use_gpu": relion_it_options.refine_do_gpu,
         "gpu_ids": "0:1:2:3",
-        "nr_mpi": relion_it_options.refine_mpi,
         "nr_threads": relion_it_options.refine_threads,
     }
 
