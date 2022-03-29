@@ -129,8 +129,8 @@ class PipelineRunner:
             runner.wait_for_queued_job_completion(job_path)
         return pathlib.Path(job_path)
 
-    def _get_split_files(self, select_job: str) -> List[str]:
-        all_split_files = list(pathlib.Path(select_job).glob("*particles_split*.star"))
+    def _get_split_files(self, select_job: pathlib.Path) -> List[str]:
+        all_split_files = list(select_job.glob("*particles_split*.star"))
         if len(all_split_files) == 1:
             return [str(all_split_files[0])]
         # drop the most recent batch if there is more than one as it probably isn't complete
