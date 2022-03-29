@@ -192,13 +192,8 @@ def generate_pipeline_options(
         "nr_threads": relion_it_options.refine_threads,
     }
 
-<<<<<<< HEAD
     pipeline_options = {
         key: {**job_options[key], **queue_options[q]}
         for key, q in submission_types.items()
-=======
-    pipeline_options: dict = {
-        key: {**job_options[key], **queue_options[q]} for key, q in job_types.items()
->>>>>>> mypy fixes
     }
     return pipeline_options
