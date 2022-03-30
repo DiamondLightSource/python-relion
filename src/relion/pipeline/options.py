@@ -119,6 +119,7 @@ def generate_pipeline_options(
             relion_it_options.extract_boxsize / relion_it_options.motioncor_binning
         ),
         "confidence_threshold": relion_it_options.cryolo_threshold,
+        "gpus": relion_it_options.cryolo_pick_gpus,
     }
 
     bin_corrected_box_size = int(
