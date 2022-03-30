@@ -115,6 +115,7 @@ def generate_pipeline_options(
 
     job_options["cryolo.autopick"] = {
         "model_path": relion_it_options.cryolo_gmodel,
+        "config_file": relion_it_options.cryolo_config,
         "box_size": int(
             relion_it_options.extract_boxsize / relion_it_options.motioncor_binning
         ),
