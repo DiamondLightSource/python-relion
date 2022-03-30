@@ -83,18 +83,25 @@ def run():
     if args.movies_dir is not None:
         (pathlib.Path(args.working_directory) / "Movies").symlink_to(args.movies_dir)
 
+    abs_working = pathlib.Path(args.working_directory).resolve()
     os.chdir(args.working_directory)
 
     if args.version == 3.1:
         cryolo_relion_it.run_pipeline(opts)
     elif args.version == 4:
-        movietype = next(
-            (pathlib.Path(args.working_directory) / "Movies").glob("**/*")
-        ).suffix
+        suffix = ""
+        for movie in (abs_working / "Movies").glob("**/*"):
+            if movie.is_file():
+                suffix = movie.suffix
+                break
+        if not suffix:
+            raise ValueError(
+                f"Movie suffix could not be determined from the files in {abs_working / 'Movies'}"
+            )
         pipeline = PipelineRunner(
-            pathlib.Path(args.working_directory),
-            pathlib.Path(args.working_directory) / "stop.stop",
+            abs_working,
+            abs_working / "stop.stop",
             opts,
-            movietype=movietype,
+            movietype=suffix,
         )
         pipeline.run(args.timeout)
