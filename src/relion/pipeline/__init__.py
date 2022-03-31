@@ -78,6 +78,7 @@ class PipelineRunner:
             "relion.select.split": "",
             "icebreaker.micrograph_analysis.particles": "cpu-smp",
             "relion.class2d.em": "gpu",
+            "relion.class2d.vdam": "gpu-smp",
             "relion.initialmodel": "gpu-smp",
             "relion.class3d": "gpu-smp",
         }
@@ -459,11 +460,15 @@ class PipelineRunner:
                 self._queues["class3D"][iteration].put("")
                 class3d_thread.join()
                 return
-            if not self.job_paths_batch.get("relion.class2d.em"):
+            if self.options.do_class2d_vdam:
+                class2d_type = "relion.class2d.vdam"
+            else:
+                class2d_type = "relion.class2d.em"
+            if not self.job_paths_batch.get(class2d_type):
                 first_batch = batch_file
-                self.job_paths_batch["relion.class2d.em"] = {}
-                self.job_paths_batch["relion.class2d.em"][batch_file] = self.fresh_job(
-                    "relion.class2d.em",
+                self.job_paths_batch[class2d_type] = {}
+                self.job_paths_batch[class2d_type][batch_file] = self.fresh_job(
+                    class2d_type,
                     extra_params={"fn_img": batch_file},
                     lock=self._lock,
                 )
@@ -480,9 +485,9 @@ class PipelineRunner:
                     )
                     class3d_thread.start()
                     self._queues["class3D"][iteration].put(first_batch)
-            elif self.job_paths_batch["relion.class2d.em"].get(batch_file):
+            elif self.job_paths_batch[class2d_type].get(batch_file):
                 self.project.continue_job(
-                    str(self.job_paths_batch["relion.class2d.em"][batch_file])
+                    str(self.job_paths_batch[class2d_type][batch_file])
                 )
                 if self._past_class_threshold and self.options.do_class3d:
                     class3d_thread = threading.Thread(
@@ -509,8 +514,8 @@ class PipelineRunner:
                     )
                     class3d_thread.start()
                     self._queues["class3D"][iteration].put(first_batch)
-                self.job_paths_batch["relion.class2d.em"][batch_file] = self.fresh_job(
-                    "relion.class2d.em",
+                self.job_paths_batch[class2d_type][batch_file] = self.fresh_job(
+                    class2d_type,
                     extra_params={"fn_img": batch_file},
                     lock=self._lock,
                 )

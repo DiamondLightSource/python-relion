@@ -159,6 +159,22 @@ def generate_pipeline_options(
         "nr_threads": relion_it_options.refine_threads,
     }
 
+    job_options["relion.class2d.vdam"] = {
+        "nr_classes": relion_it_options.class2d_nr_classes,
+        "nr_iter_grad": relion_it_options.class2d_nr_iter,
+        "psi_sampling": relion_it_options.class2d_angle_step,
+        "offset_range": relion_it_options.class2d_offset_range,
+        "offset_step": relion_it_options.class2d_offset_step,
+        "ctf_intact_first_peak": relion_it_options.class2d_ctf_ign1stpeak,
+        "do_preread_images": relion_it_options.refine_preread_images,
+        "scratch_dir": relion_it_options.refine_scratch_disk,
+        "nr_pool": relion_it_options.refine_nr_pool,
+        "use_gpu": relion_it_options.refine_do_gpu,
+        "gpu_ids": "0:1:2:3",
+        "nr_mpi": 1,
+        "nr_threads": relion_it_options.inimodel_threads,
+    }
+
     job_options["relion.initialmodel"] = {
         "nr_classes": relion_it_options.inimodel_nr_classes,
         "sampling": relion_it_options.inimodel_angle_step,

@@ -886,6 +886,8 @@ class RelionItOptions(object):
     class2d_ctf_ign1stpeak = False
     # Additional arguments to pass to relion-refine
     class2d_other_args = ""
+    # Use VDAM algorithm?
+    do_class2d_vdam = False
 
     ### 3D classification parameters
     # Number of iterations to perform in 3D classification
