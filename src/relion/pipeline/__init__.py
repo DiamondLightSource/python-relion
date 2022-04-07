@@ -76,6 +76,7 @@ class PipelineRunner:
             "cryolo.autopick": "gpu",
             "relion.extract": "cpu",
             "relion.select.split": "",
+            "relion.select.class2dauto": "cpu-smp",
             "icebreaker.micrograph_analysis.particles": "cpu-smp",
             "relion.class2d.em": "gpu",
             "relion.class2d.vdam": "gpu-smp",
@@ -394,6 +395,22 @@ class PipelineRunner:
             float(star_doc[0].find_value("_rlnPixelSize")),
         )
 
+    @staticmethod
+    def _optimiser_file(job_dir: pathlib.Path) -> pathlib.Path:
+        optimiser_file_candidates = list((job_dir).glob("*_optimiser.star"))
+
+        def iteration_count(x: pathlib.Path) -> int:
+            parts = str(x).split("_")
+            for _x in parts:
+                if _x.startswith("it"):
+                    return int(_x.replace("it", ""))
+            return 0
+
+        optimiser_file_candidates = sorted(
+            optimiser_file_candidates, key=iteration_count
+        )
+        return optimiser_file_candidates[-1]
+
     def _new_movies(self) -> bool:
         num_movies = len(
             [
@@ -437,6 +454,43 @@ class PipelineRunner:
                 lock=self._lock,
             )
 
+    def _launch_class3d(
+        self,
+        first_batch: str,
+        iteration: int,
+        angpix: float,
+        boxsize: int,
+        class2d_type: str,
+    ) -> threading.Thread:
+        class3d_thread = threading.Thread(
+            target=self._classification_3d,
+            name="3D_classification_runner",
+            kwargs={
+                "iteration": iteration,
+                "angpix": angpix,
+                "boxsize": boxsize,
+            },
+        )
+        class3d_thread.start()
+        if self.options.use_class_ranker:
+            optimiser_file = self._optimiser_file(
+                self.job_paths_batch[class2d_type][first_batch]
+            )
+            self.job_paths_batch["relion.select.class2dauto"] = {
+                first_batch: self.fresh_job(
+                    "relion.select.class2dauto",
+                    extra_params={"fn_model": optimiser_file},
+                    lock=self._lock,
+                )
+            }
+            self._queues["class3D"][iteration].put(
+                self.job_paths_batch["relion.select.class2dauto"][first_batch]
+                / "particles.star"
+            )
+        else:
+            self._queues["class3D"][iteration].put(first_batch)
+        return class3d_thread
+
     def classification(
         self,
         angpix: Optional[float] = None,
@@ -474,46 +528,22 @@ class PipelineRunner:
                 )
 
                 if self._past_class_threshold and self.options.do_class3d:
-                    class3d_thread = threading.Thread(
-                        target=self._classification_3d,
-                        name="3D_classification_runner",
-                        kwargs={
-                            "iteration": iteration,
-                            "angpix": angpix,
-                            "boxsize": boxsize,
-                        },
+                    class3d_thread = self._launch_class3d(
+                        first_batch, iteration, angpix, boxsize, class2d_type
                     )
-                    class3d_thread.start()
-                    self._queues["class3D"][iteration].put(first_batch)
             elif self.job_paths_batch[class2d_type].get(batch_file):
                 self.project.continue_job(
                     str(self.job_paths_batch[class2d_type][batch_file])
                 )
                 if self._past_class_threshold and self.options.do_class3d:
-                    class3d_thread = threading.Thread(
-                        target=self._classification_3d,
-                        name="3D_classification_runner",
-                        kwargs={
-                            "iteration": iteration,
-                            "angpix": angpix,
-                            "boxsize": boxsize,
-                        },
+                    class3d_thread = self._launch_class3d(
+                        first_batch, iteration, angpix, boxsize, class2d_type
                     )
-                    class3d_thread.start()
-                    self._queues["class3D"][iteration].put(first_batch)
             else:
                 if self.options.do_class3d and class3d_thread is None:
-                    class3d_thread = threading.Thread(
-                        target=self._classification_3d,
-                        name="3D_classification_runner",
-                        kwargs={
-                            "iteration": iteration,
-                            "angpix": angpix,
-                            "boxsize": boxsize,
-                        },
+                    class3d_thread = self._launch_class3d(
+                        first_batch, iteration, angpix, boxsize, class2d_type
                     )
-                    class3d_thread.start()
-                    self._queues["class3D"][iteration].put(first_batch)
                 self.job_paths_batch[class2d_type][batch_file] = self.fresh_job(
                     class2d_type,
                     extra_params={"fn_img": batch_file},
@@ -521,7 +551,25 @@ class PipelineRunner:
                 )
 
                 if self.options.do_class3d:
-                    self._queues["class3D"][iteration].put(batch_file)
+                    if self.options.use_class_ranker:
+                        optimiser_file = self._optimiser_file(
+                            self.job_paths_batch[class2d_type][batch_file]
+                        )
+                        self.job_paths_batch["relion.select.class2dauto"][
+                            batch_file
+                        ] = self.fresh_job(
+                            "relion.select.class2dauto",
+                            extra_params={"fn_model": optimiser_file},
+                            lock=self._lock,
+                        )
+                        self._queues["class3D"][iteration].put(
+                            self.job_paths_batch["relion.select.class2dauto"][
+                                batch_file
+                            ]
+                            / "particles.star"
+                        )
+                    else:
+                        self._queues["class3D"][iteration].put(batch_file)
 
     def ib_group(self, iteration: int = 0):
         while True:

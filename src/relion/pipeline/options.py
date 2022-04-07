@@ -138,6 +138,11 @@ def generate_pipeline_options(
         "split_size": relion_it_options.batch_size,
     }
 
+    job_options["relion.select.class2dauto"] = {
+        "python_exe": relion_it_options.class_ranker_python,
+        "rank_threshold": relion_it_options.class_ranker_threshold,
+    }
+
     job_options["icebreaker.micrograph_analysis.particles"] = {
         "nr_threads": relion_it_options.icebreaker_threads_number,
         "nr_mpi": 1,
@@ -147,6 +152,7 @@ def generate_pipeline_options(
         "nr_classes": relion_it_options.class2d_nr_classes,
         "nr_iter_em": relion_it_options.class2d_nr_iter,
         "psi_sampling": relion_it_options.class2d_angle_step,
+        "particle_diameter": relion_it_options.mask_diameter,
         "offset_range": relion_it_options.class2d_offset_range,
         "offset_step": relion_it_options.class2d_offset_step,
         "ctf_intact_first_peak": relion_it_options.class2d_ctf_ign1stpeak,
@@ -163,6 +169,7 @@ def generate_pipeline_options(
         "nr_classes": relion_it_options.class2d_nr_classes,
         "nr_iter_grad": relion_it_options.class2d_nr_iter,
         "psi_sampling": relion_it_options.class2d_angle_step,
+        "particle_diameter": relion_it_options.mask_diameter,
         "offset_range": relion_it_options.class2d_offset_range,
         "offset_step": relion_it_options.class2d_offset_step,
         "ctf_intact_first_peak": relion_it_options.class2d_ctf_ign1stpeak,

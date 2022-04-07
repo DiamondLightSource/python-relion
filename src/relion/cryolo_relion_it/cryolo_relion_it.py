@@ -890,6 +890,12 @@ class RelionItOptions(object):
     do_class2d_vdam = False
 
     ### 3D classification parameters
+    # Use the Relion class_ranker to select particles from 2D classification
+    use_class_ranker = False
+    # Path to python executable for class_ranker
+    class_ranker_python = "python"
+    # Minimum threshold for auto-selection
+    class_ranker_threshold = 0.15
     # Number of iterations to perform in 3D classification
     # Must be at least 20 for fast subsets
     class3d_nr_iter = 20
