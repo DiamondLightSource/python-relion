@@ -1,19 +1,27 @@
+from __future__ import annotations
+
 import os
 import sys
-from typing import Any, Callable, Dict, NamedTuple
+from typing import Any, Dict, NamedTuple, Protocol
 
 import mrcfile
-import numpy as np
 import pytest
 
 import relion
 from relion.zocalo.images_service_plugin import mrc_to_jpeg, picked_particles
 
+workflows = pytest.importorskip("workflows")
+
+
+class _CallableParameter(Protocol):
+    def __call__(self, key: str, default: Any = ...) -> Any:
+        ...
+
 
 class FunctionParameter(NamedTuple):
-    rw: Any
-    parameters: Callable
-    message: Dict
+    rw: workflows.recipe.wrapper.RecipeWrapper
+    parameters: _CallableParameter
+    message: Dict[str, Any]
 
 
 @pytest.fixture
@@ -63,7 +71,7 @@ def test_contract_with_images_service():
             continue
         if not hasattr(annotation, "_name") or not hasattr(upstream_type, "_name"):
             raise TypeError(
-                f"Upstream type {upstream_type} does not match local type {annotation} for parameter {key}"
+                f"Parameter {key!r} with local type {annotation!r} does not match upstream type {upstream_type!r}"
             )
         assert annotation._name == upstream_type._name
 
@@ -84,6 +92,7 @@ def test_mrc_to_jpeg_nack_when_file_not_found(proj):
 
 
 def test_mrc_to_jpeg_ack_when_file_exists(tmp_path):
+    np = pytest.importorskip("numpy")
     jpeg_path = tmp_path / "convert_test.jpeg"
 
     test_data = np.arange(9, dtype=np.int8).reshape(3, 3)
@@ -96,6 +105,7 @@ def test_mrc_to_jpeg_ack_when_file_exists(tmp_path):
 
 
 def test_picked_particles_processes_when_basefile_exists(tmp_path):
+    np = pytest.importorskip("numpy")
     base_mrc_path = str(tmp_path / "base.mrc")
     out_jpeg_path = str(tmp_path / "processed.jpeg")
     test_data = np.arange(16, dtype=np.int8).reshape(4, 4)
