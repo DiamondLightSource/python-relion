@@ -6,7 +6,11 @@ import pathlib
 
 from relion.cryolo_relion_it import cryolo_relion_it, dls_options
 from relion.cryolo_relion_it.cryolo_relion_it import RelionItOptions
-from relion.pipeline import PipelineRunner
+
+try:
+    from relion.pipeline import PipelineRunner
+except ModuleNotFoundError:
+    PipelineRunner = None
 
 
 def run():
@@ -91,6 +95,8 @@ def run():
     if args.version == 3.1:
         cryolo_relion_it.run_pipeline(opts)
     elif args.version == 4:
+        if not PipelineRunner:
+            exit("Relion 4 support requires the CCP-EM pipeliner package")
         suffix = ""
         for movie in (abs_working / "Movies").glob("**/*"):
             if movie.is_file():
