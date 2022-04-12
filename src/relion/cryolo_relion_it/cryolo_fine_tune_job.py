@@ -5,6 +5,8 @@ in_parts is from a subset selection job.
 cryolo_fine_tune_job.py --o 'External/crYOLO_FineTune' --in_parts 'Select/job005/particles.star' --box_size 300
 """
 
+from __future__ import annotations
+
 import argparse
 import json
 import os

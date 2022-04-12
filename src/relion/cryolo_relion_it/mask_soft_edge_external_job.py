@@ -3,6 +3,8 @@
 External job for making a mask de novo with a soft edge
 """
 
+from __future__ import annotations
+
 import argparse
 import os
 import os.path

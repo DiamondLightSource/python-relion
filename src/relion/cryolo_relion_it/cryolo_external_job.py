@@ -10,6 +10,8 @@ eg:
 cryolo_external_job.py --o "External/crYOLO_AutoPick" --in_mics "CtfFind/job004/micrographs_ctf.star" --box_size 300 --threshold 0.3
 """
 
+from __future__ import annotations
+
 import argparse
 import datetime
 import json

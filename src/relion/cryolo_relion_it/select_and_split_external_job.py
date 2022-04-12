@@ -4,6 +4,8 @@ External job to select the micrographs for a chosen class and then split
 into two random halves
 """
 
+from __future__ import annotations
+
 import argparse
 import os
 import os.path

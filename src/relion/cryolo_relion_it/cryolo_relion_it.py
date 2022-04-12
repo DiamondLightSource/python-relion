@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+from __future__ import annotations
+
 __license__ = """
                     GNU GENERAL PUBLIC LICENSE
                        Version 2, June 1991

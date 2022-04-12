@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import gemmi
 
 from relion.cryolo_relion_it import icebreaker_histogram

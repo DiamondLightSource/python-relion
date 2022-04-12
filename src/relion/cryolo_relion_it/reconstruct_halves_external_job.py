@@ -4,6 +4,8 @@ External job for running relion_reconstruct on each random half from select_and_
 External job
 """
 
+from __future__ import annotations
+
 import argparse
 import os
 import os.path

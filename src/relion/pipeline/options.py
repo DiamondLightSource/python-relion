@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from typing import Any, Dict
 
 from relion.cryolo_relion_it.cryolo_relion_it import RelionItOptions

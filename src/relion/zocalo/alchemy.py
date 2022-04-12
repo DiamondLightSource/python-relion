@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from sqlalchemy import TIMESTAMP, Column, ForeignKey, String
 from sqlalchemy.dialects.mysql import INTEGER
 from sqlalchemy.ext.declarative import declarative_base

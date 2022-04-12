@@ -3,6 +3,8 @@ Relion Python API
 https://github.com/DiamondLightSource/python-relion
 """
 
+from __future__ import annotations
+
 import functools
 import os
 import pathlib

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import collections.abc
 
 from relion.dbmodel.dbgraph import DBGraph

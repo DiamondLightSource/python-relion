@@ -3,6 +3,8 @@
 External job for fitting FSC curves and finding the value at which they cross 0.5
 """
 
+from __future__ import annotations
+
 import argparse
 import json
 import os

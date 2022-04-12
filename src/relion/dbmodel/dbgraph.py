@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from relion.node.graph import Graph
 
 
