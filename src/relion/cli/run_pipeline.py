@@ -4,6 +4,7 @@ import pathlib
 
 from relion.cryolo_relion_it import cryolo_relion_it, dls_options
 from relion.cryolo_relion_it.cryolo_relion_it import RelionItOptions
+from relion.pipeline import PipelineRunner
 
 
 def run():
@@ -30,6 +31,21 @@ def run():
         "--movies",
         help="Directory to the directory to make Movies symlink to",
         dest="movies_dir",
+    )
+    parser.add_argument(
+        "--version",
+        help="Relion version; options are 3.1 or 4",
+        dest="version",
+        type=float,
+        choices=[3.1, 4],
+        default=3.1,
+    )
+    parser.add_argument(
+        "--timeout",
+        help="Stop importing movies if no new movies have been seen after this many seconds",
+        dest="timeout",
+        type=int,
+        default=2 * 24 * 3600,
     )
     args = parser.parse_args()
 
@@ -67,6 +83,25 @@ def run():
     if args.movies_dir is not None:
         (pathlib.Path(args.working_directory) / "Movies").symlink_to(args.movies_dir)
 
+    abs_working = pathlib.Path(args.working_directory).resolve()
     os.chdir(args.working_directory)
 
-    cryolo_relion_it.run_pipeline(opts)
+    if args.version == 3.1:
+        cryolo_relion_it.run_pipeline(opts)
+    elif args.version == 4:
+        suffix = ""
+        for movie in (abs_working / "Movies").glob("**/*"):
+            if movie.is_file():
+                suffix = movie.suffix
+                break
+        if not suffix:
+            raise ValueError(
+                f"Movie suffix could not be determined from the files in {abs_working / 'Movies'}"
+            )
+        pipeline = PipelineRunner(
+            abs_working,
+            abs_working / "stop.stop",
+            opts,
+            movietype=suffix,
+        )
+        pipeline.run(args.timeout)

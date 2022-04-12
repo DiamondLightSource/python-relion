@@ -75,7 +75,9 @@ def run_job(project_dir, job_dir, in_dir, starin, args_list):
 def main():
     """Change to the job working directory, then call run_job()"""
     parser = argparse.ArgumentParser()
-    parser.add_argument("--out_dir", dest="out_dir", help="Output directory name")
+    parser.add_argument(
+        "--out_dir", "--o", dest="out_dir", help="Output directory name"
+    )
     parser.add_argument(
         "--in_dir",
         dest="in_dir",
