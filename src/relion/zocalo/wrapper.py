@@ -348,6 +348,11 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
                 )
                 if all_process_check.is_file():
                     all_process_check.unlink()
+                elif pathlib.Path(self.params["stop_file"]).is_file():
+                    # User-initiated stop, still record it as failure in ISPyB,
+                    # but don't write a warning to the log.
+                    logger.info("Preprocessing stopped due to presence of stop file")
+                    success = False
                 else:
                     # if the running file is not there it was removed for a failure reason
                     logger.warning(
