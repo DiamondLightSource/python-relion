@@ -497,8 +497,10 @@ class PipelineRunner:
                     class3d_thread.start()
                     self._queues["class3D"][iteration].put(first_batch)
             elif self.job_paths_batch[class2d_type].get(batch_file):
-                self.project.continue_job(
-                    str(self.job_paths_batch[class2d_type][batch_file])
+                self.project.run_job(
+                    f"{class2d_type.replace('.', '_')}_job.star",
+                    overwrite=str(self.job_paths_batch[class2d_type][batch_file]),
+                    wait_for_queued=True,
                 )
                 if self._past_class_threshold and self.options.do_class3d:
                     class3d_thread = threading.Thread(
