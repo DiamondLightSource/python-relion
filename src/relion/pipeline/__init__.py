@@ -59,7 +59,6 @@ class PipelineRunner:
         self._num_seen_movies = 0
         self._lock = threading.RLock()
         self._extra_options = generate_extra_options
-        print(self._queues)
         if self.options.do_second_pass:
             for q in self._queues.values():
                 q.append(queue.Queue())
@@ -150,7 +149,7 @@ class PipelineRunner:
 
     def _get_num_movies(self, star_file: pathlib.Path) -> int:
         star_doc = cif.read_file(os.fspath(star_file))
-        return len(list(star_doc[1].find_loop("_rlnMicrographMovieName")))
+        return len(list(star_doc[1].find_loop("_rlnMicrographName")))
 
     def preprocessing(self, ref3d: str = "", ref3d_angpix: float = -1) -> List[str]:
         if ref3d and self.options.autopick_do_cryolo:
@@ -178,9 +177,19 @@ class PipelineRunner:
                 )
             else:
                 self.project.continue_job(str(self.job_paths[job]))
-        self._num_seen_movies = self._get_num_movies(
-            self.job_paths["relion.import.movies"] / "movies.star"
-        )
+        if self.job_paths.get("relion.motioncorr.own"):
+            self._num_seen_movies = self._get_num_movies(
+                self.job_paths["relion.motioncorr.own"] / "corrected_micrographs.star"
+            )
+        elif self.job_paths.get("relion.motioncorr.motioncorr2"):
+            self._num_seen_movies = self._get_num_movies(
+                self.job_paths["relion.motioncorr.motioncorr2"]
+                / "corrected_micrographs.star"
+            )
+        else:
+            raise KeyError(
+                "Neither a relion.motioncorr.own nor a relion.motioncorr.motioncorr2 job were found"
+            )
         if self.options.stop_after_ctf_estimation:
             return []
 
@@ -560,8 +569,10 @@ class PipelineRunner:
         first_batch = ""
         continue_anyway = False
         while (
-            current_time - start_time < timeout and not self.stopfile.exists()
-        ) or continue_anyway:
+            (current_time - start_time < timeout and not self.stopfile.exists())
+            or continue_anyway
+            or self._new_movies()
+        ):
             if self._new_movies() or iteration - old_iteration:
                 if iteration - old_iteration:
                     continue_anyway = False
