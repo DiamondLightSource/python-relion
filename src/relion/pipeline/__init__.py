@@ -435,31 +435,36 @@ class PipelineRunner:
         iteration: int = 0,
     ):
         while True:
-            batch_file = self._queues["class3D"][iteration].get()
-            if not batch_file:
-                return
-            if self.job_paths.get("relion.initialmodel") is None:
-                self.job_paths["relion.initialmodel"] = self.fresh_job(
-                    "relion.initialmodel",
-                    extra_params={"fn_img": batch_file},
+            try:
+                batch_file = self._queues["class3D"][iteration].get()
+                if not batch_file:
+                    return
+                if self.job_paths.get("relion.initialmodel") is None:
+                    self.job_paths["relion.initialmodel"] = self.fresh_job(
+                        "relion.initialmodel",
+                        extra_params={"fn_img": batch_file},
+                        lock=self._lock,
+                    )
+                if not self.job_paths_batch.get("relion.class3d"):
+                    self.job_paths_batch["relion.class3d"] = {}
+                if self.options.use_fsc_criterion and angpix is None:
+                    raise ValueError(
+                        "use_fsc_criterion is True but angpix has not been specified"
+                    )
+                self.job_paths_batch["relion.class3d"][batch_file] = self.fresh_job(
+                    "relion.class3d",
+                    extra_params={
+                        "fn_img": batch_file,
+                        "fn_ref": self._best_class_fsc(angpix, boxsize)[0]
+                        if self.options.use_fsc_criterion
+                        else self._best_class()[0],
+                    },
                     lock=self._lock,
                 )
-            if not self.job_paths_batch.get("relion.class3d"):
-                self.job_paths_batch["relion.class3d"] = {}
-            if self.options.use_fsc_criterion and angpix is None:
-                raise ValueError(
-                    "use_fsc_criterion is True but angpix has not been specified"
+            except (AttributeError, FileNotFoundError) as e:
+                print(
+                    f"Exception encountered in 3D classification runner. Try again: {e}"
                 )
-            self.job_paths_batch["relion.class3d"][batch_file] = self.fresh_job(
-                "relion.class3d",
-                extra_params={
-                    "fn_img": batch_file,
-                    "fn_ref": self._best_class_fsc(angpix, boxsize)[0]
-                    if self.options.use_fsc_criterion
-                    else self._best_class()[0],
-                },
-                lock=self._lock,
-            )
 
     def classification(
         self,
@@ -470,119 +475,133 @@ class PipelineRunner:
         first_batch = ""
         class3d_thread = None
         while True:
-            batch_file = self._queues["class2D"][iteration].get()
-            if not batch_file:
-                if class3d_thread is None:
+            try:
+                batch_file = self._queues["class2D"][iteration].get()
+                if not batch_file:
+                    if class3d_thread is None:
+                        return
+                    self._queues["class3D"][iteration].put("")
+                    class3d_thread.join()
                     return
-                self._queues["class3D"][iteration].put("")
-                class3d_thread.join()
-                return
-            if batch_file == "__kill__":
-                if class3d_thread is None:
+                if batch_file == "__kill__":
+                    if class3d_thread is None:
+                        return
+                    _clear_queue(self._queues["class3D"][iteration])
+                    self._queues["class3D"][iteration].put("")
+                    class3d_thread.join()
                     return
-                _clear_queue(self._queues["class3D"][iteration])
-                self._queues["class3D"][iteration].put("")
-                class3d_thread.join()
-                return
-            if self.options.do_class2d_vdam:
-                class2d_type = "relion.class2d.vdam"
-            else:
-                class2d_type = "relion.class2d.em"
-            if not self.job_paths_batch.get(class2d_type):
-                first_batch = batch_file
-                self.job_paths_batch[class2d_type] = {}
-                self.job_paths_batch[class2d_type][batch_file] = self.fresh_job(
-                    class2d_type,
-                    extra_params={"fn_img": batch_file},
-                    lock=self._lock,
-                )
-
-                if self._past_class_threshold and self.options.do_class3d:
-                    class3d_thread = threading.Thread(
-                        target=self._classification_3d,
-                        name="3D_classification_runner",
-                        kwargs={
-                            "iteration": iteration,
-                            "angpix": angpix,
-                            "boxsize": boxsize,
-                        },
+                if self.options.do_class2d_vdam:
+                    class2d_type = "relion.class2d.vdam"
+                else:
+                    class2d_type = "relion.class2d.em"
+                if not self.job_paths_batch.get(class2d_type):
+                    first_batch = batch_file
+                    self.job_paths_batch[class2d_type] = {}
+                    self.job_paths_batch[class2d_type][batch_file] = self.fresh_job(
+                        class2d_type,
+                        extra_params={"fn_img": batch_file},
+                        lock=self._lock,
                     )
-                    class3d_thread.start()
-                    self._queues["class3D"][iteration].put(first_batch)
-            elif self.job_paths_batch[class2d_type].get(batch_file):
-                if self._lock:
-                    with self._lock:
+
+                    if self._past_class_threshold and self.options.do_class3d:
+                        class3d_thread = threading.Thread(
+                            target=self._classification_3d,
+                            name="3D_classification_runner",
+                            kwargs={
+                                "iteration": iteration,
+                                "angpix": angpix,
+                                "boxsize": boxsize,
+                            },
+                        )
+                        class3d_thread.start()
+                        self._queues["class3D"][iteration].put(first_batch)
+                elif self.job_paths_batch[class2d_type].get(batch_file):
+                    if self._lock:
+                        with self._lock:
+                            self.project.run_job(
+                                f"{class2d_type.replace('.', '_')}_job.star",
+                                overwrite=str(
+                                    self.job_paths_batch[class2d_type][batch_file]
+                                ),
+                                wait_for_queued=False,
+                            )
+                        runner = JobRunner(self.project.pipeline.name)
+                        runner.wait_for_queued_job_completion(
+                            str(self.job_paths_batch[class2d_type][batch_file])
+                        )
+                    else:
                         self.project.run_job(
                             f"{class2d_type.replace('.', '_')}_job.star",
                             overwrite=str(
                                 self.job_paths_batch[class2d_type][batch_file]
                             ),
-                            wait_for_queued=False,
+                            wait_for_queued=True,
                         )
-                    runner = JobRunner(self.project.pipeline.name)
-                    runner.wait_for_queued_job_completion(
-                        str(self.job_paths_batch[class2d_type][batch_file])
-                    )
+                    if self._past_class_threshold and self.options.do_class3d:
+                        class3d_thread = threading.Thread(
+                            target=self._classification_3d,
+                            name="3D_classification_runner",
+                            kwargs={
+                                "iteration": iteration,
+                                "angpix": angpix,
+                                "boxsize": boxsize,
+                            },
+                        )
+                        class3d_thread.start()
+                        self._queues["class3D"][iteration].put(first_batch)
                 else:
-                    self.project.run_job(
-                        f"{class2d_type.replace('.', '_')}_job.star",
-                        overwrite=str(self.job_paths_batch[class2d_type][batch_file]),
-                        wait_for_queued=True,
+                    if self.options.do_class3d and class3d_thread is None:
+                        class3d_thread = threading.Thread(
+                            target=self._classification_3d,
+                            name="3D_classification_runner",
+                            kwargs={
+                                "iteration": iteration,
+                                "angpix": angpix,
+                                "boxsize": boxsize,
+                            },
+                        )
+                        class3d_thread.start()
+                        self._queues["class3D"][iteration].put(first_batch)
+                    self.job_paths_batch[class2d_type][batch_file] = self.fresh_job(
+                        class2d_type,
+                        extra_params={"fn_img": batch_file},
+                        lock=self._lock,
                     )
-                if self._past_class_threshold and self.options.do_class3d:
-                    class3d_thread = threading.Thread(
-                        target=self._classification_3d,
-                        name="3D_classification_runner",
-                        kwargs={
-                            "iteration": iteration,
-                            "angpix": angpix,
-                            "boxsize": boxsize,
-                        },
-                    )
-                    class3d_thread.start()
-                    self._queues["class3D"][iteration].put(first_batch)
-            else:
-                if self.options.do_class3d and class3d_thread is None:
-                    class3d_thread = threading.Thread(
-                        target=self._classification_3d,
-                        name="3D_classification_runner",
-                        kwargs={
-                            "iteration": iteration,
-                            "angpix": angpix,
-                            "boxsize": boxsize,
-                        },
-                    )
-                    class3d_thread.start()
-                    self._queues["class3D"][iteration].put(first_batch)
-                self.job_paths_batch[class2d_type][batch_file] = self.fresh_job(
-                    class2d_type,
-                    extra_params={"fn_img": batch_file},
-                    lock=self._lock,
-                )
 
-                if self.options.do_class3d:
-                    self._queues["class3D"][iteration].put(batch_file)
+                    if self.options.do_class3d:
+                        self._queues["class3D"][iteration].put(batch_file)
+            except (AttributeError, FileNotFoundError) as e:
+                print(
+                    f"Exception encountered in 2D classification runner. Try again: {e}"
+                )
 
     def ib_group(self, iteration: int = 0):
         while True:
-            batch_file = self._queues["ib_group"][iteration].get()
-            if not batch_file:
-                return
-            if not self.job_paths_batch.get("icebreaker.micrograph_analysis.particles"):
-                self.job_paths_batch["icebreaker.micrograph_analysis.particles"] = {}
-            self.job_paths_batch["icebreaker.micrograph_analysis.particles"][
-                batch_file
-            ] = self.fresh_job(
-                "icebreaker.micrograph_analysis.particles",
-                extra_params={
-                    "in_mics": str(
-                        self.job_paths["icebreaker.micrograph_analysis.micrographs"]
-                        / "grouped_micrographs.star"
-                    ),
-                    "in_parts": batch_file,
-                },
-                lock=self._lock,
-            )
+            try:
+                batch_file = self._queues["ib_group"][iteration].get()
+                if not batch_file:
+                    return
+                if not self.job_paths_batch.get(
+                    "icebreaker.micrograph_analysis.particles"
+                ):
+                    self.job_paths_batch[
+                        "icebreaker.micrograph_analysis.particles"
+                    ] = {}
+                self.job_paths_batch["icebreaker.micrograph_analysis.particles"][
+                    batch_file
+                ] = self.fresh_job(
+                    "icebreaker.micrograph_analysis.particles",
+                    extra_params={
+                        "in_mics": str(
+                            self.job_paths["icebreaker.micrograph_analysis.micrographs"]
+                            / "grouped_micrographs.star"
+                        ),
+                        "in_parts": batch_file,
+                    },
+                    lock=self._lock,
+                )
+            except (AttributeError, FileNotFoundError) as e:
+                print(f"Exception encountered in IceBreaker runner. Try again: {e}")
 
     def run(self, timeout: int):
         start_time = time.time()
