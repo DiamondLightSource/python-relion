@@ -176,7 +176,15 @@ class PipelineRunner:
                     lock=self._lock,
                 )
             else:
-                self.project.continue_job(str(self.job_paths[job]))
+                if self._lock:
+                    with self._lock:
+                        self.project.continue_job(
+                            str(self.job_paths[job]), wait_for_queued=False
+                        )
+                    runner = JobRunner(self.project.pipeline.name)
+                    runner.wait_for_queued_job_completion(str(self.job_paths[job]))
+                else:
+                    self.project.continue_job(str(self.job_paths[job]))
         if self.job_paths.get("relion.motioncorr.own"):
             self._num_seen_movies = self._get_num_movies(
                 self.job_paths["relion.motioncorr.own"] / "corrected_micrographs.star"
@@ -333,6 +341,7 @@ class PipelineRunner:
                 "param3_value": str(mask_outer_radius),
             },
             alias="MaskSoftEdge",
+            lock=self._lock,
         )
         for iclass in range(1, len(star_block.find_loop("_rlnReferenceImage")) + 1):
             self.job_paths[
@@ -350,6 +359,7 @@ class PipelineRunner:
                     "param3_value": str(iclass),
                 },
                 alias=f"SelectAndSplit_{iclass}",
+                lock=self._lock,
             )
             self.job_paths[
                 f"relion.external.reconstruct_halves_{iclass}"
@@ -370,6 +380,7 @@ class PipelineRunner:
                     "qsubscript": self.options.queue_submission_template_cpu_smp,
                 },
                 alias=f"ReconstructHalves_{iclass}",
+                lock=self._lock,
             )
             self.job_paths[f"relion.postprocess_{iclass}"] = self.fresh_job(
                 "relion.postprocess",
@@ -381,6 +392,7 @@ class PipelineRunner:
                     "qsubscript": self.options.queue_submission_template_cpu_smp,
                 },
                 alias=f"GetFSC_{iclass}",
+                lock=self._lock,
             )
             fsc_files.append(f"PostProcess/GetFSC_{iclass}/postprocess.star")
 
@@ -392,6 +404,7 @@ class PipelineRunner:
                 "param1_value": " ".join(fsc_files),
             },
             alias="FSCFitting",
+            lock=self._lock,
         )
         with open(
             self.job_paths["relion.external.fsc_fitting"] / "BestClass.txt", "r"
@@ -497,11 +510,25 @@ class PipelineRunner:
                     class3d_thread.start()
                     self._queues["class3D"][iteration].put(first_batch)
             elif self.job_paths_batch[class2d_type].get(batch_file):
-                self.project.run_job(
-                    f"{class2d_type.replace('.', '_')}_job.star",
-                    overwrite=str(self.job_paths_batch[class2d_type][batch_file]),
-                    wait_for_queued=True,
-                )
+                if self._lock:
+                    with self._lock:
+                        self.project.run_job(
+                            f"{class2d_type.replace('.', '_')}_job.star",
+                            overwrite=str(
+                                self.job_paths_batch[class2d_type][batch_file]
+                            ),
+                            wait_for_queued=False,
+                        )
+                    runner = JobRunner(self.project.pipeline.name)
+                    runner.wait_for_queued_job_completion(
+                        str(self.job_paths_batch[class2d_type][batch_file])
+                    )
+                else:
+                    self.project.run_job(
+                        f"{class2d_type.replace('.', '_')}_job.star",
+                        overwrite=str(self.job_paths_batch[class2d_type][batch_file]),
+                        wait_for_queued=True,
+                    )
                 if self._past_class_threshold and self.options.do_class3d:
                     class3d_thread = threading.Thread(
                         target=self._classification_3d,
