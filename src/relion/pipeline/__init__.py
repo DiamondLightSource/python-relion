@@ -624,7 +624,13 @@ class PipelineRunner:
             if self._new_movies() or iteration - old_iteration:
                 if iteration - old_iteration:
                     continue_anyway = False
-                split_files = self.preprocessing(ref3d=ref3d, ref3d_angpix=ref3d_angpix)
+                try:
+                    split_files = self.preprocessing(
+                        ref3d=ref3d, ref3d_angpix=ref3d_angpix
+                    )
+                except (AttributeError, FileNotFoundError) as e:
+                    print(f"Exception encountered in preprocessing. Try again: {e}")
+                    continue
                 if not first_batch:
                     first_batch = split_files[0]
                 if self.options.do_icebreaker_group:
