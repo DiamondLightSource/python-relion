@@ -5,6 +5,7 @@ import pathlib
 import time
 
 import mrcfile
+import numpy as np
 import PIL.Image
 from PIL import ImageDraw, ImageEnhance, ImageFilter
 
@@ -33,6 +34,13 @@ def mrc_to_jpeg(plugin_params):
     outfile = filepath.with_suffix(".jpeg")
     outfiles = []
     if len(data.shape) == 2:
+        mean = np.mean(data)
+        sdev = np.std(data)
+        sigma_min = mean - 3 * sdev
+        sigma_max = mean + 3 * sdev
+        data = np.ndarray.copy(data)
+        data[data < sigma_min] = sigma_min
+        data[data > sigma_max] = sigma_max
         data = data - data.min()
         data = data * 255 / data.max()
         data = data.astype("uint8")
