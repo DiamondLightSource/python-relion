@@ -88,6 +88,7 @@ def generate_pipeline_options(
         "dfstep": relion_it_options.ctffind_defocus_step,
         "resmax": relion_it_options.ctffind_maxres,
         "resmin": relion_it_options.ctffind_minres,
+        "do_phaseshift": relion_it_options.ctffind_do_phaseshift,
         "gpu_ids": "0:1:2:3",
         "nr_mpi": relion_it_options.ctffind_mpi,
     }
