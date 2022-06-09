@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import functools
+import json
 import math
 import os
 import pathlib
@@ -42,6 +43,7 @@ class PipelineRunner:
         restarted: bool = False,
     ):
         self.path = projpath
+        self._restarted = restarted
         self.movies_path = projpath / moviesdir
         self.movietype = movietype if not movietype[0] == "." else movietype[1:]
         self.project = PipelinerProject()
@@ -82,12 +84,56 @@ class PipelineRunner:
             jobs.append("icebreaker.micrograph_analysis.summary")
         search_paths.append("CtfFind")
         jobs.append("relion.ctffind.ctffind4")
+
+        if not self.options.stop_after_ctf_estimation:
+            if self.options.autopick_do_cryolo:
+                jobs.append("cryolo.autopick")
+            elif self.options.autopick_do_LoG:
+                jobs.append("relion.autopick.log")
+            search_paths.extend(["AutoPick", "Extract", "Select"])
+            jobs.extend(["relion.extract", "relion.select.split"])
+
         for job, sp in zip(jobs, search_paths):
             job_paths = list((self.path / sp).glob("*"))
             if not job_paths:
                 continue
             ordered_paths = sorted(job_paths, key=lambda x: x.stat().st_ctime)
             self.job_paths[job] = ordered_paths[0].relative_to(self.path)
+
+        if not self.options.stop_after_ctf_estimation:
+            select_job = self.job_paths.get("relion.select.split")
+            if not select_job:
+                return
+            if self.options.do_class2d_vdam:
+                class2d_type = "relion.class2d.vdam"
+            else:
+                class2d_type = "relion.class2d.em"
+            self.job_paths_batch[class2d_type] = {}
+            for p in (self.path / "Class2D").glob("*"):
+                select_file = self._get_select_file(p)
+                if select_file:
+                    self.job_paths_batch[class2d_type][select_file] = p.relative_to(
+                        self.path
+                    )
+            if (self.path / "InitialModel").is_dir():
+                self.job_paths["relion.initialmodel"] = list(
+                    (self.path / "InitialModel").glob("*")
+                )[0].relative_to(self.path)
+
+    def _get_select_file(self, class_job_path: pathlib.Path) -> str:
+        try:
+            star_doc = cif.read_file(os.fspath(class_job_path / "job.star"))
+            data = json.loads(star_doc.as_json())
+            joboptions = {
+                k: v
+                for k, v in zip(
+                    data["joboptions_values"]["_rlnjoboptionvariable"],
+                    data["joboptions_values"]["_rlnjoboptionvalue"],
+                )
+            }
+            return joboptions["fn_img"]
+        except KeyError:
+            return ""
 
     def _generate_pipeline_options(self):
         pipeline_jobs = {
@@ -520,6 +566,11 @@ class PipelineRunner:
                     class2d_type = "relion.class2d.vdam"
                 else:
                     class2d_type = "relion.class2d.em"
+                if (
+                    self.job_paths_batch.get(class2d_type, {}).get(batch_file)
+                    and self._restarted
+                ):
+                    continue
                 if not self.job_paths_batch.get(class2d_type):
                     first_batch = batch_file
                     self.job_paths_batch[class2d_type] = {}
