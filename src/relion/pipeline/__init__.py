@@ -39,6 +39,7 @@ class PipelineRunner:
         options: RelionItOptions,
         moviesdir: str = "Movies",
         movietype: str = "mrc",
+        restarted: bool = False,
     ):
         self.path = projpath
         self.movies_path = projpath / moviesdir
@@ -62,6 +63,31 @@ class PipelineRunner:
         if self.options.do_second_pass:
             for q in self._queues.values():
                 q.append(queue.Queue())
+        if restarted:
+            self._load_job_paths()
+
+    def _load_job_paths(self):
+        search_paths = ["Import", "MotionCorr"]
+        jobs = ["relion.import.movies"]
+        if self.options.motioncor_do_own:
+            jobs.append("relion.motioncorr.own")
+        else:
+            jobs.append("relion.motioncorr.motioncorr2")
+        if self.options.do_icebreaker_job_group:
+            search_paths.append("IceBreaker")
+            jobs.append("icebreaker.micrograph_analysis.micrographs")
+        if self.options.do_icebreaker_job_flatten:
+            jobs.append("icebreaker.micrograph_analysis.enhancecontrast")
+        if self.options.do_icebreaker_fivefig:
+            jobs.append("icebreaker.micrograph_analysis.summary")
+        search_paths.append("CtfFind")
+        jobs.append("relion.ctffind.ctffind4")
+        for job, sp in zip(jobs, search_paths):
+            job_paths = list((self.path / sp).glob("*"))
+            if not job_paths:
+                continue
+            ordered_paths = sorted(job_paths, key=lambda x: x.stat().st_ctime)
+            self.job_paths[job] = ordered_paths[0].relative_to(self.path)
 
     def _generate_pipeline_options(self):
         pipeline_jobs = {

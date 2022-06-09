@@ -53,6 +53,12 @@ def run():
         type=int,
         default=2 * 24 * 3600,
     )
+    parser.add_argument(
+        "--continue",
+        help="Continue from previous pipeline",
+        action="store_true",
+        dest="continue_pipeline",
+    )
     args = parser.parse_args()
 
     opts = RelionItOptions()
@@ -80,14 +86,19 @@ def run():
         params_dict = {}
 
     opts.update_from(params_dict)
-    options_file = pathlib.Path(args.working_directory) / cryolo_relion_it.OPTIONS_FILE
-    if os.path.isfile(options_file):
-        os.rename(options_file, f"{options_file}~")
-    with open(options_file, "w") as optfile:
-        opts.print_options(optfile)
+    if not args.continue_pipeline:
+        options_file = (
+            pathlib.Path(args.working_directory) / cryolo_relion_it.OPTIONS_FILE
+        )
+        if os.path.isfile(options_file):
+            os.rename(options_file, f"{options_file}~")
+        with open(options_file, "w") as optfile:
+            opts.print_options(optfile)
 
-    if args.movies_dir is not None:
-        (pathlib.Path(args.working_directory) / "Movies").symlink_to(args.movies_dir)
+        if args.movies_dir is not None:
+            (pathlib.Path(args.working_directory) / "Movies").symlink_to(
+                args.movies_dir
+            )
 
     abs_working = pathlib.Path(args.working_directory).resolve()
     os.chdir(args.working_directory)
@@ -111,5 +122,6 @@ def run():
             abs_working / "stop.stop",
             opts,
             movietype=suffix,
+            restarted=args.continue_pipeline,
         )
         pipeline.run(args.timeout)
