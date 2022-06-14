@@ -69,20 +69,26 @@ class PipelineRunner:
             self._load_job_paths()
 
     def _load_job_paths(self):
-        search_paths = ["Import", "MotionCorr"]
+        search_paths = [("Import", 0), ("MotionCorr", 0)]
         jobs = ["relion.import.movies"]
         if self.options.motioncor_do_own:
             jobs.append("relion.motioncorr.own")
         else:
             jobs.append("relion.motioncorr.motioncorr2")
+        ib_index = 0
         if self.options.do_icebreaker_job_group:
-            search_paths.append("IceBreaker")
+            search_paths.append(("IceBreaker", ib_index))
+            ib_index += 1
             jobs.append("icebreaker.micrograph_analysis.micrographs")
         if self.options.do_icebreaker_job_flatten:
+            search_paths.append(("IceBreaker", ib_index))
+            ib_index += 1
             jobs.append("icebreaker.micrograph_analysis.enhancecontrast")
         if self.options.do_icebreaker_fivefig:
+            search_paths.append(("IceBreaker", ib_index))
+            ib_index += 1
             jobs.append("icebreaker.micrograph_analysis.summary")
-        search_paths.append("CtfFind")
+        search_paths.append(("CtfFind", 0))
         jobs.append("relion.ctffind.ctffind4")
 
         if not self.options.stop_after_ctf_estimation:
@@ -90,15 +96,17 @@ class PipelineRunner:
                 jobs.append("cryolo.autopick")
             elif self.options.autopick_do_LoG:
                 jobs.append("relion.autopick.log")
-            search_paths.extend(["AutoPick", "Extract", "Select"])
+            search_paths.extend([("AutoPick", 0), ("Extract", 0), ("Select", 0)])
             jobs.extend(["relion.extract", "relion.select.split"])
 
         for job, sp in zip(jobs, search_paths):
-            job_paths = list((self.path / sp).glob("*"))
+            job_paths = [p for p in (self.path / sp[0]).glob("*") if not p.is_symlink()]
             if not job_paths:
                 continue
-            ordered_paths = sorted(job_paths, key=lambda x: x.stat().st_ctime)
-            self.job_paths[job] = ordered_paths[0].relative_to(self.path)
+            ordered_paths = sorted(
+                job_paths, key=lambda x: int(x.parts[-1].replace("job", ""))
+            )
+            self.job_paths[job] = ordered_paths[sp[1]].relative_to(self.path)
 
         if not self.options.stop_after_ctf_estimation:
             select_job = self.job_paths.get("relion.select.split")
@@ -115,12 +123,22 @@ class PipelineRunner:
                     self.job_paths_batch[class2d_type][select_file] = p.relative_to(
                         self.path
                     )
+            if self.options.do_icebreaker_group:
+                self.job_paths_batch["icebreaker.micrograph_analysis.particles"] = {}
+                for p in (self.path / "IceBreaker").glob("*"):
+                    select_file = self._get_select_file(p, option_name="in_parts")
+                    if select_file:
+                        self.job_paths_batch[
+                            "icebreaker.micrograph_analysis.particles"
+                        ][select_file] = p.relative_to(self.path)
             if (self.path / "InitialModel").is_dir():
                 self.job_paths["relion.initialmodel"] = list(
                     (self.path / "InitialModel").glob("*")
                 )[0].relative_to(self.path)
 
-    def _get_select_file(self, class_job_path: pathlib.Path) -> str:
+    def _get_select_file(
+        self, class_job_path: pathlib.Path, option_name: str = "fn_img"
+    ) -> str:
         try:
             star_doc = cif.read_file(os.fspath(class_job_path / "job.star"))
             data = json.loads(star_doc.as_json())
@@ -131,7 +149,7 @@ class PipelineRunner:
                     data["joboptions_values"]["_rlnjoboptionvalue"],
                 )
             }
-            return joboptions["fn_img"]
+            return joboptions[option_name]
         except KeyError:
             return ""
 
