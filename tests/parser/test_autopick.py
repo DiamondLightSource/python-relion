@@ -2,15 +2,20 @@ from __future__ import annotations
 
 import sys
 from pprint import pprint
+from typing import NamedTuple
 
 import pytest
 
 import relion
 
 
+class Options(NamedTuple):
+    autopick_do_cryolo: bool = False
+
+
 @pytest.fixture
 def empty_options():
-    return []
+    return Options()
 
 
 @pytest.fixture

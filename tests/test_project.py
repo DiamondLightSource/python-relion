@@ -36,6 +36,7 @@ def empty_options():
         class3d_nr_classes: int = 4
         symmetry: str = "C1"
         inimodel_resol_final: int = 15
+        autopick_do_cryolo: bool = False
 
     return Options
 
