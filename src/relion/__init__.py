@@ -82,6 +82,7 @@ class Project(RelionPipeline):
                      directory of an existing Relion project.
         """
         self.basepath = pathlib.Path(path)
+        self._version = version
         super().__init__(
             "Import/job001", locklist=[self.basepath / "default_pipeline.star"]
         )
@@ -106,8 +107,6 @@ class Project(RelionPipeline):
             #    f"Relion Project was unable to load the relion pipeline from {self.basepath}/default_pipeline.star"
             # )
         # self.res = RelionResults()
-        self._drift_cache = {}
-        self._version = version
 
     @property
     def _plock(self):
