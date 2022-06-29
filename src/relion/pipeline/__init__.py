@@ -568,7 +568,7 @@ class PipelineRunner:
                     lock=self._lock,
                 )
             except (AttributeError, FileNotFoundError) as e:
-                logger.warning(
+                logger.debug(
                     f"Exception encountered in 3D classification runner. Try again: {e}"
                 )
                 print(
@@ -749,7 +749,7 @@ class PipelineRunner:
                         ref3d=ref3d, ref3d_angpix=ref3d_angpix
                     )
                 except (AttributeError, FileNotFoundError) as e:
-                    logger.warning(
+                    logger.debug(
                         f"Exception encountered in preprocessing. Try again: {e}"
                     )
                     print(f"Exception encountered in preprocessing. Try again: {e}")
