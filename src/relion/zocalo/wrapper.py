@@ -26,7 +26,11 @@ from relion.dbmodel.modeltables import (
     ParticlePickerTable,
     RelativeIceThicknessTable,
 )
-from relion.pipeline import PipelineRunner
+
+try:
+    from relion.pipeline import PipelineRunner
+except ImportError:
+    PipelineRunner = None
 
 logger = logging.getLogger("relion.zocalo.wrapper")
 
@@ -436,7 +440,7 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
             os.chdir(self.working_directory)
             if version == 3:
                 cryolo_relion_it.run_pipeline(self.opts)
-            elif version == 4:
+            elif version == 4 and PipelineRunner:
                 pipeline = PipelineRunner(
                     self.working_directory,
                     self.params["stop_file"],
