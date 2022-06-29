@@ -26,6 +26,7 @@ from relion.dbmodel.modeltables import (
     ParticlePickerTable,
     RelativeIceThicknessTable,
 )
+from relion.pipeline import PipelineRunner
 
 logger = logging.getLogger("relion.zocalo.wrapper")
 
@@ -132,7 +133,10 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
 
         # Start Relion
         self._relion_subthread = threading.Thread(
-            target=self.start_relion, name="relion_subprocess_runner", daemon=True
+            target=self.start_relion,
+            kwargs={"version": self.params.get("relion_version", 3)},
+            name="relion_subprocess_runner",
+            daemon=True,
         )
         self._relion_subthread.start()
 
@@ -149,6 +153,7 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
                 "images": images_msgs,
                 "images_particles": images_particles_msgs,
             },
+            version=self.params.get("relion_version", 3),
         )
 
         while not relion_prj.origin_present() or not preprocess_check.is_file():
@@ -409,7 +414,7 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
             )
             return
 
-    def start_relion(self):
+    def start_relion(self, version: int = 3):
         print("Running RELION wrapper - stdout")
         logger.info("Running RELION wrapper - logger.info")
 
@@ -428,7 +433,19 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
         oldpwd = os.getcwd()
         try:
             os.chdir(self.working_directory)
-            cryolo_relion_it.run_pipeline(self.opts)
+            if version == 3:
+                cryolo_relion_it.run_pipeline(self.opts)
+            elif version == 4:
+                pipeline = PipelineRunner(
+                    self.working_directory,
+                    self.params["stop_file"],
+                    self.opts,
+                    movietype=f".{self.params['ispyb_parameters']['import_images'].split('.')[-1]}",
+                )
+                pipeline.run(self.params["latest_movie_timeout"])
+            else:
+                logger.error(f"Unknown RELION version {version}: must be either 3 or 4")
+                return False
             success = True
         except Exception as ex:
             logger.error(ex)
