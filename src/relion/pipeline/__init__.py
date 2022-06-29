@@ -246,16 +246,20 @@ class PipelineRunner:
             return []
 
         jobs = ["relion.import.movies"]
+        aliases = {}
         if self.options.motioncor_do_own:
             jobs.append("relion.motioncorr.own")
         else:
             jobs.append("relion.motioncorr.motioncorr2")
         if self.options.do_icebreaker_job_group:
             jobs.append("icebreaker.micrograph_analysis.micrographs")
+            aliases["icebreaker.micrograph_analysis.micrographs"] = "Icebreaker_G"
         if self.options.do_icebreaker_job_flatten:
             jobs.append("icebreaker.micrograph_analysis.enhancecontrast")
+            aliases["icebreaker.micrograph_analysis.enhancecontrast"] = "Icebreaker_F"
         if self.options.do_icebreaker_fivefig:
             jobs.append("icebreaker.micrograph_analysis.summary")
+            aliases["icebreaker.micrograph_analysis.summary"] = "Icebreaker_5fig"
         jobs.append("relion.ctffind.ctffind4")
 
         for job in jobs:
@@ -264,6 +268,7 @@ class PipelineRunner:
                     job,
                     extra_params=self._extra_options(job, self.job_paths, self.options),
                     lock=self._lock,
+                    alias=aliases.get(job, ""),
                 )
             else:
                 if self._lock:
