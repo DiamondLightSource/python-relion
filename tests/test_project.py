@@ -87,7 +87,7 @@ def remove_corrected_star_slice(corrected_star_path, required_slice):
     return new_star_doc
 
 
-def test_basic_Project_object_behaviour(tmp_path):
+def test_basic_Project_object_behaviour(tmp_path, empty_options):
     rp1 = relion.Project(tmp_path, run_options=empty_options)
     assert rp1
     assert str(tmp_path) in str(rp1)
@@ -105,12 +105,14 @@ def test_basic_Project_object_behaviour(tmp_path):
     assert len({rp1, rp2}) == 1
 
 
-def test_create_Project_on_inaccessible_path_fails(tmp_path):
+def test_create_Project_on_inaccessible_path_fails(tmp_path, empty_options):
     with pytest.raises(ValueError):
         relion.Project(tmp_path / "does_not_exist", run_options=empty_options)
 
 
-def test_create_Project_with_cluster_information_collection_does_not_fail(dials_data):
+def test_create_Project_with_cluster_information_collection_does_not_fail(
+    dials_data, empty_options
+):
     relion.Project(
         dials_data("relion_tutorial_data", pathlib=True),
         run_options=empty_options,
