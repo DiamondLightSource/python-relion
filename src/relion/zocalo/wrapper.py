@@ -132,6 +132,7 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
         self.opts.update_from(self.params["ispyb_parameters"])
 
         # Start Relion
+        logger.info(f"Starting RELION version {self.params.get('relion_version', 3)}")
         self._relion_subthread = threading.Thread(
             target=self.start_relion,
             kwargs={"version": self.params.get("relion_version", 3)},
