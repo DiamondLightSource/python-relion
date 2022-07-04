@@ -195,4 +195,4 @@ class CryoloAutoPick(Cryolo):
 
     @property
     def jobs(self):
-        return super(Cryolo, self).jobs()
+        return super(Cryolo, self).jobs
