@@ -39,12 +39,14 @@ class Cryolo(JobType):
             if d.is_symlink() and "crYOLO" in str(d)
         )
 
-    def _load_job_directory(self, jobdir):
+    def _load_job_directory(
+        self, jobdir, input_tag: str = "in_mic", star_location: str = "Movies"
+    ):
         num_particles = 0
         particles_per_micrograph = {}
         first_mic = ""
         coords = {}
-        for star_file in (self._basepath / jobdir / "Movies").glob("**/*"):
+        for star_file in (self._basepath / jobdir / star_location).glob("**/*"):
             if star_file.is_file() and "gain" not in str(star_file):
                 part_coords = self._get_particle_info(jobdir, star_file)
                 if part_coords:
@@ -64,9 +66,11 @@ class Cryolo(JobType):
             logger.debug(f"_rlnJobOptionVariable not found in file {jobfile}")
             return []
         variables = self.parse_star_file("_rlnJobOptionVariable", jobfile, info_table)
-        inmicindex = variables.index("in_mic")
+        inmicindex = variables.index(input_tag)
         ctffilename = pathlib.Path(
-            self.parse_star_file("_rlnJobOptionValue", jobfile, info_table)[inmicindex]
+            self.parse_star_file("_rlnJobOptionValue", jobfile, info_table)[
+                inmicindex
+            ].replace("'", "")
         )
         ctffile = self._read_star_file_from_proj_dir(
             ctffilename.parts[0], ctffilename.relative_to(ctffilename.parts[0])
@@ -192,6 +196,24 @@ class CryoloAutoPick(Cryolo):
 
     def __str__(self):
         return f"<CryoloAutoPick parser at {self._basepath}>"
+
+    def _load_job_directory(self, jobdir):
+        return super()._load_job_directory(
+            jobdir, input_tag="'input_file'", star_location="STAR"
+        )
+
+    def _get_micrograph_name(self, micrograph, micrograph_names, jobdir):
+        for x in micrograph_names:
+            if (
+                str(
+                    micrograph.relative_to(
+                        self._basepath / jobdir / "STAR"
+                    ).with_suffix(".mrc")
+                )
+                in x
+            ):
+                return x
+        return None
 
     @property
     def jobs(self):

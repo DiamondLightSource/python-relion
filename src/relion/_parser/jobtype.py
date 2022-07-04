@@ -56,7 +56,7 @@ class JobType(collections.abc.Mapping):
             raise KeyError(f"Invalid argument {key!r}, expected string")
         self._jobcache[key] = new_value
 
-    def _load_job_directory(self, jobdir):
+    def _load_job_directory(self, jobdir, **kwargs):
         raise NotImplementedError("Load job directory not implemented")
 
     def _read_star_file(self, job_num, file_name):
