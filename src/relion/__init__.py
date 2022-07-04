@@ -16,7 +16,7 @@ from gemmi import cif
 from relion._parser.autopick import AutoPick
 from relion._parser.class2D import Class2D
 from relion._parser.class3D import Class3D
-from relion._parser.cryolo import Cryolo
+from relion._parser.cryolo import Cryolo, CryoloAutoPick
 from relion._parser.ctffind import CTFFind
 from relion._parser.initialmodel import InitialModel
 from relion._parser.motioncorrection import MotionCorr
@@ -37,7 +37,7 @@ logger = logging.getLogger("relion.Project")
 __all__ = []
 __author__ = "Diamond Light Source - Scientific Software"
 __email__ = "scientificsoftware@diamond.ac.uk"
-__version__ = "0.10.7"
+__version__ = "0.10.6"
 __version_tuple__ = tuple(int(x) for x in __version__.split("."))
 
 pipeline_lock = ".relion_lock"
@@ -74,6 +74,7 @@ class Project(RelionPipeline):
         run_options=None,
         message_constructors=None,
         cluster=False,
+        version: int = 3,
     ):
         """
         Create an object representing a Relion project.
@@ -81,6 +82,7 @@ class Project(RelionPipeline):
                      directory of an existing Relion project.
         """
         self.basepath = pathlib.Path(path)
+        self._version = version
         super().__init__(
             "Import/job001", locklist=[self.basepath / "default_pipeline.star"]
         )
@@ -105,7 +107,6 @@ class Project(RelionPipeline):
             #    f"Relion Project was unable to load the relion pipeline from {self.basepath}/default_pipeline.star"
             # )
         # self.res = RelionResults()
-        self._drift_cache = {}
 
     @property
     def _plock(self):
@@ -130,12 +131,15 @@ class Project(RelionPipeline):
         resd = {
             "CtfFind": self.ctffind,
             "MotionCorr": self.motioncorrection,
-            "AutoPick": self.autopick,
+            "AutoPick": self.autopick_cryolo
+            if self.run_options.autopick_do_cryolo and self._version == 4
+            else self.autopick,
             "External/crYOLO_AutoPick/": self.cryolo,
             "Class2D": self.class2D,
             "InitialModel": self.initialmodel,
             "Class3D": self.class3D,
             "External/Icebreaker_5fig/": self.relativeicethickness,
+            "Icebreaker/Icebreaker_5fig/": self.relativeicethickness,
         }
         return resd
 
@@ -159,6 +163,11 @@ class Project(RelionPipeline):
     @functools.lru_cache(maxsize=1)
     def autopick(self):
         return AutoPick(self.basepath / "AutoPick")
+
+    @property
+    @functools.lru_cache(maxsize=1)
+    def autopick_cryolo(self):
+        return CryoloAutoPick(self.basepath / "AutoPick")
 
     @property
     @functools.lru_cache(maxsize=1)

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import functools
 import json
+import logging
 import math
 import os
 import pathlib
@@ -23,6 +24,8 @@ from pipeliner.job_runner import JobRunner
 from relion.cryolo_relion_it.cryolo_relion_it import RelionItOptions
 from relion.pipeline.extra_options import generate_extra_options
 from relion.pipeline.options import generate_pipeline_options
+
+logger = logging.getLogger("relion.pipeline")
 
 
 def _clear_queue(q: queue.Queue) -> List[str]:
@@ -183,6 +186,7 @@ class PipelineRunner:
         lock: Optional[threading.RLock] = None,
         alias: str = "",
     ) -> pathlib.Path:
+        logger.info(f"Registering new job: {job}")
         write_default_jobstar(job)
         params = job_parameters_dict(job)
         params.update(self.pipeline_options.get(job, {}))
@@ -246,16 +250,20 @@ class PipelineRunner:
             return []
 
         jobs = ["relion.import.movies"]
+        aliases = {}
         if self.options.motioncor_do_own:
             jobs.append("relion.motioncorr.own")
         else:
             jobs.append("relion.motioncorr.motioncorr2")
         if self.options.do_icebreaker_job_group:
             jobs.append("icebreaker.micrograph_analysis.micrographs")
+            aliases["icebreaker.micrograph_analysis.micrographs"] = "Icebreaker_G"
         if self.options.do_icebreaker_job_flatten:
             jobs.append("icebreaker.micrograph_analysis.enhancecontrast")
+            aliases["icebreaker.micrograph_analysis.enhancecontrast"] = "Icebreaker_F"
         if self.options.do_icebreaker_fivefig:
             jobs.append("icebreaker.micrograph_analysis.summary")
+            aliases["icebreaker.micrograph_analysis.summary"] = "Icebreaker_5fig"
         jobs.append("relion.ctffind.ctffind4")
 
         for job in jobs:
@@ -264,6 +272,7 @@ class PipelineRunner:
                     job,
                     extra_params=self._extra_options(job, self.job_paths, self.options),
                     lock=self._lock,
+                    alias=aliases.get(job, ""),
                 )
             else:
                 if self._lock:
@@ -285,6 +294,9 @@ class PipelineRunner:
                 / "corrected_micrographs.star"
             )
         else:
+            logger.error(
+                "Neither a relion.motioncorr.own nor a relion.motioncorr.motioncorr2 job were found"
+            )
             raise KeyError(
                 "Neither a relion.motioncorr.own nor a relion.motioncorr.motioncorr2 job were found"
             )
@@ -373,6 +385,7 @@ class PipelineRunner:
                     ref = image
             return ref.split("@")[-1], float(star_doc[0].find_value("_rlnPixelSize"))
         except Exception as e:
+            logger.debug(f"Exception caught: {e}", exc_info=True)
             print(e)
             return None, None
 
@@ -538,6 +551,9 @@ class PipelineRunner:
                 if not self.job_paths_batch.get("relion.class3d"):
                     self.job_paths_batch["relion.class3d"] = {}
                 if self.options.use_fsc_criterion and angpix is None:
+                    logger.error(
+                        "use_fsc_criterion is True but angpix has not been specified"
+                    )
                     raise ValueError(
                         "use_fsc_criterion is True but angpix has not been specified"
                     )
@@ -552,6 +568,9 @@ class PipelineRunner:
                     lock=self._lock,
                 )
             except (AttributeError, FileNotFoundError) as e:
+                logger.debug(
+                    f"Exception encountered in 3D classification runner. Try again: {e}"
+                )
                 print(
                     f"Exception encountered in 3D classification runner. Try again: {e}"
                 )
@@ -666,6 +685,9 @@ class PipelineRunner:
                     if self.options.do_class3d:
                         self._queues["class3D"][iteration].put(batch_file)
             except (AttributeError, FileNotFoundError) as e:
+                logger.debug(
+                    f"Exception encountered in 2D classification runner. Try again: {e}"
+                )
                 print(
                     f"Exception encountered in 2D classification runner. Try again: {e}"
                 )
@@ -696,6 +718,9 @@ class PipelineRunner:
                     lock=self._lock,
                 )
             except (AttributeError, FileNotFoundError) as e:
+                logger.debug(
+                    f"Exception encountered in IceBreaker runner. Try again: {e}"
+                )
                 print(f"Exception encountered in IceBreaker runner. Try again: {e}")
 
     def run(self, timeout: int):
@@ -724,6 +749,9 @@ class PipelineRunner:
                         ref3d=ref3d, ref3d_angpix=ref3d_angpix
                     )
                 except (AttributeError, FileNotFoundError) as e:
+                    logger.debug(
+                        f"Exception encountered in preprocessing. Try again: {e}"
+                    )
                     print(f"Exception encountered in preprocessing. Try again: {e}")
                     continue
                 if not first_batch:
@@ -863,10 +891,14 @@ class PipelineRunner:
             time.sleep(10)
             current_time = time.time()
         if ib_thread is not None:
+            logger.info("Stopping IceBreaker thread")
             self._queues["ib_group"][0].put("")
         if class_thread is not None:
+            logger.info("Stopping classification thread")
             self._queues["class2D"][0].put("")
         if ib_thread is not None:
             ib_thread.join()
+            logger.info("IceBreaker thread stopped")
         if class_thread is not None:
             class_thread.join()
+            logger.info("Classification thread stopped")

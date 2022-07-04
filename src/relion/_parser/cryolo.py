@@ -176,3 +176,23 @@ class Cryolo(JobType):
             for pi in partpickinfo
         ]
         return res
+
+
+class CryoloAutoPick(Cryolo):
+    def __eq__(self, other):
+        if isinstance(other, CryoloAutoPick):  # check this
+            return self._basepath == other._basepath
+        return False
+
+    def __hash__(self):
+        return hash(("relion._parser.CryoloAutoPick", self._basepath))
+
+    def __repr__(self):
+        return f"CryoloAutoPick({repr(str(self._basepath))})"
+
+    def __str__(self):
+        return f"<CryoloAutoPick parser at {self._basepath}>"
+
+    @property
+    def jobs(self):
+        return super(Cryolo, self).jobs()

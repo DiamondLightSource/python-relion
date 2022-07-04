@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import NamedTuple
+
 import pytest
 
 import relion
@@ -7,13 +9,17 @@ from relion.dbmodel import modeltables
 from relion.dbmodel.dbnode import DBNode
 
 
+class Options(NamedTuple):
+    autopick_do_cryolo: bool = False
+
+
 @pytest.fixture
 def empty_options():
-    return []
+    return Options()
 
 
 @pytest.fixture
-def proj(dials_data):
+def proj(dials_data, empty_options):
     return relion.Project(
         dials_data("relion_tutorial_data", pathlib=True),
         run_options=empty_options,
