@@ -11,6 +11,7 @@ import time
 from pprint import pprint
 from typing import Optional
 
+import yaml
 import zocalo.util.symlink
 import zocalo.wrapper
 
@@ -134,6 +135,10 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
         self.opts = RelionItOptions()
         self.opts.update_from(vars(dls_options))
         self.opts.update_from(self.params["ispyb_parameters"])
+        if os.getenv("RELION_CLUSTER_CONFIG"):
+            with open(os.getenv("RELION_CLUSTER_CONFIG"), "r") as config:
+                cluster_config = yaml.safe_load(config)
+            self.opts.update_from(cluster_config)
 
         # Start Relion
         logger.info(f"Starting RELION version {self.params.get('relion_version', 3)}")
