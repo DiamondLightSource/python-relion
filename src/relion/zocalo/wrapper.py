@@ -132,6 +132,8 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
             self.params["ispyb_parameters"]["extract2_downscale"] = True
         pprint(self.params["ispyb_parameters"])
 
+        movietype = self.params["ispyb_parameters"]["import_images"].split(".")[-1]
+
         self.opts = RelionItOptions()
         self.opts.update_from(vars(dls_options))
         self.opts.update_from(self.params["ispyb_parameters"])
@@ -144,7 +146,10 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
         logger.info(f"Starting RELION version {self.params.get('relion_version', 3)}")
         self._relion_subthread = threading.Thread(
             target=self.start_relion,
-            kwargs={"version": self.params.get("relion_version", 3)},
+            kwargs={
+                "version": self.params.get("relion_version", 3),
+                "movietype": movietype,
+            },
             name="relion_subprocess_runner",
             daemon=True,
         )
@@ -424,7 +429,7 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
             )
             return
 
-    def start_relion(self, version: int = 3):
+    def start_relion(self, version: int = 3, movietype: str = "tiff"):
         print("Running RELION wrapper - stdout")
         logger.info("Running RELION wrapper - logger.info")
 
@@ -450,7 +455,7 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
                     self.working_directory,
                     self.params["stop_file"],
                     self.opts,
-                    movietype=f".{self.params['ispyb_parameters']['import_images'].split('.')[-1]}",
+                    movietype=movietype,
                 )
                 pipeline.run(self.params["latest_movie_timeout"])
             else:
