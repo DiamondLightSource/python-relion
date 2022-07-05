@@ -246,6 +246,7 @@ class PipelineRunner:
         return len(list(star_doc[1].find_loop("_rlnMicrographName")))
 
     def preprocessing(self, ref3d: str = "", ref3d_angpix: float = -1) -> List[str]:
+        logger.info("Preprocessing started")
         if ref3d and self.options.autopick_do_cryolo:
             return []
 

@@ -453,7 +453,7 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
                 return False
             success = True
         except Exception as ex:
-            logger.error(ex)
+            logger.error(ex, exc_info=True)
         finally:
             os.chdir(oldpwd)
 
