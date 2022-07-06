@@ -453,7 +453,7 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
             elif version == 4 and PipelineRunner:
                 pipeline = PipelineRunner(
                     self.working_directory,
-                    self.params["stop_file"],
+                    pathlib.Path(self.params["stop_file"]),
                     self.opts,
                     movietype=movietype,
                 )
