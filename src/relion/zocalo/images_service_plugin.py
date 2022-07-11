@@ -102,6 +102,13 @@ def picked_particles(plugin_params):
     except FileNotFoundError:
         logger.error(f"File {basefilename} could not be opened")
         return False
+    mean = np.mean(data)
+    sdev = np.std(data)
+    sigma_min = mean - 3 * sdev
+    sigma_max = mean + 3 * sdev
+    data = np.ndarray.copy(data)
+    data[data < sigma_min] = sigma_min
+    data[data > sigma_max] = sigma_max
     data = data - data.min()
     data = data * 255 / data.max()
     data = data.astype("uint8")
