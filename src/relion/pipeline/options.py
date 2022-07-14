@@ -61,6 +61,7 @@ def generate_pipeline_options(
         "gpu_ids": "0:1:2:3",
         "nr_mpi": relion_it_options.motioncor_mpi,
         "nr_threads": relion_it_options.motioncor_threads,
+        "other_args": "--skip_logfile",
     }
 
     job_options["relion.motioncorr.own"] = job_options["relion.motioncorr.motioncorr2"]
