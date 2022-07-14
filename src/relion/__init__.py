@@ -139,7 +139,7 @@ class Project(RelionPipeline):
             "InitialModel": self.initialmodel,
             "Class3D": self.class3D,
             "External/Icebreaker_5fig/": self.relativeicethickness,
-            "Icebreaker/Icebreaker_5fig/": self.relativeicethickness,
+            "IceBreaker/Icebreaker_5fig/": self.relativeicethickness_ib,
         }
         return resd
 
@@ -200,6 +200,11 @@ class Project(RelionPipeline):
     def relativeicethickness(self):
         return RelativeIceThickness(self.basepath / "External")
 
+    @property
+    @functools.lru_cache(maxsize=1)
+    def relativeicethickness_ib(self):
+        return RelativeIceThickness(self.basepath / "IceBreaker")
+
     def origin_present(self):
         try:
             self.load_nodes_from_star(self.basepath / "default_pipeline.star")
@@ -252,6 +257,11 @@ class Project(RelionPipeline):
                         prop=("job_string", "parpick_job_string"),
                     )
                 elif jobnode.name == "External":
+                    self._update_pipeline(
+                        jobnode,
+                        jobnode.environment.get("alias"),
+                    )
+                elif jobnode.name == "IceBreaker":
                     self._update_pipeline(
                         jobnode,
                         jobnode.environment.get("alias"),
