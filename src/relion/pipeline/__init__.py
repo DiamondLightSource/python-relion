@@ -245,7 +245,9 @@ class PipelineRunner:
         star_doc = cif.read_file(os.fspath(star_file))
         return len(list(star_doc[1].find_loop("_rlnMicrographName")))
 
-    def preprocessing(self, ref3d: str = "", ref3d_angpix: float = -1) -> List[str]:
+    def preprocessing(
+        self, ref3d: str = "", ref3d_angpix: float = -1
+    ) -> Optional[List[str]]:
         logger.info("Preprocessing started")
         if ref3d and self.options.autopick_do_cryolo:
             return []
@@ -314,22 +316,35 @@ class PipelineRunner:
         for job in next_jobs:
             if not self.job_paths.get(job):
                 if job == "relion.autopick.ref3d":
-                    self.job_paths[job] = self.fresh_job(
-                        job.replace(ref3d, ""),
-                        extra_params={
-                            **self._extra_options(job, self.job_paths, self.options),
-                            **{"fn_ref3d_autopick": ref3d, "angpix_ref": ref3d_angpix},
-                        },
-                        lock=self._lock,
-                    )
+                    try:
+                        self.job_paths[job] = self.fresh_job(
+                            job.replace(ref3d, ""),
+                            extra_params={
+                                **self._extra_options(
+                                    job, self.job_paths, self.options
+                                ),
+                                **{
+                                    "fn_ref3d_autopick": ref3d,
+                                    "angpix_ref": ref3d_angpix,
+                                },
+                            },
+                            lock=self._lock,
+                        )
+                    except Exception:
+                        logger.warning(f"Failed to register fresh job: {job}")
+                        return None
                 else:
-                    self.job_paths[job] = self.fresh_job(
-                        job.replace(ref3d, ""),
-                        extra_params=self._extra_options(
-                            job, self.job_paths, self.options
-                        ),
-                        lock=self._lock,
-                    )
+                    try:
+                        self.job_paths[job] = self.fresh_job(
+                            job.replace(ref3d, ""),
+                            extra_params=self._extra_options(
+                                job, self.job_paths, self.options
+                            ),
+                            lock=self._lock,
+                        )
+                    except Exception:
+                        logger.warning(f"Failed to register fresh job: {job}")
+                        return None
             else:
                 self.project.continue_job(str(self.job_paths[job]))
         select_path = self.job_paths["relion.select.split" + ref3d]
@@ -751,9 +766,12 @@ class PipelineRunner:
                     )
                 except (AttributeError, FileNotFoundError) as e:
                     logger.debug(
-                        f"Exception encountered in preprocessing. Try again: {e}"
+                        f"Exception encountered in preprocessing. Try again: {e}",
+                        exc_info=True,
                     )
                     print(f"Exception encountered in preprocessing. Try again: {e}")
+                    continue
+                if split_files is None:
                     continue
                 if not first_batch:
                     first_batch = split_files[0]
