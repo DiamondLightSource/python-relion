@@ -171,7 +171,9 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
             version=self.params.get("relion_version", 3),
         )
 
-        while not relion_prj.origin_present() or not preprocess_check.is_file():
+        while not relion_prj.origin_present() or (
+            not preprocess_check.is_file() and self.params.get("relion_version", 3) == 3
+        ):
             time.sleep(0.5)
             if time.time() - relion_started > 10 * 60:
                 break
