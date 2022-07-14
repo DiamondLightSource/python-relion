@@ -68,11 +68,11 @@ class DBModel(collections.abc.Mapping):
             },
         )
 
-        self.rel_ice_bd_node = DBNode(
+        self.rel_ice_db_node = DBNode(
             "RelativeIceThicknessTable", [RelativeIceThicknessTable()]
         )
         self.mc_db_node.link_to(
-            self.rel_ice_bd_node,
+            self.rel_ice_db_node,
             traffic={
                 "check_for": "micrograph_full_path",
                 "foreign_key": "motion_correction_id",
@@ -158,7 +158,8 @@ class DBModel(collections.abc.Mapping):
             "Class2D": self.class2d_db_node,
             "InitialModel": self.class3d_db_node,
             "Class3D": self.class3d_db_node,
-            "External/Icebreaker_5fig/": self.rel_ice_bd_node,
+            "External/Icebreaker_5fig/": self.rel_ice_db_node,
+            "IceBreaker/Icebreaker_5fig/": self.rel_ice_db_node,
         }
 
         return db_dict
