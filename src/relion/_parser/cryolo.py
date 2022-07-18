@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import pathlib
+from typing import List
 
 from relion._parser.autopick import ParticleCacheRecord, ParticlePickerInfo
 from relion._parser.jobtype import JobType
@@ -86,22 +87,20 @@ class Cryolo(JobType):
         particle_picker_info = []
         for mic, num_particles in particles_per_micrograph.items():
             mc_mic_name = self._get_micrograph_name(mic, micrograph_names, jobdir)
+            if not mc_mic_name:
+                continue
             mic_parts = pathlib.Path(mc_mic_name).parts
-            highlighted_micrograph = (
-                self._basepath
-                / jobdir
-                / pathlib.Path(mc_mic_name)
-                .relative_to(pathlib.Path(mic_parts[0]) / mic_parts[1])
-                .with_suffix(".jpeg")
+            highlighted_micrograph = self._get_highlighted_mircograph(
+                jobdir, mc_mic_name, mic_parts
             )
             particle_picker_info.append(
                 ParticlePickerInfo(
                     num_particles,
                     mc_mic_name,
                     str(self._basepath.parent / mc_mic_name).replace(".mrc", ".jpeg"),
-                    str(first_mic.relative_to(self._basepath / jobdir)).replace(
-                        "_autopick.star", ".mrc"
-                    ),
+                    str(first_mic.relative_to(self._basepath / jobdir))
+                    .replace("_autopick", "")
+                    .replace(".star", ".mrc"),
                     str(highlighted_micrograph),
                     coords[mic],
                     jobdir,
@@ -109,6 +108,17 @@ class Cryolo(JobType):
             )
 
         return particle_picker_info
+
+    def _get_highlighted_mircograph(
+        self, jobdir: str, mc_mic_name: str, mic_parts: List[str]
+    ) -> pathlib.Path:
+        return (
+            self._basepath
+            / jobdir
+            / pathlib.Path(mc_mic_name)
+            .relative_to(pathlib.Path(mic_parts[0]) / mic_parts[1])
+            .with_suffix(".jpeg")
+        )
 
     def _get_particle_info(self, jobdir, star_file):
         if self._particle_cache.get(jobdir) is None:
@@ -201,6 +211,13 @@ class CryoloAutoPick(Cryolo):
         return super()._load_job_directory(
             jobdir, input_tag="'input_file'", star_location="STAR"
         )
+
+    def _get_highlighted_mircograph(
+        self, jobdir: str, mc_mic_name: str, mic_parts: List[str]
+    ) -> pathlib.Path:
+        return (
+            self._basepath / jobdir / "STAR" / pathlib.Path(mc_mic_name).name
+        ).with_suffix(".jpeg")
 
     def _get_micrograph_name(self, micrograph, micrograph_names, jobdir):
         for x in micrograph_names:
