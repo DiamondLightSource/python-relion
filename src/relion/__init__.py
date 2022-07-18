@@ -348,10 +348,12 @@ class Project(RelionPipeline):
         Project.ctffind.fget.cache_clear()
         Project.autopick.fget.cache_clear()
         Project.cryolo.fget.cache_clear()
+        Project.autopick_cryolo.fget.cache_clear()
         Project.class2D.fget.cache_clear()
         Project.initialmodel.fget.cache_clear()
         Project.class3D.fget.cache_clear()
         Project.relativeicethickness.fget.cache_clear()
+        Project.relativeicethickness_ib.fget.cache_clear()
 
     def get_imported(self):
         try:
