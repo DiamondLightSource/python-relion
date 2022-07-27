@@ -281,10 +281,12 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
                 attachment_list = []
                 try:
                     pdf_file_path = icebreaker_histogram.create_pdf_histogram(
-                        self.working_directory
+                        self.working_directory,
+                        version=self.params.get("relion_version", 3.1),
                     )
                     json_file_path = icebreaker_histogram.create_json_histogram(
-                        self.working_directory
+                        self.working_directory,
+                        version=self.params.get("relion_version", 3.1),
                     )
                     if should_send_icebreaker and pdf_file_path and json_file_path:
                         attachment_list.append(
