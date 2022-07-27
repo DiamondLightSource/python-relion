@@ -709,9 +709,11 @@ class PipelineRunner:
                 )
 
     def ib_group(self, iteration: int = 0):
+        batch_number = 0
         while True:
             try:
                 batch_file = self._queues["ib_group"][iteration].get()
+                batch_number += 1
                 if not batch_file:
                     return
                 if not self.job_paths_batch.get(
@@ -732,6 +734,9 @@ class PipelineRunner:
                         "in_parts": batch_file,
                     },
                     lock=self._lock,
+                    alias=f"Icebreaker_group_batch_{batch_number}_pass_{iteration+1}"
+                    if iteration
+                    else f"Icebreaker_group_batch_{batch_number}",
                 )
             except (AttributeError, FileNotFoundError) as e:
                 logger.debug(
