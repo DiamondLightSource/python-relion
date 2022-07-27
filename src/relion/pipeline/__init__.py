@@ -914,6 +914,9 @@ class PipelineRunner:
 
             time.sleep(10)
             current_time = time.time()
+        logger.info(
+            "Stopping processing: current time: {current_time}, start time: {start_time}, timeout: {timeout}"
+        )
         if ib_thread is not None:
             logger.info("Stopping IceBreaker thread")
             self._queues["ib_group"][0].put("")
