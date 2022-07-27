@@ -459,7 +459,7 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
                     self.opts,
                     movietype=movietype,
                 )
-                pipeline.run(self.params["latest_movie_timeout"])
+                pipeline.run(self.params["latest_movie_timeout"] * 60)
             else:
                 logger.error(f"Unknown RELION version {version}: must be either 3 or 4")
                 return False
@@ -469,7 +469,7 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
         finally:
             os.chdir(oldpwd)
 
-        logger.info("Done.")
+        logger.info("RELION thread done.")
         return success
 
     def check_whether_ended(self, proj):
