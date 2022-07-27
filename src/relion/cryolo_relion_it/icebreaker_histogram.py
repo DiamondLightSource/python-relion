@@ -12,8 +12,8 @@ import plotly.express as px
 logger = logging.getLogger("relion.cryolo_relion_it.icebreaker_histogram")
 
 
-def create_json_histogram(working_directory):
-    data = _get_data(working_directory)
+def create_json_histogram(working_directory, version: float = 3.1):
+    data = _get_data(working_directory, version=version)
     if data is None:
         return None
 
@@ -24,17 +24,28 @@ def create_json_histogram(working_directory):
         title="Histogram of Icebreaker estimated ice thickness <br>Total number of particles = "
         + str(len(data)),
     )
-    full_json_path_object = (
-        working_directory / "External" / "Icebreaker_group_batch_001" / "ice_hist.json"
-    )
+    if version == 4:
+        full_json_path_object = (
+            working_directory
+            / "IceBreaker"
+            / "Icebreaker_group_batch_1"
+            / "ice_hist.json"
+        )
+    else:
+        full_json_path_object = (
+            working_directory
+            / "External"
+            / "Icebreaker_group_batch_001"
+            / "ice_hist.json"
+        )
     fig.write_json(
         os.fspath(full_json_path_object)
     )  # This plotly version doesn't support Path objects with write_json()
     return full_json_path_object
 
 
-def create_pdf_histogram(working_directory):
-    data = _get_data(working_directory)
+def create_pdf_histogram(working_directory, version: float = 3.1):
+    data = _get_data(working_directory, version=version)
     if data is None:
         return None
 
@@ -43,18 +54,36 @@ def create_pdf_histogram(working_directory):
     plt.ylabel("Number of particles")
     plt.title("Histogram of Icebreaker estimated ice thickness")
     plt.legend(["Total number of particles = " + str(len(data))])
-    full_pdf_path_object = (
-        working_directory / "External" / "Icebreaker_group_batch_001" / "ice_hist.pdf"
-    )
+    if version == 4:
+        full_pdf_path_object = (
+            working_directory
+            / "IceBreaker"
+            / "Icebreaker_group_batch_1"
+            / "ice_hist.pdf"
+        )
+    else:
+        full_pdf_path_object = (
+            working_directory
+            / "External"
+            / "Icebreaker_group_batch_001"
+            / "ice_hist.pdf"
+        )
     plt.savefig(
         os.fspath(full_pdf_path_object)
     )  # This matplotlib version doesn't support Path objects with savefig()
     return full_pdf_path_object
 
 
-def _get_data(working_directory):
+def _get_data(working_directory, version: float = 3.1):
     data = []
-    icebreaker_paths = list((working_directory / "External").glob("Icebreaker_group*"))
+    if version == 4:
+        icebreaker_paths = list(
+            (working_directory / "IceBreaker").glob("Icebreaker_group*")
+        )
+    else:
+        icebreaker_paths = list(
+            (working_directory / "External").glob("Icebreaker_group*")
+        )
     if not len(icebreaker_paths):
         return None
     passed = []
