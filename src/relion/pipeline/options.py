@@ -43,6 +43,7 @@ def generate_pipeline_options(
     job_options["relion.import.movies"] = {
         "fn_in_raw": relion_it_options.import_images,
         "angpix": relion_it_options.angpix,
+        "kV": relion_it_options.voltage,
     }
 
     job_options["relion.motioncorr.motioncorr2"] = {
