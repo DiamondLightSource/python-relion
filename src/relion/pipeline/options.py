@@ -58,6 +58,7 @@ def generate_pipeline_options(
         "bin_factor": relion_it_options.motioncor_binning,
         "gain_flip": relion_it_options.motioncor_gainflip,
         "gain_rot": relion_it_options.motioncor_gainrot,
+        "other_args": relion_it_options.motioncor_other_args,
         "other_motioncor2_args": relion_it_options.motioncor2_other_args,
         "gpu_ids": "0:1:2:3",
         "nr_mpi": relion_it_options.motioncor_mpi,
