@@ -185,6 +185,8 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
         should_send_icebreaker = True
         icebreaker_particles_star_file_found = False
 
+        time_of_last_ib_hist_warning = 0
+
         while (
             self._relion_subthread.is_alive() or preprocess_check.is_file()
         ) and False not in [n.environment["status"] for n in relion_prj if n._out]:
@@ -300,7 +302,12 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
                         should_send_icebreaker = False
                         icebreaker_particles_star_file_found = True
                 except (FileNotFoundError, OSError, RuntimeError, ValueError):
-                    logger.debug("Error creating Icebreaker histogram.", exc_info=True)
+                    ib_hist_warning_time = time.time()
+                    if ib_hist_warning_time - time_of_last_ib_hist_warning > 3600:
+                        logger.debug(
+                            "Error creating Icebreaker histogram.", exc_info=True
+                        )
+                        time_of_last_ib_hist_warning = ib_hist_warning_time
 
             # if Relion has been running too long stop loop of preprocessing jobs
             try:
