@@ -776,7 +776,7 @@ class PipelineRunner:
                     )
                     print(f"Exception encountered in preprocessing. Try again: {e}")
                     continue
-                if split_files is None:
+                if not split_files:
                     continue
                 if not first_batch:
                     first_batch = split_files[0]
