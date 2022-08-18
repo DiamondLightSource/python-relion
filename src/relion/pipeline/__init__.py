@@ -590,6 +590,9 @@ class PipelineRunner:
                 print(
                     f"Exception encountered in 3D classification runner. Try again: {e}"
                 )
+            except Exception as e:
+                logger.warning(f"Unexpected Exception in 3D classification runner: {e}")
+                return
 
     def classification(
         self,
@@ -707,6 +710,9 @@ class PipelineRunner:
                 print(
                     f"Exception encountered in 2D classification runner. Try again: {e}"
                 )
+            except Exception as e:
+                logger.warning(f"Unexpected Exception in 2D classification runner: {e}")
+                return
 
     def ib_group(self, iteration: int = 0):
         batch_number = 0
@@ -743,6 +749,9 @@ class PipelineRunner:
                     f"Exception encountered in IceBreaker runner. Try again: {e}"
                 )
                 print(f"Exception encountered in IceBreaker runner. Try again: {e}")
+            except Exception as e:
+                logger.warning(f"Unexpected Exception in IceBreaker runner: {e}")
+                return
 
     def run(self, timeout: int):
         start_time = time.time()
