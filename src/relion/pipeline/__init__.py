@@ -554,25 +554,25 @@ class PipelineRunner:
         iteration: int = 0,
     ):
         while True:
+            batch_file = self._queues["class3D"][iteration].get()
+            if not batch_file:
+                return
+            if self.job_paths.get("relion.initialmodel") is None:
+                self.job_paths["relion.initialmodel"] = self.fresh_job(
+                    "relion.initialmodel",
+                    extra_params={"fn_img": batch_file},
+                    lock=self._lock,
+                )
+            if not self.job_paths_batch.get("relion.class3d"):
+                self.job_paths_batch["relion.class3d"] = {}
+            if self.options.use_fsc_criterion and angpix is None:
+                logger.error(
+                    "use_fsc_criterion is True but angpix has not been specified"
+                )
+                raise ValueError(
+                    "use_fsc_criterion is True but angpix has not been specified"
+                )
             try:
-                batch_file = self._queues["class3D"][iteration].get()
-                if not batch_file:
-                    return
-                if self.job_paths.get("relion.initialmodel") is None:
-                    self.job_paths["relion.initialmodel"] = self.fresh_job(
-                        "relion.initialmodel",
-                        extra_params={"fn_img": batch_file},
-                        lock=self._lock,
-                    )
-                if not self.job_paths_batch.get("relion.class3d"):
-                    self.job_paths_batch["relion.class3d"] = {}
-                if self.options.use_fsc_criterion and angpix is None:
-                    logger.error(
-                        "use_fsc_criterion is True but angpix has not been specified"
-                    )
-                    raise ValueError(
-                        "use_fsc_criterion is True but angpix has not been specified"
-                    )
                 self.job_paths_batch["relion.class3d"][batch_file] = self.fresh_job(
                     "relion.class3d",
                     extra_params={
@@ -590,6 +590,7 @@ class PipelineRunner:
                 print(
                     f"Exception encountered in 3D classification runner. Try again: {e}"
                 )
+                self._queues["class3D"][iteration].put(batch_file)
             except Exception as e:
                 logger.warning(
                     f"Unexpected Exception in 3D classification runner: {e}",
@@ -633,11 +634,15 @@ class PipelineRunner:
                 if not self.job_paths_batch.get(class2d_type):
                     first_batch = batch_file
                     self.job_paths_batch[class2d_type] = {}
-                    self.job_paths_batch[class2d_type][batch_file] = self.fresh_job(
-                        class2d_type,
-                        extra_params={"fn_img": batch_file},
-                        lock=self._lock,
-                    )
+                    try:
+                        self.job_paths_batch[class2d_type][batch_file] = self.fresh_job(
+                            class2d_type,
+                            extra_params={"fn_img": batch_file},
+                            lock=self._lock,
+                        )
+                    except FileNotFoundError:
+                        self._queues["class2D"][iteration].put(batch_file)
+                        continue
 
                     if self._past_class_threshold and self.options.do_class3d:
                         class3d_thread = threading.Thread(
@@ -653,18 +658,22 @@ class PipelineRunner:
                         self._queues["class3D"][iteration].put(first_batch)
                 elif self.job_paths_batch[class2d_type].get(batch_file):
                     if self._lock:
-                        with self._lock:
-                            self.project.run_job(
-                                f"{class2d_type.replace('.', '_')}_job.star",
-                                overwrite=str(
-                                    self.job_paths_batch[class2d_type][batch_file]
-                                ),
-                                wait_for_queued=False,
+                        try:
+                            with self._lock:
+                                self.project.run_job(
+                                    f"{class2d_type.replace('.', '_')}_job.star",
+                                    overwrite=str(
+                                        self.job_paths_batch[class2d_type][batch_file]
+                                    ),
+                                    wait_for_queued=False,
+                                )
+                            runner = JobRunner(self.project.pipeline.name)
+                            runner.wait_for_queued_job_completion(
+                                str(self.job_paths_batch[class2d_type][batch_file])
                             )
-                        runner = JobRunner(self.project.pipeline.name)
-                        runner.wait_for_queued_job_completion(
-                            str(self.job_paths_batch[class2d_type][batch_file])
-                        )
+                        except FileNotFoundError:
+                            self._queues["class2D"][iteration].put(batch_file)
+                            continue
                     else:
                         self.project.run_job(
                             f"{class2d_type.replace('.', '_')}_job.star",
@@ -698,21 +707,18 @@ class PipelineRunner:
                         )
                         class3d_thread.start()
                         self._queues["class3D"][iteration].put(first_batch)
-                    self.job_paths_batch[class2d_type][batch_file] = self.fresh_job(
-                        class2d_type,
-                        extra_params={"fn_img": batch_file},
-                        lock=self._lock,
-                    )
+                    try:
+                        self.job_paths_batch[class2d_type][batch_file] = self.fresh_job(
+                            class2d_type,
+                            extra_params={"fn_img": batch_file},
+                            lock=self._lock,
+                        )
+                    except FileNotFoundError:
+                        self._queues["class2D"][iteration].put(batch_file)
+                        continue
 
                     if self.options.do_class3d:
                         self._queues["class3D"][iteration].put(batch_file)
-            except (AttributeError, FileNotFoundError) as e:
-                logger.debug(
-                    f"Exception encountered in 2D classification runner. Try again: {e}"
-                )
-                print(
-                    f"Exception encountered in 2D classification runner. Try again: {e}"
-                )
             except Exception as e:
                 logger.warning(
                     f"Unexpected Exception in 2D classification runner: {e}",
@@ -723,17 +729,13 @@ class PipelineRunner:
     def ib_group(self, iteration: int = 0):
         batch_number = 0
         while True:
+            batch_file = self._queues["ib_group"][iteration].get()
+            batch_number += 1
+            if not batch_file:
+                return
+            if not self.job_paths_batch.get("icebreaker.micrograph_analysis.particles"):
+                self.job_paths_batch["icebreaker.micrograph_analysis.particles"] = {}
             try:
-                batch_file = self._queues["ib_group"][iteration].get()
-                batch_number += 1
-                if not batch_file:
-                    return
-                if not self.job_paths_batch.get(
-                    "icebreaker.micrograph_analysis.particles"
-                ):
-                    self.job_paths_batch[
-                        "icebreaker.micrograph_analysis.particles"
-                    ] = {}
                 self.job_paths_batch["icebreaker.micrograph_analysis.particles"][
                     batch_file
                 ] = self.fresh_job(
@@ -755,6 +757,8 @@ class PipelineRunner:
                     f"Exception encountered in IceBreaker runner. Try again: {e}"
                 )
                 print(f"Exception encountered in IceBreaker runner. Try again: {e}")
+                self._queues["ib_group"][iteration].put(batch_file)
+                batch_number -= 1
             except Exception as e:
                 logger.warning(
                     f"Unexpected Exception in IceBreaker runner: {e}", exc_info=True
