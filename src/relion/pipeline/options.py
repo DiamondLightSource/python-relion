@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Any, Dict
 
 from relion.cryolo_relion_it.cryolo_relion_it import RelionItOptions
@@ -50,7 +51,9 @@ def generate_pipeline_options(
         "fn_motioncor2_exe": relion_it_options.motioncor_exe,
         "fn_defect": relion_it_options.motioncor_defectfile,
         "dose_per_frame": relion_it_options.motioncor_doseperframe,
-        "fn_gain_ref": relion_it_options.motioncor_gainreference,
+        "fn_gain_ref": relion_it_options.motioncor_gainreference
+        if Path(relion_it_options.motioncor_gainreference).exists()
+        else "",
         "eer_grouping": relion_it_options.eer_grouping,
         "patch_x": relion_it_options.motioncor_patches_x,
         "patch_y": relion_it_options.motioncor_patches_y,
