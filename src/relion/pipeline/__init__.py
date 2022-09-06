@@ -778,10 +778,8 @@ class PipelineRunner:
         old_iteration = 0
         first_batch = ""
         continue_anyway = False
-        while (
-            (current_time - start_time < timeout and not self.stopfile.exists())
-            or continue_anyway
-            or self._new_movies()
+        while not self.stopfile.exists() and (
+            current_time - start_time < timeout or continue_anyway or self._new_movies()
         ):
             if self._new_movies() or iteration - old_iteration:
                 if iteration - old_iteration:
