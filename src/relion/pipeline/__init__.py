@@ -779,10 +779,10 @@ class PipelineRunner:
         first_batch = ""
         continue_anyway = False
         movie_dir = self.movies_path.relative_to(self.path)
-        if self.options.fn_in_raw.startswith(movie_dir):
-            glob_pattern = self.options.fn_in_raw[len(movie_dir) :]
+        if self.options.import_images.startswith(movie_dir):
+            glob_pattern = self.options.import_images[len(movie_dir) :]
         else:
-            glob_pattern = self.options.fn_in_raw
+            glob_pattern = self.options.import_images
         if glob_pattern.startswith("/"):
             glob_pattern = glob_pattern[1:]
         while not self.stopfile.exists() and (
