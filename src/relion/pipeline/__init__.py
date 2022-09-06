@@ -778,7 +778,7 @@ class PipelineRunner:
         old_iteration = 0
         first_batch = ""
         continue_anyway = False
-        movie_dir = self.movies_path.relative_to(self.path)
+        movie_dir = str(self.movies_path.relative_to(self.path))
         if self.options.import_images.startswith(movie_dir):
             glob_pattern = self.options.import_images[len(movie_dir) :]
         else:
