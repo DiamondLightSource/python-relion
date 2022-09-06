@@ -71,6 +71,13 @@ class PipelineRunner:
         if restarted:
             self._load_job_paths()
 
+    def clear_relion_lock(self):
+        lock_dir = self.path / ".relion_lock"
+        if lock_dir.is_dir():
+            for f in lock_dir.glb("*"):
+                f.unlink()
+            lock_dir.rmdir()
+
     def _load_job_paths(self):
         search_paths = [("Import", 0), ("MotionCorr", 0)]
         jobs = ["relion.import.movies"]
@@ -590,6 +597,7 @@ class PipelineRunner:
                 print(
                     f"Exception encountered in 3D classification runner. Try again: {e}"
                 )
+                self.clear_relion_lock()
                 self._queues["class3D"][iteration].put(batch_file)
             except Exception as e:
                 logger.warning(
@@ -640,7 +648,11 @@ class PipelineRunner:
                             extra_params={"fn_img": batch_file},
                             lock=self._lock,
                         )
-                    except FileNotFoundError:
+                    except (AttributeError, FileNotFoundError) as e:
+                        logger.warning(
+                            f"Exception encountered in 2D classification runner. Try again: {e}"
+                        )
+                        self.clear_relion_lock()
                         self._queues["class2D"][iteration].put(batch_file)
                         continue
 
@@ -671,7 +683,11 @@ class PipelineRunner:
                             runner.wait_for_queued_job_completion(
                                 str(self.job_paths_batch[class2d_type][batch_file])
                             )
-                        except FileNotFoundError:
+                        except (AttributeError, FileNotFoundError) as e:
+                            logger.warning(
+                                f"Exception encountered in 2D classification runner. Try again: {e}"
+                            )
+                            self.clear_relion_lock()
                             self._queues["class2D"][iteration].put(batch_file)
                             continue
                     else:
@@ -713,7 +729,11 @@ class PipelineRunner:
                             extra_params={"fn_img": batch_file},
                             lock=self._lock,
                         )
-                    except FileNotFoundError:
+                    except (AttributeError, FileNotFoundError) as e:
+                        logger.warning(
+                            f"Exception encountered in 2D classification runner. Try again: {e}"
+                        )
+                        self.clear_relion_lock()
                         self._queues["class2D"][iteration].put(batch_file)
                         continue
 
@@ -757,6 +777,7 @@ class PipelineRunner:
                     f"Exception encountered in IceBreaker runner. Try again: {e}"
                 )
                 print(f"Exception encountered in IceBreaker runner. Try again: {e}")
+                self.clear_relion_lock()
                 self._queues["ib_group"][iteration].put(batch_file)
                 batch_number -= 1
             except Exception as e:
