@@ -401,7 +401,7 @@ class PipelineRunner:
                     ref = image
             return ref.split("@")[-1], float(star_doc[0].find_value("_rlnPixelSize"))
         except Exception as e:
-            logger.debug(f"Exception caught: {e}", exc_info=True)
+            logger.warning(f"Exception caught: {e}", exc_info=True)
             print(e)
             return None, None
 
@@ -584,7 +584,7 @@ class PipelineRunner:
                     lock=self._lock,
                 )
             except (AttributeError, FileNotFoundError) as e:
-                logger.debug(
+                logger.warning(
                     f"Exception encountered in 3D classification runner. Try again: {e}"
                 )
                 print(
@@ -753,7 +753,7 @@ class PipelineRunner:
                     else f"Icebreaker_group_batch_{batch_number}",
                 )
             except (AttributeError, FileNotFoundError) as e:
-                logger.debug(
+                logger.warning(
                     f"Exception encountered in IceBreaker runner. Try again: {e}"
                 )
                 print(f"Exception encountered in IceBreaker runner. Try again: {e}")
@@ -798,7 +798,7 @@ class PipelineRunner:
                         ref3d=ref3d, ref3d_angpix=ref3d_angpix
                     )
                 except (AttributeError, FileNotFoundError) as e:
-                    logger.debug(
+                    logger.warning(
                         f"Exception encountered in preprocessing. Try again: {e}",
                         exc_info=True,
                     )
