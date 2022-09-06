@@ -537,11 +537,11 @@ class PipelineRunner:
             float(star_doc[0].find_value("_rlnPixelSize")),
         )
 
-    def _new_movies(self) -> bool:
+    def _new_movies(self, glob_pattern: str = "") -> bool:
         num_movies = len(
             [
                 m
-                for m in self.movies_path.glob("**/*")
+                for m in self.movies_path.glob(glob_pattern or "**/*")
                 if m.suffix == "." + self.movietype
             ]
         )
@@ -778,10 +778,19 @@ class PipelineRunner:
         old_iteration = 0
         first_batch = ""
         continue_anyway = False
+        movie_dir = self.movies_path.relative_to(self.path)
+        if self.options.fn_in_raw.startswith(movie_dir):
+            glob_pattern = self.options.fn_in_raw[len(movie_dir) :]
+        else:
+            glob_pattern = self.options.fn_in_raw
+        if glob_pattern.startswith("/"):
+            glob_pattern = glob_pattern[1:]
         while not self.stopfile.exists() and (
-            current_time - start_time < timeout or continue_anyway or self._new_movies()
+            current_time - start_time < timeout
+            or continue_anyway
+            or self._new_movies(glob_pattern=glob_pattern)
         ):
-            if self._new_movies() or iteration - old_iteration:
+            if self._new_movies(glob_pattern=glob_pattern) or iteration - old_iteration:
                 if iteration - old_iteration:
                     continue_anyway = False
                 try:
