@@ -598,7 +598,7 @@ class PipelineRunner:
                     f"Exception encountered in 3D classification runner. Try again: {e}"
                 )
                 self.clear_relion_lock()
-                self._queues["class3D"][iteration].put(batch_file)
+                # self._queues["class3D"][iteration].put(batch_file)
             except Exception as e:
                 logger.warning(
                     f"Unexpected Exception in 3D classification runner: {e}",
@@ -653,7 +653,7 @@ class PipelineRunner:
                             f"Exception encountered in 2D classification runner. Try again: {e}"
                         )
                         self.clear_relion_lock()
-                        self._queues["class2D"][iteration].put(batch_file)
+                        # self._queues["class2D"][iteration].put(batch_file)
                         continue
 
                     if self._past_class_threshold and self.options.do_class3d:
@@ -688,7 +688,7 @@ class PipelineRunner:
                                 f"Exception encountered in 2D classification runner. Try again: {e}"
                             )
                             self.clear_relion_lock()
-                            self._queues["class2D"][iteration].put(batch_file)
+                            # self._queues["class2D"][iteration].put(batch_file)
                             continue
                     else:
                         self.project.run_job(
@@ -734,7 +734,7 @@ class PipelineRunner:
                             f"Exception encountered in 2D classification runner. Try again: {e}"
                         )
                         self.clear_relion_lock()
-                        self._queues["class2D"][iteration].put(batch_file)
+                        # self._queues["class2D"][iteration].put(batch_file)
                         continue
 
                     if self.options.do_class3d:
@@ -778,8 +778,8 @@ class PipelineRunner:
                 )
                 print(f"Exception encountered in IceBreaker runner. Try again: {e}")
                 self.clear_relion_lock()
-                self._queues["ib_group"][iteration].put(batch_file)
-                batch_number -= 1
+                # self._queues["ib_group"][iteration].put(batch_file)
+                # batch_number -= 1
             except Exception as e:
                 logger.warning(
                     f"Unexpected Exception in IceBreaker runner: {e}", exc_info=True
