@@ -20,7 +20,6 @@ from pipeliner.api.api_utils import (
 )
 from pipeliner.api.manage_project import PipelinerProject
 from pipeliner.data_structure import ABORT_FILE, FAIL_FILE, SUCCESS_FILE
-from pipeliner.job_runner import JobRunner
 
 from relion.cryolo_relion_it.cryolo_relion_it import RelionItOptions
 from relion.pipeline.extra_options import generate_extra_options
@@ -242,8 +241,7 @@ class PipelineRunner:
                 )
                 if alias:
                     self.project.set_alias(job_path, alias)
-            runner = JobRunner(self.project.pipeline.name)
-            runner.wait_for_queued_job_completion(job_path)
+            wait_for_queued_job_completion(pathlib.Path(job_path))
         return pathlib.Path(job_path)
 
     def _get_split_files(self, select_job: pathlib.Path) -> List[str]:
@@ -304,8 +302,7 @@ class PipelineRunner:
                         self.project.continue_job(
                             str(self.job_paths[job]), wait_for_queued=False
                         )
-                    runner = JobRunner(self.project.pipeline.name)
-                    runner.wait_for_queued_job_completion(str(self.job_paths[job]))
+                    wait_for_queued_job_completion(self.job_paths[job])
                 else:
                     self.project.continue_job(str(self.job_paths[job]))
         if self.job_paths.get("relion.motioncorr.own"):
@@ -693,9 +690,8 @@ class PipelineRunner:
                                     ),
                                     wait_for_queued=False,
                                 )
-                            runner = JobRunner(self.project.pipeline.name)
-                            runner.wait_for_queued_job_completion(
-                                str(self.job_paths_batch[class2d_type][batch_file])
+                            wait_for_queued_job_completion(
+                                self.job_paths_batch[class2d_type][batch_file]
                             )
                         except (AttributeError, FileNotFoundError) as e:
                             logger.warning(
