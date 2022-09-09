@@ -19,6 +19,7 @@ from pipeliner.api.api_utils import (
     write_default_jobstar,
 )
 from pipeliner.api.manage_project import PipelinerProject
+from pipeliner.data_structure import ABORT_FILE, FAIL_FILE, SUCCESS_FILE
 from pipeliner.job_runner import JobRunner
 
 from relion.cryolo_relion_it.cryolo_relion_it import RelionItOptions
@@ -26,6 +27,19 @@ from relion.pipeline.extra_options import generate_extra_options
 from relion.pipeline.options import generate_pipeline_options
 
 logger = logging.getLogger("relion.pipeline")
+
+
+def wait_for_queued_job_completion(outdir: pathlib.Path):
+    while not (outdir / SUCCESS_FILE).exists():
+        failed = (outdir / FAIL_FILE).exists()
+        aborted = (outdir / ABORT_FILE).exists()
+        if failed:
+            print(f"WARNING: queued job {outdir} failed")
+            return
+        if aborted:
+            print(f"WARNING: queued job {outdir} was aborted")
+            return
+        time.sleep(10)
 
 
 def _clear_queue(q: queue.Queue) -> List[str]:
