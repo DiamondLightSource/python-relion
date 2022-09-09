@@ -74,7 +74,7 @@ class PipelineRunner:
     def clear_relion_lock(self):
         lock_dir = self.path / ".relion_lock"
         if lock_dir.is_dir():
-            for f in lock_dir.glb("*"):
+            for f in lock_dir.glob("*"):
                 f.unlink()
             lock_dir.rmdir()
 
