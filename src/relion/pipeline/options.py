@@ -217,6 +217,7 @@ def generate_pipeline_options(
         "do_preread_images": relion_it_options.refine_preread_images,
         "use_gpu": relion_it_options.refine_do_gpu,
         "gpu_ids": "0:1:2:3",
+        "nr_mpi": relion_it_options.refine_mpi,
         "nr_threads": relion_it_options.refine_threads,
     }
 

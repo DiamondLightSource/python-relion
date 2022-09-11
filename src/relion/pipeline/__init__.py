@@ -194,7 +194,7 @@ class PipelineRunner:
             "relion.class2d.em": "gpu",
             "relion.class2d.vdam": "gpu-smp",
             "relion.initialmodel": "gpu-smp",
-            "relion.class3d": "gpu-smp",
+            "relion.class3d": "gpu",
         }
         return generate_pipeline_options(self.options, pipeline_jobs)
 
