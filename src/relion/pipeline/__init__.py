@@ -364,7 +364,14 @@ class PipelineRunner:
                         logger.warning(f"Failed to register fresh job: {job}")
                         return None
             else:
-                self.project.continue_job(str(self.job_paths[job]))
+                if self._lock:
+                    with self._lock:
+                        self.project.continue_job(
+                            str(self.job_paths[job]), wait_for_queued=False
+                        )
+                    wait_for_queued_job_completion(self.job_paths[job])
+                else:
+                    self.project.continue_job(str(self.job_paths[job]))
         select_path = self.job_paths["relion.select.split" + ref3d]
         return self._get_split_files(select_path)
 
