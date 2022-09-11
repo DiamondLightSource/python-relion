@@ -242,6 +242,7 @@ class PipelineRunner:
                 if alias:
                     self.project.set_alias(job_path, alias)
             wait_for_queued_job_completion(pathlib.Path(job_path))
+        logger.info(f"New job registered: {job_path}")
         return pathlib.Path(job_path)
 
     def _get_split_files(self, select_job: pathlib.Path) -> List[str]:
