@@ -76,6 +76,7 @@ refine_mpi = 5
 refine_threads = 8
 refine_scratch_disk = ""
 # Hamilton nodes only have ~100 GB in /tmp, so don't use this
+refine_preread_images = True
 refine_submit_to_queue = True
 
 minimum_batch_size = 250
