@@ -395,5 +395,12 @@ class PipelineLock:
 
     def __exit__(self, exc_type, exc_value, exc_traceback):
         if self.obtained:
-            self.lockdir.rmdir()
+            try_count = 0
+            while try_count < 5:
+                try:
+                    self.lockdir.rmdir()
+                    break
+                except OSError:
+                    try_count += 1
+                    time.sleep(1)
         self.obtained = False
