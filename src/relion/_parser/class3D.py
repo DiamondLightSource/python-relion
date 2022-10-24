@@ -163,15 +163,21 @@ class Class3D(JobType):
         info_table = self._find_table_from_column_name(
             "_rlnJobOptionVariable", paramfile
         )
-        variables = self.parse_star_file("_rlnJobOptionVariable", paramfile, info_table)
+        variables = [
+            p.strip("'")
+            for p in self.parse_star_file(
+                "_rlnJobOptionVariable", paramfile, info_table
+            )
+        ]
         ini_model_index = variables.index("fn_ref")
         ini_model_path = pathlib.Path(
             self.parse_star_file("_rlnJobOptionValue", paramfile, info_table)[
                 ini_model_index
-            ]
+            ].strip("'")
         )
         # this string maniuplation is bad, I'm sorry
         model_file_class_split = str(ini_model_path.name).split("_")
+        model_file_class_split = [p.replace("'", "") for p in model_file_class_split]
         for sindex, sect in enumerate(model_file_class_split):
             if "class" in sect:
                 model_file_class = sect.split(".")[0].replace("class", "")
