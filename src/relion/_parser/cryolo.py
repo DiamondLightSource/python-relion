@@ -11,12 +11,9 @@ logger = logging.getLogger("relion._parser.cryolo")
 
 
 class Cryolo(JobType):
-    def __init__(self, path, particle_cache=None):
+    def __init__(self, path, particle_cache=None, seen_star_files=None):
         super().__init__(path)
-        if particle_cache is None:
-            self._particle_cache = {}
-        else:
-            self._particle_cache = particle_cache
+        self._particle_cache = particle_cache or {}
 
     def __eq__(self, other):
         if isinstance(other, Cryolo):  # check this
@@ -83,10 +80,13 @@ class Cryolo(JobType):
         micrograph_names = self.parse_star_file(
             "_rlnMicrographName", ctffile, info_table
         )
+        indexed_micrograph_names = {
+            pathlib.Path(mn).stem: mn for mn in micrograph_names
+        }
 
         particle_picker_info = []
         for mic, num_particles in particles_per_micrograph.items():
-            mc_mic_name = self._get_micrograph_name(mic, micrograph_names, jobdir)
+            mc_mic_name = self._get_micrograph_name(mic, indexed_micrograph_names)
             if not mc_mic_name:
                 continue
             mic_parts = pathlib.Path(mc_mic_name).parts
@@ -161,16 +161,8 @@ class Cryolo(JobType):
             return []
         return coords
 
-    def _get_micrograph_name(self, micrograph, micrograph_names, jobdir):
-        for x in micrograph_names:
-            if (
-                str(micrograph.relative_to(self._basepath / jobdir)).replace(
-                    "_autopick.star", ".mrc"
-                )
-                in x
-            ):
-                return x
-        return None
+    def _get_micrograph_name(self, micrograph, micrograph_names):
+        return micrograph_names.get(micrograph.stem.replace("_autopick", ""))
 
     @staticmethod
     def for_cache(partpickinfo):
@@ -218,19 +210,6 @@ class CryoloAutoPick(Cryolo):
         return (
             self._basepath / jobdir / "STAR" / pathlib.Path(mc_mic_name).name
         ).with_suffix(".jpeg")
-
-    def _get_micrograph_name(self, micrograph, micrograph_names, jobdir):
-        for x in micrograph_names:
-            if (
-                str(
-                    micrograph.relative_to(
-                        self._basepath / jobdir / "STAR"
-                    ).with_suffix(".mrc")
-                )
-                in x
-            ):
-                return x
-        return None
 
     @property
     def jobs(self):
