@@ -6,5 +6,6 @@
 
    usage
    api
+   pipeline
    authors
 
