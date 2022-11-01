@@ -97,6 +97,10 @@ def picked_particles(plugin_params):
         logger.info(f"Replacing jpeg extension with mrc extension for {basefilename}")
         basefilename = basefilename.replace(".jpeg", ".mrc")
     coords = plugin_params.parameters("coordinates")
+    if not coords:
+        logger.warning(f"No coordinates provided for {basefilename}")
+        # If there were no coordinates don't bother nacking the message
+        return True
     angpix = plugin_params.parameters("angpix")
     diam = plugin_params.parameters("diameter")
     contrast_factor = plugin_params.parameters("contrast_factor", default=6)
