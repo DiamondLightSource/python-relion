@@ -162,6 +162,7 @@ def picked_particles(plugin_params):
     )
     return outfile
 
+
 def mrc_central_slice(plugin_params):
     filename = plugin_params.parameters("file")
     if not filename or filename == "None":
@@ -181,7 +182,6 @@ def mrc_central_slice(plugin_params):
         )
         return False
     outfile = filepath.with_suffix(".jpeg")
-    outfiles = []
     if len(data.shape) != 3:
         logger.error(
             f"File {filepath} is not 3-dimensional. Cannot extract central slice"
@@ -190,7 +190,7 @@ def mrc_central_slice(plugin_params):
     elif len(data.shape) == 3:
         # Extract central slice
         total_slices = data.shape[1]
-        central_slice_index = int(total_slices/2)
+        central_slice_index = int(total_slices / 2)
         central_slice_data = data[:, central_slice_index, :]
 
         # Write as jpeg
@@ -211,6 +211,4 @@ def mrc_central_slice(plugin_params):
         f"Converted mrc to jpeg {filename} -> {outfile} in {timing:.1f} seconds",
         extra={"image-processing-time": timing},
     )
-    if outfiles:
-        return outfiles
     return outfile
