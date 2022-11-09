@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import pathlib
 import sys
 from typing import Any, Dict, NamedTuple, Protocol
 
@@ -37,6 +38,17 @@ def plugin_params(jpeg_path):
     def params(key):
         p = {
             "parameters": {"images_command": "mrc_to_jpeg"},
+            "file": jpeg_path.with_suffix(".mrc"),
+        }
+        return p.get(key)
+
+    return FunctionParameter(rw=None, parameters=params, message={})
+
+
+def plugin_params_central(jpeg_path):
+    def params(key):
+        p = {
+            "parameters": {"images_command": "mrc_central_slice"},
             "file": jpeg_path.with_suffix(".mrc"),
         }
         return p.get(key)
@@ -131,4 +143,4 @@ def test_picked_particles_returns_None_when_basefile_does_not_exist(tmp_path):
 
 def test_central_slice_fails_with_2d(proj):
     micrograph_path = proj.motioncorrection["job002"][0].micrograph_name
-    assert not mrc_central_slice(plugin_params(micrograph_path))
+    assert not mrc_central_slice(plugin_params_central(pathlib.Path(micrograph_path)))
