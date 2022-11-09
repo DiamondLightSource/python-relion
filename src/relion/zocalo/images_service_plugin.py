@@ -187,24 +187,21 @@ def mrc_central_slice(plugin_params):
             f"File {filepath} is not 3-dimensional. Cannot extract central slice"
         )
         return False
-    elif len(data.shape) == 3:
-        # Extract central slice
-        total_slices = data.shape[1]
-        central_slice_index = int(total_slices / 2)
-        central_slice_data = data[:, central_slice_index, :]
+    # Extract central slice
+    total_slices = data.shape[1]
+    central_slice_index = int(total_slices / 2)
+    central_slice_data = data[:, central_slice_index, :]
 
-        # Write as jpeg
-        central_slice_data = central_slice_data - central_slice_data[0].min()
-        central_slice_data = central_slice_data * 255 / central_slice_data[0].max()
-        central_slice_data = central_slice_data.astype("uint8")
-        im = PIL.Image.fromarray(central_slice_data[0], mode="L")
-        try:
-            im.save(outfile)
-        except FileNotFoundError:
-            logger.error(
-                f"Trying to save to file {outfile} but directory does not exist"
-            )
-            return False
+    # Write as jpeg
+    central_slice_data = central_slice_data - central_slice_data[0].min()
+    central_slice_data = central_slice_data * 255 / central_slice_data[0].max()
+    central_slice_data = central_slice_data.astype("uint8")
+    im = PIL.Image.fromarray(central_slice_data[0], mode="L")
+    try:
+        im.save(outfile)
+    except FileNotFoundError:
+        logger.error(f"Trying to save to file {outfile} but directory does not exist")
+        return False
     timing = time.perf_counter() - start
 
     logger.info(

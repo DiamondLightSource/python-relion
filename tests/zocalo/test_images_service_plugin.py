@@ -8,7 +8,11 @@ import mrcfile
 import pytest
 
 import relion
-from relion.zocalo.images_service_plugin import mrc_to_jpeg, picked_particles
+from relion.zocalo.images_service_plugin import (
+    mrc_central_slice,
+    mrc_to_jpeg,
+    picked_particles,
+)
 
 workflows = pytest.importorskip("workflows")
 
@@ -123,3 +127,9 @@ def test_picked_particles_returns_None_when_basefile_does_not_exist(tmp_path):
     out_jpeg_path = str(tmp_path / "processed.jpeg")
 
     assert not picked_particles(plugin_params_parpick(base_mrc_path, out_jpeg_path))
+
+
+def test_central_slice_fails_with_2d(proj):
+    micrograph_path = proj.motioncorr["job002"] / "corrected_micrographs.star"
+
+    assert not mrc_central_slice(plugin_params(micrograph_path))
