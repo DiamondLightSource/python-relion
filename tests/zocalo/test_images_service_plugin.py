@@ -153,4 +153,4 @@ def test_central_slice_works_with_3d(tmp_path):
     data_3d = numpy.linspace(-1000, 1000, 20, dtype=numpy.int16).reshape(2, 2, 5)
     mrc.set_data(data_3d)
 
-    assert mrc_central_slice(plugin_params_central(pathlib.Path("tmp.mrc")))
+    assert mrc_central_slice(plugin_params_central(pathlib.Path(tmp_mrc_path)))
