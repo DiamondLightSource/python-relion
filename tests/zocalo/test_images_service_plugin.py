@@ -6,6 +6,7 @@ import sys
 from typing import Any, Dict, NamedTuple, Protocol
 
 import mrcfile
+import numpy
 import pytest
 
 import relion
@@ -147,5 +148,8 @@ def test_central_slice_fails_with_2d(proj):
 
 
 def test_central_slice_works_with_3d(proj):
-    micrograph_path = proj.class2D["job008"][0].reference_image
-    assert mrc_central_slice(plugin_params_central(pathlib.Path(micrograph_path)))
+    mrc = mrcfile.open("tmp.mrc", mode="r+")
+    data_3d = numpy.linspace(-1000, 1000, 20, dtype=numpy.int16).reshape(2, 2, 5)
+    mrc.set_data(data_3d)
+
+    assert mrc_central_slice(plugin_params_central(pathlib.Path("tmp.mrc")))
