@@ -147,8 +147,9 @@ def test_central_slice_fails_with_2d(proj):
     assert not mrc_central_slice(plugin_params_central(pathlib.Path(micrograph_path)))
 
 
-def test_central_slice_works_with_3d(proj):
-    mrc = mrcfile.open("tmp.mrc", mode="r+")
+def test_central_slice_works_with_3d(tmp_path):
+    tmp_mrc_path = str(tmp_path / "tmp.mrc")
+    mrc = mrcfile.new(tmp_mrc_path, overwrite=True)
     data_3d = numpy.linspace(-1000, 1000, 20, dtype=numpy.int16).reshape(2, 2, 5)
     mrc.set_data(data_3d)
 
