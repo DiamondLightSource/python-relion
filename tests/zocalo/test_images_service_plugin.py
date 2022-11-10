@@ -1,14 +1,20 @@
 from __future__ import annotations
 
 import os
+import pathlib
 import sys
 from typing import Any, Dict, NamedTuple, Protocol
 
 import mrcfile
+import numpy
 import pytest
 
 import relion
-from relion.zocalo.images_service_plugin import mrc_to_jpeg, picked_particles
+from relion.zocalo.images_service_plugin import (
+    mrc_central_slice,
+    mrc_to_jpeg,
+    picked_particles,
+)
 
 workflows = pytest.importorskip("workflows")
 
@@ -33,6 +39,17 @@ def plugin_params(jpeg_path):
     def params(key):
         p = {
             "parameters": {"images_command": "mrc_to_jpeg"},
+            "file": jpeg_path.with_suffix(".mrc"),
+        }
+        return p.get(key)
+
+    return FunctionParameter(rw=None, parameters=params, message={})
+
+
+def plugin_params_central(jpeg_path):
+    def params(key):
+        p = {
+            "parameters": {"images_command": "mrc_central_slice"},
             "file": jpeg_path.with_suffix(".mrc"),
         }
         return p.get(key)
@@ -123,3 +140,18 @@ def test_picked_particles_returns_None_when_basefile_does_not_exist(tmp_path):
     out_jpeg_path = str(tmp_path / "processed.jpeg")
 
     assert not picked_particles(plugin_params_parpick(base_mrc_path, out_jpeg_path))
+
+
+def test_central_slice_fails_with_2d(proj):
+    micrograph_path = proj.motioncorrection["job002"][0].micrograph_name
+    assert not mrc_central_slice(plugin_params_central(pathlib.Path(micrograph_path)))
+
+
+def test_central_slice_works_with_3d(tmp_path):
+    tmp_mrc_path = str(tmp_path / "tmp.mrc")
+    mrc = mrcfile.new(tmp_mrc_path, overwrite=True)
+    data_3d = numpy.linspace(-1000, 1000, 20, dtype=numpy.int16).reshape(2, 2, 5)
+    mrc.set_data(data_3d)
+    mrc.close()
+
+    assert mrc_central_slice(plugin_params_central(pathlib.Path(tmp_mrc_path)))
