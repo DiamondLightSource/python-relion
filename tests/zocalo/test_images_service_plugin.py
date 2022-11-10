@@ -144,3 +144,8 @@ def test_picked_particles_returns_None_when_basefile_does_not_exist(tmp_path):
 def test_central_slice_fails_with_2d(proj):
     micrograph_path = proj.motioncorrection["job002"][0].micrograph_name
     assert not mrc_central_slice(plugin_params_central(pathlib.Path(micrograph_path)))
+
+
+def test_central_slice_works_with_3d(proj):
+    micrograph_path = proj.class2D["job008"][0].reference_image
+    assert mrc_central_slice(plugin_params_central(pathlib.Path(micrograph_path)))
