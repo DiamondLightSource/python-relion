@@ -190,7 +190,7 @@ def mrc_central_slice(plugin_params):
     # Extract central slice
     total_slices = data.shape[1]
     central_slice_index = int(total_slices / 2)
-    central_slice_data = data[:, central_slice_index, :]
+    central_slice_data = data[central_slice_index, :, :]
 
     # Write as jpeg
     central_slice_data = central_slice_data - central_slice_data[0].min()
