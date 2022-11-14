@@ -181,14 +181,15 @@ def mrc_central_slice(plugin_params):
             f"File {filepath} could not be opened. It may be corrupted or not in mrc format"
         )
         return False
-    outfile = filepath.with_suffix(".jpeg")
+    outfile = filepath.with_suffix("_thumbnail.jpeg")
     if len(data.shape) != 3:
         logger.error(
             f"File {filepath} is not 3-dimensional. Cannot extract central slice"
         )
         return False
+
     # Extract central slice
-    total_slices = data.shape[1]
+    total_slices = data.shape[0]
     central_slice_index = int(total_slices / 2)
     central_slice_data = data[central_slice_index, :, :]
 
@@ -196,7 +197,8 @@ def mrc_central_slice(plugin_params):
     central_slice_data = central_slice_data - central_slice_data[0].min()
     central_slice_data = central_slice_data * 255 / central_slice_data[0].max()
     central_slice_data = central_slice_data.astype("uint8")
-    im = PIL.Image.fromarray(central_slice_data[0], mode="L")
+    im = PIL.Image.fromarray(central_slice_data, mode="L")
+    im.thumbnail((512, 512))
     try:
         im.save(outfile)
     except FileNotFoundError:
