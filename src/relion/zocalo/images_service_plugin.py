@@ -181,7 +181,7 @@ def mrc_central_slice(plugin_params):
             f"File {filepath} could not be opened. It may be corrupted or not in mrc format"
         )
         return False
-    outfile = str(filepath.with_suffix(" ")) + "_thumbnail.jpeg"
+    outfile = str(filepath.with_suffix("")) + "_thumbnail.jpeg"
     if len(data.shape) != 3:
         logger.error(
             f"File {filepath} is not 3-dimensional. Cannot extract central slice"
