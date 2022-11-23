@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 import pathlib
 import time
+from pathlib import Path
 
 import mrcfile
 import numpy as np
@@ -210,4 +211,19 @@ def mrc_central_slice(plugin_params):
         f"Converted mrc to jpeg {filename} -> {outfile} in {timing:.1f} seconds",
         extra={"image-processing-time": timing},
     )
+    logger.info("Sending to ISPyB")
+    ispyb_command = {
+        "ispyb_command": "add_program_attachment",
+        "file_name": str(Path(outfile).name),
+        "file_path": str(Path(outfile).parent),
+    }
+
+    try:
+        plugin_params.rw.send_to(
+            "ispyb",
+            ispyb_command,
+        )
+    except Exception as e:
+        logger.warning(f"{e}")
+        return False
     return outfile
