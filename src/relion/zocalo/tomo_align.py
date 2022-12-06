@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import ast
+import os.path
 from pathlib import Path
 
 import plotly.express as px
@@ -45,7 +46,7 @@ class TomoParameters(BaseModel):
     align: int = None
     out_bin: int = 4
     tilt_axis: float = None
-    tilt_cor: int = None
+    tilt_cor: int = 1
     flip_int: int = None
     flip_vol: int = 1
     wbp: int = None
@@ -95,6 +96,8 @@ class TomoAlign(CommonService):
     central_slice_location = None
     dark_images_file = None
     imod_directory = None
+    xy_proj_file = None
+    xz_proj_file = None
 
     def initializing(self):
         """Subscribe to a queue. Received messages must be acknowledged."""
@@ -109,10 +112,10 @@ class TomoAlign(CommonService):
         )
 
     def parse_tomo_output(self, line):
-        if line.startswith("Rotation centre"):
-            self.rot_centre_z_list.append(line.split()[7])
+        if line.startswith("Rot center Z"):
+            self.rot_centre_z_list.append(line.split()[5])
         if line.startswith("Tilt offset"):
-            self.tilt_offset = line.split()[2]
+            self.tilt_offset = line.split()[2].strip(",")
 
     def extract_from_aln(self, tomo_parameters):
         tomo_aln_file = None
@@ -189,6 +192,27 @@ class TomoAlign(CommonService):
             return float(file_list[1])
 
         tomo_params.input_file_list.sort(key=tilt)
+
+        tilt_dict = {}
+        for tilt in tomo_params.input_file_list:
+            if tilt[1] not in tilt_dict:
+                tilt_dict[tilt[1]] = []
+            tilt_dict[tilt[1]].append(tilt[0])
+
+        values_to_remove = []
+        for item in tilt_dict:
+            values = tilt_dict[item]
+            if len(values) > 1:
+                # sort by age and remove oldest ones
+                values.sort(key=os.path.getctime)
+                values_to_remove = values[1:]
+
+        for tilt in tomo_params.input_file_list:
+            if tilt[0] in values_to_remove:
+                index = tomo_params.input_file_list.index(tilt)
+                self.log.warning(f"Removing: {values_to_remove}")
+                tomo_params.input_file_list.remove(tomo_params.input_file_list[index])
+
         newstack_result = self.newstack(tomo_params)
         if newstack_result.returncode:
             self.log.error(
@@ -210,6 +234,12 @@ class TomoAlign(CommonService):
         )
         self.plot_path = stack_file_root + "_xy_shift_plot.json"
         self.dark_images_file = stack_file_root + "_DarkImgs.txt"
+        self.xy_proj_file = (
+            str(Path(tomo_params.aretomo_output_file).with_suffix("")) + "_projXY.mrc"
+        )
+        self.xz_proj_file = (
+            str(Path(tomo_params.aretomo_output_file).with_suffix("")) + "_projXZ.mrc"
+        )
 
         p = Path(self.plot_path)
         if p.is_file():
@@ -222,6 +252,8 @@ class TomoAlign(CommonService):
         c = Path(self.central_slice_location)
         if c.is_file():
             c.chmod(0o740)
+        else:
+            self.log.warning(f"{self.central_slice_location} hasn't been written yet")
 
         aretomo_result = self.aretomo(tomo_params.aretomo_output_file, tomo_params)
 
@@ -233,7 +265,7 @@ class TomoAlign(CommonService):
             rw.transport.nack(header)
             return
 
-        if tomo_params.out_imod and tomo_params.out_imod != 0:
+        if tomo_params.out_imod:
             self.imod_directory = (
                 str(Path(tomo_params.aretomo_output_file).with_suffix("")) + "_Imod"
             )
@@ -248,7 +280,10 @@ class TomoAlign(CommonService):
         # Autoproc program attachment - plot
         self.extract_from_aln(tomo_params)
         if tomo_params.tilt_cor:
-            self.rot_centre_z = self.rot_centre_z_list[-1]
+            try:
+                self.rot_centre_z = self.rot_centre_z_list[-1]
+            except IndexError:
+                self.log.warning(f"No rot Z {self.rot_centre_z_list}")
 
         # Forward results to ispyb
 
@@ -261,7 +296,7 @@ class TomoAlign(CommonService):
                 "size_x": None,  # volume image size, pix
                 "size_y": None,
                 "size_z": None,
-                "pixel_spacing": tomo_params.pix_size,
+                "pixel_spacing": tomo_params.pix_size * tomo_params.out_bin,
                 "tilt_angle_offset": self.tilt_offset,
                 "z_shift": self.rot_centre_z,
                 "store_result": "ispyb_tomogram_id",
@@ -276,15 +311,14 @@ class TomoAlign(CommonService):
                     "file_type": "Graph",
                 }
             )
-        if self.central_slice_location:
-            ispyb_command_list.append(
-                {
-                    "ispyb_command": "add_program_attachment",
-                    "file_name": str(Path(self.central_slice_location).name),
-                    "file_path": str(Path(self.central_slice_location).parent),
-                    "file_type": "Result",
-                }
-            )
+
+        # Remove this because it needs to wait for the images service to complete the file before sending to ISPyB
+        # Images service output goes to ispyb_connector
+        #    if self.central_slice_location:
+        #        ispyb_command_list.append({"ispyb_command": "add_program_attachment",
+        #                                   "file_name": str(Path(self.central_slice_location).name),
+        #                                   "file_path": str(Path(self.central_slice_location).parent),
+        #                                   "file_type": 'Result'})
 
         missing_indices = []
         if Path(self.dark_images_file).is_file():
@@ -298,7 +332,7 @@ class TomoAlign(CommonService):
                     if line.startswith("EXCLUDELIST"):
                         numbers = line.split(" ")
                         missing_indices = [
-                            item.replace(",", "").strip() for item in numbers[1:]
+                            int(item.replace(",", "").strip()) for item in numbers[1:]
                         ]
 
         im_diff = 0
@@ -307,16 +341,21 @@ class TomoAlign(CommonService):
             if im in missing_indices:
                 im_diff += 1
             else:
-                ispyb_command_list.append(
-                    {
-                        "ispyb_command": "insert_tilt_image_alignment",
-                        "psd_file": None,  # should be in ctf table but useful, so we will insert
-                        "refined_magnification": self.mag,
-                        "refined_tilt_angle": self.refined_tilts[im - im_diff],
-                        "refined_tilt_axis": self.rot,
-                        "movie_id": movie[2],
-                    }
-                )
+                try:
+                    ispyb_command_list.append(
+                        {
+                            "ispyb_command": "insert_tilt_image_alignment",
+                            "psd_file": None,  # should be in ctf table but useful, so we will insert
+                            "refined_magnification": self.mag,
+                            "refined_tilt_angle": self.refined_tilts[im - im_diff],
+                            "refined_tilt_axis": self.rot,
+                            "movie_id": movie[2],
+                        }
+                    )
+                except IndexError as e:
+                    self.log.error(
+                        f"{e} - Dark images haven't been accounted for properly"
+                    )
 
         ispyb_parameters = {
             "ispyb_command": "multipart_message",
@@ -350,6 +389,44 @@ class TomoAlign(CommonService):
                 {
                     "parameters": {"images_command": "mrc_central_slice"},
                     "file": tomo_params.aretomo_output_file,
+                },
+            )
+
+        self.log.info(
+            f"Sending to images service {self.xy_proj_file}, {self.xz_proj_file}"
+        )
+        if isinstance(rw, RW_mock):
+            rw.transport.send(
+                destination="projxy",
+                message={
+                    "parameters": {"images_command": "mrc_to_jpeg"},
+                    "file": self.xy_proj_file,
+                    "send_to_ispyb": 1,
+                },
+            )
+            rw.transport.send(
+                destination="projxz",
+                message={
+                    "parameters": {"images_command": "mrc_to_jpeg"},
+                    "file": self.xz_proj_file,
+                    "send_to_ispyb": 1,
+                },
+            )
+        else:
+            rw.send_to(
+                "projxy",
+                {
+                    "parameters": {"images_command": "mrc_to_jpeg"},
+                    "file": self.xy_proj_file,
+                    "send_to_ispyb": 1,
+                },
+            )
+            rw.send_to(
+                "projxz",
+                {
+                    "parameters": {"images_command": "mrc_to_jpeg"},
+                    "file": self.xz_proj_file,
+                    "send_to_ispyb": 1,
                 },
             )
 

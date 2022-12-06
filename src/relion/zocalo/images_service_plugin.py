@@ -16,6 +16,7 @@ logger = logging.getLogger("relion.zocalo.images_service_plugin")
 def mrc_to_jpeg(plugin_params):
     filename = plugin_params.parameters("file")
     allframes = plugin_params.parameters("all_frames")
+    send_to_ispyb = plugin_params.parameters("send_to_ispyb") or 0
     if not filename or filename == "None":
         logger.error("Skipping mrc to jpeg conversion: filename not specified")
         return False
@@ -87,6 +88,22 @@ def mrc_to_jpeg(plugin_params):
         f"Converted mrc to jpeg {filename} -> {outfile} in {timing:.1f} seconds",
         extra={"image-processing-time": timing},
     )
+    if send_to_ispyb:
+        logger.info("Sending to ISPyB")
+        ispyb_command = {
+            "ispyb_command": "add_program_attachment",
+            "file_name": str(Path(outfile).name),
+            "file_path": str(Path(outfile).parent),
+        }
+
+        try:
+            plugin_params.rw.send_to(
+                "ispyb",
+                ispyb_command,
+            )
+        except Exception as e:
+            logger.warning(f"{e}")
+        return False
     if outfiles:
         return outfiles
     return outfile
@@ -166,6 +183,7 @@ def picked_particles(plugin_params):
 
 def mrc_central_slice(plugin_params):
     filename = plugin_params.parameters("file")
+    rw = plugin_params.rw
     if not filename or filename == "None":
         logger.error("Skipping mrc to jpeg conversion: filename not specified")
         return False
@@ -218,12 +236,21 @@ def mrc_central_slice(plugin_params):
         "file_path": str(Path(outfile).parent),
     }
 
-    try:
-        plugin_params.rw.send_to(
+    if not rw:
+
+        class RW_mock:
+            def dummy(self, *args, **kwargs):
+                pass
+
+        rw = RW_mock()
+        rw.send = rw.dummy
+
+    if isinstance(rw, RW_mock):
+        rw.send("ispyb_connector", ispyb_command)
+    else:
+        rw.send_to(
             "ispyb",
             ispyb_command,
         )
-    except Exception as e:
-        logger.warning(f"{e}")
-        return False
+
     return outfile
