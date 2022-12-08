@@ -83,7 +83,7 @@ class TomoAlign(CommonService):
     _service_name = "DLS TomoAlign"
 
     # Logger name
-    _logger_name = "dlstbx.services.tomo_align"
+    _logger_name = "relion.zocalo.tomo_align"
 
     # Values to extract for ISPyB
     refined_tilts = None

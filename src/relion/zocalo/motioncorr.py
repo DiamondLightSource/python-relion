@@ -110,7 +110,7 @@ class MotionCorr(CommonService):
     _service_name = "DLS MotionCorr"
 
     # Logger name
-    _logger_name = "dlstbx.services.motioncorr"
+    _logger_name = "relion.zocalo.motioncorr"
 
     # Values to extract for ISPyB
     shift_list = []
