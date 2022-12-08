@@ -236,12 +236,11 @@ def mrc_central_slice(plugin_params):
         "file_path": str(Path(outfile).parent),
     }
 
+    class RW_mock:
+        def dummy(self, *args, **kwargs):
+            pass
+
     if not rw:
-
-        class RW_mock:
-            def dummy(self, *args, **kwargs):
-                pass
-
         rw = RW_mock()
         rw.send = rw.dummy
 
