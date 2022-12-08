@@ -104,7 +104,7 @@ class TomoAlign(CommonService):
         self.log.info("TomoAlign service starting")
         workflows.recipe.wrap_subscribe(
             self._transport,
-            "tomo_align_test",
+            "tomo_align",
             self.tomo_align,
             acknowledgement=True,
             log_extender=self.extend_log,
