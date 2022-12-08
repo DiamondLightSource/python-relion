@@ -103,7 +103,7 @@ def mrc_to_jpeg(plugin_params):
             )
         except Exception as e:
             logger.warning(f"{e}")
-        return False
+            return False
     if outfiles:
         return outfiles
     return outfile
