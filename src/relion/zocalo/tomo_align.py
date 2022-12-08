@@ -285,6 +285,10 @@ class TomoAlign(CommonService):
             except IndexError:
                 self.log.warning(f"No rot Z {self.rot_centre_z_list}")
 
+        if tomo_params.pix_size:
+            pix_spacing = str(tomo_params.pix_size * tomo_params.out_bin)
+        else:
+            pix_spacing = None
         # Forward results to ispyb
 
         # Tomogram (one per-tilt-series)
@@ -296,7 +300,7 @@ class TomoAlign(CommonService):
                 "size_x": None,  # volume image size, pix
                 "size_y": None,
                 "size_z": None,
-                "pixel_spacing": tomo_params.pix_size * tomo_params.out_bin,
+                "pixel_spacing": pix_spacing,
                 "tilt_angle_offset": self.tilt_offset,
                 "z_shift": self.rot_centre_z,
                 "store_result": "ispyb_tomogram_id",
