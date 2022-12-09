@@ -58,7 +58,7 @@ class CTFFind(CommonService):
     _service_name = "DLS CTFFind"
 
     # Logger name
-    _logger_name = "dlstbx.services.ctffind"
+    _logger_name = "relion.zocalo.ctffind"
 
     # Values to extract for ISPyB
     astigmatism_angle: float
