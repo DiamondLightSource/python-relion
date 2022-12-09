@@ -1,0 +1,14 @@
+---
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: ctffind
+  namespace: em
+spec:
+  scaleTargetRef:
+    name: ctffind
+  triggers:
+    - type: rabbitmq
+      metadata:
+        queueName: ctffind
+        queueLength: "50"

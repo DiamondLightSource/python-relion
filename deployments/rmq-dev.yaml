@@ -1,0 +1,37 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rmq-dev
+  namespace: em
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: rmq-dev
+  template:
+    metadata:
+      labels:
+        app: rmq-dev
+    spec:
+      securityContext:
+        runAsUser: 37679
+        runAsGroup: 37829
+      containers:
+      - name: rmq-dev-runner
+        image: gcr.io/diamond-pubreg/em/tomo_align:latest
+        imagePullPolicy: Always
+        command: ["/bin/sh"]
+        args: ["-c", "while true; do sleep 10; done"]
+        env:
+        - name: KUBERNETES
+          value: "1"
+        volumeMounts:
+        - name: dls
+          mountPath: /dls_sw
+          mountPropagation: HostToContainer
+          readOnly: true
+      volumes:
+      - name: dls
+        hostPath:
+          path: /dls_sw
+          type: Directory

@@ -110,7 +110,7 @@ class MotionCorr(CommonService):
     _service_name = "DLS MotionCorr"
 
     # Logger name
-    _logger_name = "relion.zocalo.motioncorr"
+    _logger_name = "dlstbx.services.motioncorr"
 
     # Values to extract for ISPyB
     shift_list = []
@@ -274,6 +274,7 @@ class MotionCorr(CommonService):
         fig = px.scatter(x=drift_plot_x, y=drift_plot_y)
         drift_plot_name = str(Path(mc_params.movie).stem) + "_drift_plot.json"
         plot_path = Path(mc_params.mrc_out).parent / drift_plot_name
+        snapshot_path = Path(mc_params.mrc_out).with_suffix(".jpeg")
         fig.write_json(plot_path)
 
         ispyb_parameters = {
@@ -282,6 +283,7 @@ class MotionCorr(CommonService):
             "total_motion": total_motion,
             "average_motion_per_frame": average_motion_per_frame,
             "drift_plot_full_path": str(plot_path),
+            "micrograph_snapshot_full_path": str(snapshot_path),
             "micrograph_full_path": str(mc_params.mrc_out),
             "patches_used_x": mc_params.patch_size,
             "patches_used_y": mc_params.patch_size,
@@ -327,6 +329,25 @@ class MotionCorr(CommonService):
                     "movie": mc_params.movie,
                     "mrc_out": mc_params.mrc_out,
                     "movie_id": mc_params.movie_id,
+                },
+            )
+
+        # Forward results to images service
+        self.log.info(f"Sending to images service {mc_params.mrc_out}")
+        if isinstance(rw, RW_mock):
+            rw.transport.send(
+                destination="images",
+                message={
+                    "parameters": {"images_command": "mrc_to_jpeg"},
+                    "file": mc_params.mrc_out,
+                },
+            )
+        else:
+            rw.send_to(
+                "images",
+                {
+                    "parameters": {"images_command": "mrc_to_jpeg"},
+                    "file": mc_params.mrc_out,
                 },
             )
 

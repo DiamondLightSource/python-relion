@@ -1,0 +1,64 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: images-dev
+  namespace: em
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: images-dev
+  template:
+    metadata:
+      labels:
+        app: images-dev
+    spec:
+      securityContext:
+        runAsUser: 37679
+        runAsGroup: 37829
+      containers:
+      - name: images-runner
+        image: gcr.io/diamond-pubreg/em/images:relion
+        imagePullPolicy: Always
+        resources:
+          requests:
+            cpu: "250m"
+        command: ["/bin/sh"]
+        args:
+          - -c
+          - >-
+              source ../../dials/dials && dlstbx.service -s DLSImages -e devrmq
+        env:
+        - name: KUBERNETES
+          value: "1"
+        - name: ZOCALO_CONFIG
+          value: "/zocalo/config/zocalo-dev-config.yaml"
+        - name: ISPYB_CREDENTIALS
+          value: "/zocalo/secrets/ispyb-dev.cfg"
+        volumeMounts:
+        - name: config-file
+          mountPath: /zocalo/config
+        - name: secrets
+          mountPath: /zocalo/secrets
+        - name: dls
+          mountPath: /dls
+          mountPropagation: HostToContainer
+          readOnly: true
+      volumes:
+      - name: config-file
+        configMap:
+          name: zocalo-configmap-dev
+      - name: secrets
+        projected:
+          defaultMode: 0444
+          sources:
+          - secret: 
+              name: dev-ispyb-secret
+          - secret:
+              name: staging-rmq-creds
+          - secret:
+              name: staging-rmq-api-reader
+      - name: dls
+        hostPath:
+          path: /dls
+          type: Directory

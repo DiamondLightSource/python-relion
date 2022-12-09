@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 import procrunner
 import workflows.recipe
 from pydantic import BaseModel, Field
@@ -56,7 +58,7 @@ class CTFFind(CommonService):
     _service_name = "DLS CTFFind"
 
     # Logger name
-    _logger_name = "relion.zocalo.ctffind"
+    _logger_name = "dlstbx.services.ctffind"
 
     # Values to extract for ISPyB
     astigmatism_angle: float
@@ -81,19 +83,22 @@ class CTFFind(CommonService):
         if not line:
             return
 
-        if line.startswith("Estimated defocus values"):
-            line_split = line.split()
-            self.defocus1 = float(line_split[4])
-            self.defocus2 = float(line_split[6])
-        if line.startswith("Estimated azimuth"):
-            line_split = line.split()
-            self.astigmatism_angle = float(line_split[4])
-        if line.startswith("Score"):
-            line_split = line.split()
-            self.cc_value = float(line_split[2])
-        if line.startswith("Thon rings"):
-            line_split = line.split()
-            self.estimated_resolution = float(line_split[8])
+        try:
+            if line.startswith("Estimated defocus values"):
+                line_split = line.split()
+                self.defocus1 = float(line_split[4])
+                self.defocus2 = float(line_split[6])
+            if line.startswith("Estimated azimuth"):
+                line_split = line.split()
+                self.astigmatism_angle = float(line_split[4])
+            if line.startswith("Score"):
+                line_split = line.split()
+                self.cc_value = float(line_split[2])
+            if line.startswith("Thon rings"):
+                line_split = line.split()
+                self.estimated_resolution = float(line_split[8])
+        except Exception as e:
+            self.log.warning(f"{e}")
 
     def ctf_find(self, rw, header: dict, message: dict):
         class RW_mock:
@@ -196,7 +201,7 @@ class CTFFind(CommonService):
             "amplitude_contrast": str(ctf_params.ampl_contrast),
             "cc_value": str(self.cc_value),
             "fft_theoretical_full_path": str(
-                ctf_params.output_image
+                Path(ctf_params.output_image).with_suffix(".jpeg")
             ),  # path to output mrc (would be jpeg if we could convert in SW)
         }
 
@@ -219,5 +224,24 @@ class CTFFind(CommonService):
             )
         else:
             rw.send_to("ispyb", ispyb_parameters)
+
+        # Forward results to images service
+        self.log.info(f"Sending to images service {ctf_params.output_image}")
+        if isinstance(rw, RW_mock):
+            rw.transport.send(
+                destination="images",
+                message={
+                    "parameters": {"images_command": "mrc_to_jpeg"},
+                    "file": ctf_params.output_image,
+                },
+            )
+        else:
+            rw.send_to(
+                "images",
+                {
+                    "parameters": {"images_command": "mrc_to_jpeg"},
+                    "file": ctf_params.output_image,
+                },
+            )
 
         rw.transport.ack(header)
