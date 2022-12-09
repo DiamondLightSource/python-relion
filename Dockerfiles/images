@@ -2,8 +2,10 @@ FROM gcr.io/diamond-pubreg/em/dlstbx:latest
 
 WORKDIR /dials/modules
 RUN source /dials/dials && conda uninstall python-relion
+ARG groupid
+ARG userid
 
 # Install Relion
 WORKDIR /dials/modules
-COPY --chown=37679:37829 python-relion ./relion
+COPY --chown="${userid}":"${groupid}" python-relion ./relion
 RUN source /dials/dials && cd relion && libtbx.python -m pip install -e .

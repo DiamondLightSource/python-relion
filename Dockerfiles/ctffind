@@ -3,17 +3,20 @@ FROM python:3.9
 ENV VIRTUAL_ENV=/venv
 RUN python3 -m venv $VIRTUAL_ENV
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
+ARG groupid
+ARG userid
+ARG groupname
 
 # Install Relion
-COPY --chown=37679:37829 python-relion ./relion
+COPY --chown="${userid}":"${groupid}" python-relion ./relion
 RUN python -m pip install zocalo procrunner
 # Will eventually just include 'relion' in the above step
 RUN python -m pip install -e ./relion
 
 # Create EM user
-RUN groupadd -r -g 37829 k8s-em && useradd -r -M k8s-em -u 37679 -g k8s-em
-USER 37679:37829
+RUN groupadd -r -g "${groupid}" "${groupname}" && useradd -r -M "${groupname}" -u "${userid}" -g k8s-em
+USER "${userid}":"${groupid}"
 
-COPY --chown=37679:37829 ./ctffind-4.1.14 /CTFFind/4.1.14
+COPY --chown="${userid}":"${groupid}" ./ctffind-4.1.14 /CTFFind/4.1.14
 ENV PATH="/CTFFind/4.1.14/bin:${PATH}"
 RUN chmod +x /CTFFind/4.1.14

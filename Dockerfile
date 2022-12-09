@@ -1,7 +1,10 @@
 FROM nvidia/cuda:10.2-devel-centos7
 
 # Create EM user
-RUN groupadd -r -g 37829 k8s-em && useradd -r -M k8s-em -u 37679 -g k8s-em
+ARG groupid
+ARG userid
+ARG groupname
+RUN groupadd -r -g "${groupid}" "${groupname}" && useradd -r -M "${groupname}" -u "${userid}" -g "${groupname}"
 
 RUN curl -L -O "https://github.com/conda-forge/miniforge/releases/latest/download/Mambaforge-$(uname)-$(uname -m).sh"
 RUN bash Mambaforge-$(uname)-$(uname -m).sh -b -p "conda"
@@ -14,4 +17,4 @@ COPY . /install/relion
 RUN source "/conda/etc/profile.d/conda.sh" && conda activate /install/pythonenv && pip install zocalo procrunner
 RUN source "/conda/etc/profile.d/conda.sh" && conda activate /install/pythonenv && pip install -e /install/relion
 
-RUN chown -R 37679:37829 install
+RUN chown -R "${userid}":"${groupid}" install

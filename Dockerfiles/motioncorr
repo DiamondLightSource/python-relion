@@ -1,6 +1,8 @@
 FROM gcr.io/diamond-pubreg/em/relion:cuda
+ARG groupid
+ARG userid
 
-COPY --chown=37679:37829 ./motioncor-1.4.0 /MotionCor2/1.4.0
+COPY --chown="${userid}":"${groupid}" ./motioncor-1.4.0 /MotionCor2/1.4.0
 WORKDIR /MotionCor2/1.4.0
 RUN rm MotionCor2 && ln -s MotionCor2_1.4.0_Cuda102 MotionCor2
 ENV PATH=/MotionCor2/1.4.0:${PATH}
