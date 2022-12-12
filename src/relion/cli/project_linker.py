@@ -33,27 +33,28 @@ def run():
 
     ignore_file_extensions = {"Class2D": [".jpeg"]}
 
-    if not Path(args.destination).exists():
-        Path(args.destination).mkdir()
+    project_path = Path(args.project).resolve()
+    destination_path = Path(args.destination).resolve()
 
-    for f in Path(args.project).glob("*"):
+    if not destination_path.exists():
+        destination_path.mkdir()
+
+    for f in project_path.glob("*"):
         if (f.is_dir() and f in required_dirs) or f.is_file():
             procrunner.run(
                 [
                     "rsync",
                     "--recursive",
                     str(f),
-                    f"{Path(args.destination) / f.relative_to(Path(args.project))}",
+                    f"{destination_path / f.relative_to(project_path)}",
                 ]
             )
         elif f.is_dir():
-            job_type_dir = Path(args.destination) / f.relative_to(Path(args.project))
+            job_type_dir = destination_path / f.relative_to(project_path)
             job_type_dir.mkdir()
             for job_dir in f.glob("*"):
                 if not job_dir.is_symlink():
-                    new_job_dir = Path(args.destination) / job_dir.relative_to(
-                        Path(args.project)
-                    )
+                    new_job_dir = destination_path / job_dir.relative_to(project_path)
                     new_job_dir.mkdir()
                     for jf in job_dir.glob("*"):
                         if jf.is_file():
@@ -63,7 +64,7 @@ def run():
                             if jf.stat().st_size > args.hardlink_cutoff:
                                 try:
                                     jf.link_to(
-                                        f"{Path(args.destination) / jf.relative_to(Path(args.project))}"
+                                        f"{destination_path / jf.relative_to(project_path)}"
                                     )
                                     file_linked = True
                                 except OSError:
@@ -73,11 +74,10 @@ def run():
                                     [
                                         "rsync",
                                         str(jf),
-                                        f"{Path(args.destination) / jf.relative_to(Path(args.project))}",
+                                        f"{destination_path / jf.relative_to(project_path)}",
                                     ]
                                 )
                         else:
                             (
-                                Path(args.destination)
-                                / jf.relative_to(Path(args.project))
+                                destination_path / jf.relative_to(project_path)
                             ).symlink_to(jf)
