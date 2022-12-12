@@ -81,3 +81,6 @@ def run():
                             (
                                 destination_path / jf.relative_to(project_path)
                             ).symlink_to(jf)
+        elif f.is_symlink():
+            source = f.resolve()
+            (destination_path / f.relative_to(project_path)).symlink_to(source)
