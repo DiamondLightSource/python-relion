@@ -1,35 +1,95 @@
 global:
 
-  namespace: slg25752
-  runAsUser: 1216065
-  runAsGroup: 1216065
+  namespace: my-namespace
+  runAsUser: user-id
+  runAsGroup: group-id
 
 ctffind:
   replicas: 1
-  image: gcr.io/diamond-pubreg/em/ctffind:relion
-  command: zocalo.service -s CTFFind -e devrmq
+  image: gcr.io/image/path
+  command: zocalo.service -s service-name -e environment
+  extraVolumes:
+  - name: home
+    hostPath:
+      path: /home
+      type: Directory
+  extraVolumeMounts:
+  - mountPath: /home
+    name: home
+    mountPropagation: HostToContainer
+    readOnly: true
 
 dispatcher:
   replicas: 1
-  image: gcr.io/diamond-privreg/scisoft/dlstbx:latest
-  command: source /dials/dials && dlstbx.service -s DLSDispatcher -e devrmq
+  image: gcr.io/image/path
+  command: zocalo.service -s service-name -e environment
+  extraVolumes:
+  - name: home
+    hostPath:
+      path: /home
+      type: Directory
+  extraVolumeMounts:
+  - mountPath: /home
+    name: home
+    mountPropagation: HostToContainer
+    readOnly: true
 
 images:
   replicas: 2
-  image: gcr.io/diamond-pubreg/em/images:relion
-  command: source ../../dials/dials && dlstbx.service -s DLSImages -e devrmq
+  image: gcr.io/image/path
+  command: zocalo.service -s service-name -e environment
+  extraVolumes:
+  - name: home
+    hostPath:
+      path: /home
+      type: Directory
+  extraVolumeMounts:
+  - mountPath: /home
+    name: home
+    mountPropagation: HostToContainer
+    readOnly: true
 
 ispyb:
   replicas: 1
-  image: gcr.io/diamond-privreg/scisoft/dlstbx:latest
-  command: source /dials/dials && dlstbx.service -s DLSISPyB -e devrmq
+  image: gcr.io/image/path
+  command: zocalo.service -s service-name -e environment
+  extraVolumes:
+  - name: home
+    hostPath:
+      path: /home
+      type: Directory
+  extraVolumeMounts:
+  - mountPath: /home
+    name: home
+    mountPropagation: HostToContainer
+    readOnly: true
 
 motioncorr:
   replicas: 1
-  image: gcr.io/diamond-pubreg/em/motioncorr:relion
-  command: source "/conda/etc/profile.d/conda.sh" && conda activate /install/pythonenv && zocalo.service -s MotionCor -e devrmq
+  image: gcr.io/image/path
+  command: zocalo.service -s service-name -e environment
+  extraVolumes:
+  - name: home
+    hostPath:
+      path: /home
+      type: Directory
+  extraVolumeMounts:
+  - mountPath: /home
+    name: home
+    mountPropagation: HostToContainer
+    readOnly: true
 
 tomo_align:
   replicas: 1
-  image: gcr.io/diamond-pubreg/em/tomo_align:relion
-  command: source "/conda/etc/profile.d/conda.sh" && conda activate /install/pythonenv && zocalo.service -s TomoAlign -e devrmq
+  image: gcr.io/image/path
+  command: zocalo.service -s service-name -e environment
+  extraVolumes:
+  - name: dls
+    hostPath:
+      path: /dls
+      type: Directory
+  extraVolumeMounts:
+  - mountPath: /dls
+    name: dls
+    mountPropagation: HostToContainer
+    readOnly: true

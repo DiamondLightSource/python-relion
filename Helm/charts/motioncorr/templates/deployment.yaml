@@ -44,10 +44,9 @@ spec:
           mountPath: /zocalo/config
         - name: secrets
           mountPath: /zocalo/secrets
-        - name: dls
-          mountPath: /dls
-          mountPropagation: HostToContainer
-          readOnly: true
+{{- if .Values.extraVolumeMounts }}
+{{ toYaml .Values.extraVolumeMounts | indent 8 }}
+{{ end }}
       volumes:
       - name: config-file
         configMap:
@@ -62,10 +61,9 @@ spec:
               name: staging-rmq-creds
           - secret:
               name: staging-rmq-api-reader
-      - name: dls
-        hostPath:
-          path: /dls
-          type: Directory
+{{- if .Values.extraVolumes }}
+{{ toYaml .Values.extraVolumes | indent 6 }}
+{{ end }}
       tolerations:
       - effect: NoSchedule
         key: nvidia.com/gpu
