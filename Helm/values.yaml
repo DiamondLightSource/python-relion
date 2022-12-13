@@ -1,0 +1,35 @@
+global:
+
+  namespace: slg25752
+  runAsUser: 1216065
+  runAsGroup: 1216065
+
+ctffind:
+  replicas: 1
+  image: gcr.io/diamond-pubreg/em/ctffind:relion
+  command: zocalo.service -s CTFFind -e devrmq
+
+dispatcher:
+  replicas: 1
+  image: gcr.io/diamond-privreg/scisoft/dlstbx:latest
+  command: source /dials/dials && dlstbx.service -s DLSDispatcher -e devrmq
+
+images:
+  replicas: 2
+  image: gcr.io/diamond-pubreg/em/images:relion
+  command: source ../../dials/dials && dlstbx.service -s DLSImages -e devrmq
+
+ispyb:
+  replicas: 1
+  image: gcr.io/diamond-privreg/scisoft/dlstbx:latest
+  command: source /dials/dials && dlstbx.service -s DLSISPyB -e devrmq
+
+motioncorr:
+  replicas: 1
+  image: gcr.io/diamond-pubreg/em/motioncorr:relion
+  command: source "/conda/etc/profile.d/conda.sh" && conda activate /install/pythonenv && zocalo.service -s MotionCor -e devrmq
+
+tomo_align:
+  replicas: 1
+  image: gcr.io/diamond-pubreg/em/tomo_align:relion
+  command: source "/conda/etc/profile.d/conda.sh" && conda activate /install/pythonenv && zocalo.service -s TomoAlign -e devrmq

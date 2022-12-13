@@ -1,0 +1,11 @@
+apiVersion: v2
+name: tomo-em
+description: An umbrella Helm chart for EM tomography services
+version: 0.0.1
+dependencies:
+- name: ctffind
+- name: motioncorr
+- name: tomo_align
+- name: dispatcher
+- name: ispyb
+- name: images

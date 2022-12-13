@@ -1,0 +1,76 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: motioncorr
+  namespace: {{ .Values.global.namespace }}
+spec:
+  replicas: {{ .Values.replicas }}
+  selector:
+    matchLabels:
+      app: motioncorr
+  template:
+    metadata:
+      labels:
+        app: motioncorr
+    spec:
+      securityContext:
+        runAsUser: {{ .Values.global.runAsUser }}
+        runAsGroup: {{ .Values.global.runAsGroup }}
+      containers:
+      - name: motioncorr-runner
+        image: {{ .Values.image }}
+        imagePullPolicy: Always
+        resources:
+          requests:
+            nvidia.com/gpu: "1"
+          limits:
+            nvidia.com/gpu: "1"
+        command: ["/bin/sh"]
+        args:
+          - -c
+          - >-
+              {{ .Values.command }}
+        env:
+        - name: KUBERNETES
+          value: "1"
+        - name: ZOCALO_CONFIG
+          value: "/zocalo/config/zocalo-dev-config.yaml"
+        - name: ISPYB_CREDENTIALS
+          value: "/zocalo/secrets/ispyb-dev.cfg"
+        - name: LD_LIBRARY_PATH
+          value: "/install/pythonenv/lib"
+        volumeMounts:
+        - name: config-file
+          mountPath: /zocalo/config
+        - name: secrets
+          mountPath: /zocalo/secrets
+        - name: dls
+          mountPath: /dls
+          mountPropagation: HostToContainer
+          readOnly: true
+      volumes:
+      - name: config-file
+        configMap:
+          name: zocalo-configmap-dev
+      - name: secrets
+        projected:
+          defaultMode: 0444
+          sources:
+          - secret: 
+              name: dev-ispyb-secret
+          - secret:
+              name: staging-rmq-creds
+          - secret:
+              name: staging-rmq-api-reader
+      - name: dls
+        hostPath:
+          path: /dls
+          type: Directory
+      tolerations:
+      - effect: NoSchedule
+        key: nvidia.com/gpu
+        operator: Exists
+      - effect: NoSchedule
+        key: nodetype
+        operator: Equal
+        value: gpu

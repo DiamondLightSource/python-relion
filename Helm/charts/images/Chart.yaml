@@ -1,0 +1,4 @@
+apiVersion: v2
+name: images
+description: A Helm chart for DLS Images service
+version: 0.0.1

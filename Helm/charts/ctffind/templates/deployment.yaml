@@ -1,0 +1,64 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ctffind
+  namespace: {{ .Values.global.namespace }}
+spec:
+  replicas: {{ .Values.replicas }}
+  selector:
+    matchLabels:
+      app: ctffind
+  template:
+    metadata:
+      labels:
+        app: ctffind
+    spec:
+      securityContext:
+        runAsUser: {{ .Values.global.runAsUser }}
+        runAsGroup: {{ .Values.global.runAsGroup }}
+      containers:
+      - name: ctffind-runner
+        image: {{ .Values.image }}
+        imagePullPolicy: Always
+        resources:
+          requests:
+            cpu: "250m"
+        command: ["/bin/sh"]
+        args:
+          - -c
+          - >-
+              {{ .Values.command }}
+        env:
+        - name: KUBERNETES
+          value: "1"
+        - name: ZOCALO_CONFIG
+          value: "/zocalo/config/zocalo-dev-config.yaml"
+        - name: ISPYB_CREDENTIALS
+          value: "/zocalo/secrets/ispyb-dev.cfg"
+        volumeMounts:
+        - name: config-file
+          mountPath: /zocalo/config
+        - name: secrets
+          mountPath: /zocalo/secrets
+        - name: dls
+          mountPath: /dls
+          mountPropagation: HostToContainer
+          readOnly: true
+      volumes:
+      - name: config-file
+        configMap:
+          name: zocalo-configmap-dev
+      - name: secrets
+        projected:
+          defaultMode: 0444
+          sources:
+          - secret: 
+              name: dev-ispyb-secret
+          - secret:
+              name: staging-rmq-creds
+          - secret:
+              name: staging-rmq-api-reader
+      - name: dls
+        hostPath:
+          path: /dls
+          type: Directory

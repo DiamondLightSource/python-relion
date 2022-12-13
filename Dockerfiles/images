@@ -8,4 +8,7 @@ ARG userid
 # Install Relion
 WORKDIR /dials/modules
 COPY --chown="${userid}":"${groupid}" python-relion ./relion
-RUN source /dials/dials && cd relion && libtbx.python -m pip install -e .
+RUN source /dials/dials && libtbx.python -m pip install -e ./relion
+RUN chown -R "${userid}":"${groupid}" ./relion
+RUN chmod -R a+rx ./relion
+RUN chmod -R a+rx /dials
