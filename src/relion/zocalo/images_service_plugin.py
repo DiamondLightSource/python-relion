@@ -229,6 +229,7 @@ def mrc_central_slice(plugin_params):
         f"Converted mrc to jpeg {filename} -> {outfile} in {timing:.1f} seconds",
         extra={"image-processing-time": timing},
     )
+
     logger.info("Sending to ISPyB")
     ispyb_command = {
         "ispyb_command": "add_program_attachment",
