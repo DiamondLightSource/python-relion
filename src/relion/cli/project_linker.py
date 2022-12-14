@@ -37,25 +37,27 @@ def run():
     destination_path = Path(args.destination).resolve()
 
     if not destination_path.exists():
-        destination_path.mkdir()
+        destination_path.mkdir(exist_ok=True)
 
     for f in project_path.glob("*"):
-        if (f.is_dir() and f in required_dirs) or f.is_file():
+        if (f.is_dir() and f.name in required_dirs) or f.is_file():
             procrunner.run(
                 [
                     "rsync",
                     "--recursive",
                     str(f),
-                    f"{destination_path / f.relative_to(project_path)}",
+                    str(destination_path)
+                    if f.is_dir()
+                    else str(destination_path / f.relative_to(project_path)),
                 ]
             )
         elif f.is_dir():
             job_type_dir = destination_path / f.relative_to(project_path)
-            job_type_dir.mkdir()
+            job_type_dir.mkdir(exist_ok=True)
             for job_dir in f.glob("*"):
                 if not job_dir.is_symlink():
                     new_job_dir = destination_path / job_dir.relative_to(project_path)
-                    new_job_dir.mkdir()
+                    new_job_dir.mkdir(exist_ok=True)
                     for jf in job_dir.glob("*"):
                         if jf.is_file():
                             if jf.suffix in ignore_file_extensions.get(f.name, []):
@@ -78,9 +80,15 @@ def run():
                                     ]
                                 )
                         else:
-                            (
-                                destination_path / jf.relative_to(project_path)
-                            ).symlink_to(jf)
+                            try:
+                                (
+                                    destination_path / jf.relative_to(project_path)
+                                ).symlink_to(jf)
+                            except FileExistsError:
+                                pass
         elif f.is_symlink():
             source = f.resolve()
-            (destination_path / f.relative_to(project_path)).symlink_to(source)
+            try:
+                (destination_path / f.relative_to(project_path)).symlink_to(source)
+            except FileExistsError:
+                pass
