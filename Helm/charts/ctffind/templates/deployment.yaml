@@ -34,7 +34,7 @@ spec:
         - name: ZOCALO_CONFIG
           value: "/zocalo/config/zocalo-dev-config.yaml"
         - name: ISPYB_CREDENTIALS
-          value: "/zocalo/secrets/ispyb-dev.cfg"
+          value: "/zocalo/secrets/{{ .Values.dbFileName }}"
         volumeMounts:
         - name: config-file
           mountPath: /zocalo/config
@@ -52,7 +52,7 @@ spec:
           defaultMode: 0444
           sources:
           - secret: 
-              name: dev-ispyb-secret
+              name: {{ .Values.dbSecretName }}
           - secret:
               name: staging-rmq-creds
           - secret:

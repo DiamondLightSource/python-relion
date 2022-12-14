@@ -37,7 +37,7 @@ spec:
         - name: ZOCALO_CONFIG
           value: "/zocalo/config/zocalo-dev-config.yaml"
         - name: ISPYB_CREDENTIALS
-          value: "/zocalo/secrets/ispyb-dev.cfg"
+          value: "/zocalo/secrets/{{ .Values.dbFileName }}"
         - name: LD_LIBRARY_PATH
           value: "/IMOD/4.11.1/IMOD/lib:/IMOD/4.11.1/IMOD/qtlib"
         - name: IMOD_DIR
@@ -59,7 +59,7 @@ spec:
           defaultMode: 0444
           sources:
           - secret: 
-              name: dev-ispyb-secret
+              name: {{ .Values.dbSecretName }}
           - secret:
               name: staging-rmq-creds
           - secret:

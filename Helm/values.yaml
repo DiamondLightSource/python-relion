@@ -18,6 +18,8 @@ ctffind:
     name: home
     mountPropagation: HostToContainer
     readOnly: true
+  dbSecretName: dev-db # name for database credentials
+  dbFileName: db-dev.cfg
 
 dispatcher:
   replicas: 1
@@ -33,6 +35,8 @@ dispatcher:
     name: home
     mountPropagation: HostToContainer
     readOnly: true
+  dbSecretName: dev-db # name for database credentials
+  dbFileName: db-dev.cfg
 
 images:
   replicas: 2
@@ -48,6 +52,8 @@ images:
     name: home
     mountPropagation: HostToContainer
     readOnly: true
+  dbSecretName: dev-db # name for database credentials
+  dbFileName: db-dev.cfg
 
 ispyb:
   replicas: 1
@@ -63,6 +69,8 @@ ispyb:
     name: home
     mountPropagation: HostToContainer
     readOnly: true
+  dbSecretName: dev-db # name for database credentials
+  dbFileName: db-dev.cfg
 
 motioncorr:
   replicas: 1
@@ -78,6 +86,8 @@ motioncorr:
     name: home
     mountPropagation: HostToContainer
     readOnly: true
+  dbSecretName: dev-db # name for database credentials
+  dbFileName: db-dev.cfg
 
 tomo_align:
   replicas: 1
@@ -93,3 +103,5 @@ tomo_align:
     name: dls
     mountPropagation: HostToContainer
     readOnly: true
+  dbSecretName: dev-db # name for database credentials
+  dbFileName: db-dev.cfg
