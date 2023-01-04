@@ -62,6 +62,7 @@ class TomoParameters(BaseModel):
     out_imod: int = 1
     out_imod_xf: int = None
     dark_tol: int or str = None
+    manual_tilt_offset: int = None
 
     @validator("input_file_list")
     def convert_to_list_of_lists(cls, v):
@@ -477,12 +478,22 @@ class TomoAlign(CommonService):
                 )
             )  # highest tilt
 
+        if tomo_parameters.manual_tilt_offset:
+            command.extend(
+                (
+                    "-TiltCor",
+                    str(tomo_parameters.tilt_cor),
+                    str(tomo_parameters.manual_tilt_offset),
+                )
+            )
+        elif tomo_parameters.tilt_cor:
+            command.extend(("-TiltCor", str(tomo_parameters.tilt_cor)))
+
         aretomo_flags = {
             "stack_file": "-InMrc",
             "vol_z": "-VolZ",
             "out_bin": "-OutBin",
             "tilt_axis": "-TiltAxis",
-            "tilt_cor": "-TiltCor",
             "flip_int": "-FlipInt",
             "flip_vol": "-FlipVol",
             "wbp": "-Wbp",
