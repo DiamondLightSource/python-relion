@@ -1,0 +1,16 @@
+FROM gcr.io/diamond-pubreg/em/relion:cuda
+ARG groupid
+ARG userid
+
+# Install IMOD
+COPY --chown="${userid}":"${groupid}" ./imod-4.11.1 /IMOD/4.11.1
+WORKDIR /IMOD/4.11.1
+ENV PATH=/IMOD/4.11.1/IMOD/bin/realbin:${PATH}
+RUN chmod +x /IMOD/4.11.1
+
+# Install AreTomo
+COPY --chown="${userid}":"${groupid}" ./aretomo-1.3.0 /AreTomo/1.3.0
+WORKDIR /AreTomo/1.3.0
+RUN rm AreTomo && ln -s AreTomo_1.3.0_Cuda102_09292022 AreTomo
+ENV PATH=/AreTomo/1.3.0:${PATH}
+RUN chmod +x /AreTomo/1.3.0

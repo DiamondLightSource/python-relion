@@ -1,0 +1,14 @@
+FROM gcr.io/diamond-privreg/em/dlstbx:latest
+
+WORKDIR /dials/modules
+RUN source /dials/dials && conda uninstall python-relion
+ARG groupid
+ARG userid
+
+# Install Relion
+WORKDIR /dials/modules
+COPY --chown="${userid}":"${groupid}" python-relion ./relion
+RUN source /dials/dials && libtbx.python -m pip install -e ./relion
+RUN chown -R "${userid}":"${groupid}" ./relion
+RUN chmod -R a+rx ./relion
+RUN chmod -R a+rx /dials

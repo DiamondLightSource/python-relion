@@ -1,0 +1,62 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dispatcher-dev
+  namespace: {{ .Values.global.namespace }}
+spec:
+  replicas: {{ .Values.replicas }}
+  selector:
+    matchLabels:
+      app: dispatcher-dev
+  template:
+    metadata:
+      labels:
+        app: dispatcher-dev
+    spec:
+      securityContext:
+        runAsUser: {{ .Values.global.runAsUser }}
+        runAsGroup: {{ .Values.global.runAsGroup }}
+      containers:
+      - name: dispatcher-runner
+        image: {{ .Values.image }}
+        imagePullPolicy: Always
+        resources:
+          requests:
+            cpu: "250m"
+        command: ["/bin/sh"]
+        args:
+          - -c
+          - >-
+              {{ .Values.command }}
+        env:
+        - name: KUBERNETES
+          value: "1"
+        - name: ZOCALO_CONFIG
+          value: "/zocalo/config/zocalo-dev-config.yaml"
+        - name: ISPYB_CREDENTIALS
+          value: "/zocalo/secrets/{{ .Values.dbFileName }}"
+        volumeMounts:
+        - name: config-file
+          mountPath: /zocalo/config
+        - name: secrets
+          mountPath: /zocalo/secrets
+{{- if .Values.extraVolumeMounts }}
+{{ toYaml .Values.extraVolumeMounts | indent 8 }}
+{{ end }}
+      volumes:
+      - name: config-file
+        configMap:
+          name: zocalo-configmap-dev
+      - name: secrets
+        projected:
+          defaultMode: 0444
+          sources:
+          - secret: 
+              name: {{ .Values.dbSecretName }}
+          - secret:
+              name: staging-rmq-creds
+          - secret:
+              name: staging-rmq-api-reader
+{{- if .Values.extraVolumes }}
+{{ toYaml .Values.extraVolumes | indent 6 }}
+{{ end }}

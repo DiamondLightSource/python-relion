@@ -1,0 +1,4 @@
+apiVersion: v2
+name: dispatcher
+description: A Helm chart for DLS Dispatcher service
+version: 0.0.1

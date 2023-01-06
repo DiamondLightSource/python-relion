@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 import pathlib
 import time
+from pathlib import Path
 
 import mrcfile
 import numpy as np
@@ -15,6 +16,7 @@ logger = logging.getLogger("relion.zocalo.images_service_plugin")
 def mrc_to_jpeg(plugin_params):
     filename = plugin_params.parameters("file")
     allframes = plugin_params.parameters("all_frames")
+    send_to_ispyb = plugin_params.parameters("send_to_ispyb") or 0
     if not filename or filename == "None":
         logger.error("Skipping mrc to jpeg conversion: filename not specified")
         return False
@@ -86,6 +88,22 @@ def mrc_to_jpeg(plugin_params):
         f"Converted mrc to jpeg {filename} -> {outfile} in {timing:.1f} seconds",
         extra={"image-processing-time": timing},
     )
+    if send_to_ispyb:
+        logger.info("Sending to ISPyB")
+        ispyb_command = {
+            "ispyb_command": "add_program_attachment",
+            "file_name": str(Path(outfile).name),
+            "file_path": str(Path(outfile).parent),
+        }
+
+        try:
+            plugin_params.rw.send_to(
+                "ispyb",
+                ispyb_command,
+            )
+        except Exception as e:
+            logger.warning(f"{e}")
+            return False
     if outfiles:
         return outfiles
     return outfile
@@ -165,6 +183,7 @@ def picked_particles(plugin_params):
 
 def mrc_central_slice(plugin_params):
     filename = plugin_params.parameters("file")
+    rw = plugin_params.rw
     if not filename or filename == "None":
         logger.error("Skipping mrc to jpeg conversion: filename not specified")
         return False
@@ -181,22 +200,24 @@ def mrc_central_slice(plugin_params):
             f"File {filepath} could not be opened. It may be corrupted or not in mrc format"
         )
         return False
-    outfile = filepath.with_suffix(".jpeg")
+    outfile = str(filepath.with_suffix("")) + "_thumbnail.jpeg"
     if len(data.shape) != 3:
         logger.error(
             f"File {filepath} is not 3-dimensional. Cannot extract central slice"
         )
         return False
+
     # Extract central slice
-    total_slices = data.shape[1]
+    total_slices = data.shape[0]
     central_slice_index = int(total_slices / 2)
-    central_slice_data = data[:, central_slice_index, :]
+    central_slice_data = data[central_slice_index, :, :]
 
     # Write as jpeg
     central_slice_data = central_slice_data - central_slice_data[0].min()
     central_slice_data = central_slice_data * 255 / central_slice_data[0].max()
     central_slice_data = central_slice_data.astype("uint8")
-    im = PIL.Image.fromarray(central_slice_data[0], mode="L")
+    im = PIL.Image.fromarray(central_slice_data, mode="L")
+    im.thumbnail((512, 512))
     try:
         im.save(outfile)
     except FileNotFoundError:
@@ -208,4 +229,28 @@ def mrc_central_slice(plugin_params):
         f"Converted mrc to jpeg {filename} -> {outfile} in {timing:.1f} seconds",
         extra={"image-processing-time": timing},
     )
+
+    logger.info("Sending to ISPyB")
+    ispyb_command = {
+        "ispyb_command": "add_program_attachment",
+        "file_name": str(Path(outfile).name),
+        "file_path": str(Path(outfile).parent),
+    }
+
+    class RW_mock:
+        def dummy(self, *args, **kwargs):
+            pass
+
+    if not rw:
+        rw = RW_mock()
+        rw.send = rw.dummy
+
+    if isinstance(rw, RW_mock):
+        rw.send("ispyb_connector", ispyb_command)
+    else:
+        rw.send_to(
+            "ispyb",
+            ispyb_command,
+        )
+
     return outfile

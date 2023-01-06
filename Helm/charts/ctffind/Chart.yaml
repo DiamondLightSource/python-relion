@@ -1,0 +1,4 @@
+apiVersion: v2
+name: ctffind
+description: A Helm chart for CTFFind tomography service
+version: 0.0.1
