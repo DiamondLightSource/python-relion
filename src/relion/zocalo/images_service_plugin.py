@@ -254,3 +254,44 @@ def mrc_central_slice(plugin_params):
         )
 
     return outfile
+
+
+def mrc_to_apng(mrc_file):
+    filepath = pathlib.Path(mrc_file)
+    if not filepath.is_file():
+        logger.error(f"File {filepath} not found")
+        return False
+    start = time.perf_counter()
+    try:
+        with mrcfile.open(filepath) as mrc:
+            data = mrc.data
+    except ValueError:
+        logger.error(
+            f"File {filepath} could not be opened. It may be corrupted or not in mrc format"
+        )
+        return False
+    outfile = filepath.with_suffix(".png")
+
+    if len(data.shape) == 3:
+        images_to_append = []
+        for i, frame in enumerate(data):
+            frame = frame - frame.min()
+            frame = frame * 255 / frame.max()
+            frame = frame.astype("uint8")
+            im = PIL.Image.fromarray(frame, mode="L")
+            im.thumbnail((512, 512))
+            images_to_append.append(im)
+        try:
+            im.save(outfile, save_all=True, append_images=images_to_append)
+        except FileNotFoundError:
+            logger.error(
+                f"Trying to save to file {outfile} but directory does not exist"
+            )
+            return False
+    else:
+        logger.error(f"File {filepath} is not a 3D volume")
+    timing = time.perf_counter() - start
+    logger.info(
+        f"Converted mrc to apng {mrc_file} -> {outfile} in {timing:.1f} seconds"
+    )
+    return outfile
