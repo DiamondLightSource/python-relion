@@ -1,4 +1,4 @@
-FROM gcr.io/diamond-pubreg/em/dlstbx:latest
+FROM gcr.io/diamond-privreg/em/dlstbx:latest
 
 WORKDIR /dials/modules
 RUN source /dials/dials && conda uninstall python-relion
