@@ -11,31 +11,6 @@ from pydantic import BaseModel, Field, validator
 from pydantic.error_wrappers import ValidationError
 from workflows.services.common_service import CommonService
 
-# Possible parameters:
-# "input_file_list" Required
-# "stack_file" Required
-# "vol_z" default 1200
-# "align"
-# "out_bin" default 4
-# "tilt_range" calculatable or "ang_file"
-# "tilt_axis"
-# "tilt_cor"
-# "flip_int"
-# "flip_vol"
-# "wbp"
-# "roi_file"
-# "patch"
-# "kv"
-# "align_file"
-# "angle_file"
-# "align_z"
-# "pix_size"
-# "init_val"
-# "refine_flag"
-# "out_imod"
-# "out_imod_xf"
-# "dark_tol"
-
 
 class TomoParameters(BaseModel):
     input_file_list: str
@@ -316,14 +291,6 @@ class TomoAlign(CommonService):
                     "file_type": "Graph",
                 }
             )
-
-        # Remove this because it needs to wait for the images service to complete the file before sending to ISPyB
-        # Images service output goes to ispyb_connector
-        #    if self.central_slice_location:
-        #        ispyb_command_list.append({"ispyb_command": "add_program_attachment",
-        #                                   "file_name": str(Path(self.central_slice_location).name),
-        #                                   "file_path": str(Path(self.central_slice_location).parent),
-        #                                   "file_type": 'Result'})
 
         missing_indices = []
         if Path(self.dark_images_file).is_file():

@@ -8,25 +8,6 @@ from pydantic import BaseModel, Field
 from pydantic.error_wrappers import ValidationError
 from workflows.services.common_service import CommonService
 
-# Possible parameters:
-# "input_image" Required (gotten from MotionCorr service)
-# "output_image" Required
-# "pix_size" Required
-# "voltage", default="300.0"
-# "spher_aber", default="2.70"
-# "ampl_contrast", default="0.8"
-# "ampl_spectrum", default="512"
-# "min_res", default="30.0"
-# "max_res", default="5.0"
-# "min_defocus", default="5000.0"
-# "max_defocus", default="50000.0"
-# "defocus_step", default="100.0"
-# "astigmatism_known", default="no"
-# "slow_search", default="no"
-# "astigmatism_restrain", default="no"
-# "additional_phase_shift", default="no"
-# "expert_options", default="no"
-
 
 class CTFParameters(BaseModel):
     pix_size: float

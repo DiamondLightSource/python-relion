@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import string
 from collections import ChainMap
-from math import sqrt
+from math import hypot
 from pathlib import Path
 from typing import Optional
 
@@ -12,40 +12,6 @@ import workflows.recipe
 from pydantic import BaseModel, Field
 from pydantic.error_wrappers import ValidationError
 from workflows.services.common_service import CommonService
-
-# Possible parameters:
-# "movie" Required
-# "mrc_out" Required
-# "pix_size" Required
-# "patch_size"
-# "gain_ref"
-# "ctf" Required
-# "mc_uuid" Required
-# "rot_gain"
-# "flip_gain"
-# "dark"
-# "use_gpus"
-# "sum_range"
-# "iter"
-# "tol"
-# "throw"
-# "trunc"
-# "fm_ref"
-# "kv"
-# "fm_dose"
-# "fm_int_file"
-# "mag"
-# "ft_bin"
-# "serial"
-# "in_suffix"
-# "eer_sampling" (needed for eer)
-# "out_stack"
-# "bft"
-# "group"
-# "detect_file"
-# "arc_dir"
-# "in_fm_motion"
-# "split_sum"
 
 
 class MotionCorrParameters(BaseModel):
@@ -263,10 +229,8 @@ class MotionCorr(CommonService):
         # Extract results for ispyb
         total_x_shift = sum([item[0] for item in self.shift_list])
         total_y_shift = sum([item[1] for item in self.shift_list])
-        total_motion = sqrt(total_x_shift**2 + total_y_shift**2)
-        each_total_motion = [
-            sqrt(item[0] ** 2 + item[1] ** 2) for item in self.shift_list
-        ]
+        total_motion = hypot(total_x_shift, total_y_shift)
+        each_total_motion = [hypot(item[0], item[1]) for item in self.shift_list]
         average_motion_per_frame = sum(each_total_motion) / len(self.shift_list)
 
         drift_plot_x = [range(0, len(self.shift_list))]
