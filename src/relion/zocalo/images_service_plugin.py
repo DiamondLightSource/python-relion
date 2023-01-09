@@ -303,7 +303,6 @@ def mrc_to_apng(plugin_params):
         f"Converted mrc to apng {filename} -> {outfile} in {timing:.1f} seconds"
     )
 
-    logger.info("Sending to ISPyB")
     ispyb_command = {
         "ispyb_command": "add_program_attachment",
         "file_name": str(Path(outfile).name),
@@ -318,6 +317,7 @@ def mrc_to_apng(plugin_params):
         rw = RW_mock()
         rw.send = rw.dummy
 
+    logger.info("Sending to ISPyB")
     if isinstance(rw, RW_mock):
         rw.send("ispyb_connector", ispyb_command)
     else:

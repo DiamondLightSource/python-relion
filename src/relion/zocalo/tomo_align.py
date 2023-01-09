@@ -167,10 +167,10 @@ class TomoAlign(CommonService):
             rw.transport.nack(header)
             return
 
-        def tilt(file_list):
+        def _tilt(file_list):
             return float(file_list[1])
 
-        tomo_params.input_file_list.sort(key=tilt)
+        tomo_params.input_file_list.sort(key=_tilt)
 
         tilt_dict: dict = {}
         for tilt in tomo_params.input_file_list:
@@ -188,7 +188,7 @@ class TomoAlign(CommonService):
 
         for tilt in tomo_params.input_file_list:
             if tilt[0] in values_to_remove:
-                index = tomo_params.input_file_list.index(tilt[0])
+                index = tomo_params.input_file_list.index(tilt)
                 self.log.warning(f"Removing: {values_to_remove}")
                 tomo_params.input_file_list.remove(tomo_params.input_file_list[index])
 
