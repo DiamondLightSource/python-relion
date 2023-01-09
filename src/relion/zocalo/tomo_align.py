@@ -3,6 +3,7 @@ from __future__ import annotations
 import ast
 import os.path
 from pathlib import Path
+from typing import List
 
 import plotly.express as px
 import procrunner
@@ -62,19 +63,19 @@ class TomoAlign(CommonService):
     _logger_name = "relion.zocalo.tomo_align"
 
     # Values to extract for ISPyB
-    refined_tilts = None
-    tilt_offset = None
-    rot_centre_z_list = []
-    rot_centre_z = None
-    rot = None
-    mag = None
-    plot_path = None
-    central_slice_location = None
-    stack_movie_location = None
-    dark_images_file = None
-    imod_directory = None
-    xy_proj_file = None
-    xz_proj_file = None
+    refined_tilts: List[float] = None
+    tilt_offset: float = None
+    rot_centre_z_list: List[str] = []
+    rot_centre_z: str = None
+    rot: float = None
+    mag: float = None
+    plot_path: str = None
+    central_slice_location: str = None
+    stack_movie_location: str = None
+    dark_images_file: str = None
+    imod_directory: str = None
+    xy_proj_file: str = None
+    xz_proj_file: str = None
 
     def initializing(self):
         """Subscribe to a queue. Received messages must be acknowledged."""
@@ -92,7 +93,7 @@ class TomoAlign(CommonService):
         if line.startswith("Rot center Z"):
             self.rot_centre_z_list.append(line.split()[5])
         if line.startswith("Tilt offset"):
-            self.tilt_offset = line.split()[2].strip(",")
+            self.tilt_offset = float(line.split()[2].strip(","))
 
     def extract_from_aln(self, tomo_parameters):
         tomo_aln_file = None
@@ -287,7 +288,7 @@ class TomoAlign(CommonService):
                 "size_y": None,
                 "size_z": None,
                 "pixel_spacing": pix_spacing,
-                "tilt_angle_offset": self.tilt_offset,
+                "tilt_angle_offset": str(self.tilt_offset),
                 "z_shift": self.rot_centre_z,
                 "store_result": "ispyb_tomogram_id",
             }
@@ -307,7 +308,7 @@ class TomoAlign(CommonService):
             with open(self.dark_images_file) as f:
                 missing_indices = [int(i) for i in f.readlines()[2:]]
         elif Path(self.imod_directory).is_dir():
-            self.dark_images_file = Path(self.imod_directory) / "tilt.com"
+            self.dark_images_file = str(Path(self.imod_directory) / "tilt.com")
             with open(self.dark_images_file) as f:
                 lines = f.readlines()
                 for line in lines:
@@ -328,9 +329,9 @@ class TomoAlign(CommonService):
                         {
                             "ispyb_command": "insert_tilt_image_alignment",
                             "psd_file": None,  # should be in ctf table but useful, so we will insert
-                            "refined_magnification": self.mag,
+                            "refined_magnification": str(self.mag),
                             "refined_tilt_angle": self.refined_tilts[im - im_diff],
-                            "refined_tilt_axis": self.rot,
+                            "refined_tilt_axis": str(self.rot),
                             "movie_id": movie[2],
                         }
                     )
