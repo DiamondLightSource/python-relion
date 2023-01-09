@@ -8,39 +8,40 @@ from typing import List
 import plotly.express as px
 import procrunner
 import workflows.recipe
+import workflows.transport
 from pydantic import BaseModel, Field, validator
 from pydantic.error_wrappers import ValidationError
 from workflows.services.common_service import CommonService
 
 
 class TomoParameters(BaseModel):
-    input_file_list: str
+    input_file_list: List[list]
     stack_file: str = Field(..., min_length=1)
-    position: str = None
-    aretomo_output_file: str = None
+    position: str | None = None
+    aretomo_output_file: str | None = None
     vol_z: int = 1200
-    align: int = None
+    align: int | None = None
     out_bin: int = 4
-    tilt_axis: float = None
+    tilt_axis: float | None = None
     tilt_cor: int = 1
-    flip_int: int = None
+    flip_int: int | None = None
     flip_vol: int = 1
-    wbp: int = None
-    roi_file: list = None
-    patch: int = None
-    kv: int = None
-    align_file: str = None
-    angle_file: str = None
-    align_z: int = None
-    pix_size: int = None
-    init_val: int = None
-    refine_flag: int = None
+    wbp: int | None = None
+    roi_file: list = []
+    patch: int | None = None
+    kv: int | None = None
+    align_file: str | None = None
+    angle_file: str | None = None
+    align_z: int | None = None
+    pix_size: int | None = None
+    init_val: int | None = None
+    refine_flag: int | None = None
     out_imod: int = 1
-    out_imod_xf: int = None
-    dark_tol: int or str = None
-    manual_tilt_offset: int = None
+    out_imod_xf: int | None = None
+    dark_tol: int | str | None = None
+    manual_tilt_offset: int | None = None
 
-    @validator("input_file_list")
+    @validator("input_file_list", pre=True)
     def convert_to_list_of_lists(cls, v):
         file_list = ast.literal_eval(v)
         if isinstance(file_list, list) and isinstance(file_list[0], list):
@@ -63,17 +64,17 @@ class TomoAlign(CommonService):
     _logger_name = "relion.zocalo.tomo_align"
 
     # Values to extract for ISPyB
-    refined_tilts: List[float] = None
-    tilt_offset: float = None
+    refined_tilts: List[float] | None = None
+    tilt_offset: float | None = None
     rot_centre_z_list: List[str] = []
-    rot_centre_z: str = None
-    rot: float = None
-    mag: float = None
-    plot_path: str = None
-    dark_images_file: str = None
-    imod_directory: str = None
-    xy_proj_file: str = None
-    xz_proj_file: str = None
+    rot_centre_z: str | None = None
+    rot: float | None = None
+    mag: float | None = None
+    plot_path: str | None = None
+    dark_images_file: str | None = None
+    imod_directory: str | None = None
+    xy_proj_file: str | None = None
+    xz_proj_file: str | None = None
 
     def initializing(self):
         """Subscribe to a queue. Received messages must be acknowledged."""
@@ -123,6 +124,8 @@ class TomoAlign(CommonService):
 
     def tomo_align(self, rw, header: dict, message: dict):
         class RW_mock:
+            transport: workflows.transport.common_transport.CommonTransport
+
             def dummy(self, *args, **kwargs):
                 pass
 
@@ -169,7 +172,7 @@ class TomoAlign(CommonService):
 
         tomo_params.input_file_list.sort(key=tilt)
 
-        tilt_dict = {}
+        tilt_dict: dict = {}
         for tilt in tomo_params.input_file_list:
             if tilt[1] not in tilt_dict:
                 tilt_dict[tilt[1]] = []
@@ -185,7 +188,7 @@ class TomoAlign(CommonService):
 
         for tilt in tomo_params.input_file_list:
             if tilt[0] in values_to_remove:
-                index = tomo_params.input_file_list.index(tilt)
+                index = tomo_params.input_file_list.index(tilt[0])
                 self.log.warning(f"Removing: {values_to_remove}")
                 tomo_params.input_file_list.remove(tomo_params.input_file_list[index])
 
@@ -236,9 +239,9 @@ class TomoAlign(CommonService):
             self.imod_directory = (
                 str(Path(tomo_params.aretomo_output_file).with_suffix("")) + "_Imod"
             )
-            f = Path(self.imod_directory)
-            f.chmod(0o750)
-            for file in f.iterdir():
+            _f = Path(self.imod_directory)
+            _f.chmod(0o750)
+            for file in _f.iterdir():
                 file.chmod(0o740)
 
         # Extract results for ispyb
@@ -253,7 +256,7 @@ class TomoAlign(CommonService):
                 self.log.warning(f"No rot Z {self.rot_centre_z_list}")
 
         if tomo_params.pix_size:
-            pix_spacing = str(tomo_params.pix_size * tomo_params.out_bin)
+            pix_spacing: str | None = str(tomo_params.pix_size * tomo_params.out_bin)
         else:
             pix_spacing = None
         # Forward results to ispyb
@@ -287,7 +290,7 @@ class TomoAlign(CommonService):
         if Path(self.dark_images_file).is_file():
             with open(self.dark_images_file) as f:
                 missing_indices = [int(i) for i in f.readlines()[2:]]
-        elif Path(self.imod_directory).is_dir():
+        elif self.imod_directory and Path(self.imod_directory).is_dir():
             self.dark_images_file = str(Path(self.imod_directory) / "tilt.com")
             with open(self.dark_images_file) as f:
                 lines = f.readlines()
@@ -310,7 +313,9 @@ class TomoAlign(CommonService):
                             "ispyb_command": "insert_tilt_image_alignment",
                             "psd_file": None,  # should be in ctf table but useful, so we will insert
                             "refined_magnification": str(self.mag),
-                            "refined_tilt_angle": self.refined_tilts[im - im_diff],
+                            "refined_tilt_angle": str(self.refined_tilts[im - im_diff])
+                            if self.refined_tilts
+                            else None,
                             "refined_tilt_axis": str(self.rot),
                             "movie_id": movie[2],
                         }
