@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import logging
-import pathlib
 import time
 from pathlib import Path
 
@@ -20,7 +19,7 @@ def mrc_to_jpeg(plugin_params):
     if not filename or filename == "None":
         logger.error("Skipping mrc to jpeg conversion: filename not specified")
         return False
-    filepath = pathlib.Path(filename)
+    filepath = Path(filename)
     if not filepath.is_file():
         logger.error(f"File {filepath} not found")
         return False
@@ -126,7 +125,7 @@ def picked_particles(plugin_params):
     if not outfile:
         logger.error(f"Outfile incorrectly specified: {outfile}")
         return False
-    if not pathlib.Path(basefilename).is_file():
+    if not Path(basefilename).is_file():
         logger.error(f"File {basefilename} not found")
         return False
     radius = (diam / angpix) // 2
@@ -187,7 +186,7 @@ def mrc_central_slice(plugin_params):
     if not filename or filename == "None":
         logger.error("Skipping mrc to jpeg conversion: filename not specified")
         return False
-    filepath = pathlib.Path(filename)
+    filepath = Path(filename)
     if not filepath.is_file():
         logger.error(f"File {filepath} not found")
         return False
@@ -252,5 +251,79 @@ def mrc_central_slice(plugin_params):
             "ispyb",
             ispyb_command,
         )
+    Path(outfile).chmod(0o740)
+    return outfile
 
+
+def mrc_to_apng(plugin_params):
+    filename = plugin_params.parameters("file")
+    rw = plugin_params.rw
+
+    if not filename or filename == "None":
+        logger.error("Skipping mrc to jpeg conversion: filename not specified")
+        return False
+    filepath = Path(filename)
+
+    filepath.chmod(0o740)
+
+    if not filepath.is_file():
+        logger.error(f"File {filepath} not found")
+        return False
+    start = time.perf_counter()
+    try:
+        with mrcfile.open(filepath) as mrc:
+            data = mrc.data
+    except ValueError:
+        logger.error(
+            f"File {filepath} could not be opened. It may be corrupted or not in mrc format"
+        )
+        return False
+    outfile = str(filepath.with_suffix("")) + "_movie.png"
+
+    if len(data.shape) == 3:
+        images_to_append = []
+        for i, frame in enumerate(data):
+            frame = frame - frame.min()
+            frame = frame * 255 / frame.max()
+            frame = frame.astype("uint8")
+            im = PIL.Image.fromarray(frame, mode="L")
+            im.thumbnail((512, 512))
+            images_to_append.append(im)
+        try:
+            im.save(outfile, save_all=True, append_images=images_to_append)
+        except FileNotFoundError:
+            logger.error(
+                f"Trying to save to file {outfile} but directory does not exist"
+            )
+            return False
+    else:
+        logger.error(f"File {filepath} is not a 3D volume")
+    timing = time.perf_counter() - start
+    logger.info(
+        f"Converted mrc to apng {filename} -> {outfile} in {timing:.1f} seconds"
+    )
+
+    ispyb_command = {
+        "ispyb_command": "add_program_attachment",
+        "file_name": str(Path(outfile).name),
+        "file_path": str(Path(outfile).parent),
+    }
+
+    class RW_mock:
+        def dummy(self, *args, **kwargs):
+            pass
+
+    if not rw:
+        rw = RW_mock()
+        rw.send = rw.dummy
+
+    logger.info("Sending to ISPyB")
+    if isinstance(rw, RW_mock):
+        rw.send("ispyb_connector", ispyb_command)
+    else:
+        rw.send_to(
+            "ispyb",
+            ispyb_command,
+        )
+    Path(outfile).chmod(0o740)
     return outfile

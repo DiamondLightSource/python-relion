@@ -3,43 +3,45 @@ from __future__ import annotations
 import ast
 import os.path
 from pathlib import Path
+from typing import List
 
 import plotly.express as px
 import procrunner
 import workflows.recipe
+import workflows.transport
 from pydantic import BaseModel, Field, validator
 from pydantic.error_wrappers import ValidationError
 from workflows.services.common_service import CommonService
 
 
 class TomoParameters(BaseModel):
-    input_file_list: str
+    input_file_list: List[list]
     stack_file: str = Field(..., min_length=1)
-    position: str = None
-    aretomo_output_file: str = None
+    position: str | None = None
+    aretomo_output_file: str | None = None
     vol_z: int = 1200
-    align: int = None
+    align: int | None = None
     out_bin: int = 4
-    tilt_axis: float = None
+    tilt_axis: float | None = None
     tilt_cor: int = 1
-    flip_int: int = None
+    flip_int: int | None = None
     flip_vol: int = 1
-    wbp: int = None
-    roi_file: list = None
-    patch: int = None
-    kv: int = None
-    align_file: str = None
-    angle_file: str = None
-    align_z: int = None
-    pix_size: int = None
-    init_val: int = None
-    refine_flag: int = None
+    wbp: int | None = None
+    roi_file: list = []
+    patch: int | None = None
+    kv: int | None = None
+    align_file: str | None = None
+    angle_file: str | None = None
+    align_z: int | None = None
+    pix_size: int | None = None
+    init_val: int | None = None
+    refine_flag: int | None = None
     out_imod: int = 1
-    out_imod_xf: int = None
-    dark_tol: int or str = None
-    manual_tilt_offset: int = None
+    out_imod_xf: int | None = None
+    dark_tol: int | str | None = None
+    manual_tilt_offset: int | None = None
 
-    @validator("input_file_list")
+    @validator("input_file_list", pre=True)
     def convert_to_list_of_lists(cls, v):
         file_list = ast.literal_eval(v)
         if isinstance(file_list, list) and isinstance(file_list[0], list):
@@ -62,18 +64,17 @@ class TomoAlign(CommonService):
     _logger_name = "relion.zocalo.tomo_align"
 
     # Values to extract for ISPyB
-    refined_tilts = None
-    tilt_offset = None
-    rot_centre_z_list = []
-    rot_centre_z = None
-    rot = None
-    mag = None
-    plot_path = None
-    central_slice_location = None
-    dark_images_file = None
-    imod_directory = None
-    xy_proj_file = None
-    xz_proj_file = None
+    refined_tilts: List[float] | None = None
+    tilt_offset: float | None = None
+    rot_centre_z_list: List[str] = []
+    rot_centre_z: str | None = None
+    rot: float | None = None
+    mag: float | None = None
+    plot_path: str | None = None
+    dark_images_file: str | None = None
+    imod_directory: str | None = None
+    xy_proj_file: str | None = None
+    xz_proj_file: str | None = None
 
     def initializing(self):
         """Subscribe to a queue. Received messages must be acknowledged."""
@@ -91,7 +92,7 @@ class TomoAlign(CommonService):
         if line.startswith("Rot center Z"):
             self.rot_centre_z_list.append(line.split()[5])
         if line.startswith("Tilt offset"):
-            self.tilt_offset = line.split()[2].strip(",")
+            self.tilt_offset = float(line.split()[2].strip(","))
 
     def extract_from_aln(self, tomo_parameters):
         tomo_aln_file = None
@@ -123,6 +124,8 @@ class TomoAlign(CommonService):
 
     def tomo_align(self, rw, header: dict, message: dict):
         class RW_mock:
+            transport: workflows.transport.common_transport.CommonTransport
+
             def dummy(self, *args, **kwargs):
                 pass
 
@@ -164,12 +167,12 @@ class TomoAlign(CommonService):
             rw.transport.nack(header)
             return
 
-        def tilt(file_list):
+        def _tilt(file_list):
             return float(file_list[1])
 
-        tomo_params.input_file_list.sort(key=tilt)
+        tomo_params.input_file_list.sort(key=_tilt)
 
-        tilt_dict = {}
+        tilt_dict: dict = {}
         for tilt in tomo_params.input_file_list:
             if tilt[1] not in tilt_dict:
                 tilt_dict[tilt[1]] = []
@@ -204,10 +207,7 @@ class TomoAlign(CommonService):
 
         stack_file_root = str(Path(tomo_params.stack_file).with_suffix(""))
         tomo_params.aretomo_output_file = stack_file_root + "_aretomo.mrc"
-        self.central_slice_location = (
-            str(Path(tomo_params.aretomo_output_file).with_suffix(""))
-            + "_thumbnail.jpeg"
-        )
+
         self.plot_path = stack_file_root + "_xy_shift_plot.json"
         self.dark_images_file = stack_file_root + "_DarkImgs.txt"
         self.xy_proj_file = (
@@ -225,12 +225,6 @@ class TomoAlign(CommonService):
         if d.is_file():
             d.chmod(0o740)
 
-        c = Path(self.central_slice_location)
-        if c.is_file():
-            c.chmod(0o740)
-        else:
-            self.log.warning(f"{self.central_slice_location} hasn't been written yet")
-
         aretomo_result = self.aretomo(tomo_params.aretomo_output_file, tomo_params)
 
         if aretomo_result.returncode:
@@ -245,9 +239,9 @@ class TomoAlign(CommonService):
             self.imod_directory = (
                 str(Path(tomo_params.aretomo_output_file).with_suffix("")) + "_Imod"
             )
-            f = Path(self.imod_directory)
-            f.chmod(0o750)
-            for file in f.iterdir():
+            _f = Path(self.imod_directory)
+            _f.chmod(0o750)
+            for file in _f.iterdir():
                 file.chmod(0o740)
 
         # Extract results for ispyb
@@ -262,7 +256,7 @@ class TomoAlign(CommonService):
                 self.log.warning(f"No rot Z {self.rot_centre_z_list}")
 
         if tomo_params.pix_size:
-            pix_spacing = str(tomo_params.pix_size * tomo_params.out_bin)
+            pix_spacing: str | None = str(tomo_params.pix_size * tomo_params.out_bin)
         else:
             pix_spacing = None
         # Forward results to ispyb
@@ -277,7 +271,7 @@ class TomoAlign(CommonService):
                 "size_y": None,
                 "size_z": None,
                 "pixel_spacing": pix_spacing,
-                "tilt_angle_offset": self.tilt_offset,
+                "tilt_angle_offset": str(self.tilt_offset),
                 "z_shift": self.rot_centre_z,
                 "store_result": "ispyb_tomogram_id",
             }
@@ -296,8 +290,8 @@ class TomoAlign(CommonService):
         if Path(self.dark_images_file).is_file():
             with open(self.dark_images_file) as f:
                 missing_indices = [int(i) for i in f.readlines()[2:]]
-        elif Path(self.imod_directory).is_dir():
-            self.dark_images_file = Path(self.imod_directory) / "tilt.com"
+        elif self.imod_directory and Path(self.imod_directory).is_dir():
+            self.dark_images_file = str(Path(self.imod_directory) / "tilt.com")
             with open(self.dark_images_file) as f:
                 lines = f.readlines()
                 for line in lines:
@@ -318,9 +312,11 @@ class TomoAlign(CommonService):
                         {
                             "ispyb_command": "insert_tilt_image_alignment",
                             "psd_file": None,  # should be in ctf table but useful, so we will insert
-                            "refined_magnification": self.mag,
-                            "refined_tilt_angle": self.refined_tilts[im - im_diff],
-                            "refined_tilt_axis": self.rot,
+                            "refined_magnification": str(self.mag),
+                            "refined_tilt_angle": str(self.refined_tilts[im - im_diff])
+                            if self.refined_tilts
+                            else None,
+                            "refined_tilt_axis": str(self.rot),
                             "movie_id": movie[2],
                         }
                     )
@@ -355,11 +351,25 @@ class TomoAlign(CommonService):
                     "file": tomo_params.aretomo_output_file,
                 },
             )
+            rw.transport.send(
+                destination="images",
+                message={
+                    "parameters": {"images_command": "mrc_to_apng"},
+                    "file": tomo_params.aretomo_output_file,
+                },
+            )
         else:
             rw.send_to(
                 "images",
                 {
                     "parameters": {"images_command": "mrc_central_slice"},
+                    "file": tomo_params.aretomo_output_file,
+                },
+            )
+            rw.send_to(
+                "images",
+                {
+                    "parameters": {"images_command": "mrc_to_apng"},
                     "file": tomo_params.aretomo_output_file,
                 },
             )
