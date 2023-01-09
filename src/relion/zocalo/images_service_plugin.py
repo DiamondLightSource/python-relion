@@ -256,8 +256,14 @@ def mrc_central_slice(plugin_params):
     return outfile
 
 
-def mrc_to_apng(mrc_file):
-    filepath = pathlib.Path(mrc_file)
+def mrc_to_apng(plugin_params):
+    filename = plugin_params.parameters("file")
+    rw = plugin_params.rw
+
+    if not filename or filename == "None":
+        logger.error("Skipping mrc to jpeg conversion: filename not specified")
+        return False
+    filepath = pathlib.Path(filename)
     if not filepath.is_file():
         logger.error(f"File {filepath} not found")
         return False
@@ -270,7 +276,7 @@ def mrc_to_apng(mrc_file):
             f"File {filepath} could not be opened. It may be corrupted or not in mrc format"
         )
         return False
-    outfile = filepath.with_suffix(".png")
+    outfile = str(filepath.with_suffix("")) + "_movie.png"
 
     if len(data.shape) == 3:
         images_to_append = []
@@ -292,6 +298,29 @@ def mrc_to_apng(mrc_file):
         logger.error(f"File {filepath} is not a 3D volume")
     timing = time.perf_counter() - start
     logger.info(
-        f"Converted mrc to apng {mrc_file} -> {outfile} in {timing:.1f} seconds"
+        f"Converted mrc to apng {filename} -> {outfile} in {timing:.1f} seconds"
     )
+
+    logger.info("Sending to ISPyB")
+    ispyb_command = {
+        "ispyb_command": "add_program_attachment",
+        "file_name": str(Path(outfile).name),
+        "file_path": str(Path(outfile).parent),
+    }
+
+    class RW_mock:
+        def dummy(self, *args, **kwargs):
+            pass
+
+    if not rw:
+        rw = RW_mock()
+        rw.send = rw.dummy
+
+    if isinstance(rw, RW_mock):
+        rw.send("ispyb_connector", ispyb_command)
+    else:
+        rw.send_to(
+            "ispyb",
+            ispyb_command,
+        )
     return outfile

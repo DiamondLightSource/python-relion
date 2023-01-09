@@ -70,6 +70,7 @@ class TomoAlign(CommonService):
     mag = None
     plot_path = None
     central_slice_location = None
+    stack_movie_location = None
     dark_images_file = None
     imod_directory = None
     xy_proj_file = None
@@ -208,6 +209,9 @@ class TomoAlign(CommonService):
             str(Path(tomo_params.aretomo_output_file).with_suffix(""))
             + "_thumbnail.jpeg"
         )
+        self.stack_movie_location = (
+            str(Path(tomo_params.aretomo_output_file).with_suffix("")) + "_movie.png"
+        )
         self.plot_path = stack_file_root + "_xy_shift_plot.json"
         self.dark_images_file = stack_file_root + "_DarkImgs.txt"
         self.xy_proj_file = (
@@ -230,6 +234,12 @@ class TomoAlign(CommonService):
             c.chmod(0o740)
         else:
             self.log.warning(f"{self.central_slice_location} hasn't been written yet")
+
+        m = Path(self.stack_movie_location)
+        if m.is_file():
+            m.chmod(0o740)
+        else:
+            self.log.warning(f"{self.stack_movie_location} hasn't been written yet")
 
         aretomo_result = self.aretomo(tomo_params.aretomo_output_file, tomo_params)
 
@@ -355,11 +365,25 @@ class TomoAlign(CommonService):
                     "file": tomo_params.aretomo_output_file,
                 },
             )
+            rw.transport.send(
+                destination="images",
+                message={
+                    "parameters": {"images_command": "mrc_to_apng"},
+                    "file": tomo_params.aretomo_output_file,
+                },
+            )
         else:
             rw.send_to(
                 "images",
                 {
                     "parameters": {"images_command": "mrc_central_slice"},
+                    "file": tomo_params.aretomo_output_file,
+                },
+            )
+            rw.send_to(
+                "images",
+                {
+                    "parameters": {"images_command": "mrc_to_apng"},
                     "file": tomo_params.aretomo_output_file,
                 },
             )
