@@ -70,8 +70,6 @@ class TomoAlign(CommonService):
     rot: float = None
     mag: float = None
     plot_path: str = None
-    central_slice_location: str = None
-    stack_movie_location: str = None
     dark_images_file: str = None
     imod_directory: str = None
     xy_proj_file: str = None
@@ -206,13 +204,7 @@ class TomoAlign(CommonService):
 
         stack_file_root = str(Path(tomo_params.stack_file).with_suffix(""))
         tomo_params.aretomo_output_file = stack_file_root + "_aretomo.mrc"
-        self.central_slice_location = (
-            str(Path(tomo_params.aretomo_output_file).with_suffix(""))
-            + "_thumbnail.jpeg"
-        )
-        self.stack_movie_location = (
-            str(Path(tomo_params.aretomo_output_file).with_suffix("")) + "_movie.png"
-        )
+
         self.plot_path = stack_file_root + "_xy_shift_plot.json"
         self.dark_images_file = stack_file_root + "_DarkImgs.txt"
         self.xy_proj_file = (
@@ -229,18 +221,6 @@ class TomoAlign(CommonService):
         d = Path(self.dark_images_file)
         if d.is_file():
             d.chmod(0o740)
-
-        c = Path(self.central_slice_location)
-        if c.is_file():
-            c.chmod(0o740)
-        else:
-            self.log.warning(f"{self.central_slice_location} hasn't been written yet")
-
-        m = Path(self.stack_movie_location)
-        if m.is_file():
-            m.chmod(0o740)
-        else:
-            self.log.warning(f"{self.stack_movie_location} hasn't been written yet")
 
         aretomo_result = self.aretomo(tomo_params.aretomo_output_file, tomo_params)
 

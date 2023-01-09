@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import logging
-import pathlib
 import time
 from pathlib import Path
 
@@ -20,7 +19,7 @@ def mrc_to_jpeg(plugin_params):
     if not filename or filename == "None":
         logger.error("Skipping mrc to jpeg conversion: filename not specified")
         return False
-    filepath = pathlib.Path(filename)
+    filepath = Path(filename)
     if not filepath.is_file():
         logger.error(f"File {filepath} not found")
         return False
@@ -126,7 +125,7 @@ def picked_particles(plugin_params):
     if not outfile:
         logger.error(f"Outfile incorrectly specified: {outfile}")
         return False
-    if not pathlib.Path(basefilename).is_file():
+    if not Path(basefilename).is_file():
         logger.error(f"File {basefilename} not found")
         return False
     radius = (diam / angpix) // 2
@@ -187,7 +186,7 @@ def mrc_central_slice(plugin_params):
     if not filename or filename == "None":
         logger.error("Skipping mrc to jpeg conversion: filename not specified")
         return False
-    filepath = pathlib.Path(filename)
+    filepath = Path(filename)
     if not filepath.is_file():
         logger.error(f"File {filepath} not found")
         return False
@@ -252,7 +251,7 @@ def mrc_central_slice(plugin_params):
             "ispyb",
             ispyb_command,
         )
-
+    Path(outfile).chmod(0o740)
     return outfile
 
 
@@ -263,7 +262,10 @@ def mrc_to_apng(plugin_params):
     if not filename or filename == "None":
         logger.error("Skipping mrc to jpeg conversion: filename not specified")
         return False
-    filepath = pathlib.Path(filename)
+    filepath = Path(filename)
+
+    filepath.chmod(0o740)
+
     if not filepath.is_file():
         logger.error(f"File {filepath} not found")
         return False
@@ -323,4 +325,5 @@ def mrc_to_apng(plugin_params):
             "ispyb",
             ispyb_command,
         )
+    Path(outfile).chmod(0o740)
     return outfile
