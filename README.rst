@@ -11,10 +11,6 @@ Python bindings to RELION
         :target: https://pypi.python.org/pypi/relion
         :alt: Supported Python versions
 
-.. image:: https://img.shields.io/lgtm/alerts/g/DiamondLightSource/python-relion.svg?logo=lgtm&logoWidth=18
-        :target: https://lgtm.com/projects/g/DiamondLightSource/python-relion/alerts/
-        :alt: Total alerts
-
 .. image:: https://readthedocs.org/projects/python-relion/badge/?version=latest
         :target: https://python-relion.readthedocs.io/en/latest/?badge=latest
         :alt: Documentation Status
