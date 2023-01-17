@@ -55,11 +55,8 @@ class TomoAlign(CommonService):
     A service for grouping and aligning tomography tilt-series with Newstack and AreTomo
     """
 
-    # Required parameters: list of lists with filename, tilt and uuid, stack output file name (output file name will be used for both stages)
-
     # Human readable service name
     _service_name = "DLS TomoAlign"
-
     # Logger name
     _logger_name = "relion.zocalo.tomo_align"
 
@@ -75,6 +72,8 @@ class TomoAlign(CommonService):
     imod_directory: str | None = None
     xy_proj_file: str | None = None
     xz_proj_file: str | None = None
+    central_slice_file: str | None = None
+    tomogram_movie_file: str | None = None
 
     def initializing(self):
         """Subscribe to a queue. Received messages must be acknowledged."""
@@ -205,17 +204,21 @@ class TomoAlign(CommonService):
             "_"
         )[1]
 
-        stack_file_root = str(Path(tomo_params.stack_file).with_suffix(""))
+        # Roots of the input and output mrc files for AreTomo, used to find locations of other output files
+        stack_file_root = str(
+            Path(tomo_params.stack_file).with_suffix("")
+        )  # path/to/alignment/output/stack
         tomo_params.aretomo_output_file = stack_file_root + "_aretomo.mrc"
+        alignment_file_root = str(
+            Path(tomo_params.aretomo_output_file).with_suffix("")
+        )  # path/to/alignment/output/stack_aretomo
 
         self.plot_path = stack_file_root + "_xy_shift_plot.json"
         self.dark_images_file = stack_file_root + "_DarkImgs.txt"
-        self.xy_proj_file = (
-            str(Path(tomo_params.aretomo_output_file).with_suffix("")) + "_projXY.mrc"
-        )
-        self.xz_proj_file = (
-            str(Path(tomo_params.aretomo_output_file).with_suffix("")) + "_projXZ.mrc"
-        )
+        self.xy_proj_file = alignment_file_root + "_projXY.mrc"
+        self.xz_proj_file = alignment_file_root + "_projXZ.mrc"
+        self.central_slice_file = alignment_file_root + "_thumbnail.jpeg"
+        self.tomogram_movie_file = alignment_file_root + "_movie.png"
 
         p = Path(self.plot_path)
         if p.is_file():
@@ -236,9 +239,7 @@ class TomoAlign(CommonService):
             return
 
         if tomo_params.out_imod:
-            self.imod_directory = (
-                str(Path(tomo_params.aretomo_output_file).with_suffix("")) + "_Imod"
-            )
+            self.imod_directory = alignment_file_root + "_Imod"
             _f = Path(self.imod_directory)
             _f.chmod(0o750)
             for file in _f.iterdir():
@@ -273,6 +274,12 @@ class TomoAlign(CommonService):
                 "pixel_spacing": pix_spacing,
                 "tilt_angle_offset": str(self.tilt_offset),
                 "z_shift": self.rot_centre_z,
+                "file_directory": stack_file_root,
+                "central_slice_image": self.central_slice_file,
+                "tomogram_movie": self.tomogram_movie_file,
+                "xy_shift_plot": self.plot_path,
+                "proj_xy": self.xy_proj_file,
+                "proj_xz": self.xz_proj_file,
                 "store_result": "ispyb_tomogram_id",
             }
         ]
@@ -383,7 +390,6 @@ class TomoAlign(CommonService):
                 message={
                     "parameters": {"images_command": "mrc_to_jpeg"},
                     "file": self.xy_proj_file,
-                    "send_to_ispyb": 1,
                 },
             )
             rw.transport.send(
@@ -391,7 +397,6 @@ class TomoAlign(CommonService):
                 message={
                     "parameters": {"images_command": "mrc_to_jpeg"},
                     "file": self.xz_proj_file,
-                    "send_to_ispyb": 1,
                 },
             )
         else:
@@ -400,7 +405,6 @@ class TomoAlign(CommonService):
                 {
                     "parameters": {"images_command": "mrc_to_jpeg"},
                     "file": self.xy_proj_file,
-                    "send_to_ispyb": 1,
                 },
             )
             rw.send_to(
@@ -408,7 +412,6 @@ class TomoAlign(CommonService):
                 {
                     "parameters": {"images_command": "mrc_to_jpeg"},
                     "file": self.xz_proj_file,
-                    "send_to_ispyb": 1,
                 },
             )
 
