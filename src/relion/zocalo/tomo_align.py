@@ -3,7 +3,7 @@ from __future__ import annotations
 import ast
 import os.path
 from pathlib import Path
-from typing import List
+from typing import List, Optional
 
 import plotly.express as px
 import procrunner
@@ -17,29 +17,29 @@ from workflows.services.common_service import CommonService
 class TomoParameters(BaseModel):
     input_file_list: List[list]
     stack_file: str = Field(..., min_length=1)
-    position: str | None = None
-    aretomo_output_file: str | None = None
+    position: Optional[str] = None
+    aretomo_output_file: Optional[str] = None
     vol_z: int = 1200
-    align: int | None = None
+    align: Optional[int] = None
     out_bin: int = 4
-    tilt_axis: float | None = None
+    tilt_axis: Optional[float] = None
     tilt_cor: int = 1
-    flip_int: int | None = None
+    flip_int: Optional[int] = None
     flip_vol: int = 1
-    wbp: int | None = None
+    wbp: Optional[int] = None
     roi_file: list = []
-    patch: int | None = None
-    kv: int | None = None
-    align_file: str | None = None
-    angle_file: str | None = None
-    align_z: int | None = None
-    pix_size: int | None = None
-    init_val: int | None = None
-    refine_flag: int | None = None
+    patch: Optional[int] = None
+    kv: Optional[int] = None
+    align_file: Optional[str] = None
+    angle_file: Optional[str] = None
+    align_z: Optional[int] = None
+    pix_size: Optional[int] = None
+    init_val: Optional[int] = None
+    refine_flag: Optional[int] = None
     out_imod: int = 1
-    out_imod_xf: int | None = None
-    dark_tol: int | str | None = None
-    manual_tilt_offset: int | None = None
+    out_imod_xf: Optional[int] = None
+    dark_tol: Optional[int, str] = None
+    manual_tilt_offset: Optional[int] = None
 
     @validator("input_file_list", pre=True)
     def convert_to_list_of_lists(cls, v):
