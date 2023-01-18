@@ -3,7 +3,7 @@ from __future__ import annotations
 import ast
 import os.path
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Optional, Union
 
 import plotly.express as px
 import procrunner
@@ -38,7 +38,7 @@ class TomoParameters(BaseModel):
     refine_flag: Optional[int] = None
     out_imod: int = 1
     out_imod_xf: Optional[int] = None
-    dark_tol: Optional[int, str] = None
+    dark_tol: Optional[Union[int, str]] = None
     manual_tilt_offset: Optional[int] = None
 
     @validator("input_file_list", pre=True)
