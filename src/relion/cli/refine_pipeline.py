@@ -38,9 +38,25 @@ def run():
         dest="particle_diameter",
         default=170,
     )
+    parser.add_argument(
+        "--extract-size",
+        help="Extraction box size",
+        dest="extract_size",
+        default=256,
+    )
+    parser.add_argument(
+        "--micrographs-star",
+        help="Path to micrographs star file",
+        dest="micrographs_star",
+        default="CtfFind/job003/micrographs_ctf.star",
+    )
     args = parser.parse_args()
 
     runner = RefinePipelineRunner(
-        args.working_directory, args.particles_file, args.ref_model, mask=args.mask
+        args.working_directory,
+        args.particles_file,
+        args.ref_model,
+        mask=args.mask,
+        extract_size=args.extract_size,
     )
-    runner()
+    runner(micrographs_star=args.micrographs_star)

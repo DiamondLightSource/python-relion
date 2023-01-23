@@ -28,6 +28,7 @@ class RefinePipelineRunner:
         mask: str = "",
         particle_diameter: float = 170,
         autob_highres: float = 4.75,
+        extract_size: int = 0,
     ):
         self._proj_path = Path(project_path)
         self._particles_star = Path(particles_star_file)
@@ -38,6 +39,7 @@ class RefinePipelineRunner:
             "relion.postprocess": {"other_args": f"--autob_highres {autob_highres}"},
         }
         self._mask = mask
+        self._extract_size = extract_size
 
     def _run_job(self, job: str, params: dict, cluster=True) -> str:
         write_default_jobstar(job)
@@ -60,7 +62,7 @@ class RefinePipelineRunner:
         job = "relion.import.other"
         params = {
             "fn_in_other": str(self._particles_star),
-            "node_type": "relion.ParticleStar",
+            "node_type": "Particles STAR file (.star)",
         }
         return self._run_job(job, params, cluster=False)
 
@@ -72,10 +74,29 @@ class RefinePipelineRunner:
     def _run_postprocess(self, input_model: str):
         job = "relion.postprocess"
         params = {"fn_in": input_model, "fn_mask": self._mask, "angpix": -1}
+        if self._mask:
+            params["fn_mask"] = self._mask
         return self._run_job(job, params, cluster=False)
 
-    def __call__(self):
-        import_path = self._run_import() + f"/{self._particles.star.name}"
+    def _run_extract(
+        self,
+        particles_star: str,
+        micrographs: str = "CtfFind/job003/micrographs_ctf.star",
+    ):
+        job = "relion.extract.reextract"
+        params = {
+            "star_mics": micrographs,
+            "fndata_reextract": particles_star,
+            "extract_size": self._extract_size,
+        }
+        return self._run_job(job, params)
+
+    def __call__(self, micrographs_star: str = "CtfFind/job003/micrographs_ctf.star"):
+        import_path = self._run_import() + f"/{self._particles_star.name}"
+        if self._extract_size:
+            import_path = (
+                self._run_extract(import_path, micrographs=micrographs_star)
+                + "/particles.star"
+            )
         refine_path = self._run_refine3d(import_path)
-        if self._mask:
-            self._run_postprocess(refine_path)
+        self._run_postprocess(refine_path)
