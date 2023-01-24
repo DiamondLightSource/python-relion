@@ -18,7 +18,8 @@ def run():
         "-f",
         "--particles-file",
         help="Star file containing particles to be imported",
-        dest="particles_file",
+        action="append",
+        dest="particles_files",
     )
     parser.add_argument(
         "-m",
@@ -52,11 +53,12 @@ def run():
     )
     args = parser.parse_args()
 
-    runner = RefinePipelineRunner(
-        args.working_directory,
-        args.particles_file,
-        args.ref_model,
-        mask=args.mask,
-        extract_size=args.extract_size,
-    )
-    runner(micrographs_star=args.micrographs_star)
+    for pf in args.particles_files:
+        runner = RefinePipelineRunner(
+            args.working_directory,
+            pf,
+            args.ref_model,
+            mask=args.mask,
+            extract_size=args.extract_size,
+        )
+        runner(micrographs_star=args.micrographs_star)

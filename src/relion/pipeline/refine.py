@@ -99,4 +99,5 @@ class RefinePipelineRunner:
                 + "/particles.star"
             )
         refine_path = self._run_refine3d(import_path)
-        self._run_postprocess(refine_path)
+        half_map = list(Path(refine_path).glob("run_half1*unfil.mrc"))[0]
+        self._run_postprocess(str(half_map.relative_to(self._proj_path)))
