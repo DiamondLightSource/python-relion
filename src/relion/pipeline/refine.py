@@ -70,18 +70,25 @@ class RefinePipelineRunner:
 
     def _run_refine3d(self, imported_star_file: str):
         job = "relion.refine3d"
-        params = {"fn_img": imported_star_file, "fn_ref": self._ref_model}
+        if "job" in self._ref_model:
+            model = self._ref_model
+        else:
+            model_import = self._run_import(
+                fn_in=self._ref_model, node_type="3D reference (.mrc)"
+            )
+            model = f"{model_import}/{Path(self._ref_model).name}"
+        params = {"fn_img": imported_star_file, "fn_ref": model}
         return self._run_job(job, params)
 
     def _run_postprocess(self, input_model: str):
         job = "relion.postprocess"
-        if "job" not in self._mask:
+        if "job" in self._mask:
+            mask = self._mask
+        else:
             mask_import = self._run_import(
                 fn_in=self._mask, node_type="3D reference (.mrc)"
             )
             mask = f"{mask_import}/{Path(self._mask).name}"
-        else:
-            mask = self._mask
         params = {"fn_in": input_model, "fn_mask": mask, "angpix": -1}
         return self._run_job(job, params, cluster=False)
 
