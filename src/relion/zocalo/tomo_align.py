@@ -74,6 +74,7 @@ class TomoAlign(CommonService):
     xz_proj_file: str | None = None
     central_slice_file: str | None = None
     tomogram_movie_file: str | None = None
+    newstack_path: str | None = None
 
     def initializing(self):
         """Subscribe to a queue. Received messages must be acknowledged."""
@@ -191,19 +192,6 @@ class TomoAlign(CommonService):
                 self.log.warning(f"Removing: {values_to_remove}")
                 tomo_params.input_file_list.remove(tomo_params.input_file_list[index])
 
-        newstack_result = self.newstack(tomo_params)
-        if newstack_result.returncode:
-            self.log.error(
-                f"Newstack failed with exitcode {newstack_result.returncode}:\n"
-                + newstack_result.stderr.decode("utf8", "replace")
-            )
-            rw.transport.nack(header)
-            return
-
-        tomo_params.position = str(Path(tomo_params.input_file_list[0][0]).name).split(
-            "_"
-        )[1]
-
         # Roots of the input and output mrc files for AreTomo, used to find locations of other output files
         stack_file_root = str(
             Path(tomo_params.stack_file).with_suffix("")
@@ -219,6 +207,20 @@ class TomoAlign(CommonService):
         self.xz_proj_file = alignment_file_root + "_projXZ.mrc"
         self.central_slice_file = alignment_file_root + "_thumbnail.jpeg"
         self.tomogram_movie_file = alignment_file_root + "_movie.png"
+        self.newstack_path = stack_file_root + "_newstack.txt"
+
+        newstack_result = self.newstack(tomo_params)
+        if newstack_result.returncode:
+            self.log.error(
+                f"Newstack failed with exitcode {newstack_result.returncode}:\n"
+                + newstack_result.stderr.decode("utf8", "replace")
+            )
+            rw.transport.nack(header)
+            return
+
+        tomo_params.position = str(Path(tomo_params.input_file_list[0][0]).name).split(
+            "_"
+        )[1]
 
         p = Path(self.plot_path)
         if p.is_file():
@@ -415,7 +417,7 @@ class TomoAlign(CommonService):
         """
 
         # Write a file with a list of .mrcs for input to Newstack
-        with open("newstack-fileinlist.txt", "w") as f:
+        with open(self.newstack_path, "w") as f:
             f.write(f"{len(tomo_parameters.input_file_list)}\n")
             f.write("\n0\n".join(i[0] for i in tomo_parameters.input_file_list))
             f.write("\n0\n")
@@ -423,7 +425,7 @@ class TomoAlign(CommonService):
         newstack_cmd = [
             "newstack",
             "-fileinlist",
-            "newstack-fileinlist.txt",
+            self.newstack_path,
             "-output",
             tomo_parameters.stack_file,
             "-quiet",
