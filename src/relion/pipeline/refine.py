@@ -58,11 +58,13 @@ class RefinePipelineRunner:
         )
         return job_path
 
-    def _run_import(self) -> str:
+    def _run_import(
+        self, fn_in: str = "", node_type: str = "Particles STAR file (.star)"
+    ) -> str:
         job = "relion.import.other"
         params = {
-            "fn_in_other": str(self._particles_star),
-            "node_type": "Particles STAR file (.star)",
+            "fn_in_other": fn_in or str(self._particles_star),
+            "node_type": node_type,
         }
         return self._run_job(job, params, cluster=False)
 
@@ -73,9 +75,14 @@ class RefinePipelineRunner:
 
     def _run_postprocess(self, input_model: str):
         job = "relion.postprocess"
-        params = {"fn_in": input_model, "fn_mask": self._mask, "angpix": -1}
-        if self._mask:
-            params["fn_mask"] = self._mask
+        if "job" not in self._mask:
+            mask_import = self._run_import(
+                fn_in=self._mask, node_type="3D reference (.mrc)"
+            )
+            mask = f"{mask_import}/{Path(self._mask).name}"
+        else:
+            mask = self._mask
+        params = {"fn_in": input_model, "fn_mask": mask, "angpix": -1}
         return self._run_job(job, params, cluster=False)
 
     def _run_extract(
