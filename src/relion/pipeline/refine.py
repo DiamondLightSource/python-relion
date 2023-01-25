@@ -29,13 +29,19 @@ class RefinePipelineRunner:
         particle_diameter: float = 170,
         autob_highres: float = 4.75,
         extract_size: int = 0,
+        symmetry: str = "C1",
+        ini_high: float = 60,
     ):
         self._proj_path = Path(project_path)
         self._particles_star = Path(particles_star_file)
         self._proj = PipelinerProject()
         self._ref_model = ref_model
         self._default_params = {
-            "relion.refine3d": {"particle_diameter": particle_diameter},
+            "relion.refine3d": {
+                "particle_diameter": particle_diameter,
+                "sym_name": symmetry,
+                "ini_high": ini_high,
+            },
             "relion.postprocess": {"other_args": f"--autob_highres {autob_highres}"},
         }
         self._mask = mask

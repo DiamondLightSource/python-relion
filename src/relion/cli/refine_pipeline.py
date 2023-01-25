@@ -51,6 +51,24 @@ def run():
         dest="micrographs_star",
         default="CtfFind/job003/micrographs_ctf.star",
     )
+    parser.add_argument(
+        "--autob-highres",
+        help="High resolution limit for b-factor calculation",
+        dest="autob_highres",
+        default=4.75,
+    )
+    parser.add_argument(
+        "--ini-high",
+        help="Low pass filter for 3D refinement",
+        dest="ini_high",
+        default=60,
+    )
+    parser.add_argument(
+        "--sym",
+        help="Symmetry for 3D refinement",
+        dest="sym",
+        default="C1",
+    )
     args = parser.parse_args()
 
     for pf in args.particles_files:
@@ -59,6 +77,9 @@ def run():
             pf,
             args.ref_model,
             mask=args.mask,
+            autob_highres=args.autob_highres,
             extract_size=args.extract_size,
+            symmetry=args.sym,
+            ini_high=args.ini_high,
         )
         runner(micrographs_star=args.micrographs_star)
