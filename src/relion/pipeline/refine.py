@@ -112,7 +112,10 @@ class RefinePipelineRunner:
         return self._run_job(job, params)
 
     def __call__(self, micrographs_star: str = "CtfFind/job003/micrographs_ctf.star"):
-        import_path = self._run_import() + f"/{self._particles_star.name}"
+        if "/job" in str(self._particles_star):
+            import_path = str(self._particles_star)
+        else:
+            import_path = self._run_import() + f"/{self._particles_star.name}"
         if self._extract_size:
             import_path = (
                 self._run_extract(import_path, micrographs=micrographs_star)
