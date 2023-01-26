@@ -102,7 +102,7 @@ class TomoAlign(CommonService):
         x_shift = []
         y_shift = []
         self.refined_tilts = []
-        aln_files = list(Path(tomo_parameters.aretomo_output_file).parent.glob("*.aln"))
+        aln_files = list(Path(self.alignment_output_dir).glob("*.aln"))
 
         file_name = Path(tomo_parameters.stack_file).stem
         for aln_file in aln_files:
@@ -198,7 +198,9 @@ class TomoAlign(CommonService):
         self.alignment_output_dir = str(Path(tomo_params.stack_file).parent)
         self.stack_name = str(Path(tomo_params.stack_file).stem)
 
-        tomo_params.aretomo_output_file = self.stack_name + "_aretomo.mrc"
+        tomo_params.aretomo_output_file = (
+            self.alignment_output_dir + "/" + self.stack_name + "_aretomo.mrc"
+        )
         self.plot_file = self.stack_name + "_xy_shift_plot.json"
         self.plot_path = self.alignment_output_dir + self.plot_file
         self.dark_images_file = self.stack_name + "_DarkImgs.txt"
@@ -241,7 +243,7 @@ class TomoAlign(CommonService):
 
         if tomo_params.out_imod:
             self.imod_directory = (
-                self.alignment_output_dir + self.stack_name + "_aretomo_Imod"
+                self.alignment_output_dir + "/" + self.stack_name + "_aretomo_Imod"
             )
             _f = Path(self.imod_directory)
             _f.chmod(0o750)
