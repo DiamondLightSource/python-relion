@@ -68,6 +68,7 @@ class TomoAlign(CommonService):
     rot: float | None = None
     mag: float | None = None
     plot_path: str | None = None
+    plot_file: str | None = None
     dark_images_file: str | None = None
     imod_directory: str | None = None
     xy_proj_file: str | None = None
@@ -75,6 +76,8 @@ class TomoAlign(CommonService):
     central_slice_file: str | None = None
     tomogram_movie_file: str | None = None
     newstack_path: str | None = None
+    alignment_output_dir: str | None = None
+    stack_name: str | None = None
 
     def initializing(self):
         """Subscribe to a queue. Received messages must be acknowledged."""
@@ -192,22 +195,18 @@ class TomoAlign(CommonService):
                 self.log.warning(f"Removing: {values_to_remove}")
                 tomo_params.input_file_list.remove(tomo_params.input_file_list[index])
 
-        # Roots of the input and output mrc files for AreTomo, used to find locations of other output files
-        stack_file_root = str(
-            Path(tomo_params.stack_file).with_suffix("")
-        )  # path/to/alignment/output/stack
-        tomo_params.aretomo_output_file = stack_file_root + "_aretomo.mrc"
-        alignment_file_root = str(
-            Path(tomo_params.aretomo_output_file).with_suffix("")
-        )  # path/to/alignment/output/stack_aretomo
+        self.alignment_output_dir = str(Path(tomo_params.stack_file).parent)
+        self.stack_name = str(Path(tomo_params.stack_file).stem)
 
-        self.plot_path = stack_file_root + "_xy_shift_plot.json"
-        self.dark_images_file = stack_file_root + "_DarkImgs.txt"
-        self.xy_proj_file = alignment_file_root + "_projXY.mrc"
-        self.xz_proj_file = alignment_file_root + "_projXZ.mrc"
-        self.central_slice_file = alignment_file_root + "_thumbnail.jpeg"
-        self.tomogram_movie_file = alignment_file_root + "_movie.png"
-        self.newstack_path = stack_file_root + "_newstack.txt"
+        tomo_params.aretomo_output_file = self.stack_name + "_aretomo.mrc"
+        self.plot_file = self.stack_name + "_xy_shift_plot.json"
+        self.plot_path = self.alignment_output_dir + self.plot_file
+        self.dark_images_file = self.stack_name + "_DarkImgs.txt"
+        self.xy_proj_file = self.stack_name + "_aretomo_projXY.jpeg"
+        self.xz_proj_file = self.stack_name + "_aretomo_projXZ.jpeg"
+        self.central_slice_file = self.stack_name + "_aretomo_thumbnail.jpeg"
+        self.tomogram_movie_file = self.stack_name + "_aretomo_movie.png"
+        self.newstack_path = self.stack_name + "_newstack.txt"
 
         newstack_result = self.newstack(tomo_params)
         if newstack_result.returncode:
@@ -241,7 +240,9 @@ class TomoAlign(CommonService):
             return
 
         if tomo_params.out_imod:
-            self.imod_directory = alignment_file_root + "_Imod"
+            self.imod_directory = (
+                self.alignment_output_dir + self.stack_name + "_aretomo_Imod"
+            )
             _f = Path(self.imod_directory)
             _f.chmod(0o750)
             for file in _f.iterdir():
@@ -276,10 +277,10 @@ class TomoAlign(CommonService):
                 "pixel_spacing": pix_spacing,
                 "tilt_angle_offset": str(self.tilt_offset),
                 "z_shift": self.rot_centre_z,
-                "file_directory": stack_file_root,
+                "file_directory": self.alignment_output_dir,
                 "central_slice_image": self.central_slice_file,
                 "tomogram_movie": self.tomogram_movie_file,
-                "xy_shift_plot": self.plot_path,
+                "xy_shift_plot": self.plot_file,
                 "proj_xy": self.xy_proj_file,
                 "proj_xz": self.xz_proj_file,
                 "store_result": "ispyb_tomogram_id",
