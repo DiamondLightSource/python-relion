@@ -376,8 +376,16 @@ class TomoAlign(CommonService):
                     "file": tomo_params.aretomo_output_file,
                 },
             )
-        xy_input = str(Path(self.xy_proj_file).with_suffix(".mrc"))
-        xz_input = str(Path(self.xz_proj_file).with_suffix(".mrc"))
+        xy_input = (
+            self.alignment_output_dir
+            + "/"
+            + str(Path(self.xy_proj_file).with_suffix(".mrc"))
+        )
+        xz_input = (
+            self.alignment_output_dir
+            + "/"
+            + str(Path(self.xz_proj_file).with_suffix(".mrc"))
+        )
         self.log.info(f"Sending to images service {xy_input}, {xz_input}")
         if isinstance(rw, RW_mock):
             rw.transport.send(
