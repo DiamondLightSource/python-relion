@@ -202,7 +202,7 @@ class TomoAlign(CommonService):
             self.alignment_output_dir + "/" + self.stack_name + "_aretomo.mrc"
         )
         self.plot_file = self.stack_name + "_xy_shift_plot.json"
-        self.plot_path = self.alignment_output_dir + self.plot_file
+        self.plot_path = self.alignment_output_dir + "/" + self.plot_file
         self.dark_images_file = self.stack_name + "_DarkImgs.txt"
         self.xy_proj_file = self.stack_name + "_aretomo_projXY.jpeg"
         self.xz_proj_file = self.stack_name + "_aretomo_projXZ.jpeg"
@@ -376,23 +376,22 @@ class TomoAlign(CommonService):
                     "file": tomo_params.aretomo_output_file,
                 },
             )
-
-        self.log.info(
-            f"Sending to images service {self.xy_proj_file}, {self.xz_proj_file}"
-        )
+        xy_input = str(Path(self.xy_proj_file).with_suffix(".mrc"))
+        xz_input = str(Path(self.xz_proj_file).with_suffix(".mrc"))
+        self.log.info(f"Sending to images service {xy_input}, {xz_input}")
         if isinstance(rw, RW_mock):
             rw.transport.send(
                 destination="projxy",
                 message={
                     "parameters": {"images_command": "mrc_to_jpeg"},
-                    "file": self.xy_proj_file,
+                    "file": xy_input,
                 },
             )
             rw.transport.send(
                 destination="projxz",
                 message={
                     "parameters": {"images_command": "mrc_to_jpeg"},
-                    "file": self.xz_proj_file,
+                    "file": xz_input,
                 },
             )
         else:
@@ -400,14 +399,14 @@ class TomoAlign(CommonService):
                 "projxy",
                 {
                     "parameters": {"images_command": "mrc_to_jpeg"},
-                    "file": self.xy_proj_file,
+                    "file": xy_input,
                 },
             )
             rw.send_to(
                 "projxz",
                 {
                     "parameters": {"images_command": "mrc_to_jpeg"},
-                    "file": self.xz_proj_file,
+                    "file": xz_input,
                 },
             )
 
