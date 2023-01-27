@@ -355,7 +355,7 @@ class TomoAlign(CommonService):
                 },
             )
             rw.transport.send(
-                destination="images",
+                destination="movie",
                 message={
                     "parameters": {"images_command": "mrc_to_apng"},
                     "file": tomo_params.aretomo_output_file,
@@ -370,7 +370,7 @@ class TomoAlign(CommonService):
                 },
             )
             rw.send_to(
-                "images",
+                "movie",
                 {
                     "parameters": {"images_command": "mrc_to_apng"},
                     "file": tomo_params.aretomo_output_file,
