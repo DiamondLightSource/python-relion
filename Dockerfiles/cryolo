@@ -1,0 +1,11 @@
+FROM python:3.9
+
+ENV VIRTUAL_ENV=/venv
+RUN python3 -m venv $VIRTUAL_ENV
+ENV PATH="$VIRTUAL_ENV/bin:$PATH"
+ARG groupid
+ARG userid
+
+COPY --chown="${userid}":"${groupid}" ./crYOLO/1.8.4 /crYOLO/1.8.4
+ENV PATH=/crYOLO/1.8.4:${PATH}
+RUN chmod -R a+x /crYOLO/1.8.4

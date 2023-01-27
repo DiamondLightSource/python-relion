@@ -3,6 +3,7 @@ name: tomo-em
 description: An umbrella Helm chart for EM tomography services
 version: 0.0.1
 dependencies:
+- name: cryolo
 - name: ctffind
 - name: motioncorr
 - name: tomo_align
