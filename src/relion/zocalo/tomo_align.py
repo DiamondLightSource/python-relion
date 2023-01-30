@@ -208,7 +208,9 @@ class TomoAlign(CommonService):
         self.xz_proj_file = self.stack_name + "_aretomo_projXZ.jpeg"
         self.central_slice_file = self.stack_name + "_aretomo_thumbnail.jpeg"
         self.tomogram_movie_file = self.stack_name + "_aretomo_movie.png"
-        self.newstack_path = self.stack_name + "_newstack.txt"
+        self.newstack_path = (
+            self.alignment_output_dir + "/" + self.stack_name + "_newstack.txt"
+        )
 
         newstack_result = self.newstack(tomo_params)
         if newstack_result.returncode:
