@@ -252,6 +252,7 @@ class MotionCorr(CommonService):
             "patches_used_x": mc_params.patch_size,
             "patches_used_y": mc_params.patch_size,
             "buffer_store": mc_params.mc_uuid,
+            "dose_per_frame": mc_params.fm_dose,
         }
 
         # Forward results to ISPyB
