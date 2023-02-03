@@ -1,4 +1,0 @@
-apiVersion: v2
-name: cryolo
-description: A Helm chart for crYOLO service
-version: 0.0.1

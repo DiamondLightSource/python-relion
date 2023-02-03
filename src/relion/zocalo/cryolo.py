@@ -2,15 +2,14 @@ from __future__ import annotations
 
 import json
 
-from typing import Optional
-
 import procrunner
 import workflows.recipe
 from pydantic import BaseModel, Field
 from pydantic.error_wrappers import ValidationError
 from workflows.services.common_service import CommonService
 
-class cryoloParameters(BaseModel):
+
+class CryoloParameters(BaseModel):
     boxsize: int
     pix_size: float
     input_path: str = Field(..., min_length=1)
@@ -18,12 +17,13 @@ class cryoloParameters(BaseModel):
     config_file: str = "/dls_sw/apps/EM/crYOLO/phosaurus_models/config.json"
     weights: str = "/dls_sw/apps/EM/crYOLO/phosaurus_models/gmodel_phosnet_202005_N63_c17.h5"
     threshold: float = 0.3
-    #cryolo_gpus: str = "0"
     mc_uuid: int
-    
-class crYOLO(CommonService):
+    cryolo_command: str
+
+
+class CrYOLO(CommonService):
     """
-    A service that runs crYOLO
+    A service that runs crYOLO particle picking
     """
     
     # Human readable service name
@@ -48,6 +48,10 @@ class crYOLO(CommonService):
         )
 
     def parse_cryolo_output(self, line: str):
+        """
+        Read the output logs of cryolo to determine
+        the number of particles that are picked
+        """
         if not line:
             return
 
@@ -60,6 +64,10 @@ class crYOLO(CommonService):
             self.number_of_particles -= int(line_split[1])
 
     def cryolo(self, rw, header: dict, message: dict):
+        """
+        Main function which interprets received messages, runs cryolo
+        and sends messages to the ispyb and image services
+        """
         class RW_mock:
             def dummy(self, *args, **kwargs):
                 pass
@@ -87,29 +95,36 @@ class crYOLO(CommonService):
         # Reset number of particles
         self.number_of_particles = 0
 
-        command = ["src/relion/zocalo/cryolo_load.sh", "cryolo_predict.py"]
-
         try:
             if isinstance(message, dict):
-                cryolo_params = cryoloParameters(
+                cryolo_params = CryoloParameters(
                     **{**rw.recipe_step.get("parameters", {}), **message}
                 )
             else:
-                cryolo_params = cryoloParameters(**{**rw.recipe_step.get("parameters", {})})
+                cryolo_params = CryoloParameters(
+                    **{**rw.recipe_step.get("parameters", {})}
+                )
         except (ValidationError, TypeError):
             self.log.warning(
-                f"crYOLO parameter validation failed for message: {message} and recipe parameters: {rw.recipe_step.get('parameters', {})}"
+                f"crYOLO parameter validation failed for message: {message} "
+                + f"and recipe parameters: "
+                + f"{rw.recipe_step.get('parameters', {})}"
             )
             rw.transport.nack(header)
             return
 
-        # Making a cryolo config file with the correct box size
+        # Make a cryolo config file with the correct box size
         with open(cryolo_params.config_file, "r") as json_file:
             data = json.load(json_file)
-            data["model"]["anchors"] = [cryolo_params.boxsize, cryolo_params.boxsize]
+            data["model"]["anchors"] = [
+                cryolo_params.boxsize,
+                cryolo_params.boxsize
+            ]
         with open("config.json", "w") as outfile:
             json.dump(data, outfile)
 
+        # Construct a command to run cryolo with the given parameters
+        command = cryolo_params.cryolo_command.split()
         command.extend((["--conf", "config.json"]))
 
         cryolo_flags = {
@@ -123,13 +138,23 @@ class crYOLO(CommonService):
         for k, v in cryolo_params.dict().items():
             if v and (k in cryolo_flags):
                 if type(v) is tuple:
-                    command.extend((cryolo_flags[k], " ".join(str(_) for _ in v)))
+                    command.extend((
+                        cryolo_flags[k],
+                        " ".join(str(_) for _ in v)
+                    ))
                 else:
                     command.extend((cryolo_flags[k], str(v)))
 
-        self.log.info(f"Input: {cryolo_params.input_path} Output: {cryolo_params.output_path}")
+        self.log.info(
+            f"Input: {cryolo_params.input_path} "
+            + f"Output: {cryolo_params.output_path}"
+        )
 
-        result = procrunner.run(command=command, callback_stdout=self.parse_cryolo_output)
+        # Run cryolo and confirm it ran successfully
+        result = procrunner.run(
+            command=command,
+            callback_stdout=self.parse_cryolo_output
+        )
         if result.returncode:
             self.log.error(
                 f"crYOLO failed with exitcode {result.returncode}:\n"
@@ -141,16 +166,19 @@ class crYOLO(CommonService):
         # Extract results for ispyb
         ispyb_parameters = {
             "particle_picking_template": cryolo_params.weights,
-            "particle_diameter": cryolo_params.pix_size * cryolo_params.boxsize / 10,
+            "particle_diameter": cryolo_params.pix_size
+                                 * cryolo_params.boxsize / 10,
             "number_of_particles": self.number_of_particles,
-            "summary_image_full_path": cryolo_params.output_path + "picked_particles.mrc",
+            "summary_image_full_path": cryolo_params.output_path
+                                       + "/picked_particles.mrc",
         }
 
         # Forward results to ISPyB
         ispyb_parameters.update(
             {
                 "ispyb_command": "buffer",
-                "buffer_lookup": {"motion_correction_id": cryolo_params.mc_uuid},
+                "buffer_lookup": {"motion_correction_id":
+                                  cryolo_params.mc_uuid},
                 "buffer_command": {"ispyb_command": "insert_particle_picker"},
             }
         )
@@ -167,35 +195,40 @@ class crYOLO(CommonService):
             rw.send_to("ispyb", ispyb_parameters)
 
         # Extract results for images service
-        with open(cryolo_params.output_path + "/STAR/" + cryolo_params.input_path.split("/")[-1][:-4] + ".star", "r") as coords_file:
-            coords = [line.split() for line in coords_file]
+        with open(
+                cryolo_params.output_path + "/STAR/"
+                + cryolo_params.input_path.split("/")[-1][:-4] + ".star",
+                "r"
+                  ) as coords_file:
+            coords = [line.split() for line in coords_file][6:]
             coords_file.close()
 
         # Forward results to images service
-        images_parameters = {
-            "images_command": "picked_particles",
-            "file": cryolo_params.input_path,
-            "coordinates": coords,
-            "angpix": cryolo_params.pix_size,
-            "diameter": cryolo_params.pix_size * cryolo_params.boxsize,
-            "outfile": cryolo_params.output_path + "picked_particles.mrc",
-        }
-
         self.log.info(f"Sending to images service")
         if isinstance(rw, RW_mock):
             rw.transport.send(
                 destination="images",
                 message={
-                    "parameters": images_parameters,
-                    "content": {"dummy": "dummy"},
+                    "parameters": {"images_command": "picked_particles"},
+                    "file": cryolo_params.input_path,
+                    "coordinates": coords,
+                    "angpix": cryolo_params.pix_size,
+                    "diameter": cryolo_params.pix_size * cryolo_params.boxsize,
+                    "outfile": cryolo_params.output_path
+                               + "/picked_particles.jpeg",
                 },
             )
         else:
             rw.send_to(
                 "images",
                 {
-                    "parameters": images_parameters,
-                    "content": {"dummy": "dummy"},
+                    "parameters": {"images_command": "picked_particles"},
+                    "file": cryolo_params.input_path,
+                    "coordinates": coords,
+                    "angpix": cryolo_params.pix_size,
+                    "diameter": cryolo_params.pix_size * cryolo_params.boxsize,
+                    "outfile": cryolo_params.output_path
+                               + "/picked_particles.jpeg",
                 },
             )
 
