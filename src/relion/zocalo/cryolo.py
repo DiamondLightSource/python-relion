@@ -25,7 +25,7 @@ class CrYOLO(CommonService):
     """
     A service that runs crYOLO particle picking
     """
-    
+
     # Human readable service name
     _service_name = "DLS crYOLO"
 
@@ -107,7 +107,7 @@ class CrYOLO(CommonService):
         except (ValidationError, TypeError):
             self.log.warning(
                 f"crYOLO parameter validation failed for message: {message} "
-                + f"and recipe parameters: "
+                + "and recipe parameters: "
                 + f"{rw.recipe_step.get('parameters', {})}"
             )
             rw.transport.nack(header)
@@ -204,7 +204,7 @@ class CrYOLO(CommonService):
             coords_file.close()
 
         # Forward results to images service
-        self.log.info(f"Sending to images service")
+        self.log.info("Sending to images service")
         if isinstance(rw, RW_mock):
             rw.transport.send(
                 destination="images",
