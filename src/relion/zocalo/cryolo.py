@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from pathlib import Path
 
 import procrunner
 import workflows.recipe
@@ -27,7 +28,7 @@ class CrYOLO(CommonService):
     """
 
     # Human readable service name
-    _service_name = "DLS crYOLO"
+    _service_name = "CrYOLO"
 
     # Logger name
     _logger_name = "relion.zocalo.cryolo"
@@ -196,8 +197,8 @@ class CrYOLO(CommonService):
 
         # Extract results for images service
         with open(
-                cryolo_params.output_path + "/STAR/"
-                + cryolo_params.input_path.split("/")[-1][:-4] + ".star",
+                Path(cryolo_params.output_path + "/STAR/")
+                / Path(cryolo_params.input_path).with_suffix(".star").name,
                 "r"
                   ) as coords_file:
             coords = [line.split() for line in coords_file][6:]
