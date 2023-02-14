@@ -51,17 +51,25 @@ def test_cryolo_service(mock_procrunner, mock_environment, offline_transport, tm
             "pix_size": 0.1,
             "input_path": "sample.mrc",
             "output_path": str(tmp_path),
+            "config_file": str(tmp_path) + "/config.json",
             "weights": "sample_weights",
+            "threshold": 0.3,
             "mc_uuid": 0,
             "cryolo_command": "cryolo_predict.py",
         },
         "content": "dummy",
     }
 
+    # write a dummy config file expected by cryolo
+    with open(tmp_path / "config.json", "w") as f:
+        f.write('{\n"model": {\n"anchors": [160, 160]\n}\n}')
+
+    # write star co-ordinate file in the format cryolo will output
     os.mkdir(tmp_path / "STAR")
     with open(tmp_path / "STAR/sample.star", "w") as f:
         f.write("data_\n\nloop_\n\n_rlnCoordinateX\n_rlnCoordinateY\n 0.1, 0.2")
 
+    # set up the mock service and send the message to it
     service = cryolo.CrYOLO(environment=mock_environment)
     service.transport = offline_transport
     service.start()
