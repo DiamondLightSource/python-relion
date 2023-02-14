@@ -583,7 +583,10 @@ class PipelineRunner:
             batch_file = self._queues["class3D"][iteration].get()
             if not batch_file:
                 return
-            if self.job_paths.get("relion.initialmodel") is None:
+            if (
+                self.job_paths.get("relion.initialmodel") is None
+                and not self.options.have_3d_reference
+            ):
                 self.job_paths["relion.initialmodel"] = self.fresh_job(
                     "relion.initialmodel",
                     extra_params={"fn_img": batch_file},
@@ -599,13 +602,17 @@ class PipelineRunner:
                     "use_fsc_criterion is True but angpix has not been specified"
                 )
             try:
+                if self.options.have_3d_reference:
+                    ref = self.options.class3d_reference
+                elif self.options.use_fsc_criterion:
+                    ref = self._best_class_fsc(angpix, boxsize)[0]
+                else:
+                    ref = self._best_class()[0]
                 self.job_paths_batch["relion.class3d"][batch_file] = self.fresh_job(
                     "relion.class3d",
                     extra_params={
                         "fn_img": batch_file,
-                        "fn_ref": self._best_class_fsc(angpix, boxsize)[0]
-                        if self.options.use_fsc_criterion
-                        else self._best_class()[0],
+                        "fn_ref": ref,
                     },
                     lock=self._lock,
                 )
