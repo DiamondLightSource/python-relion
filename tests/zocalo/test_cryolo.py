@@ -1,7 +1,9 @@
-import pytest
-from unittest import mock
+from __future__ import annotations
 
 import os
+from unittest import mock
+
+import pytest
 import zocalo.configuration
 from workflows.transport.offline_transport import OfflineTransport
 
@@ -30,12 +32,7 @@ def offline_transport(mocker):
 
 
 @mock.patch("relion.zocalo.cryolo.procrunner.run")
-def test_cryolo_service(
-        mock_procrunner,
-        mock_environment,
-        offline_transport,
-        tmp_path
-):
+def test_cryolo_service(mock_procrunner, mock_environment, offline_transport, tmp_path):
     """
     Send a test message to CrYOLO
     This should call the mock procrunner
@@ -56,9 +53,9 @@ def test_cryolo_service(
             "output_path": str(tmp_path),
             "weights": "sample_weights",
             "mc_uuid": 0,
-            "cryolo_command": "cryolo_predict.py"
+            "cryolo_command": "cryolo_predict.py",
         },
-        "content": "dummy"
+        "content": "dummy",
     }
 
     os.mkdir(tmp_path / "STAR")
@@ -74,13 +71,18 @@ def test_cryolo_service(
     mock_procrunner.assert_called_with(
         command=[
             "cryolo_predict.py",
-            "--conf", "config.json",
-            "-i", "sample.mrc",
-            "-o", str(tmp_path),
-            "--weights", "sample_weights",
-            "--threshold", "0.3"
+            "--conf",
+            "config.json",
+            "-i",
+            "sample.mrc",
+            "-o",
+            str(tmp_path),
+            "--weights",
+            "sample_weights",
+            "--threshold",
+            "0.3",
         ],
-        callback_stdout=mock.ANY
+        callback_stdout=mock.ANY,
     )
 
     offline_transport.send.assert_any_call(
@@ -90,14 +92,13 @@ def test_cryolo_service(
                 "particle_picking_template": "sample_weights",
                 "particle_diameter": 2.56,
                 "number_of_particles": 0,
-                "summary_image_full_path":
-                    str(tmp_path) + "/picked_particles.mrc",
+                "summary_image_full_path": str(tmp_path) + "/picked_particles.mrc",
                 "ispyb_command": "buffer",
                 "buffer_lookup": {"motion_correction_id": 0},
-                "buffer_command": {"ispyb_command": "insert_particle_picker"}
+                "buffer_command": {"ispyb_command": "insert_particle_picker"},
             },
-            "content": {"dummy": "dummy"}
-        }
+            "content": {"dummy": "dummy"},
+        },
     )
     offline_transport.send.assert_any_call(
         destination="images",
@@ -107,8 +108,8 @@ def test_cryolo_service(
             "coordinates": [["0.1,", "0.2"]],
             "angpix": 0.1,
             "diameter": 25.6,
-            "outfile": str(tmp_path) + "/picked_particles.jpeg"
-        }
+            "outfile": str(tmp_path) + "/picked_particles.jpeg",
+        },
     )
 
 
@@ -123,10 +124,7 @@ def test_parse_cryolo_output(mock_environment, offline_transport):
 
     service.number_of_particles = 0
 
-    cryolo.CrYOLO.parse_cryolo_output(
-        service,
-        "30 particles in total has been found"
-    )
+    cryolo.CrYOLO.parse_cryolo_output(service, "30 particles in total has been found")
     cryolo.CrYOLO.parse_cryolo_output(service, "Deleted 10 particles")
 
     assert service.number_of_particles == 20

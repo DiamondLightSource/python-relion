@@ -16,7 +16,9 @@ class CryoloParameters(BaseModel):
     input_path: str = Field(..., min_length=1)
     output_path: str = Field(..., min_length=1)
     config_file: str = "/dls_sw/apps/EM/crYOLO/phosaurus_models/config.json"
-    weights: str = "/dls_sw/apps/EM/crYOLO/phosaurus_models/gmodel_phosnet_202005_N63_c17.h5"
+    weights: str = (
+        "/dls_sw/apps/EM/crYOLO/phosaurus_models/gmodel_phosnet_202005_N63_c17.h5"
+    )
     threshold: float = 0.3
     mc_uuid: int
     cryolo_command: str
@@ -69,6 +71,7 @@ class CrYOLO(CommonService):
         Main function which interprets received messages, runs cryolo
         and sends messages to the ispyb and image services
         """
+
         class RW_mock:
             def dummy(self, *args, **kwargs):
                 pass
@@ -117,10 +120,7 @@ class CrYOLO(CommonService):
         # Make a cryolo config file with the correct box size
         with open(cryolo_params.config_file, "r") as json_file:
             data = json.load(json_file)
-            data["model"]["anchors"] = [
-                cryolo_params.boxsize,
-                cryolo_params.boxsize
-            ]
+            data["model"]["anchors"] = [cryolo_params.boxsize, cryolo_params.boxsize]
         with open("config.json", "w") as outfile:
             json.dump(data, outfile)
 
@@ -139,10 +139,7 @@ class CrYOLO(CommonService):
         for k, v in cryolo_params.dict().items():
             if v and (k in cryolo_flags):
                 if type(v) is tuple:
-                    command.extend((
-                        cryolo_flags[k],
-                        " ".join(str(_) for _ in v)
-                    ))
+                    command.extend((cryolo_flags[k], " ".join(str(_) for _ in v)))
                 else:
                     command.extend((cryolo_flags[k], str(v)))
 
@@ -153,8 +150,7 @@ class CrYOLO(CommonService):
 
         # Run cryolo and confirm it ran successfully
         result = procrunner.run(
-            command=command,
-            callback_stdout=self.parse_cryolo_output
+            command=command, callback_stdout=self.parse_cryolo_output
         )
         if result.returncode:
             self.log.error(
@@ -167,19 +163,17 @@ class CrYOLO(CommonService):
         # Extract results for ispyb
         ispyb_parameters = {
             "particle_picking_template": cryolo_params.weights,
-            "particle_diameter": cryolo_params.pix_size
-                                 * cryolo_params.boxsize / 10,
+            "particle_diameter": cryolo_params.pix_size * cryolo_params.boxsize / 10,
             "number_of_particles": self.number_of_particles,
             "summary_image_full_path": cryolo_params.output_path
-                                       + "/picked_particles.mrc",
+            + "/picked_particles.mrc",
         }
 
         # Forward results to ISPyB
         ispyb_parameters.update(
             {
                 "ispyb_command": "buffer",
-                "buffer_lookup": {"motion_correction_id":
-                                  cryolo_params.mc_uuid},
+                "buffer_lookup": {"motion_correction_id": cryolo_params.mc_uuid},
                 "buffer_command": {"ispyb_command": "insert_particle_picker"},
             }
         )
@@ -197,10 +191,10 @@ class CrYOLO(CommonService):
 
         # Extract results for images service
         with open(
-                Path(cryolo_params.output_path + "/STAR/")
-                / Path(cryolo_params.input_path).with_suffix(".star").name,
-                "r"
-                  ) as coords_file:
+            Path(cryolo_params.output_path + "/STAR/")
+            / Path(cryolo_params.input_path).with_suffix(".star").name,
+            "r",
+        ) as coords_file:
             coords = [line.split() for line in coords_file][6:]
             coords_file.close()
 
@@ -215,8 +209,7 @@ class CrYOLO(CommonService):
                     "coordinates": coords,
                     "angpix": cryolo_params.pix_size,
                     "diameter": cryolo_params.pix_size * cryolo_params.boxsize,
-                    "outfile": cryolo_params.output_path
-                               + "/picked_particles.jpeg",
+                    "outfile": cryolo_params.output_path + "/picked_particles.jpeg",
                 },
             )
         else:
@@ -228,8 +221,7 @@ class CrYOLO(CommonService):
                     "coordinates": coords,
                     "angpix": cryolo_params.pix_size,
                     "diameter": cryolo_params.pix_size * cryolo_params.boxsize,
-                    "outfile": cryolo_params.output_path
-                               + "/picked_particles.jpeg",
+                    "outfile": cryolo_params.output_path + "/picked_particles.jpeg",
                 },
             )
 
