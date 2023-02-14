@@ -380,11 +380,14 @@ class PipelineRunner:
     def _best_class(
         self, job: str = "relion.initialmodel", batch: str = ""
     ) -> Tuple[Optional[str], Optional[float]]:
+        relion_chosen_ref = ""
         try:
             model_file_candidates = list(
                 (self.path / self.job_paths_batch[job][batch]).glob("*_model.star")
             )
         except (TypeError, KeyError):
+            if (self.path / self.job_paths[job] / "initial_model.mrc").is_file():
+                relion_chosen_ref = str(self.job_paths[job] / "initial_model.mrc")
             model_file_candidates = list(
                 (self.path / self.job_paths[job]).glob("*_model.star")
             )
@@ -425,7 +428,9 @@ class PipelineRunner:
                     ref_resolution = resolution
                     ref_size = size
                     ref = image
-            return ref.split("@")[-1], float(star_doc[0].find_value("_rlnPixelSize"))
+            return relion_chosen_ref or ref.split("@")[-1], float(
+                star_doc[0].find_value("_rlnPixelSize")
+            )
         except Exception as e:
             logger.warning(f"Exception caught: {e}", exc_info=True)
             print(e)
