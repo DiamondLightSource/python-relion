@@ -4,14 +4,14 @@ from pathlib import Path
 
 from pipeliner.data_structure import SELECT_DIR
 from pipeliner.job_options import BooleanJobOption, IntJobOption, PathJobOption
-from pipeliner.nodes import Node
+from pipeliner.nodes import NODE_PARTICLESDATA, Node
 from pipeliner.pipeliner_job import ExternalProgram, PipelinerJob
 
-COMBINE_STAR_NAME = "combine_star_files_job"
+COMBINE_STAR_NAME = "combine_star_files.py"
 
 
 class ProcessStarFiles(PipelinerJob):
-    PROCESS_NAME = "relion.select.process_star"
+    PROCESS_NAME = "combine_star_files_job"
     OUT_DIR = SELECT_DIR
 
     def __init__(self):
@@ -59,38 +59,39 @@ class ProcessStarFiles(PipelinerJob):
         """Construct the command for combining and splitting star files"""
         command = [
             COMBINE_STAR_NAME,
-            self.joboption["folder_to_process"].get_string(),
+            self.joboptions["folder_to_process"].get_string(),
             "--output_dir",
             str(self.output_dir),
         ]
 
-        if self.joboption["do_split"].get_bool():
-            command.append(["--split"])
+        if self.joboptions["do_split"].get_boolean():
+            command.extend(["--split"])
 
             if (
-                self.joboption["n_files"].get_number() <= 0
-                and self.joboption["split_size"].get_number() <= 0
+                self.joboptions["n_files"].get_number() <= 0
+                and self.joboptions["split_size"].get_number() <= 0
             ):
                 raise ValueError(
                     "ERROR: When splitting the combined STAR file into subsets,"
                     " set n_files or split_size to a positive value"
                 )
 
-            if self.joboption["n_files"].get_number() > 0:
-                command.append(["--n_files", self.joboption["n_files"].get_string()])
+            if self.joboptions["n_files"].get_number() > 0:
+                command.extend(["--n_files", self.joboptions["n_files"].get_string()])
 
-            if self.joboption["split_size"].get_number() > 0:
-                command.append(
-                    ["--split_size", self.joboption["split_size"].get_string()]
+            if self.joboptions["split_size"].get_number() > 0:
+                command.extend(
+                    ["--split_size", self.joboptions["split_size"].get_string()]
                 )
 
-        self.output_nodes.append(Node("particles_all.star", "particles"))
+        self.output_nodes.append(
+            Node(self.output_dir + "/particles_all.star", NODE_PARTICLESDATA)
+        )
 
         return [command]
 
     def post_run_actions(self):
         """Find any output files produced by the splitting"""
         output_files = Path(self.output_dir).glob("particles_split*.star")
-
         for split in output_files:
-            self.output_nodes.append(Node(split, "particles"))
+            self.output_nodes.append(Node(split, NODE_PARTICLESDATA))
