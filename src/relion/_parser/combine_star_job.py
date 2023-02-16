@@ -85,7 +85,7 @@ class ProcessStarFiles(PipelinerJob):
                 )
 
         self.output_nodes.append(
-            Node(self.output_dir + "/particles_all.star", NODE_PARTICLESDATA)
+            Node(self.output_dir + "particles_all.star", NODE_PARTICLESDATA)
         )
 
         return [command]
