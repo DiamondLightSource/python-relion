@@ -1,13 +1,11 @@
 from __future__ import annotations
 
 import argparse
-import time
 from math import ceil
 from pathlib import Path
 
 import pandas as pd
 import starfile
-from gemmi import cif
 
 
 def combine_star_files(folder_to_process: Path, output_dir: Path):
@@ -25,18 +23,22 @@ def combine_star_files(folder_to_process: Path, output_dir: Path):
         data_particles = star_dictionary["particles"]
 
         try:
+            # check that the files have the same optics tables
             if final_star_file["optics"].ne(data_optics).any().any():
                 raise IndexError(
                     "Cannot combine star files with different optics tables."
                 )
         except KeyError:
+            # if this is the first file, construct a new table
             final_star_file["optics"] = data_optics
 
         try:
+            # combine the particle tables
             final_star_file["particles"] = pd.concat(
                 (final_star_file["particles"], data_particles)
             )
         except KeyError:
+            # if this is the first file, construct a new table
             final_star_file["particles"] = data_particles
 
     starfile.write(final_star_file, output_dir / "particles_all.star", overwrite=True)
@@ -61,6 +63,7 @@ def split_star_file(
     data_particles = star_dictionary["particles"]
     number_of_particles = len(data_particles)
 
+    # determine the number of files and size of the splits
     if number_of_splits:
         if split_size:
             print(
@@ -74,6 +77,7 @@ def split_star_file(
     else:
         raise KeyError("Either number_of_splits or split_size must be given.")
 
+    # create dictionaries of particle data and write these to the new files
     for split in range(number_of_splits):
         particles_to_use = data_particles[split_size * split : split_size * (split + 1)]
         dictionary_to_write = {"optics": data_optics, "particles": particles_to_use}
@@ -142,104 +146,3 @@ def main():
             run_args["n_files"],
             run_args["split_size"],
         )
-
-
-def combine_star_files_gemmi(folder_to_process):
-    """
-    Combines all particle star files from a given folder into
-    a single file.
-    """
-    final_star_file = cif.Document()
-    for split_file in list(folder_to_process.glob("particles_split*.star")):
-        star_doc = cif.read_file(str(split_file))
-
-        data_optics = star_doc["optics"]
-        data_particles = star_doc["particles"]
-
-        try:
-            final_file_table = final_star_file["optics"].item_as_table(
-                final_star_file["optics"][0]
-            )
-            new_file_table = data_optics.item_as_table(data_optics[0])
-            if final_file_table.width() != new_file_table.width():
-                raise ValueError(
-                    "Cannot combine star files as the optics tables "
-                    "are not identical. "
-                    f"Optics tables have widths {final_file_table.width()} "
-                    f"and {new_file_table.width()}."
-                )
-            for value in range(len(final_file_table[0])):
-                if final_file_table[0][value] != new_file_table[0][value]:
-                    raise ValueError(
-                        "Cannot combine star files as the optics tables "
-                        "are not identical. "
-                        f"Optics tables differ at position {value} "
-                        f"with values {final_file_table[0][value]} "
-                        f"and {new_file_table[0][value]}."
-                    )
-        except KeyError:
-            final_star_file.add_copied_block(data_optics)
-
-        try:
-            for row in data_particles.item_as_table(data_particles[0]):
-                final_star_file["particles"][0].loop.add_row(row)
-        except KeyError:
-            final_star_file.add_copied_block(data_particles)
-
-    final_star_file.write_file(str(folder_to_process) + "/particles_all_gemmi.star")
-
-
-def split_star_file_gemmi(file_to_process, number_of_splits=None, split_size=None):
-    """
-    Splits a star file into subfiles.
-    The number of subfiles can be given with number_of_splits
-    or is determined by split_size, the number of particles for in each file.
-    """
-    star_doc = cif.read_file(str(file_to_process))
-
-    # data_optics = star_doc["optics"]
-    data_particles = star_doc["particles"]
-
-    particles_table = data_particles.item_as_table(data_particles[0])
-    number_of_particles = len(particles_table)
-
-    if number_of_splits:
-        if split_size:
-            print(
-                "Warning: "
-                "Both number_of_splits and split_size have been given, "
-                "using number_of_splits.",
-            )
-        split_size = ceil(number_of_particles / number_of_splits)
-        for split in range(number_of_splits):
-            particles_to_use = particles_table[split_size * split]
-            for particle in range(1, split_size):
-                particles_to_use.append_row(
-                    particles_table[split_size * split + particle]
-                )
-            print(split_size, len(particles_to_use))
-    elif split_size:
-        pass
-    else:
-        raise KeyError("Either number_of_splits or split_size must be gives.")
-
-
-if __name__ == "__main__":
-    test_folder = Path("/dls/ebic/data/staff-scratch/Stephen/test_data/")
-    test_file = test_folder / "particles_all.star"
-
-    start = time.time()
-    combine_star_files_gemmi(test_folder)
-    gemmi_end = time.time()
-
-    combine_star_files(
-        test_folder,
-        output_dir=Path("/dls/ebic/data/staff-scratch/Stephen/test_data/output"),
-    )
-    star_end = time.time()
-
-    print(gemmi_end - start, star_end - gemmi_end)
-
-# external_job_combine_star_files /dls/ebic/data/staff-scratch/Stephen/test_data/
-# --output_dir /dls/ebic/data/staff-scratch/Stephen/test_data/output
-# --split --split_size 2000 --n_files 2
