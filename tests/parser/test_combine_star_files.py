@@ -20,7 +20,10 @@ def test_combine_star_files(mock_starfile, tmp_path):
         "particles": pd.DataFrame(data={"_column1": [5, 6], "_column2": [7, 8]}),
     }
 
-    combine_star_files.combine_star_files(tmp_path, tmp_path)
+    combine_star_files.combine_star_files(
+        [tmp_path / "particles_split1.star", tmp_path / "particles_split2.star"],
+        tmp_path,
+    )
 
     # assert that the particle files are read
     assert mock_starfile.read.call_count == 2
@@ -179,7 +182,8 @@ def test_main(mock_split, mock_combine, mock_sysargv, tmp_path):
     # mock the values to be read in by the argument parser
     mock_sysargv.argv = [
         "command",
-        str(tmp_path),
+        str(tmp_path / "split1.star"),
+        str(tmp_path / "split2.star"),
         "--output_dir",
         str(tmp_path),
         "--split",
@@ -193,6 +197,8 @@ def test_main(mock_split, mock_combine, mock_sysargv, tmp_path):
 
     # assert that this ran both the combining and splitting of star files
     mock_combine.assert_called_once()
-    mock_combine.assert_called_with(tmp_path, tmp_path)
+    mock_combine.assert_called_with(
+        [tmp_path / "split1.star", tmp_path / "split2.star"], tmp_path
+    )
     mock_split.assert_called_once()
     mock_split.assert_called_with(tmp_path / "particles_all.star", tmp_path, 2, 1)

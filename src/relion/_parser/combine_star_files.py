@@ -10,9 +10,11 @@ import starfile
 
 
 def combine_star_files(files_to_process: List[Path], output_dir: Path):
-    """
-    Combines all particle star files from a given folder into
-    a single file.
+    """Combines any number of particle star files into a single file.
+
+    Parameters:
+    files_to_process: A list of the particle star files to combine
+    output_dir: The directory in which to save the combined "particles_all.star" file
     """
     final_star_file = {}
     number_of_star_files = 0
@@ -53,8 +55,8 @@ def split_star_file(
     number_of_splits: int or None = None,
     split_size: int or None = None,
 ):
-    """
-    Splits a star file into subfiles.
+    """Splits a star file into subfiles.
+
     The number of subfiles can be given with number_of_splits
     or is determined by split_size, the number of particles for in each file.
     """
