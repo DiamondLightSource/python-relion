@@ -3,19 +3,20 @@ from __future__ import annotations
 import argparse
 from math import ceil
 from pathlib import Path
+from typing import List
 
 import pandas as pd
 import starfile
 
 
-def combine_star_files(folder_to_process: Path, output_dir: Path):
+def combine_star_files(files_to_process: List[Path], output_dir: Path):
     """
     Combines all particle star files from a given folder into
     a single file.
     """
     final_star_file = {}
     number_of_star_files = 0
-    for split_file in list(folder_to_process.glob("particles_split*.star")):
+    for split_file in files_to_process:
         number_of_star_files += 1
         star_dictionary = starfile.read(split_file)
 
@@ -97,15 +98,16 @@ def create_parser():
     parser = argparse.ArgumentParser()
 
     parser.add_argument(
-        "folder_to_process",
+        "files_to_process",
         type=Path,
-        help="Folder to combine particle star files from.",
+        nargs="+",
+        help="The star files from which to combine particles.",
     )
     parser.add_argument(
         "--output_dir",
         dest="output_dir",
         type=Path,
-        help="Folder to save the new star files to.",
+        help="Folder in which to save the new star files.",
     )
 
     parser.add_argument(
@@ -113,7 +115,7 @@ def create_parser():
         dest="do_split",
         action="store_true",
         default=False,
-        help="Whether to split the particle star files again.",
+        help="Whether to split the particles again into new star files.",
     )
     parser.add_argument(
         "--n_files",
@@ -137,7 +139,7 @@ def main():
     arg_parser = create_parser()
     run_args = vars(arg_parser.parse_args())
 
-    combine_star_files(run_args["folder_to_process"], run_args["output_dir"])
+    combine_star_files(run_args["files_to_process"], run_args["output_dir"])
 
     if run_args["do_split"]:
         split_star_file(

@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from pipeliner.data_structure import SELECT_DIR
-from pipeliner.job_options import BooleanJobOption, IntJobOption, PathJobOption
+from pipeliner.job_options import BooleanJobOption, IntJobOption, StringJobOption
 from pipeliner.nodes import NODE_PARTICLESDATA, Node
 from pipeliner.pipeliner_job import ExternalProgram, PipelinerJob
 
@@ -20,14 +20,15 @@ class ProcessStarFiles(PipelinerJob):
         self.jobinfo.display_name = "Particle star file merging"
         self.jobinfo.short_desc = "Combine and split star files of particles"
         self.jobinfo.long_desc = (
-            "Combine star files of particles," " then optionally split them again."
+            "Combine star files of particles, then optionally split them again."
         )
 
         self.jobinfo.programs = [ExternalProgram(command=COMBINE_STAR_NAME)]
 
-        self.joboptions["folder_to_process"] = PathJobOption(
-            label="Directory containing particle star files to combine",
+        self.joboptions["files_to_process"] = StringJobOption(
+            label="The star files from which to combine particles",
             is_required=True,
+            help_test="The names of the star files, separated by spaces.",
         )
         self.joboptions["do_split"] = BooleanJobOption(
             label="Whether to split the combined star file", default_value=False
@@ -52,17 +53,14 @@ class ProcessStarFiles(PipelinerJob):
         )
 
         self.set_joboption_order(
-            ["folder_to_process", "do_split", "n_files", "split_size"]
+            ["files_to_process", "do_split", "n_files", "split_size"]
         )
 
     def get_commands(self):
         """Construct the command for combining and splitting star files"""
-        command = [
-            COMBINE_STAR_NAME,
-            self.joboptions["folder_to_process"].get_string(),
-            "--output_dir",
-            str(self.output_dir),
-        ]
+        command = [COMBINE_STAR_NAME]
+        command.extend(self.joboptions["files_to_process"].get_string().split(" "))
+        command.extend(["--output_dir", str(self.output_dir)])
 
         if self.joboptions["do_split"].get_boolean():
             command.extend(["--split"])
