@@ -28,7 +28,7 @@ class ProcessStarFiles(PipelinerJob):
         self.joboptions["files_to_process"] = StringJobOption(
             label="The star files from which to combine particles",
             is_required=True,
-            help_test="The names of the star files, separated by spaces.",
+            help_text="The names of the star files, separated by spaces.",
         )
         self.joboptions["do_split"] = BooleanJobOption(
             label="Whether to split the combined star file", default_value=False
