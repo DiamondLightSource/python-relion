@@ -240,6 +240,23 @@ class TomoAlign(CommonService):
                 f"AreTomo failed with exitcode {aretomo_result.returncode}:\n"
                 + aretomo_result.stderr.decode("utf8", "replace")
             )
+            # Update failure processing status
+            if isinstance(rw, RW_mock):
+                rw.transport.send(
+                    destination="failure",
+                    message={
+                        "status": "failure",
+                        "content": {"dummy": "dummy"},
+                    },
+                )
+            else:
+                rw.send_to(
+                    "failure",
+                    {
+                        "status": "failure",
+                        "content": {"dummy": "dummy"},
+                    },
+                )
             rw.transport.nack(header)
             return
 
@@ -420,6 +437,23 @@ class TomoAlign(CommonService):
                 },
             )
 
+        # Update success processing status
+        if isinstance(rw, RW_mock):
+            rw.transport.send(
+                destination="success",
+                message={
+                    "status": "success",
+                    "content": {"dummy": "dummy"},
+                },
+            )
+        else:
+            rw.send_to(
+                "success",
+                {
+                    "status": "success",
+                    "content": {"dummy": "dummy"},
+                },
+            )
         rw.transport.ack(header)
 
     def newstack(self, tomo_parameters):
