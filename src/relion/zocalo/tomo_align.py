@@ -244,18 +244,12 @@ class TomoAlign(CommonService):
             if isinstance(rw, RW_mock):
                 rw.transport.send(
                     destination="failure",
-                    message={
-                        "status": "failure",
-                        "content": {"dummy": "dummy"},
-                    },
+                    message="",
                 )
             else:
                 rw.send_to(
                     "failure",
-                    {
-                        "status": "failure",
-                        "content": {"dummy": "dummy"},
-                    },
+                    "",
                 )
             rw.transport.nack(header)
             return
@@ -441,18 +435,12 @@ class TomoAlign(CommonService):
         if isinstance(rw, RW_mock):
             rw.transport.send(
                 destination="success",
-                message={
-                    "status": "success",
-                    "content": {"dummy": "dummy"},
-                },
+                message="",
             )
         else:
             rw.send_to(
                 "success",
-                {
-                    "status": "success",
-                    "content": {"dummy": "dummy"},
-                },
+                "",
             )
         rw.transport.ack(header)
 
