@@ -15,7 +15,7 @@ from typing import Dict, List, Optional, Set, Tuple
 from gemmi import cif
 from pipeliner.api.api_utils import (
     edit_jobstar,
-    job_parameters_dict,
+    job_default_parameters_dict,
     write_default_jobstar,
 )
 from pipeliner.api.manage_project import PipelinerProject
@@ -208,7 +208,7 @@ class PipelineRunner:
     ) -> pathlib.Path:
         logger.info(f"Registering new job: {job}")
         write_default_jobstar(job)
-        params = job_parameters_dict(job)
+        params = job_default_parameters_dict(job)
         params.update(self.pipeline_options.get(job, {}))
         if extra_params is not None:
             params.update(extra_params)
@@ -230,7 +230,7 @@ class PipelineRunner:
             job_path = self.project.run_job(
                 f"{job.replace('.', '_')}_job.star",
                 wait_for_queued=wait,
-            )
+            ).output_dir
             if alias:
                 self.project.set_alias(job_path, alias)
         else:
