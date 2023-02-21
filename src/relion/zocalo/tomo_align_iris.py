@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import ast
+import os
 import os.path
 import shutil
 import time
@@ -53,7 +54,7 @@ class TomoParameters(BaseModel):
             raise ValueError("input_file_list is not a list of lists")
 
 
-class TomoAlign(CommonService):
+class TomoAlignIris(CommonService):
     """
     A service for grouping and aligning tomography tilt-series with Newstack and AreTomo
     """
@@ -87,7 +88,7 @@ class TomoAlign(CommonService):
         self.log.info("TomoAlignIris service starting")
         workflows.recipe.wrap_subscribe(
             self._transport,
-            "tomo_align_iris",
+            "tomo_align",
             self.tomo_align,
             acknowledgement=True,
             log_extender=self.extend_log,
@@ -107,7 +108,7 @@ class TomoAlign(CommonService):
         x_shift = []
         y_shift = []
         self.refined_tilts = []
-        aln_files = list(Path(tomo_parameters.aretomo_output_file).parent.glob("*.aln"))
+        aln_files = list(Path(self.alignment_output_dir).glob("*.aln"))
 
         file_name = Path(tomo_parameters.stack_file).stem
         for aln_file in aln_files:
@@ -234,7 +235,15 @@ class TomoAlign(CommonService):
         if d.is_file():
             d.chmod(0o740)
 
-        aretomo_result = self.aretomo(tomo_params)
+        aretomo_result = self.aretomo(tomo_params, message)
+
+        if tomo_params.out_imod:
+            self.imod_directory = (
+                self.alignment_output_dir + "/" + self.stack_name + "_aretomo_Imod"
+            )
+
+        if aretomo_result == message:
+            rw.send("tomo_align", message)
 
         if aretomo_result != 1:
             self.log.error(f"AreTomo failed with exitcode {aretomo_result}")
@@ -242,9 +251,6 @@ class TomoAlign(CommonService):
             return
 
         if tomo_params.out_imod:
-            self.imod_directory = (
-                self.alignment_output_dir + self.stack_name + "_aretomo_Imod"
-            )
             _f = Path(self.imod_directory)
             _f.chmod(0o750)
             for file in _f.iterdir():
@@ -437,11 +443,11 @@ class TomoAlign(CommonService):
         result = procrunner.run(newstack_cmd)
         return result
 
-    def aretomo(self, tomo_parameters):
+    def aretomo(self, tomo_parameters, message):
         """
         Run AreTomo on output of Newstack
         """
-        args = ["-OutMrc", tomo_parameters.output_file]
+        args = ["-OutMrc", tomo_parameters.aretomo_output_file]
 
         if tomo_parameters.angle_file:
             args.extend(("-AngFile", tomo_parameters.angle_file))
@@ -493,7 +499,7 @@ class TomoAlign(CommonService):
 
         self.log.info(f"Running AreTomo with args: {args}")
         self.log.info(
-            f"Input stack: {tomo_parameters.stack_file} \nOutput file: {tomo_parameters.output_file}"
+            f"Input stack: {tomo_parameters.stack_file} \nOutput file: {tomo_parameters.aretomo_output_file}"
         )
 
         # Set-up condor config
@@ -529,41 +535,56 @@ class TomoAlign(CommonService):
         ] = "FS_REMOTE, PASSWORD, ANONYMOUS"
         htcondor.param["FS_REMOTE_DIR"] = "/dls/tmp/htcondor"
 
-        at_job = htcondor.Submit(
-            {
-                "executable": "/AreTomo/1.3.0/AreTomo_1.3.0_Cuda112_09292022",
-                "arguments": "$(input_args)",
-                "output": "output.txt",
-                "error": "error.txt",
-                "log": "log.txt",
-                "request_gpus": "1",
-                "request_memory": "5120",
-                "request_disk": "10240",
-                "should_transfer_files": "yes",
-                "transfer_input_files": "$(stack_file)",
-                "transfer_output_files": "$(aretomo_output_file)",
-            }
-        )
+        output_file = self.alignment_output_dir + "/output.txt"
+        error_file = self.alignment_output_dir + "/error.txt"
+        log_file = self.alignment_output_dir + "/log.txt"
+        try:
+            at_job = htcondor.Submit(
+                {
+                    "executable": "/AreTomo/1.3.0/AreTomo_1.3.0_Cuda112_09292022",
+                    "arguments": "$(input_args)",
+                    "output": "$(output_file)",
+                    "error": "$(error_file)",
+                    "log": "$(log_file)",
+                    "request_gpus": "1",
+                    "request_memory": "5120",
+                    "request_disk": "10240",
+                    "should_transfer_files": "yes",
+                    "transfer_input_files": "$(stack_file)",
+                    "transfer_output_files": "$(aretomo_output_file)",
+                }
+            )
+        except Exception:
+            self.log.warn("Couldn't connect submitter")
+            return message
+
         if tomo_parameters.out_imod:
             itemdata = [
                 {
                     "aretomo_output_file": self.imod_directory,
-                    "input_args": args,
+                    "input_args": " ".join(args),
                     "stack_file": tomo_parameters.stack_file,
+                    "output_file": output_file,
+                    "error_file": error_file,
+                    "log_file": log_file,
                 }
             ]
         else:
             itemdata = [
                 {
                     "aretomo_output_file": tomo_parameters.aretomo_output_file,
-                    "input_args": args,
+                    "input_args": " ".join(args),
                     "stack_file": tomo_parameters.stack_file,
+                    "output_file": output_file,
+                    "error_file": error_file,
+                    "log_file": log_file,
                 }
             ]
         coll = htcondor.Collector(htcondor.param["COLLECTOR_HOST"])
         schedd_ad = coll.locate(htcondor.DaemonTypes.Schedd)
         schedd = htcondor.Schedd(schedd_ad)
-        cluster_id = schedd.submit(at_job, itemdata=iter(itemdata))
+        job = schedd.submit(at_job, itemdata=iter(itemdata))
+        cluster_id = job.cluster()
         self.log.info(f"Submitting to Iris, ID: {str(cluster_id)}")
 
         while (
@@ -580,7 +601,7 @@ class TomoAlign(CommonService):
             time.sleep(10)
 
         if tomo_parameters.tilt_cor:
-            self.parse_tomo_output("output.txt")
+            self.parse_tomo_output(output_file)
 
         if tomo_parameters.out_imod:
             try:
