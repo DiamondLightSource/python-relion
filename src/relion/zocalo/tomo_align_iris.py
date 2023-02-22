@@ -3,7 +3,6 @@ from __future__ import annotations
 import ast
 import os
 import os.path
-import shutil
 import time
 from pathlib import Path
 from typing import List, Optional, Union
@@ -212,7 +211,9 @@ class TomoAlignIris(CommonService):
         self.xz_proj_file = self.stack_name + "_aretomo_projXZ.jpeg"
         self.central_slice_file = self.stack_name + "_aretomo_thumbnail.jpeg"
         self.tomogram_movie_file = self.stack_name + "_aretomo_movie.png"
-        self.newstack_path = self.stack_name + "_newstack.txt"
+        self.newstack_path = (
+            self.alignment_output_dir + "/" + self.stack_name + "_newstack.txt"
+        )
 
         newstack_result = self.newstack(tomo_params)
         if newstack_result.returncode:
@@ -235,12 +236,12 @@ class TomoAlignIris(CommonService):
         if d.is_file():
             d.chmod(0o740)
 
-        aretomo_result = self.aretomo(tomo_params, message)
-
         if tomo_params.out_imod:
             self.imod_directory = (
                 self.alignment_output_dir + "/" + self.stack_name + "_aretomo_Imod"
             )
+
+        aretomo_result = self.aretomo(tomo_params, message)
 
         if aretomo_result == message:
             rw.send("tomo_align", message)
@@ -447,7 +448,12 @@ class TomoAlignIris(CommonService):
         """
         Run AreTomo on output of Newstack
         """
-        args = ["-OutMrc", tomo_parameters.aretomo_output_file]
+        args = [
+            "-OutMrc",
+            tomo_parameters.aretomo_output_file,
+            "-InMrc",
+            str(Path(tomo_parameters.stack_file).name),
+        ]
 
         if tomo_parameters.angle_file:
             args.extend(("-AngFile", tomo_parameters.angle_file))
@@ -472,7 +478,6 @@ class TomoAlignIris(CommonService):
             args.extend(("-TiltCor", str(tomo_parameters.tilt_cor)))
 
         aretomo_flags = {
-            "stack_file": "-InMrc",
             "vol_z": "-VolZ",
             "out_bin": "-OutBin",
             "tilt_axis": "-TiltAxis",
@@ -535,23 +540,24 @@ class TomoAlignIris(CommonService):
         ] = "FS_REMOTE, PASSWORD, ANONYMOUS"
         htcondor.param["FS_REMOTE_DIR"] = "/dls/tmp/htcondor"
 
-        output_file = self.alignment_output_dir + "/output.txt"
-        error_file = self.alignment_output_dir + "/error.txt"
-        log_file = self.alignment_output_dir + "/log.txt"
+        output_file = self.alignment_output_dir + "/" + self.stack_name + "_iris_out"
+        error_file = self.alignment_output_dir + "/" + self.stack_name + "_iris_error"
+        log_file = self.alignment_output_dir + "/" + self.stack_name + "_iris_log"
         try:
             at_job = htcondor.Submit(
                 {
-                    "executable": "/AreTomo/1.3.0/AreTomo_1.3.0_Cuda112_09292022",
+                    "executable": "/dls/ebic/data/staff-scratch/murfey/AreTomo_1.3.0_Cuda112_09292022",
                     "arguments": "$(input_args)",
                     "output": "$(output_file)",
                     "error": "$(error_file)",
                     "log": "$(log_file)",
                     "request_gpus": "1",
-                    "request_memory": "5120",
+                    "request_memory": "10240",
                     "request_disk": "10240",
                     "should_transfer_files": "yes",
                     "transfer_input_files": "$(stack_file)",
-                    "transfer_output_files": "$(aretomo_output_file)",
+                    "transfer_output_files": "$(aretomo_output)",
+                    "initialdir": "$(initial_dir)",
                 }
             )
         except Exception:
@@ -561,23 +567,25 @@ class TomoAlignIris(CommonService):
         if tomo_parameters.out_imod:
             itemdata = [
                 {
-                    "aretomo_output_file": self.imod_directory,
+                    "aretomo_output": ".",
                     "input_args": " ".join(args),
                     "stack_file": tomo_parameters.stack_file,
                     "output_file": output_file,
                     "error_file": error_file,
                     "log_file": log_file,
+                    "initial_dir": self.alignment_output_dir,
                 }
             ]
         else:
             itemdata = [
                 {
-                    "aretomo_output_file": tomo_parameters.aretomo_output_file,
+                    "aretomo_output": ".",
                     "input_args": " ".join(args),
                     "stack_file": tomo_parameters.stack_file,
                     "output_file": output_file,
                     "error_file": error_file,
                     "log_file": log_file,
+                    "initial_dir": self.alignment_output_dir,
                 }
             ]
         coll = htcondor.Collector(htcondor.param["COLLECTOR_HOST"])
@@ -587,39 +595,21 @@ class TomoAlignIris(CommonService):
         cluster_id = job.cluster()
         self.log.info(f"Submitting to Iris, ID: {str(cluster_id)}")
 
-        while (
-            schedd.query(
-                constraint="ClusterId=={}".format(cluster_id), projection=["JobStatus"]
-            )[0]["JobStatus"]
-            != 5
-        ):
-            res = schedd.query(
-                constraint="ClusterId=={}".format(cluster_id), projection=["JobStatus"]
-            )[0]["JobStatus"]
-            if res != 1:
+        res = 1
+        while res:
+            try:
+                res = schedd.query(
+                    constraint="ClusterId=={}".format(cluster_id),
+                    projection=["JobStatus"],
+                )[0]["JobStatus"]
+            except IndexError:
+                break
+            if res == 12:
+                schedd.act(htcondor.JobAction.Remove, f"ClusterId == {cluster_id}")
                 return res
             time.sleep(10)
 
         if tomo_parameters.tilt_cor:
             self.parse_tomo_output(output_file)
-
-        if tomo_parameters.out_imod:
-            try:
-                shutil.copytree(
-                    self.imod_directory,
-                    self.alignment_output_dir + "/" + self.imod_directory,
-                )
-            except Exception:
-                pass
-        else:
-            try:
-                shutil.copy(
-                    tomo_parameters.aretomo_output_file,
-                    self.alignment_output_dir
-                    + "/"
-                    + tomo_parameters.aretomo_output_file,
-                )
-            except Exception:
-                pass
 
         return 1
