@@ -241,7 +241,7 @@ class PipelineRunner:
                 job_path = self.project.run_job(
                     f"{job.replace('.', '_')}_job.star",
                     wait_for_queued=False,
-                )
+                ).output_dir
                 if alias:
                     self.project.set_alias(job_path, alias)
             wait_for_queued_job_completion(pathlib.Path(job_path))
