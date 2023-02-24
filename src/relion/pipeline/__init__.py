@@ -85,6 +85,7 @@ class PipelineRunner:
                 q.append(queue.Queue())
         if restarted:
             self._load_job_paths()
+        self._relion_python_exe = os.getenv("RELION_PYTHON_EXECUTABLE")
 
     def clear_relion_lock(self):
         lock_dir = self.path / ".relion_lock"
@@ -710,7 +711,6 @@ class PipelineRunner:
                             f"Exception encountered in 2D classification runner. Try again: {e}"
                         )
                         self.clear_relion_lock()
-                        # self._queues["class2D"][iteration].put(batch_file)
                         continue
                     # run 2D class selection to produce rankings
                     self.job_paths_batch["relion.select.class2dauto"][
@@ -720,7 +720,7 @@ class PipelineRunner:
                         extra_params={
                             "fn_model": self.job_paths_batch[class2d_type][batch_file]
                             / "run_it020_optimiser.star",
-                            "python_exe": "/dls_sw/apps/EM/relion/4.0/conda/bin/python",
+                            "python_exe": self._relion_python_exe,
                         },
                         lock=self._lock,
                     )
@@ -744,7 +744,6 @@ class PipelineRunner:
                                 f"Exception encountered in 2D classification runner. Try again: {e}"
                             )
                             self.clear_relion_lock()
-                            # self._queues["class2D"][iteration].put(batch_file)
                             continue
                     else:
                         self.project.run_job(
@@ -797,7 +796,6 @@ class PipelineRunner:
                             f"Exception encountered in 2D classification runner. Try again: {e}"
                         )
                         self.clear_relion_lock()
-                        # self._queues["class2D"][iteration].put(batch_file)
                         continue
                     # run 2D class selection for the current batch with the threshold
                     self.job_paths_batch["relion.select.class2dauto"][
@@ -808,7 +806,7 @@ class PipelineRunner:
                             "fn_model": self.job_paths_batch[class2d_type][batch_file]
                             / "run_it020_optimiser.star",
                             "rank_threshold": quantile_threshold,
-                            "python_exe": "/dls_sw/apps/EM/relion/4.0/conda/bin/python",
+                            "python_exe": self._relion_python_exe,
                         },
                         lock=self._lock,
                     )
