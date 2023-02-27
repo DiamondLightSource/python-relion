@@ -142,3 +142,17 @@ def test_sum_all(class2d):
     assert sum(job_sum_list) == 10640
     assert job_sum_list[0] == 1158
     assert job_sum_list[1] == 9482
+
+
+def test_db_unpack(class2d, dials_data):
+    unpacked = relion._parser.class2D.Class2D.db_unpack(class2d["job008"])
+    assert unpacked[0]["class_image_full_path"] == str(
+        dials_data("relion_tutorial_data", pathlib=True)
+        / "Class2D/job008/run_it025_classes_1.jpeg"
+    )
+    assert unpacked[0]["class_number"] == 1
+    assert unpacked[0]["particles_per_class"] == 19
+    assert float(unpacked[0]["rotation_accuracy"]) == 3.55
+    assert float(unpacked[0]["translation_accuracy"]) == 3.6462
+    assert float(unpacked[0]["estimated_resolution"]) == 22.656
+    assert float(unpacked[0]["overall_fourier_completeness"]) == 0.997005
