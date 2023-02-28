@@ -642,6 +642,7 @@ class PipelineRunner:
         boxsize: Optional[int] = None,
         iteration: int = 0,
     ):
+        fraction_of_classes_to_remove = 0.75
         files_to_combine = ""
         quantile_threshold = 0
         last_completed_split = 0
@@ -693,7 +694,7 @@ class PipelineRunner:
                         star_block.find_loop("_rlnClassScore"), dtype=float
                     )
                     quantile_threshold = np.quantile(
-                        class_scores[class_scores >= 0], 0.75
+                        class_scores[class_scores >= 0], fraction_of_classes_to_remove
                     )
 
                 if not self.job_paths_batch.get(class2d_type):
