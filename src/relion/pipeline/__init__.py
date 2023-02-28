@@ -7,15 +7,17 @@ import math
 import os
 import pathlib
 import queue
+import re
 import subprocess
 import threading
 import time
 from typing import Dict, List, Optional, Set, Tuple
 
+import numpy as np
 from gemmi import cif
 from pipeliner.api.api_utils import (
     edit_jobstar,
-    job_parameters_dict,
+    job_default_parameters_dict,
     write_default_jobstar,
 )
 from pipeliner.api.manage_project import PipelinerProject
@@ -83,6 +85,7 @@ class PipelineRunner:
                 q.append(queue.Queue())
         if restarted:
             self._load_job_paths()
+        self._relion_python_exe = os.getenv("RELION_PYTHON_EXECUTABLE")
 
     def clear_relion_lock(self):
         lock_dir = self.path / ".relion_lock"
@@ -140,6 +143,7 @@ class PipelineRunner:
             else:
                 class2d_type = "relion.class2d.em"
             self.job_paths_batch[class2d_type] = {}
+            self.job_paths_batch["relion.select.class2dauto"] = {}
             for p in (self.path / "Class2D").glob("*"):
                 select_file = self._get_select_file(p)
                 if select_file:
@@ -208,7 +212,7 @@ class PipelineRunner:
     ) -> pathlib.Path:
         logger.info(f"Registering new job: {job}")
         write_default_jobstar(job)
-        params = job_parameters_dict(job)
+        params = job_default_parameters_dict(job)
         params.update(self.pipeline_options.get(job, {}))
         if extra_params is not None:
             params.update(extra_params)
@@ -230,7 +234,7 @@ class PipelineRunner:
             job_path = self.project.run_job(
                 f"{job.replace('.', '_')}_job.star",
                 wait_for_queued=wait,
-            )
+            ).output_dir
             if alias:
                 self.project.set_alias(job_path, alias)
         else:
@@ -238,7 +242,7 @@ class PipelineRunner:
                 job_path = self.project.run_job(
                     f"{job.replace('.', '_')}_job.star",
                     wait_for_queued=False,
-                )
+                ).output_dir
                 if alias:
                     self.project.set_alias(job_path, alias)
             wait_for_queued_job_completion(pathlib.Path(job_path))
@@ -638,7 +642,10 @@ class PipelineRunner:
         boxsize: Optional[int] = None,
         iteration: int = 0,
     ):
-        first_batch = ""
+        fraction_of_classes_to_remove = 0.75
+        files_to_combine = ""
+        quantile_threshold = 0
+        last_completed_split = 0
         class3d_thread = None
         while True:
             try:
@@ -665,9 +672,35 @@ class PipelineRunner:
                     and self._restarted
                 ):
                     continue
+                if (
+                    self.job_paths_batch.get("relion.select.class2dauto")
+                    and not quantile_threshold
+                ):
+                    # if a batch has been run but the selection threshold is not done
+                    # get class rankings and find the threshold for particle selection
+                    quantile_key = list(
+                        self.job_paths_batch["relion.select.class2dauto"].keys()
+                    )[0]
+                    star_doc = cif.read_file(
+                        str(
+                            self.job_paths_batch["relion.select.class2dauto"][
+                                quantile_key
+                            ]
+                            / "rank_model.star"
+                        )
+                    )
+                    star_block = star_doc["model_classes"]
+                    class_scores = np.array(
+                        star_block.find_loop("_rlnClassScore"), dtype=float
+                    )
+                    quantile_threshold = np.quantile(
+                        class_scores[class_scores >= 0], fraction_of_classes_to_remove
+                    )
+
                 if not self.job_paths_batch.get(class2d_type):
-                    first_batch = batch_file
+                    # if this is the first batch, start a new 2D classification job
                     self.job_paths_batch[class2d_type] = {}
+                    self.job_paths_batch["relion.select.class2dauto"] = {}
                     try:
                         self.job_paths_batch[class2d_type][batch_file] = self.fresh_job(
                             class2d_type,
@@ -679,22 +712,21 @@ class PipelineRunner:
                             f"Exception encountered in 2D classification runner. Try again: {e}"
                         )
                         self.clear_relion_lock()
-                        # self._queues["class2D"][iteration].put(batch_file)
                         continue
-
-                    if self._past_class_threshold and self.options.do_class3d:
-                        class3d_thread = threading.Thread(
-                            target=self._classification_3d,
-                            name="3D_classification_runner",
-                            kwargs={
-                                "iteration": iteration,
-                                "angpix": angpix,
-                                "boxsize": boxsize,
-                            },
-                        )
-                        class3d_thread.start()
-                        self._queues["class3D"][iteration].put(first_batch)
+                    # run 2D class selection to produce rankings
+                    self.job_paths_batch["relion.select.class2dauto"][
+                        batch_file
+                    ] = self.fresh_job(
+                        "relion.select.class2dauto",
+                        extra_params={
+                            "fn_model": self.job_paths_batch[class2d_type][batch_file]
+                            / "run_it020_optimiser.star",
+                            "python_exe": self._relion_python_exe,
+                        },
+                        lock=self._lock,
+                    )
                 elif self.job_paths_batch[class2d_type].get(batch_file):
+                    # runs on the second time the job receives the first batch
                     if self._lock:
                         try:
                             with self._lock:
@@ -713,7 +745,6 @@ class PipelineRunner:
                                 f"Exception encountered in 2D classification runner. Try again: {e}"
                             )
                             self.clear_relion_lock()
-                            # self._queues["class2D"][iteration].put(batch_file)
                             continue
                     else:
                         self.project.run_job(
@@ -723,31 +754,38 @@ class PipelineRunner:
                             ),
                             wait_for_queued=True,
                         )
-                    if self._past_class_threshold and self.options.do_class3d:
-                        class3d_thread = threading.Thread(
-                            target=self._classification_3d,
-                            name="3D_classification_runner",
-                            kwargs={
-                                "iteration": iteration,
-                                "angpix": angpix,
-                                "boxsize": boxsize,
-                            },
+                    # run 2D class selection for the first batch using the threshold
+                    with open(
+                        self.job_paths_batch["relion.select.class2dauto"][batch_file]
+                        / "job.star",
+                        "r",
+                    ) as f:
+                        job_runner = f.read()
+                    job_runner = re.sub(
+                        "'rank_threshold'[0-9 .]+",
+                        f"'rank_threshold'  {quantile_threshold}",
+                        job_runner,
+                    )
+                    with open(
+                        self.job_paths_batch["relion.select.class2dauto"][batch_file]
+                        / "job.star",
+                        "w",
+                    ) as f:
+                        f.write(job_runner)
+                    self.project.continue_job(
+                        str(
+                            self.job_paths_batch["relion.select.class2dauto"][
+                                batch_file
+                            ]
                         )
-                        class3d_thread.start()
-                        self._queues["class3D"][iteration].put(first_batch)
+                    )
+                    # add the selected particles to the list of particles to use
+                    files_to_combine += str(
+                        self.job_paths_batch["relion.select.class2dauto"][batch_file]
+                        / "particles.star"
+                    )
                 else:
-                    if self.options.do_class3d and class3d_thread is None:
-                        class3d_thread = threading.Thread(
-                            target=self._classification_3d,
-                            name="3D_classification_runner",
-                            kwargs={
-                                "iteration": iteration,
-                                "angpix": angpix,
-                                "boxsize": boxsize,
-                            },
-                        )
-                        class3d_thread.start()
-                        self._queues["class3D"][iteration].put(first_batch)
+                    # classification for all batches except the first
                     try:
                         self.job_paths_batch[class2d_type][batch_file] = self.fresh_job(
                             class2d_type,
@@ -759,11 +797,87 @@ class PipelineRunner:
                             f"Exception encountered in 2D classification runner. Try again: {e}"
                         )
                         self.clear_relion_lock()
-                        # self._queues["class2D"][iteration].put(batch_file)
                         continue
+                    # run 2D class selection for the current batch with the threshold
+                    self.job_paths_batch["relion.select.class2dauto"][
+                        batch_file
+                    ] = self.fresh_job(
+                        "relion.select.class2dauto",
+                        extra_params={
+                            "fn_model": self.job_paths_batch[class2d_type][batch_file]
+                            / "run_it020_optimiser.star",
+                            "rank_threshold": quantile_threshold,
+                            "python_exe": self._relion_python_exe,
+                        },
+                        lock=self._lock,
+                    )
+                    # add the selected particles to the list of particles to use
+                    files_to_combine += str(
+                        self.job_paths_batch["relion.select.class2dauto"][batch_file]
+                        / "particles.star"
+                    )
 
-                    if self.options.do_class3d:
-                        self._queues["class3D"][iteration].put(batch_file)
+                # if particles have been selected then send them to the file combiner
+                if files_to_combine:
+                    if not self.job_paths.get("combine_star_files_job"):
+                        # if this is the first time then create a new job
+                        self.job_paths["combine_star_files_job"] = self.fresh_job(
+                            "combine_star_files_job",
+                            extra_params={
+                                "files_to_process": files_to_combine,
+                                "do_split": True,
+                                "split_size": self.options.batch_size,
+                            },
+                            lock=self._lock,
+                        )
+                    else:
+                        # other batches can be run in the same job, with a new file list
+                        with open(
+                            self.job_paths["combine_star_files_job"] / "job.star", "r"
+                        ) as f:
+                            job_runner = f.read()
+                        job_runner = re.sub(
+                            "'files_to_process'[a-zA-Z0-9 ._'/]+",
+                            f"'files_to_process'  '{files_to_combine}'",
+                            job_runner,
+                        )
+                        with open(
+                            self.job_paths["combine_star_files_job"] / "job.star", "w"
+                        ) as f:
+                            f.write(job_runner)
+                        self.project.continue_job(
+                            str(self.job_paths["combine_star_files_job"])
+                        )
+                    # all selected particles will go back into the combiner
+                    # needs a space at the end of the string
+                    files_to_combine = str(
+                        self.job_paths["combine_star_files_job"] / "particles_all.star "
+                    )
+                    # find the last batch and check if it is complete
+                    split_file = str(
+                        self.job_paths["combine_star_files_job"]
+                        / f"particles_split{last_completed_split + 1}.star"
+                    )
+                    split_file_block = cif.read_file(split_file)["particles"]
+                    split_file_column = np.array(
+                        split_file_block.find_loop("_rlnCoordinateX")
+                    )
+                    if len(split_file_column) == self.options.batch_size:
+                        # if the split is complete then run 3D classification
+                        if self.options.do_class3d and class3d_thread is None:
+                            class3d_thread = threading.Thread(
+                                target=self._classification_3d,
+                                name="3D_classification_runner",
+                                kwargs={
+                                    "iteration": iteration,
+                                    "angpix": angpix,
+                                    "boxsize": boxsize,
+                                },
+                            )
+                            class3d_thread.start()
+                        self._queues["class3D"][iteration].put(split_file)
+                        # mark this split as the last one completed and run
+                        last_completed_split += 1
             except Exception as e:
                 logger.warning(
                     f"Unexpected Exception in 2D classification runner: {e}",
