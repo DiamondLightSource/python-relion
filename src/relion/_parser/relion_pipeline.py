@@ -28,7 +28,7 @@ def _max_class(ini_model_dir: Path) -> int:
     last_iteration_number = max(
         (int(n) for n in number_list if n.isnumeric()), default=0
     )
-    data_file = f"run_it{last_iteration_number:03d}_data.star"
+    data_file = ini_model_dir / f"run_it{last_iteration_number:03d}_data.star"
     gemmi_readable_path = os.fspath(data_file)
     star_doc = cif.read_file(gemmi_readable_path)
     class_number_values = star_doc[1].find_loop("_rlnClassNumber")
@@ -172,13 +172,13 @@ class RelionPipeline:
                 self._nodes[self._nodes.index(f._path)].propagate(
                     ("init_model_class_num", "init_model_class_num")
                 )
-            if (
+            elif (
                 str(f._path.parent.parent) == "InitialModel"
                 and "initial" in f._path.name
             ):
                 self._nodes[self._nodes.index(f._path)].environment[
                     "init_model_class_num"
-                ] = _max_class(f._path.parent)
+                ] = _max_class(Path(star_path).parent / f._path.parent)
                 self._nodes[self._nodes.index(f._path)].propagate(
                     ("init_model_class_num", "init_model_class_num")
                 )
