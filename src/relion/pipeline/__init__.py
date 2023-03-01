@@ -823,7 +823,7 @@ class PipelineRunner:
                     )
 
                 # if particles have been selected then send them to the file combiner
-                if files_to_combine or not fraction_of_classes_to_remove:
+                if files_to_combine:
                     if not self.job_paths.get("combine_star_files_job"):
                         # if this is the first time then create a new job
                         self.job_paths["combine_star_files_job"] = self.fresh_job(
@@ -867,25 +867,27 @@ class PipelineRunner:
                     split_file_column = np.array(
                         split_file_block.find_loop("_rlnCoordinateX")
                     )
-                    if (
-                        len(split_file_column) == self.options.batch_size
-                        or not fraction_of_classes_to_remove
-                    ):
-                        # if the split is complete then run 3D classification
-                        if self.options.do_class3d and class3d_thread is None:
-                            class3d_thread = threading.Thread(
-                                target=self._classification_3d,
-                                name="3D_classification_runner",
-                                kwargs={
-                                    "iteration": iteration,
-                                    "angpix": angpix,
-                                    "boxsize": boxsize,
-                                },
-                            )
-                            class3d_thread.start()
-                        self._queues["class3D"][iteration].put(split_file)
-                        # mark this split as the last one completed and run
-                        last_completed_split += 1
+                if (
+                    len(split_file_column) == self.options.batch_size
+                    and files_to_combine
+                ) or not fraction_of_classes_to_remove:
+                    # if the split is complete then run 3D classification
+                    if self.options.do_class3d and class3d_thread is None:
+                        class3d_thread = threading.Thread(
+                            target=self._classification_3d,
+                            name="3D_classification_runner",
+                            kwargs={
+                                "iteration": iteration,
+                                "angpix": angpix,
+                                "boxsize": boxsize,
+                            },
+                        )
+                        class3d_thread.start()
+                    self._queues["class3D"][iteration].put(
+                        split_file if files_to_combine else batch_file
+                    )
+                    # mark this split as the last one completed and run
+                    last_completed_split += 1
             except Exception as e:
                 logger.warning(
                     f"Unexpected Exception in 2D classification runner: {e}",
