@@ -642,7 +642,9 @@ class PipelineRunner:
         boxsize: Optional[int] = None,
         iteration: int = 0,
     ):
-        fraction_of_classes_to_remove = 0.75
+        fraction_of_classes_to_remove = (
+            self.options.class2d_fraction_of_classes_to_remove
+        )
         files_to_combine = ""
         quantile_threshold = 0
         last_completed_split = 0
