@@ -697,7 +697,10 @@ class PipelineRunner:
                         class_scores[class_scores >= 0], fraction_of_classes_to_remove
                     )
 
-                if not self.job_paths_batch.get(class2d_type):
+                if (
+                    not self.job_paths_batch.get(class2d_type)
+                    and fraction_of_classes_to_remove
+                ):
                     # if this is the first batch, start a new 2D classification job
                     self.job_paths_batch[class2d_type] = {}
                     self.job_paths_batch["relion.select.class2dauto"] = {}
@@ -818,7 +821,7 @@ class PipelineRunner:
                     )
 
                 # if particles have been selected then send them to the file combiner
-                if files_to_combine:
+                if files_to_combine or not fraction_of_classes_to_remove:
                     if not self.job_paths.get("combine_star_files_job"):
                         # if this is the first time then create a new job
                         self.job_paths["combine_star_files_job"] = self.fresh_job(
@@ -862,7 +865,10 @@ class PipelineRunner:
                     split_file_column = np.array(
                         split_file_block.find_loop("_rlnCoordinateX")
                     )
-                    if len(split_file_column) == self.options.batch_size:
+                    if (
+                        len(split_file_column) == self.options.batch_size
+                        or not fraction_of_classes_to_remove
+                    ):
                         # if the split is complete then run 3D classification
                         if self.options.do_class3d and class3d_thread is None:
                             class3d_thread = threading.Thread(
