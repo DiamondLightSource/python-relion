@@ -823,6 +823,7 @@ class PipelineRunner:
                     )
 
                 # if particles have been selected then send them to the file combiner
+                split_file_column = []
                 if files_to_combine:
                     if not self.job_paths.get("combine_star_files_job"):
                         # if this is the first time then create a new job
@@ -864,7 +865,7 @@ class PipelineRunner:
                         / f"particles_split{last_completed_split + 1}.star"
                     )
                     split_file_block = cif.read_file(split_file)["particles"]
-                    split_file_column = np.array(
+                    split_file_column = list(
                         split_file_block.find_loop("_rlnCoordinateX")
                     )
                 if (
