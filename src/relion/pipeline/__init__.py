@@ -760,35 +760,42 @@ class PipelineRunner:
                             wait_for_queued=True,
                         )
                     # run 2D class selection for the first batch using the threshold
-                    with open(
-                        self.job_paths_batch["relion.select.class2dauto"][batch_file]
-                        / "job.star",
-                        "r",
-                    ) as f:
-                        job_runner = f.read()
-                    job_runner = re.sub(
-                        "'rank_threshold'[0-9 .]+",
-                        f"'rank_threshold'  {quantile_threshold}",
-                        job_runner,
-                    )
-                    with open(
-                        self.job_paths_batch["relion.select.class2dauto"][batch_file]
-                        / "job.star",
-                        "w",
-                    ) as f:
-                        f.write(job_runner)
-                    self.project.continue_job(
-                        str(
+                    if fraction_of_classes_to_remove:
+                        with open(
                             self.job_paths_batch["relion.select.class2dauto"][
                                 batch_file
                             ]
+                            / "job.star",
+                            "r",
+                        ) as f:
+                            job_runner = f.read()
+                        job_runner = re.sub(
+                            "'rank_threshold'[0-9 .]+",
+                            f"'rank_threshold'  {quantile_threshold}",
+                            job_runner,
                         )
-                    )
-                    # add the selected particles to the list of particles to use
-                    files_to_combine += str(
-                        self.job_paths_batch["relion.select.class2dauto"][batch_file]
-                        / "particles.star"
-                    )
+                        with open(
+                            self.job_paths_batch["relion.select.class2dauto"][
+                                batch_file
+                            ]
+                            / "job.star",
+                            "w",
+                        ) as f:
+                            f.write(job_runner)
+                        self.project.continue_job(
+                            str(
+                                self.job_paths_batch["relion.select.class2dauto"][
+                                    batch_file
+                                ]
+                            )
+                        )
+                        # add the selected particles to the list of particles to use
+                        files_to_combine += str(
+                            self.job_paths_batch["relion.select.class2dauto"][
+                                batch_file
+                            ]
+                            / "particles.star"
+                        )
                 else:
                     # classification for all batches except the first
                     try:
@@ -803,24 +810,29 @@ class PipelineRunner:
                         )
                         self.clear_relion_lock()
                         continue
-                    # run 2D class selection for the current batch with the threshold
-                    self.job_paths_batch["relion.select.class2dauto"][
-                        batch_file
-                    ] = self.fresh_job(
-                        "relion.select.class2dauto",
-                        extra_params={
-                            "fn_model": self.job_paths_batch[class2d_type][batch_file]
-                            / "run_it020_optimiser.star",
-                            "rank_threshold": quantile_threshold,
-                            "python_exe": self._relion_python_exe,
-                        },
-                        lock=self._lock,
-                    )
-                    # add the selected particles to the list of particles to use
-                    files_to_combine += str(
-                        self.job_paths_batch["relion.select.class2dauto"][batch_file]
-                        / "particles.star"
-                    )
+                    if fraction_of_classes_to_remove:
+                        # run 2D class selection for the current batch with the threshold
+                        self.job_paths_batch["relion.select.class2dauto"][
+                            batch_file
+                        ] = self.fresh_job(
+                            "relion.select.class2dauto",
+                            extra_params={
+                                "fn_model": self.job_paths_batch[class2d_type][
+                                    batch_file
+                                ]
+                                / "run_it020_optimiser.star",
+                                "rank_threshold": quantile_threshold,
+                                "python_exe": self._relion_python_exe,
+                            },
+                            lock=self._lock,
+                        )
+                        # add the selected particles to the list of particles to use
+                        files_to_combine += str(
+                            self.job_paths_batch["relion.select.class2dauto"][
+                                batch_file
+                            ]
+                            / "particles.star"
+                        )
 
                 # if particles have been selected then send them to the file combiner
                 split_file_column = []
