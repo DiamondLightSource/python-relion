@@ -699,10 +699,7 @@ class PipelineRunner:
                         class_scores[class_scores >= 0], fraction_of_classes_to_remove
                     )
 
-                if (
-                    not self.job_paths_batch.get(class2d_type)
-                    and fraction_of_classes_to_remove
-                ):
+                if not self.job_paths_batch.get(class2d_type):
                     # if this is the first batch, start a new 2D classification job
                     self.job_paths_batch[class2d_type] = {}
                     self.job_paths_batch["relion.select.class2dauto"] = {}
@@ -718,18 +715,21 @@ class PipelineRunner:
                         )
                         self.clear_relion_lock()
                         continue
-                    # run 2D class selection to produce rankings
-                    self.job_paths_batch["relion.select.class2dauto"][
-                        batch_file
-                    ] = self.fresh_job(
-                        "relion.select.class2dauto",
-                        extra_params={
-                            "fn_model": self.job_paths_batch[class2d_type][batch_file]
-                            / "run_it020_optimiser.star",
-                            "python_exe": self._relion_python_exe,
-                        },
-                        lock=self._lock,
-                    )
+                    if fraction_of_classes_to_remove:
+                        # run 2D class selection to produce rankings
+                        self.job_paths_batch["relion.select.class2dauto"][
+                            batch_file
+                        ] = self.fresh_job(
+                            "relion.select.class2dauto",
+                            extra_params={
+                                "fn_model": self.job_paths_batch[class2d_type][
+                                    batch_file
+                                ]
+                                / "run_it020_optimiser.star",
+                                "python_exe": self._relion_python_exe,
+                            },
+                            lock=self._lock,
+                        )
                 elif self.job_paths_batch[class2d_type].get(batch_file):
                     # runs on the second time the job receives the first batch
                     if self._lock:
