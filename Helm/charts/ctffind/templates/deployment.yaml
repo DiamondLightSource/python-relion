@@ -60,3 +60,21 @@ spec:
 {{- if .Values.extraVolumes }}
 {{ toYaml .Values.extraVolumes | indent 6 }}
 {{ end }}
+{{- if .Values.scaleOnQueueLength }}
+---
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: ctffind
+  namespace: {{ .Values.global.namespace }}
+spec:
+  scaleTargetRef:
+    name: ctffind
+  triggers:
+    - type: rabbitmq
+      metadata:
+        host: {{ .Values.global.rmqHost }}
+        queueName: ctffind
+        mode: QueueLength
+        value: {{ .Values.queueLengthTrigger }}
+{{ end }}

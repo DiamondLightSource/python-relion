@@ -60,3 +60,21 @@ spec:
 {{- if .Values.extraVolumes }}
 {{ toYaml .Values.extraVolumes | indent 6 }}
 {{ end }}
+{{- if .Values.scaleOnQueueLength }}
+---
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: ispyb-dev
+  namespace: {{ .Values.global.namespace }}
+spec:
+  scaleTargetRef:
+    name: ispyb-dev
+  triggers:
+    - type: ispyb-dev
+      metadata:
+        host: {{ .Values.global.rmqHost }}
+        queueName: ispyb
+        mode: QueueLength
+        value: {{ .Values.queueLengthTrigger }}
+{{ end }}

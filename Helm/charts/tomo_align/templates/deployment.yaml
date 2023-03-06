@@ -75,3 +75,21 @@ spec:
         key: nodetype
         operator: Equal
         value: gpu
+{{- if .Values.scaleOnQueueLength }}
+---
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: tomo-align
+  namespace: {{ .Values.global.namespace }}
+spec:
+  scaleTargetRef:
+    name: tomo-align
+  triggers:
+    - type: rabbitmq
+      metadata:
+        host: {{ .Values.global.rmqHost }}
+        queueName: tomo-align
+        mode: QueueLength
+        value: {{ .Values.queueLengthTrigger }}
+{{ end }}

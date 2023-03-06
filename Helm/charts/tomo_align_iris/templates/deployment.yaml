@@ -22,10 +22,7 @@ spec:
         imagePullPolicy: Always
         resources:
           requests:
-            nvidia.com/gpu: "1"
-          limits:
-            memory: 25Gi
-            nvidia.com/gpu: "1"
+            cpu: "250m"
         command: ["/bin/sh"]
         args: 
           - -c
@@ -69,11 +66,21 @@ spec:
 {{- if .Values.extraVolumes }}
 {{ toYaml .Values.extraVolumes | indent 6 }}
 {{ end }}
-      tolerations:
-      - effect: NoSchedule
-        key: nvidia.com/gpu
-        operator: Exists
-      - effect: NoSchedule
-        key: nodetype
-        operator: Equal
-        value: gpu
+{{- if .Values.scaleOnQueueLength }}
+---
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: tomo-align-iris
+  namespace: {{ .Values.global.namespace }}
+spec:
+  scaleTargetRef:
+    name: tomo-align-iris
+  triggers:
+    - type: rabbitmq
+      metadata:
+        host: {{ .Values.global.rmqHost }}
+        queueName: tomo-align-iris
+        mode: QueueLength
+        value: {{ .Values.queueLengthTrigger }}
+{{ end }}
