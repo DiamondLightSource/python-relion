@@ -46,7 +46,7 @@ spec:
       volumes:
       - name: config-file
         configMap:
-          name: zocalo-configmap-dev
+          name: zocalo-conf
       - name: secrets
         projected:
           defaultMode: 0444
@@ -54,9 +54,9 @@ spec:
           - secret: 
               name: {{ .Values.dbSecretName }}
           - secret:
-              name: staging-rmq-creds
+              name: {{ .Values.rmqSecretName }}
           - secret:
-              name: staging-rmq-api-reader
+              name: {{ .Values.rmqApiSecretName }}
 {{- if .Values.extraVolumes }}
 {{ toYaml .Values.extraVolumes | indent 6 }}
 {{ end }}

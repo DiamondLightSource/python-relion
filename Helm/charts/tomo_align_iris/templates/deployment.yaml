@@ -1,30 +1,33 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: ispyb-dev
+  name: tomo-align-iris
   namespace: {{ .Values.global.namespace }}
 spec:
   replicas: {{ .Values.replicas }}
   selector:
     matchLabels:
-      app: ispyb-dev
+      app: tomo-align-iris
   template:
     metadata:
       labels:
-        app: ispyb-dev
+        app: tomo-align-iris
     spec:
       securityContext:
         runAsUser: {{ .Values.global.runAsUser }}
         runAsGroup: {{ .Values.global.runAsGroup }}
       containers:
-      - name: ispyb-runner
+      - name: tomo-align-iris-runner
         image: {{ .Values.image }}
         imagePullPolicy: Always
         resources:
           requests:
-            cpu: "250m"
+            nvidia.com/gpu: "1"
+          limits:
+            memory: 25Gi
+            nvidia.com/gpu: "1"
         command: ["/bin/sh"]
-        args:
+        args: 
           - -c
           - >-
               {{ .Values.command }}
@@ -35,6 +38,12 @@ spec:
           value: "/zocalo/config/zocalo-dev-config.yaml"
         - name: ISPYB_CREDENTIALS
           value: "/zocalo/secrets/{{ .Values.dbFileName }}"
+        - name: LD_LIBRARY_PATH
+          value: "/IMOD/4.11.1/IMOD/lib:/IMOD/4.11.1/IMOD/qtlib"
+        - name: IMOD_DIR
+          value: "/IMOD/4.11.1/IMOD"
+        - name: CONDOR_CONFIG
+          value: "ONLY_ENV"
         volumeMounts:
         - name: config-file
           mountPath: /zocalo/config
@@ -60,3 +69,11 @@ spec:
 {{- if .Values.extraVolumes }}
 {{ toYaml .Values.extraVolumes | indent 6 }}
 {{ end }}
+      tolerations:
+      - effect: NoSchedule
+        key: nvidia.com/gpu
+        operator: Exists
+      - effect: NoSchedule
+        key: nodetype
+        operator: Equal
+        value: gpu
