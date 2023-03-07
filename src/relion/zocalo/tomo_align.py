@@ -236,9 +236,17 @@ class TomoAlign(CommonService):
         if d.is_file():
             d.chmod(0o740)
 
+        if tomo_params.out_imod:
+            self.imod_directory = (
+                self.alignment_output_dir + "/" + self.stack_name + "_aretomo_Imod"
+            )
+
         aretomo_result = self.aretomo(tomo_params.aretomo_output_file, tomo_params)
 
-        if aretomo_result.returncode:
+        if aretomo_result.returncode == message:
+            rw.send("tomo_align", message)
+
+        if aretomo_result.returncode and aretomo_result.returncode != 1:
             self.log.error(
                 f"AreTomo failed with exitcode {aretomo_result.returncode}:\n"
                 + aretomo_result.stderr.decode("utf8", "replace")
@@ -258,9 +266,6 @@ class TomoAlign(CommonService):
             return
 
         if tomo_params.out_imod:
-            self.imod_directory = (
-                self.alignment_output_dir + "/" + self.stack_name + "_aretomo_Imod"
-            )
             _f = Path(self.imod_directory)
             _f.chmod(0o750)
             for file in _f.iterdir():
