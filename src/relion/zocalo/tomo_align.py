@@ -177,10 +177,8 @@ class TomoAlign(CommonService):
 
         tilt_dict: dict = {}
         for tilt in tomo_params.input_file_list:
-            if not pathlib.Path(tilt[0]).is_file():
-                self.log.warning(
-                f"File not found {tilt[0]}"
-                )
+            if not Path(tilt[0]).is_file():
+                self.log.warning(f"File not found {tilt[0]}")
                 rw.transport.nack(header)
             if tilt[1] not in tilt_dict:
                 tilt_dict[tilt[1]] = []
