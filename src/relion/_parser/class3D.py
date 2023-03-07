@@ -142,7 +142,7 @@ class Class3D(JobType):
                 particle_class_list.append(
                     Class3DParticleClass(
                         checked_particle_list[j],
-                        reference_image[j],
+                        str(self._basepath.parent / reference_image[j]),
                         float(class_distribution[j]),
                         accuracy_rotations[j],
                         accuracy_translations_angst[j],
@@ -268,6 +268,7 @@ class Class3D(JobType):
                 "overall_fourier_completeness": cl.overall_fourier_completeness,
                 "job_string": cl.job,
                 "class_distribution": cl.class_distribution,
+                "class_image_full_path": cl.reference_image,
             }
             for cl in particle_class
         ]
