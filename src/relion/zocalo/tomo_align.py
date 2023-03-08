@@ -17,6 +17,7 @@ from workflows.services.common_service import CommonService
 class TomoParameters(BaseModel):
     input_file_list: List[list]
     stack_file: str = Field(..., min_length=1)
+    path_pattern: str = None
     position: Optional[str] = None
     aretomo_output_file: Optional[str] = None
     vol_z: int = 1200
@@ -172,6 +173,13 @@ class TomoAlign(CommonService):
 
         def _tilt(file_list):
             return float(file_list[1])
+
+        if tomo_params.path_pattern:
+            directory = Path(tomo_params.path_pattern).parent
+            tomo_params.input_file_list = [
+                [str(file), str(file.name).split("_")[4]]
+                for file in directory.glob("Position*.mrc")
+            ]
 
         tomo_params.input_file_list.sort(key=_tilt)
 
