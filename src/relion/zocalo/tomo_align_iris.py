@@ -10,7 +10,7 @@ from workflows.services.common_service import CommonService
 from relion.zocalo.tomo_align import TomoAlign
 
 
-class TomoAlignIris(CommonService, TomoAlign):
+class TomoAlignIris(TomoAlign, CommonService):
     """
     A service for grouping and aligning tomography tilt-series with Newstack and AreTomo
     """
@@ -26,7 +26,7 @@ class TomoAlignIris(CommonService, TomoAlign):
             if line.startswith("Tilt offset"):
                 self.tilt_offset = float(line.split()[2].strip(","))
 
-    def aretomo(self, tomo_parameters, message):
+    def aretomo(self, tomo_parameters):
         """
         Run AreTomo on output of Newstack
         """
@@ -125,6 +125,7 @@ class TomoAlignIris(CommonService, TomoAlign):
         output_file = self.alignment_output_dir + "/" + self.stack_name + "_iris_out"
         error_file = self.alignment_output_dir + "/" + self.stack_name + "_iris_error"
         log_file = self.alignment_output_dir + "/" + self.stack_name + "_iris_log"
+
         try:
             at_job = htcondor.Submit(
                 {
@@ -138,18 +139,16 @@ class TomoAlignIris(CommonService, TomoAlign):
                     "request_disk": "10240",
                     "should_transfer_files": "yes",
                     "transfer_input_files": "$(stack_file)",
-                    "transfer_output_files": "$(aretomo_output)",
                     "initialdir": "$(initial_dir)",
                 }
             )
         except Exception:
             self.log.warn("Couldn't connect submitter")
-            return message
+            return None
 
         if tomo_parameters.out_imod:
             itemdata = [
                 {
-                    "aretomo_output": ".",
                     "input_args": " ".join(args),
                     "stack_file": tomo_parameters.stack_file,
                     "output_file": output_file,
@@ -161,7 +160,6 @@ class TomoAlignIris(CommonService, TomoAlign):
         else:
             itemdata = [
                 {
-                    "aretomo_output": ".",
                     "input_args": " ".join(args),
                     "stack_file": tomo_parameters.stack_file,
                     "output_file": output_file,
@@ -188,10 +186,10 @@ class TomoAlignIris(CommonService, TomoAlign):
                 break
             if res == 12:
                 schedd.act(htcondor.JobAction.Remove, f"ClusterId == {cluster_id}")
-                return subprocess.CompletedProcess(returncode=res)
+                return subprocess.CompletedProcess(args="", returncode=res)
             time.sleep(10)
 
         if tomo_parameters.tilt_cor:
             self.parse_tomo_output(output_file)
 
-        return subprocess.CompletedProcess()
+        return subprocess.CompletedProcess(args="", returncode=None)

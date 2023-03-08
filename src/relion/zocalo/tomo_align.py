@@ -201,8 +201,9 @@ class TomoAlign(CommonService):
         self.alignment_output_dir = str(Path(tomo_params.stack_file).parent)
         self.stack_name = str(Path(tomo_params.stack_file).stem)
 
-        tomo_params.aretomo_output_file = (
-            self.alignment_output_dir + "/" + self.stack_name + "_aretomo.mrc"
+        tomo_params.aretomo_output_file = self.stack_name + "_aretomo.mrc"
+        self.aretomo_output_path = (
+            self.alignment_output_dir + "/" + tomo_params.aretomo_output_file
         )
         self.plot_file = self.stack_name + "_xy_shift_plot.json"
         self.plot_path = self.alignment_output_dir + "/" + self.plot_file
@@ -241,9 +242,9 @@ class TomoAlign(CommonService):
                 self.alignment_output_dir + "/" + self.stack_name + "_aretomo_Imod"
             )
 
-        aretomo_result = self.aretomo(tomo_params.aretomo_output_file, tomo_params)
+        aretomo_result = self.aretomo(tomo_params)
 
-        if aretomo_result == message:
+        if not aretomo_result:
             rw.send("tomo_align", message)
 
         if aretomo_result.returncode:
@@ -366,20 +367,20 @@ class TomoAlign(CommonService):
             rw.send_to("ispyb", ispyb_parameters)
 
         # Forward results to images service
-        self.log.info(f"Sending to images service {tomo_params.aretomo_output_file}")
+        self.log.info(f"Sending to images service {self.aretomo_output_path}")
         if isinstance(rw, RW_mock):
             rw.transport.send(
                 destination="images",
                 message={
                     "parameters": {"images_command": "mrc_central_slice"},
-                    "file": tomo_params.aretomo_output_file,
+                    "file": self.aretomo_output_path,
                 },
             )
             rw.transport.send(
                 destination="movie",
                 message={
                     "parameters": {"images_command": "mrc_to_apng"},
-                    "file": tomo_params.aretomo_output_file,
+                    "file": self.aretomo_output_path,
                 },
             )
         else:
@@ -387,14 +388,14 @@ class TomoAlign(CommonService):
                 "images",
                 {
                     "parameters": {"images_command": "mrc_central_slice"},
-                    "file": tomo_params.aretomo_output_file,
+                    "file": self.aretomo_output_path,
                 },
             )
             rw.send_to(
                 "movie",
                 {
                     "parameters": {"images_command": "mrc_to_apng"},
-                    "file": tomo_params.aretomo_output_file,
+                    "file": self.aretomo_output_path,
                 },
             )
         xy_input = (
@@ -476,11 +477,11 @@ class TomoAlign(CommonService):
         result = procrunner.run(newstack_cmd)
         return result
 
-    def aretomo(self, output_file, tomo_parameters):
+    def aretomo(self, tomo_parameters):
         """
         Run AreTomo on output of Newstack
         """
-        command = ["AreTomo", "-OutMrc", output_file]
+        command = ["AreTomo", "-OutMrc", self.aretomo_output_path]
 
         if tomo_parameters.angle_file:
             command.extend(("-AngFile", tomo_parameters.angle_file))
@@ -532,7 +533,7 @@ class TomoAlign(CommonService):
 
         self.log.info(f"Running AreTomo {command}")
         self.log.info(
-            f"Input stack: {tomo_parameters.stack_file} \nOutput file: {output_file}"
+            f"Input stack: {tomo_parameters.stack_file} \nOutput file: {tomo_parameters.aretomo_output_file}"
         )
         if tomo_parameters.tilt_cor:
             callback = self.parse_tomo_output
