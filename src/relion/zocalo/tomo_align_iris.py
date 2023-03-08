@@ -144,7 +144,7 @@ class TomoAlignIris(CommonService, TomoAlign):
             )
         except Exception:
             self.log.warn("Couldn't connect submitter")
-            return subprocess.CompletedProcess(returncode=message)
+            return message
 
         if tomo_parameters.out_imod:
             itemdata = [
@@ -188,10 +188,10 @@ class TomoAlignIris(CommonService, TomoAlign):
                 break
             if res == 12:
                 schedd.act(htcondor.JobAction.Remove, f"ClusterId == {cluster_id}")
-                return res
+                return subprocess.CompletedProcess(returncode=res)
             time.sleep(10)
 
         if tomo_parameters.tilt_cor:
             self.parse_tomo_output(output_file)
 
-        return subprocess.CompletedProcess(returncode=res)
+        return subprocess.CompletedProcess()
