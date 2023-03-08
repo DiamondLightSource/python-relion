@@ -533,7 +533,7 @@ class TomoAlign(CommonService):
 
         self.log.info(f"Running AreTomo {command}")
         self.log.info(
-            f"Input stack: {tomo_parameters.stack_file} \nOutput file: {tomo_parameters.aretomo_output_file}"
+            f"Input stack: {tomo_parameters.stack_file} \nOutput file: {self.aretomo_output_path}"
         )
         if tomo_parameters.tilt_cor:
             callback = self.parse_tomo_output
