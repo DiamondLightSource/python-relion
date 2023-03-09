@@ -176,10 +176,19 @@ class TomoAlign(CommonService):
 
         if tomo_params.path_pattern:
             directory = Path(tomo_params.path_pattern).parent
-            tomo_params.input_file_list = [
-                [str(file), str(file.name).split("_")[4]]
-                for file in directory.glob("Position*.mrc")
-            ]
+            # tomo_params.input_file_list = [
+            #    [str(file), str(file.name).split("_")[4]]
+            #    for file in directory.glob(str(tomo_params.path_pattern.name))
+            # ]
+
+            input_file_list = []
+            for item in directory.glob(Path(tomo_params.path_pattern).name):
+                parts = str(Path(item).with_suffix("").name).split("_")
+                for part in parts:
+                    print(part)
+                    if "." in part:
+                        input_file_list.append([str(item), part])
+            tomo_params.input_file_list = input_file_list
 
         tomo_params.input_file_list.sort(key=_tilt)
 
@@ -341,7 +350,6 @@ class TomoAlign(CommonService):
                             if self.refined_tilts
                             else None,
                             "refined_tilt_axis": str(self.rot),
-                            "movie_id": movie[2],
                         }
                     )
                 except IndexError as e:
