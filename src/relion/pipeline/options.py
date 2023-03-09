@@ -67,7 +67,7 @@ def generate_pipeline_options(
         "nr_threads": relion_it_options.motioncor_threads,
     }
 
-    job_options["relion.motioncorr.motioncorr2"] = {
+    job_options["relion.motioncorr.motioncor2"] = {
         **job_options["relion.motioncorr.own"],
         "other_motioncor2_args": relion_it_options.motioncor2_other_args,
     }

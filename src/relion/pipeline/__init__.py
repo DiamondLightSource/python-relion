@@ -11,6 +11,7 @@ import re
 import subprocess
 import threading
 import time
+import traceback
 from typing import Dict, List, Optional, Set, Tuple
 
 import numpy as np
@@ -21,7 +22,16 @@ from pipeliner.api.api_utils import (
     write_default_jobstar,
 )
 from pipeliner.api.manage_project import PipelinerProject
-from pipeliner.data_structure import ABORT_FILE, FAIL_FILE, SUCCESS_FILE
+from pipeliner.data_structure import (
+    ABORT_FILE,
+    FAIL_FILE,
+    JOBSTATUS_FAIL,
+    JOBSTATUS_RUN,
+    SUCCESS_FILE,
+)
+from pipeliner.job_runner import JobRunner
+from pipeliner.pipeliner_job import PipelinerJob
+from pipeliner.utils import touch
 
 from relion.cryolo_relion_it.cryolo_relion_it import RelionItOptions
 from relion.pipeline.extra_options import generate_extra_options
@@ -30,17 +40,34 @@ from relion.pipeline.options import generate_pipeline_options
 logger = logging.getLogger("relion.pipeline")
 
 
-def wait_for_queued_job_completion(outdir: pathlib.Path):
-    while not (outdir / SUCCESS_FILE).exists():
-        failed = (outdir / FAIL_FILE).exists()
-        aborted = (outdir / ABORT_FILE).exists()
+def wait_for_queued_job_completion(job: PipelinerJob, project_name: str = "default"):
+    while not (job.output_dir / SUCCESS_FILE).exists():
+        failed = (job.output_dir / FAIL_FILE).exists()
+        aborted = (job.output_dir / ABORT_FILE).exists()
         if failed:
-            print(f"WARNING: queued job {outdir} failed")
+            print(f"WARNING: queued job {job.output_dir} failed")
             return
         if aborted:
-            print(f"WARNING: queued job {outdir} was aborted")
+            print(f"WARNING: queued job {job.output_dir} was aborted")
             return
         time.sleep(10)
+
+    job_runner = JobRunner(project_name=project_name)
+    try:
+        job.post_run_actions()
+        # re-add the process in case new nodes were added
+        job_runner.add_job_to_pipeline(job, JOBSTATUS_RUN, True)
+
+    except Exception as e:
+        touch(job.output_dir / FAIL_FILE)
+        job_runner.add_job_to_pipeline(job, JOBSTATUS_FAIL, True)
+
+        warn = (
+            f"WARNING: post_run_actions for {job.output_dir} raised an error:\n"
+            f"{str(e)}\n{traceback.format_exc()}"
+        )
+        with open(job.output_dir / "run.err", "a") as err_file:
+            err_file.write(f"\n{warn}")
 
 
 def _clear_queue(q: queue.Queue) -> List[str]:
@@ -69,7 +96,9 @@ class PipelineRunner:
         self.options = options
         self.pipeline_options: Dict[str, dict] = self._generate_pipeline_options()
         self.job_paths: Dict[str, pathlib.Path] = {}
+        self.job_objects: Dict[str, PipelinerJob] = {}
         self.job_paths_batch: Dict[str, Dict[str, pathlib.Path]] = {}
+        self.job_objects_batch: Dict[str, Dict[str, PipelinerJob]] = {}
         self._past_class_threshold = False
         self._queues: Dict[str, List[queue.Queue]] = {
             "class2D": [queue.Queue()],
@@ -100,7 +129,7 @@ class PipelineRunner:
         if self.options.motioncor_do_own:
             jobs.append("relion.motioncorr.own")
         else:
-            jobs.append("relion.motioncorr.motioncorr2")
+            jobs.append("relion.motioncorr.motioncor2")
         ib_index = 0
         if self.options.do_icebreaker_job_group:
             search_paths.append(("IceBreaker", ib_index))
@@ -144,6 +173,8 @@ class PipelineRunner:
                 class2d_type = "relion.class2d.em"
             self.job_paths_batch[class2d_type] = {}
             self.job_paths_batch["relion.select.class2dauto"] = {}
+            self.job_objects_batch[class2d_type] = {}
+            self.job_objects_batch["relion.select.class2dauto"] = {}
             for p in (self.path / "Class2D").glob("*"):
                 select_file = self._get_select_file(p)
                 if select_file:
@@ -152,6 +183,7 @@ class PipelineRunner:
                     )
             if self.options.do_icebreaker_group:
                 self.job_paths_batch["icebreaker.micrograph_analysis.particles"] = {}
+                self.job_objects_batch["icebreaker.micrograph_analysis.particles"] = {}
                 for p in (self.path / "IceBreaker").glob("*"):
                     select_file = self._get_select_file(p, option_name="in_parts")
                     if select_file:
@@ -183,7 +215,7 @@ class PipelineRunner:
     def _generate_pipeline_options(self):
         pipeline_jobs = {
             "relion.import.movies": "",
-            "relion.motioncorr.motioncorr2": "gpu",
+            "relion.motioncorr.motioncor2": "gpu",
             "relion.motioncorr.own": "cpu",
             "icebreaker.micrograph_analysis.micrographs": "cpu-smp",
             "icebreaker.micrograph_analysis.enhancecontrast": "cpu-smp",
@@ -191,7 +223,7 @@ class PipelineRunner:
             "relion.ctffind.ctffind4": "cpu",
             "relion.autopick.log": "cpu",
             "relion.autopick.ref3d": "cpu",
-            "cryolo.autopick": "gpu",
+            "cryolo.autopick": "gpu-smp",
             "relion.extract": "cpu",
             "relion.select.split": "",
             "icebreaker.micrograph_analysis.particles": "cpu-smp",
@@ -209,7 +241,7 @@ class PipelineRunner:
         wait: bool = True,
         lock: Optional[threading.RLock] = None,
         alias: str = "",
-    ) -> pathlib.Path:
+    ) -> (PipelinerJob, pathlib.Path):
         logger.info(f"Registering new job: {job}")
         write_default_jobstar(job)
         params = job_default_parameters_dict(job)
@@ -231,23 +263,23 @@ class PipelineRunner:
             f"{job.replace('.', '_')}_job.star",
         )
         if lock is None:
-            job_path = self.project.run_job(
+            job_object = self.project.run_job(
                 f"{job.replace('.', '_')}_job.star",
                 wait_for_queued=wait,
-            ).output_dir
+            )
             if alias:
-                self.project.set_alias(job_path, alias)
+                self.project.set_alias(job_object.output_dir, alias)
         else:
             with lock:
-                job_path = self.project.run_job(
+                job_object = self.project.run_job(
                     f"{job.replace('.', '_')}_job.star",
                     wait_for_queued=False,
                 ).output_dir
                 if alias:
-                    self.project.set_alias(job_path, alias)
-            wait_for_queued_job_completion(pathlib.Path(job_path))
-        logger.info(f"New job registered: {job_path}")
-        return pathlib.Path(job_path)
+                    self.project.set_alias(job_object.output_dir, alias)
+            wait_for_queued_job_completion(job_object)
+        logger.info(f"New job registered: {job_object.output_dir}")
+        return job_object, pathlib.Path(job_object.output_dir)
 
     def _get_split_files(self, select_job: pathlib.Path) -> List[str]:
         all_split_files = list(select_job.glob("*particles_split*.star"))
@@ -281,7 +313,7 @@ class PipelineRunner:
         if self.options.motioncor_do_own:
             jobs.append("relion.motioncorr.own")
         else:
-            jobs.append("relion.motioncorr.motioncorr2")
+            jobs.append("relion.motioncorr.motioncor2")
         if self.options.do_icebreaker_job_group:
             jobs.append("icebreaker.micrograph_analysis.micrographs")
             aliases["icebreaker.micrograph_analysis.micrographs"] = "Icebreaker_G"
@@ -295,7 +327,7 @@ class PipelineRunner:
 
         for job in jobs:
             if not self.job_paths.get(job):
-                self.job_paths[job] = self.fresh_job(
+                self.job_objects[job], self.job_paths[job] = self.fresh_job(
                     job,
                     extra_params=self._extra_options(job, self.job_paths, self.options),
                     lock=self._lock,
@@ -304,27 +336,27 @@ class PipelineRunner:
             else:
                 if self._lock:
                     with self._lock:
-                        self.project.continue_job(
+                        self.job_objects[job] = self.project.continue_job(
                             str(self.job_paths[job]), wait_for_queued=False
                         )
-                    wait_for_queued_job_completion(self.job_paths[job])
+                    wait_for_queued_job_completion(self.job_objects[job])
                 else:
                     self.project.continue_job(str(self.job_paths[job]))
         if self.job_paths.get("relion.motioncorr.own"):
             self._num_seen_movies = self._get_num_movies(
                 self.job_paths["relion.motioncorr.own"] / "corrected_micrographs.star"
             )
-        elif self.job_paths.get("relion.motioncorr.motioncorr2"):
+        elif self.job_paths.get("relion.motioncorr.motioncor2"):
             self._num_seen_movies = self._get_num_movies(
-                self.job_paths["relion.motioncorr.motioncorr2"]
+                self.job_paths["relion.motioncorr.motioncor2"]
                 / "corrected_micrographs.star"
             )
         else:
             logger.error(
-                "Neither a relion.motioncorr.own nor a relion.motioncorr.motioncorr2 job were found"
+                "Neither a relion.motioncorr.own nor a relion.motioncorr.motioncor2 job were found"
             )
             raise KeyError(
-                "Neither a relion.motioncorr.own nor a relion.motioncorr.motioncorr2 job were found"
+                "Neither a relion.motioncorr.own nor a relion.motioncorr.motioncor2 job were found"
             )
         if self.options.stop_after_ctf_estimation:
             return []
@@ -340,7 +372,7 @@ class PipelineRunner:
             if not self.job_paths.get(job):
                 if job == "relion.autopick.ref3d":
                     try:
-                        self.job_paths[job] = self.fresh_job(
+                        self.job_objects[job], self.job_paths[job] = self.fresh_job(
                             job.replace(ref3d, ""),
                             extra_params={
                                 **self._extra_options(
@@ -358,7 +390,7 @@ class PipelineRunner:
                         return None
                 else:
                     try:
-                        self.job_paths[job] = self.fresh_job(
+                        self.job_objects[job], self.job_paths[job] = self.fresh_job(
                             job.replace(ref3d, ""),
                             extra_params=self._extra_options(
                                 job, self.job_paths, self.options
@@ -371,10 +403,10 @@ class PipelineRunner:
             else:
                 if self._lock:
                     with self._lock:
-                        self.project.continue_job(
+                        self.job_objects[job] = self.project.continue_job(
                             str(self.job_paths[job]), wait_for_queued=False
                         )
-                    wait_for_queued_job_completion(self.job_paths[job])
+                    wait_for_queued_job_completion(self.job_objects[job])
                 else:
                     self.project.continue_job(str(self.job_paths[job]))
         select_path = self.job_paths["relion.select.split" + ref3d]
@@ -478,7 +510,10 @@ class PipelineRunner:
             return None, None
 
         mask_outer_radius = math.floor(0.98 * self.options.mask_diameter / (2 * angpix))
-        self.job_paths["relion.external.mask_soft_edge"] = self.fresh_job(
+        (
+            self.job_objects["relion.external.mask_soft_edge"],
+            self.job_paths["relion.external.mask_soft_edge"],
+        ) = self.fresh_job(
             "relion.external",
             extra_params={
                 "fn_exe": "external_job_mask_soft_edge",
@@ -493,9 +528,10 @@ class PipelineRunner:
             lock=self._lock,
         )
         for iclass in range(1, len(star_block.find_loop("_rlnReferenceImage")) + 1):
-            self.job_paths[
-                f"relion.external.select_and_split_{iclass}"
-            ] = self.fresh_job(
+            (
+                self.job_objects[f"relion.external.select_and_split_{iclass}"],
+                self.job_paths[f"relion.external.select_and_split_{iclass}"],
+            ) = self.fresh_job(
                 "relion.external",
                 extra_params={
                     "fn_exe": "external_job_select_and_split",
@@ -510,9 +546,10 @@ class PipelineRunner:
                 alias=f"SelectAndSplit_{iclass}",
                 lock=self._lock,
             )
-            self.job_paths[
-                f"relion.external.reconstruct_halves_{iclass}"
-            ] = self.fresh_job(
+            (
+                self.job_objects[f"relion.external.reconstruct_halves_{iclass}"],
+                self.job_paths[f"relion.external.reconstruct_halves_{iclass}"],
+            ) = self.fresh_job(
                 "relion.external",
                 extra_params={
                     "fn_exe": "external_job_reconstruct_halves",
@@ -531,7 +568,10 @@ class PipelineRunner:
                 alias=f"ReconstructHalves_{iclass}",
                 lock=self._lock,
             )
-            self.job_paths[f"relion.postprocess_{iclass}"] = self.fresh_job(
+            (
+                self.job_objects[f"relion.postprocess_{iclass}"],
+                self.job_paths[f"relion.postprocess_{iclass}"],
+            ) = self.fresh_job(
                 "relion.postprocess",
                 extra_params={
                     "fn_mask": "External/MaskSoftEdge/mask.mrc",
@@ -545,7 +585,10 @@ class PipelineRunner:
             )
             fsc_files.append(f"PostProcess/GetFSC_{iclass}/postprocess.star")
 
-        self.job_paths["relion.external.fsc_fitting"] = self.fresh_job(
+        (
+            self.job_objects["relion.external.fsc_fitting"],
+            self.job_paths["relion.external.fsc_fitting"],
+        ) = self.fresh_job(
             "relion.external",
             extra_params={
                 "fn_exe": "external_job_fsc_fitting",
@@ -591,13 +634,17 @@ class PipelineRunner:
                 self.job_paths.get("relion.initialmodel") is None
                 and not self.options.have_3d_reference
             ):
-                self.job_paths["relion.initialmodel"] = self.fresh_job(
+                (
+                    self.job_objects["relion.initialmodel"],
+                    self.job_paths["relion.initialmodel"],
+                ) = self.fresh_job(
                     "relion.initialmodel",
                     extra_params={"fn_img": batch_file},
                     lock=self._lock,
                 )
             if not self.job_paths_batch.get("relion.class3d"):
                 self.job_paths_batch["relion.class3d"] = {}
+                self.job_objects_batch["relion.class3d"] = {}
             if self.options.use_fsc_criterion and angpix is None:
                 logger.error(
                     "use_fsc_criterion is True but angpix has not been specified"
@@ -612,7 +659,10 @@ class PipelineRunner:
                     ref = self._best_class_fsc(angpix, boxsize)[0]
                 else:
                     ref = self._best_class()[0]
-                self.job_paths_batch["relion.class3d"][batch_file] = self.fresh_job(
+                (
+                    self.job_objects_batch["relion.class3d"][batch_file],
+                    self.job_paths_batch["relion.class3d"][batch_file],
+                ) = self.fresh_job(
                     "relion.class3d",
                     extra_params={
                         "fn_img": batch_file,
@@ -703,8 +753,13 @@ class PipelineRunner:
                     # if this is the first batch, start a new 2D classification job
                     self.job_paths_batch[class2d_type] = {}
                     self.job_paths_batch["relion.select.class2dauto"] = {}
+                    self.job_objects_batch[class2d_type] = {}
+                    self.job_objects_batch["relion.select.class2dauto"] = {}
                     try:
-                        self.job_paths_batch[class2d_type][batch_file] = self.fresh_job(
+                        (
+                            self.job_objects_batch[class2d_type][batch_file],
+                            self.job_paths_batch[class2d_type][batch_file],
+                        ) = self.fresh_job(
                             class2d_type,
                             extra_params={"fn_img": batch_file},
                             lock=self._lock,
@@ -717,9 +772,14 @@ class PipelineRunner:
                         continue
                     if fraction_of_classes_to_remove:
                         # run 2D class selection to produce rankings
-                        self.job_paths_batch["relion.select.class2dauto"][
-                            batch_file
-                        ] = self.fresh_job(
+                        (
+                            self.job_objects_batch["relion.select.class2dauto"][
+                                batch_file
+                            ],
+                            self.job_paths_batch["relion.select.class2dauto"][
+                                batch_file
+                            ],
+                        ) = self.fresh_job(
                             "relion.select.class2dauto",
                             extra_params={
                                 "fn_model": self.job_paths_batch[class2d_type][
@@ -735,7 +795,9 @@ class PipelineRunner:
                     if self._lock:
                         try:
                             with self._lock:
-                                self.project.run_job(
+                                self.job_objects_batch[class2d_type][
+                                    batch_file
+                                ] = self.project.run_job(
                                     f"{class2d_type.replace('.', '_')}_job.star",
                                     overwrite=str(
                                         self.job_paths_batch[class2d_type][batch_file]
@@ -743,7 +805,7 @@ class PipelineRunner:
                                     wait_for_queued=False,
                                 )
                             wait_for_queued_job_completion(
-                                self.job_paths_batch[class2d_type][batch_file]
+                                self.job_objects_batch[class2d_type][batch_file]
                             )
                         except (AttributeError, FileNotFoundError) as e:
                             logger.warning(
@@ -799,7 +861,10 @@ class PipelineRunner:
                 else:
                     # classification for all batches except the first
                     try:
-                        self.job_paths_batch[class2d_type][batch_file] = self.fresh_job(
+                        (
+                            self.job_objects_batch[class2d_type][batch_file],
+                            self.job_paths_batch[class2d_type][batch_file],
+                        ) = self.fresh_job(
                             class2d_type,
                             extra_params={"fn_img": batch_file},
                             lock=self._lock,
@@ -812,9 +877,14 @@ class PipelineRunner:
                         continue
                     if fraction_of_classes_to_remove:
                         # run 2D class selection for the current batch with the threshold
-                        self.job_paths_batch["relion.select.class2dauto"][
-                            batch_file
-                        ] = self.fresh_job(
+                        (
+                            self.job_objects_batch["relion.select.class2dauto"][
+                                batch_file
+                            ],
+                            self.job_paths_batch["relion.select.class2dauto"][
+                                batch_file
+                            ],
+                        ) = self.fresh_job(
                             "relion.select.class2dauto",
                             extra_params={
                                 "fn_model": self.job_paths_batch[class2d_type][
@@ -839,7 +909,10 @@ class PipelineRunner:
                 if files_to_combine:
                     if not self.job_paths.get("combine_star_files_job"):
                         # if this is the first time then create a new job
-                        self.job_paths["combine_star_files_job"] = self.fresh_job(
+                        (
+                            self.job_objects["combine_star_files_job"],
+                            self.job_paths["combine_star_files_job"],
+                        ) = self.fresh_job(
                             "combine_star_files_job",
                             extra_params={
                                 "files_to_process": files_to_combine,
@@ -917,10 +990,16 @@ class PipelineRunner:
                 return
             if not self.job_paths_batch.get("icebreaker.micrograph_analysis.particles"):
                 self.job_paths_batch["icebreaker.micrograph_analysis.particles"] = {}
+                self.job_objects_batch["icebreaker.micrograph_analysis.particles"] = {}
             try:
-                self.job_paths_batch["icebreaker.micrograph_analysis.particles"][
-                    batch_file
-                ] = self.fresh_job(
+                (
+                    self.job_objects_batch["icebreaker.micrograph_analysis.particles"][
+                        batch_file
+                    ],
+                    self.job_paths_batch["icebreaker.micrograph_analysis.particles"][
+                        batch_file
+                    ],
+                ) = self.fresh_job(
                     "icebreaker.micrograph_analysis.particles",
                     extra_params={
                         "in_mics": str(
