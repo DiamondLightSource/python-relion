@@ -41,14 +41,15 @@ logger = logging.getLogger("relion.pipeline")
 
 
 def wait_for_queued_job_completion(job: PipelinerJob, project_name: str = "default"):
-    while not (job.output_dir / SUCCESS_FILE).exists():
-        failed = (job.output_dir / FAIL_FILE).exists()
-        aborted = (job.output_dir / ABORT_FILE).exists()
+    output_path = pathlib.Path(job.output_dir)
+    while not (output_path / SUCCESS_FILE).exists():
+        failed = (output_path / FAIL_FILE).exists()
+        aborted = (output_path / ABORT_FILE).exists()
         if failed:
-            print(f"WARNING: queued job {job.output_dir} failed")
+            print(f"WARNING: queued job {output_path} failed")
             return
         if aborted:
-            print(f"WARNING: queued job {job.output_dir} was aborted")
+            print(f"WARNING: queued job {output_path} was aborted")
             return
         time.sleep(10)
 
@@ -59,14 +60,14 @@ def wait_for_queued_job_completion(job: PipelinerJob, project_name: str = "defau
         job_runner.add_job_to_pipeline(job, JOBSTATUS_RUN, True)
 
     except Exception as e:
-        touch(job.output_dir / FAIL_FILE)
+        touch(output_path / FAIL_FILE)
         job_runner.add_job_to_pipeline(job, JOBSTATUS_FAIL, True)
 
         warn = (
-            f"WARNING: post_run_actions for {job.output_dir} raised an error:\n"
+            f"WARNING: post_run_actions for {output_path} raised an error:\n"
             f"{str(e)}\n{traceback.format_exc()}"
         )
-        with open(job.output_dir / "run.err", "a") as err_file:
+        with open(output_path / "run.err", "a") as err_file:
             err_file.write(f"\n{warn}")
 
 
@@ -91,7 +92,7 @@ class PipelineRunner:
         self._restarted = restarted
         self.movies_path = projpath / moviesdir
         self.movietype = movietype if not movietype[0] == "." else movietype[1:]
-        self.project = PipelinerProject()
+        self.project = PipelinerProject(make_new_project=True)
         self.stopfile = stopfile
         self.options = options
         self.pipeline_options: Dict[str, dict] = self._generate_pipeline_options()
@@ -274,7 +275,7 @@ class PipelineRunner:
                 job_object = self.project.run_job(
                     f"{job.replace('.', '_')}_job.star",
                     wait_for_queued=False,
-                ).output_dir
+                )
                 if alias:
                     self.project.set_alias(job_object.output_dir, alias)
             wait_for_queued_job_completion(job_object)
