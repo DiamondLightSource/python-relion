@@ -59,7 +59,7 @@ def _extract(
 ) -> Dict[str, Any]:
     res = {}
     if options.autopick_do_cryolo:
-        res["coords_suffix"] = str(tracker["cryolo.autopick"] / "cryolo_autopick.star")
+        res["coords_suffix"] = str(tracker["cryolo.autopick"] / "autopick.star")
     elif ref:
         res["coords_suffix"] = str(tracker["relion.autopick.ref3d"] / "autopick.star")
     else:
