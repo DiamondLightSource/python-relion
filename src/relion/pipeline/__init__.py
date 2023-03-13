@@ -702,7 +702,7 @@ class PipelineRunner:
         class3d_thread = None
         while True:
             try:
-                batch_file = self._queues["class2D"][iteration].get()
+                batch_file, batch_is_complete = self._queues["class2D"][iteration].get()
                 if not batch_file:
                     if class3d_thread is None:
                         return
@@ -725,30 +725,6 @@ class PipelineRunner:
                     and self._restarted
                 ):
                     continue
-                if (
-                    self.job_paths_batch.get("relion.select.class2dauto")
-                    and not quantile_threshold
-                ):
-                    # if a batch has been run but the selection threshold is not done
-                    # get class rankings and find the threshold for particle selection
-                    quantile_key = list(
-                        self.job_paths_batch["relion.select.class2dauto"].keys()
-                    )[0]
-                    star_doc = cif.read_file(
-                        str(
-                            self.job_paths_batch["relion.select.class2dauto"][
-                                quantile_key
-                            ]
-                            / "rank_model.star"
-                        )
-                    )
-                    star_block = star_doc["model_classes"]
-                    class_scores = np.array(
-                        star_block.find_loop("_rlnClassScore"), dtype=float
-                    )
-                    quantile_threshold = np.quantile(
-                        class_scores[class_scores >= 0], fraction_of_classes_to_remove
-                    )
 
                 if not self.job_paths_batch.get(class2d_type):
                     # if this is the first batch, start a new 2D classification job
@@ -771,26 +747,6 @@ class PipelineRunner:
                         )
                         self.clear_relion_lock()
                         continue
-                    if fraction_of_classes_to_remove:
-                        # run 2D class selection to produce rankings
-                        (
-                            self.job_objects_batch["relion.select.class2dauto"][
-                                batch_file
-                            ],
-                            self.job_paths_batch["relion.select.class2dauto"][
-                                batch_file
-                            ],
-                        ) = self.fresh_job(
-                            "relion.select.class2dauto",
-                            extra_params={
-                                "fn_model": self.job_paths_batch[class2d_type][
-                                    batch_file
-                                ]
-                                / "run_it020_optimiser.star",
-                                "python_exe": self._relion_python_exe,
-                            },
-                            lock=self._lock,
-                        )
                 elif self.job_paths_batch[class2d_type].get(batch_file):
                     # runs on the second time the job receives the first batch
                     if self._lock:
@@ -822,8 +778,70 @@ class PipelineRunner:
                             ),
                             wait_for_queued=True,
                         )
-                    # run 2D class selection for the first batch using the threshold
-                    if fraction_of_classes_to_remove:
+                else:
+                    # classification for all batches except the first
+                    try:
+                        (
+                            self.job_objects_batch[class2d_type][batch_file],
+                            self.job_paths_batch[class2d_type][batch_file],
+                        ) = self.fresh_job(
+                            class2d_type,
+                            extra_params={"fn_img": batch_file},
+                            lock=self._lock,
+                        )
+                    except (AttributeError, FileNotFoundError) as e:
+                        logger.warning(
+                            f"Exception encountered in 2D classification runner. Try again: {e}"
+                        )
+                        self.clear_relion_lock()
+                        continue
+
+                split_file = ""
+                split_file_column = []
+                if batch_is_complete and fraction_of_classes_to_remove:
+                    if not self.job_paths_batch.get("relion.select.class2dauto"):
+                        # the first time, run 2D class selection to produce rankings
+                        (
+                            self.job_objects_batch["relion.select.class2dauto"][
+                                batch_file
+                            ],
+                            self.job_paths_batch["relion.select.class2dauto"][
+                                batch_file
+                            ],
+                        ) = self.fresh_job(
+                            "relion.select.class2dauto",
+                            extra_params={
+                                "fn_model": self.job_paths_batch[class2d_type][
+                                    batch_file
+                                ]
+                                / "run_it020_optimiser.star",
+                                "python_exe": self._relion_python_exe,
+                            },
+                            lock=self._lock,
+                        )
+
+                        # get class rankings and find threshold for particle selection
+                        star_doc = cif.read_file(
+                            str(
+                                self.job_paths_batch["relion.select.class2dauto"][
+                                    batch_file
+                                ]
+                                / "rank_model.star"
+                            )
+                        )
+                        star_block = star_doc["model_classes"]
+                        class_scores = np.array(
+                            star_block.find_loop("_rlnClassScore"), dtype=float
+                        )
+                        quantile_threshold = np.quantile(
+                            class_scores[class_scores >= 0],
+                            fraction_of_classes_to_remove,
+                        )
+
+                    if self.job_paths_batch["relion.select.class2dauto"].get(
+                        batch_file
+                    ):
+                        # re-run selection for the first batch using the threshold
                         with open(
                             self.job_paths_batch["relion.select.class2dauto"][
                                 batch_file
@@ -845,39 +863,26 @@ class PipelineRunner:
                             "w",
                         ) as f:
                             f.write(job_runner)
-                        self.project.continue_job(
-                            str(
-                                self.job_paths_batch["relion.select.class2dauto"][
-                                    batch_file
-                                ]
+
+                        if self._lock is None:
+                            self.project.continue_job(
+                                str(
+                                    self.job_paths_batch["relion.select.class2dauto"][
+                                        batch_file
+                                    ]
+                                )
                             )
-                        )
-                        # add the selected particles to the list of particles to use
-                        files_to_combine += str(
-                            self.job_paths_batch["relion.select.class2dauto"][
-                                batch_file
-                            ]
-                            / "particles.star"
-                        )
-                else:
-                    # classification for all batches except the first
-                    try:
-                        (
-                            self.job_objects_batch[class2d_type][batch_file],
-                            self.job_paths_batch[class2d_type][batch_file],
-                        ) = self.fresh_job(
-                            class2d_type,
-                            extra_params={"fn_img": batch_file},
-                            lock=self._lock,
-                        )
-                    except (AttributeError, FileNotFoundError) as e:
-                        logger.warning(
-                            f"Exception encountered in 2D classification runner. Try again: {e}"
-                        )
-                        self.clear_relion_lock()
-                        continue
-                    if fraction_of_classes_to_remove:
-                        # run 2D class selection for the current batch with the threshold
+                        else:
+                            with self._lock:
+                                self.project.continue_job(
+                                    str(
+                                        self.job_paths_batch[
+                                            "relion.select.class2dauto"
+                                        ][batch_file]
+                                    )
+                                )
+                    else:
+                        # run 2D class selection for batches after the first
                         (
                             self.job_objects_batch["relion.select.class2dauto"][
                                 batch_file
@@ -897,17 +902,14 @@ class PipelineRunner:
                             },
                             lock=self._lock,
                         )
-                        # add the selected particles to the list of particles to use
-                        files_to_combine += str(
-                            self.job_paths_batch["relion.select.class2dauto"][
-                                batch_file
-                            ]
-                            / "particles.star"
-                        )
 
-                # if particles have been selected then send them to the file combiner
-                split_file_column = []
-                if files_to_combine:
+                    # add the selected particles to the list of particles to use
+                    files_to_combine += str(
+                        self.job_paths_batch["relion.select.class2dauto"][batch_file]
+                        / "particles.star"
+                    )
+
+                    # send particles to the file combiner
                     if not self.job_paths.get("combine_star_files_job"):
                         # if this is the first time then create a new job
                         (
@@ -937,9 +939,15 @@ class PipelineRunner:
                             self.job_paths["combine_star_files_job"] / "job.star", "w"
                         ) as f:
                             f.write(job_runner)
-                        self.project.continue_job(
-                            str(self.job_paths["combine_star_files_job"])
-                        )
+                        if self._lock is None:
+                            self.project.continue_job(
+                                str(self.job_paths["combine_star_files_job"])
+                            )
+                        else:
+                            with self._lock:
+                                self.project.continue_job(
+                                    str(self.job_paths["combine_star_files_job"])
+                                )
                     # all selected particles will go back into the combiner
                     # needs a space at the end of the string
                     files_to_combine = str(
@@ -954,10 +962,11 @@ class PipelineRunner:
                     split_file_column = list(
                         split_file_block.find_loop("_rlnCoordinateX")
                     )
+
                 if (
                     len(split_file_column) == self.options.batch_size
                     and files_to_combine
-                ) or not fraction_of_classes_to_remove:
+                ) or (batch_is_complete and not fraction_of_classes_to_remove):
                     # if the split is complete then run 3D classification
                     if self.options.do_class3d and class3d_thread is None:
                         class3d_thread = threading.Thread(
@@ -1143,7 +1152,7 @@ class PipelineRunner:
                         )
                         class_thread_second_pass.start()
                     if len(split_files) == 1:
-                        self._queues["class2D"][iteration].put(split_files[0])
+                        self._queues["class2D"][iteration].put((split_files[0], False))
                         self._passes[iteration].update(split_files)
                     else:
                         new_batches = [
@@ -1152,7 +1161,9 @@ class PipelineRunner:
                         if not self._past_class_threshold:
                             self._past_class_threshold = True
                         for sf in new_batches:
-                            self._queues["class2D"][iteration].put(sf)
+                            self._queues["class2D"][iteration].put(
+                                (sf, self._past_class_threshold)
+                            )
                         self._passes[iteration].update(new_batches)
                 old_iteration = iteration
                 if (
@@ -1163,7 +1174,7 @@ class PipelineRunner:
                     and not iteration
                 ):
                     self._queues["ib_group"][0].put("")
-                    self._queues["class2D"][0].put("")
+                    self._queues["class2D"][0].put(("", ""))
                     if ib_thread:
                         ib_thread.join()
                     if class_thread:
@@ -1213,7 +1224,7 @@ class PipelineRunner:
             self._queues["ib_group"][0].put("")
         if class_thread is not None:
             logger.info("Stopping classification thread")
-            self._queues["class2D"][0].put("")
+            self._queues["class2D"][0].put(("", ""))
         if ib_thread is not None:
             ib_thread.join()
             logger.info("IceBreaker thread stopped")
