@@ -41,34 +41,35 @@ logger = logging.getLogger("relion.pipeline")
 
 
 def wait_for_queued_job_completion(job: PipelinerJob, project_name: str = "default"):
-    output_path = pathlib.Path(job.output_dir)
-    while not (output_path / SUCCESS_FILE).exists():
-        failed = (output_path / FAIL_FILE).exists()
-        aborted = (output_path / ABORT_FILE).exists()
-        if failed:
-            print(f"WARNING: queued job {output_path} failed")
-            return
-        if aborted:
-            print(f"WARNING: queued job {output_path} was aborted")
-            return
-        time.sleep(10)
+    if job.joboptions.get("do_queue") and job.joboptions["do_queue"].get_boolean():
+        output_path = pathlib.Path(job.output_dir)
+        while not (output_path / SUCCESS_FILE).exists():
+            failed = (output_path / FAIL_FILE).exists()
+            aborted = (output_path / ABORT_FILE).exists()
+            if failed:
+                print(f"WARNING: queued job {output_path} failed")
+                return
+            if aborted:
+                print(f"WARNING: queued job {output_path} was aborted")
+                return
+            time.sleep(10)
 
-    job_runner = JobRunner(project_name=project_name)
-    try:
-        job.post_run_actions()
-        # re-add the process in case new nodes were added
-        job_runner.add_job_to_pipeline(job, JOBSTATUS_RUN, True)
+        job_runner = JobRunner(project_name=project_name)
+        try:
+            job.post_run_actions()
+            # re-add the process in case new nodes were added
+            job_runner.add_job_to_pipeline(job, JOBSTATUS_RUN, True)
 
-    except Exception as e:
-        touch(output_path / FAIL_FILE)
-        job_runner.add_job_to_pipeline(job, JOBSTATUS_FAIL, True)
+        except Exception as e:
+            touch(output_path / FAIL_FILE)
+            job_runner.add_job_to_pipeline(job, JOBSTATUS_FAIL, True)
 
-        warn = (
-            f"WARNING: post_run_actions for {output_path} raised an error:\n"
-            f"{str(e)}\n{traceback.format_exc()}"
-        )
-        with open(output_path / "run.err", "a") as err_file:
-            err_file.write(f"\n{warn}")
+            warn = (
+                f"WARNING: post_run_actions for {output_path} raised an error:\n"
+                f"{str(e)}\n{traceback.format_exc()}"
+            )
+            with open(output_path / "run.err", "a") as err_file:
+                err_file.write(f"\n{warn}")
 
 
 def _clear_queue(q: queue.Queue) -> List[str]:
@@ -748,7 +749,7 @@ class PipelineRunner:
                         self.clear_relion_lock()
                         continue
                 elif self.job_paths_batch[class2d_type].get(batch_file):
-                    # runs on the second time the job receives the first batch
+                    # runs when a previously incomplete batch is repeated
                     if self._lock:
                         try:
                             with self._lock:
@@ -779,7 +780,7 @@ class PipelineRunner:
                             wait_for_queued=True,
                         )
                 else:
-                    # classification for all batches except the first
+                    # classification for all new batches except the first
                     try:
                         (
                             self.job_objects_batch[class2d_type][batch_file],
@@ -819,16 +820,20 @@ class PipelineRunner:
                             },
                             lock=self._lock,
                         )
-
-                        # get class rankings and find threshold for particle selection
+                    if not quantile_threshold:
+                        # get class rankings from the first batch
+                        quantile_key = list(
+                            self.job_objects_batch["relion.select.class2dauto"].keys()
+                        )[0]
                         star_doc = cif.read_file(
                             str(
                                 self.job_paths_batch["relion.select.class2dauto"][
-                                    batch_file
+                                    quantile_key
                                 ]
                                 / "rank_model.star"
                             )
                         )
+                        # find threshold for particle selection
                         star_block = star_doc["model_classes"]
                         class_scores = np.array(
                             star_block.find_loop("_rlnClassScore"), dtype=float
