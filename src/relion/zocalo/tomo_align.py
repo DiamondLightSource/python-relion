@@ -346,6 +346,7 @@ class TomoAlign(CommonService):
                             if self.refined_tilts
                             else None,
                             "refined_tilt_axis": str(self.rot),
+                            "path": movie[0],
                         }
                     )
                 except IndexError as e:
