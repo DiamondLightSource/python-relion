@@ -17,7 +17,7 @@ from workflows.services.common_service import CommonService
 class TomoParameters(BaseModel):
     input_file_list: Optional[List[list]]
     stack_file: str = Field(..., min_length=1)
-    path_pattern: str = Field(..., min_length=1)
+    path_pattern: Optional[str] = None
     position: Optional[str] = None
     aretomo_output_file: Optional[str] = None
     vol_z: int = 1200
@@ -49,6 +49,16 @@ class TomoParameters(BaseModel):
             return file_list
         else:
             raise ValueError("input_file_list is not a list of lists")
+
+    def __post_init__(self):
+        if not self.path_pattern and not self.input_file_list:
+            self.log.error(
+                "Message must include one of 'path_pattern' and 'input_tilt_list'"
+            )
+        if self.path_pattern and self.input_file_list:
+            self.log.error(
+                "Message must only include one of 'path_pattern' and 'input_tilt_list'"
+            )
 
 
 class TomoAlign(CommonService):
