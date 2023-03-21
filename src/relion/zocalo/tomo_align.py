@@ -15,7 +15,7 @@ from workflows.services.common_service import CommonService
 
 
 class TomoParameters(BaseModel):
-    input_file_list: List[list]
+    input_file_list: Optional[List[list]]
     stack_file: str = Field(..., min_length=1)
     path_pattern: str = Field(..., min_length=1)
     position: Optional[str] = None
