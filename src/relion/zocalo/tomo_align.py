@@ -17,7 +17,7 @@ from workflows.services.common_service import CommonService
 class TomoParameters(BaseModel):
     stack_file: str = Field(..., min_length=1)
     path_pattern: str = None
-    input_file_list: str = None
+    input_file_list: List[list] = None
     position: Optional[str] = None
     aretomo_output_file: Optional[str] = None
     vol_z: int = 1200
@@ -51,25 +51,19 @@ class TomoParameters(BaseModel):
                 "Message must only include one of 'path_pattern' and 'input_tilt_list'. Both are set or one has been set by the recipe."
             )
 
-    @validator("input_file_list")
+    @validator("input_file_list", pre=True)
     def convert_to_list_of_lists(cls, v, values):
-        if v:
-            file_list = ast.literal_eval(v)
-            if isinstance(file_list, list) and isinstance(file_list[0], list):
-                return file_list
-            else:
-                raise ValueError("input_file_list is not a list of lists")
+        file_list = ast.literal_eval(v)
+        if isinstance(file_list, list) and isinstance(file_list[0], list):
+            return file_list
         else:
-            return None
+            raise ValueError("input_file_list is not a list of lists")
 
-    @validator("input_file_list")
+    @validator("input_file_list", pre=True)
     def check_lists_are_not_empty(cls, v):
-        if v:
-            for item in v:
-                if not item:
-                    raise ValueError("Empty list found")
-        else:
-            return None
+        for item in v:
+            if not item:
+                raise ValueError("Empty list found")
 
 
 class TomoAlign(CommonService):
@@ -196,7 +190,9 @@ class TomoAlign(CommonService):
         def _tilt(file_list):
             return float(file_list[1])
 
+        print(f"PARAMS: {tomo_params}")
         if tomo_params.path_pattern:
+            print(f"PARAMS: {tomo_params}")
             directory = Path(tomo_params.path_pattern).parent
 
             input_file_list = []
