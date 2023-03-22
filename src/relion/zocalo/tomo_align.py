@@ -59,6 +59,8 @@ class TomoParameters(BaseModel):
                 return file_list
             else:
                 raise ValueError("input_file_list is not a list of lists")
+        else:
+            return None
 
     @validator("input_file_list")
     def check_lists_are_not_empty(cls, v):
@@ -66,6 +68,8 @@ class TomoParameters(BaseModel):
             for item in v:
                 if not item:
                     raise ValueError("Empty list found")
+        else:
+            return None
 
 
 class TomoAlign(CommonService):
@@ -188,7 +192,6 @@ class TomoAlign(CommonService):
             )
             rw.transport.nack(header)
             return
-        print(f"Tomo params: {tomo_params}")
 
         def _tilt(file_list):
             return float(file_list[1])
