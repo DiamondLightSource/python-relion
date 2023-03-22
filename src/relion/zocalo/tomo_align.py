@@ -17,7 +17,7 @@ from workflows.services.common_service import CommonService
 class TomoParameters(BaseModel):
     stack_file: str = Field(..., min_length=1)
     path_pattern: str = None
-    input_file_list: List[list] = None
+    input_file_list: str = None
     position: Optional[str] = None
     aretomo_output_file: Optional[str] = None
     vol_z: int = 1200
@@ -50,20 +50,28 @@ class TomoParameters(BaseModel):
             raise ValueError(
                 "Message must only include one of 'path_pattern' and 'input_tilt_list'. Both are set or one has been set by the recipe."
             )
+        return v
 
-    @validator("input_file_list", pre=True)
-    def convert_to_list_of_lists(cls, v, values):
-        file_list = ast.literal_eval(v)
+    @validator("input_file_list")
+    def convert_to_list_of_lists(cls, v):
+        file_list = None
+        try:
+            file_list = ast.literal_eval(
+                v
+            )  # if input_file_list is '' it will break here
+        except Exception:
+            return v
         if isinstance(file_list, list) and isinstance(file_list[0], list):
             return file_list
         else:
             raise ValueError("input_file_list is not a list of lists")
 
-    @validator("input_file_list", pre=True)
+    @validator("input_file_list")
     def check_lists_are_not_empty(cls, v):
         for item in v:
             if not item:
                 raise ValueError("Empty list found")
+        return v
 
 
 class TomoAlign(CommonService):
