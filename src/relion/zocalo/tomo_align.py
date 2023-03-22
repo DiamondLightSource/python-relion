@@ -15,9 +15,9 @@ from workflows.services.common_service import CommonService
 
 
 class TomoParameters(BaseModel):
-    input_file_list: Optional[List[list]]
     stack_file: str = Field(..., min_length=1)
-    path_pattern: Optional[str] = None
+    path_pattern: str = None
+    input_file_list: str = None
     position: Optional[str] = None
     aretomo_output_file: Optional[str] = None
     vol_z: int = 1200
@@ -42,23 +42,30 @@ class TomoParameters(BaseModel):
     dark_tol: Optional[Union[int, str]] = None
     manual_tilt_offset: Optional[int] = None
 
-    @validator("input_file_list", pre=True)
-    def convert_to_list_of_lists(cls, v):
-        file_list = ast.literal_eval(v)
-        if isinstance(file_list, list) and isinstance(file_list[0], list):
-            return file_list
-        else:
-            raise ValueError("input_file_list is not a list of lists")
+    @validator("input_file_list")
+    def check_only_one_is_provided(cls, v, values):
+        if not v and not values.get("path_pattern"):
+            raise ValueError("input_file_list or path_pattern must be provided")
+        if v and values.get("path_pattern"):
+            raise ValueError(
+                "Message must only include one of 'path_pattern' and 'input_tilt_list'. Both are set or one has been set by the recipe."
+            )
 
-    def __post_init__(self):
-        if not self.path_pattern and not self.input_file_list:
-            self.log.error(
-                "Message must include one of 'path_pattern' and 'input_tilt_list'"
-            )
-        if self.path_pattern and self.input_file_list:
-            self.log.error(
-                "Message must only include one of 'path_pattern' and 'input_tilt_list'"
-            )
+    @validator("input_file_list")
+    def convert_to_list_of_lists(cls, v, values):
+        if v:
+            file_list = ast.literal_eval(v)
+            if isinstance(file_list, list) and isinstance(file_list[0], list):
+                return file_list
+            else:
+                raise ValueError("input_file_list is not a list of lists")
+
+    @validator("input_file_list")
+    def check_lists_are_not_empty(cls, v):
+        if v:
+            for item in v:
+                if not item:
+                    raise ValueError("Empty list found")
 
 
 class TomoAlign(CommonService):
@@ -174,12 +181,14 @@ class TomoAlign(CommonService):
                 )
             else:
                 tomo_params = TomoParameters(**{**rw.recipe_step.get("parameters", {})})
+
         except (ValidationError, TypeError) as e:
             self.log.warning(
                 f"{e} TomoAlign parameter validation failed for message: {message} and recipe parameters: {rw.recipe_step.get('parameters', {})}"
             )
             rw.transport.nack(header)
             return
+        print(f"Tomo params: {tomo_params}")
 
         def _tilt(file_list):
             return float(file_list[1])
