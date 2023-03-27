@@ -71,6 +71,10 @@ def wait_for_queued_job_completion(job: PipelinerJob, project_name: str = "defau
             with open(output_path / "run.err", "a") as err_file:
                 err_file.write(f"\n{warn}")
 
+        # create default displays for the job's nodes
+        for node in job.input_nodes + job.output_nodes:
+            node.write_default_result_file()
+
 
 def _clear_queue(q: queue.Queue) -> List[str]:
     results = []

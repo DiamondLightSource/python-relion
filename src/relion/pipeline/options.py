@@ -74,17 +74,14 @@ def generate_pipeline_options(
 
     job_options["icebreaker.micrograph_analysis.micrographs"] = {
         "nr_threads": relion_it_options.icebreaker_threads_number,
-        "nr_mpi": 1,
     }
 
     job_options["icebreaker.micrograph_analysis.enhancecontrast"] = {
         "nr_threads": relion_it_options.icebreaker_threads_number,
-        "nr_mpi": 1,
     }
 
     job_options["icebreaker.micrograph_analysis.summary"] = {
         "nr_threads": relion_it_options.icebreaker_threads_number,
-        "nr_mpi": 1,
     }
 
     job_options["relion.ctffind.ctffind4"] = {
@@ -96,7 +93,6 @@ def generate_pipeline_options(
         "resmax": relion_it_options.ctffind_maxres,
         "resmin": relion_it_options.ctffind_minres,
         "do_phaseshift": relion_it_options.ctffind_do_phaseshift,
-        "gpu_ids": "0:1:2:3",
         "nr_mpi": relion_it_options.ctffind_mpi,
     }
 
@@ -150,7 +146,6 @@ def generate_pipeline_options(
 
     job_options["icebreaker.micrograph_analysis.particles"] = {
         "nr_threads": relion_it_options.icebreaker_threads_number,
-        "nr_mpi": 1,
     }
 
     job_options["relion.class2d.em"] = {
