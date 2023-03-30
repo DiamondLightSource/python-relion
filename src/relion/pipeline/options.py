@@ -194,7 +194,6 @@ def generate_pipeline_options(
         "nr_pool": relion_it_options.refine_nr_pool,
         "use_gpu": relion_it_options.refine_do_gpu,
         "gpu_ids": "0,1,2,3",
-        "nr_mpi": 1,
         "nr_threads": relion_it_options.inimodel_threads,
     }
 
