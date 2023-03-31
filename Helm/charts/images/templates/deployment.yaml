@@ -76,5 +76,5 @@ spec:
         host: {{ .Values.global.rmqHost }}
         queueName: images-dev
         mode: QueueLength
-        value: {{ .Values.queueLengthTrigger }}
+        value: "{{ .Values.queueLengthTrigger }}"
 {{ end }}

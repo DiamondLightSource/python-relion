@@ -88,5 +88,5 @@ spec:
         host: {{ .Values.global.rmqHost }}
         queueName: motioncorr
         mode: QueueLength
-        value: {{ .Values.queueLengthTrigger }}
+        value: "{{ .Values.queueLengthTrigger }}"
 {{ end }}
