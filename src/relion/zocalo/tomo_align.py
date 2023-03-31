@@ -15,8 +15,9 @@ from workflows.services.common_service import CommonService
 
 
 class TomoParameters(BaseModel):
-    input_file_list: List[list]
     stack_file: str = Field(..., min_length=1)
+    path_pattern: str = None
+    input_file_list: str = None
     position: Optional[str] = None
     aretomo_output_file: Optional[str] = None
     vol_z: int = 1200
@@ -41,13 +42,36 @@ class TomoParameters(BaseModel):
     dark_tol: Optional[Union[int, str]] = None
     manual_tilt_offset: Optional[int] = None
 
-    @validator("input_file_list", pre=True)
+    @validator("input_file_list")
+    def check_only_one_is_provided(cls, v, values):
+        if not v and not values.get("path_pattern"):
+            raise ValueError("input_file_list or path_pattern must be provided")
+        if v and values.get("path_pattern"):
+            raise ValueError(
+                "Message must only include one of 'path_pattern' and 'input_tilt_list'. Both are set or one has been set by the recipe."
+            )
+        return v
+
+    @validator("input_file_list")
     def convert_to_list_of_lists(cls, v):
-        file_list = ast.literal_eval(v)
+        file_list = None
+        try:
+            file_list = ast.literal_eval(
+                v
+            )  # if input_file_list is '' it will break here
+        except Exception:
+            return v
         if isinstance(file_list, list) and isinstance(file_list[0], list):
             return file_list
         else:
             raise ValueError("input_file_list is not a list of lists")
+
+    @validator("input_file_list")
+    def check_lists_are_not_empty(cls, v):
+        for item in v:
+            if not item:
+                raise ValueError("Empty list found")
+        return v
 
 
 class TomoAlign(CommonService):
@@ -163,6 +187,7 @@ class TomoAlign(CommonService):
                 )
             else:
                 tomo_params = TomoParameters(**{**rw.recipe_step.get("parameters", {})})
+
         except (ValidationError, TypeError) as e:
             self.log.warning(
                 f"{e} TomoAlign parameter validation failed for message: {message} and recipe parameters: {rw.recipe_step.get('parameters', {})}"
@@ -173,6 +198,20 @@ class TomoAlign(CommonService):
         def _tilt(file_list):
             return float(file_list[1])
 
+        print(f"PARAMS: {tomo_params}")
+        if tomo_params.path_pattern:
+            print(f"PARAMS: {tomo_params}")
+            directory = Path(tomo_params.path_pattern).parent
+
+            input_file_list = []
+            for item in directory.glob(Path(tomo_params.path_pattern).name):
+                parts = str(Path(item).with_suffix("").name).split("_")
+                for part in parts:
+                    if "." in part:
+                        input_file_list.append([str(item), part])
+            tomo_params.input_file_list = input_file_list
+
+        self.log.info(f"Input list {tomo_params.input_file_list}")
         tomo_params.input_file_list.sort(key=_tilt)
 
         tilt_dict: dict = {}
@@ -342,7 +381,7 @@ class TomoAlign(CommonService):
                             if self.refined_tilts
                             else None,
                             "refined_tilt_axis": str(self.rot),
-                            "movie_id": movie[2],
+                            "path": movie[0],
                         }
                     )
                 except IndexError as e:
