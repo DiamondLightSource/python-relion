@@ -74,7 +74,7 @@ spec:
     - type: ispyb-dev
       metadata:
         host: {{ .Values.global.rmqHost }}
-        queueName: ispyb
+        queueName: ispyb_connector
         mode: QueueLength
         value: "{{ .Values.queueLengthTrigger }}"
 {{ end }}

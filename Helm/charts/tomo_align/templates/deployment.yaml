@@ -89,7 +89,7 @@ spec:
     - type: rabbitmq
       metadata:
         host: {{ .Values.global.rmqHost }}
-        queueName: tomo-align
+        queueName: tomo_align
         mode: QueueLength
         value: "{{ .Values.queueLengthTrigger }}"
 {{ end }}
