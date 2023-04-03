@@ -821,6 +821,7 @@ class PipelineRunner:
                                 ]
                                 / "run_it020_optimiser.star",
                                 "python_exe": self._relion_python_exe,
+                                "other_args": "--select_min_nr_classes 1",
                             },
                             lock=self._lock,
                         )
@@ -908,6 +909,7 @@ class PipelineRunner:
                                 / "run_it020_optimiser.star",
                                 "rank_threshold": quantile_threshold,
                                 "python_exe": self._relion_python_exe,
+                                "other_args": "--select_min_nr_classes 1",
                             },
                             lock=self._lock,
                         )

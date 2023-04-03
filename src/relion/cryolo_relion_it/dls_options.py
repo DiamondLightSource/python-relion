@@ -88,4 +88,4 @@ minimum_batch_size = 250
 
 voltage = 300
 Cs = 2.7
-import_images = "Movies/*.tif"
+import_images = "Movies/*.tiff"
