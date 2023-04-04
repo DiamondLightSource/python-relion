@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import ast
 import os.path
+import time
 from pathlib import Path
 from typing import List, Optional, Union
 
@@ -198,9 +199,7 @@ class TomoAlign(CommonService):
         def _tilt(file_list):
             return float(file_list[1])
 
-        print(f"PARAMS: {tomo_params}")
         if tomo_params.path_pattern:
-            print(f"PARAMS: {tomo_params}")
             directory = Path(tomo_params.path_pattern).parent
 
             input_file_list = []
@@ -306,10 +305,18 @@ class TomoAlign(CommonService):
             return
 
         if tomo_params.out_imod:
-            _f = Path(self.imod_directory)
-            _f.chmod(0o750)
-            for file in _f.iterdir():
-                file.chmod(0o740)
+            start_time = time.time()
+            while not Path(self.imod_directory).is_dir():
+                time.sleep(30)
+                elapsed = time.time() - start_time
+                if elapsed > 600:
+                    self.log.warning("Timeout waiting for Imod directory")
+                    break
+            else:
+                _f = Path(self.imod_directory)
+                _f.chmod(0o750)
+                for file in _f.iterdir():
+                    file.chmod(0o740)
 
         # Extract results for ispyb
 
