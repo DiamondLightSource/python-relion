@@ -554,7 +554,7 @@ import subprocess
 import time
 import traceback
 
-from pydantic import BaseModel
+from pydantic import BaseModel, root_validator
 
 from . import cryolo_external_job
 
@@ -586,6 +586,48 @@ def _is_industrial_user():
     fedid = grp.getgrgid(uid)[0]
     groups = str(subprocess.check_output(["groups", str(fedid)]))
     return any(group in groups for group in not_allowed)
+
+
+def calculate_box_size(particle_size_pixels):
+    # Use box 20% larger than particle and ensure size is even
+    box_size_exact = 1.2 * particle_size_pixels
+    box_size_int = int(math.ceil(box_size_exact))
+    return box_size_int + box_size_int % 2
+
+
+def calculate_downscaled_box_size(box_size_pix, angpix):
+    for small_box_pix in (
+        48,
+        64,
+        96,
+        128,
+        160,
+        192,
+        256,
+        288,
+        300,
+        320,
+        360,
+        384,
+        400,
+        420,
+        450,
+        480,
+        512,
+        640,
+        768,
+        896,
+        1024,
+    ):
+        # Don't go larger than the original box
+        if small_box_pix > box_size_pix:
+            return box_size_pix
+        # If Nyquist freq. is better than 8.5 A, use this downscaled box, otherwise continue to next size up
+        small_box_angpix = angpix * box_size_pix / small_box_pix
+        if small_box_angpix < 4.25:
+            return small_box_pix
+    # Fall back to a warning message
+    return "Box size is too large!"
 
 
 class RelionItOptions(BaseModel):
@@ -977,6 +1019,24 @@ class RelionItOptions(BaseModel):
     #######################################################################
     ############ typically no need to change anything below this line
     #######################################################################
+
+    @root_validator
+    def if_particle_diameter_compute_box_sizes(cls, values):
+        if values.get("particle_diameter"):
+            values["mask_diameter"] = 1.1 * values["particle_diameter"]
+            values["extract_boxsize"] = calculate_box_size(
+                values["particle_diameter"] / values["angpix"]
+            )
+            values["extract_small_boxsize"] = calculate_downscaled_box_size(
+                values["extract_boxsize"], values["angpix"]
+            )
+            values["autopick_LoG_diam_min"] = int(
+                0.8 * values["particle_diameter"] / values["angpix"]
+            )
+            values["autopick_LoG_diam_max"] = int(
+                1.2 * values["particle_diameter"] / values["angpix"]
+            )
+        return values
 
     def update_from_file(self, opts_file):
         """
@@ -1412,46 +1472,6 @@ class RelionItGui(object):
             class3d_pass2_button.select()
 
         ### Add logic to the box size boxes
-
-        def calculate_box_size(particle_size_pixels):
-            # Use box 20% larger than particle and ensure size is even
-            box_size_exact = 1.2 * particle_size_pixels
-            box_size_int = int(math.ceil(box_size_exact))
-            return box_size_int + box_size_int % 2
-
-        def calculate_downscaled_box_size(box_size_pix, angpix):
-            for small_box_pix in (
-                48,
-                64,
-                96,
-                128,
-                160,
-                192,
-                256,
-                288,
-                300,
-                320,
-                360,
-                384,
-                400,
-                420,
-                450,
-                480,
-                512,
-                640,
-                768,
-                896,
-                1024,
-            ):
-                # Don't go larger than the original box
-                if small_box_pix > box_size_pix:
-                    return box_size_pix
-                # If Nyquist freq. is better than 8.5 A, use this downscaled box, otherwise continue to next size up
-                small_box_angpix = angpix * box_size_pix / small_box_pix
-                if small_box_angpix < 4.25:
-                    return small_box_pix
-            # Fall back to a warning message
-            return "Box size is too large!"
 
         def update_box_size_labels(*args_ignored, **kwargs_ignored):
             try:
