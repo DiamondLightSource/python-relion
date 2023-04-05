@@ -34,3 +34,16 @@ def test_relion_it_options_pixel_size_changes_propagate():
     assert options.particle_diameter == 200
     assert options.extract_boxsize == 240
     assert options.extract_small_boxsize == 64
+
+
+def test_relion_it_options_write_method(tmp_path):
+    options = RelionItOptions()
+    options.print_options(out_file=open(tmp_path / "relion_it_options.py", "w"))
+    assert (tmp_path / "relion_it_options.py").exists()
+    with open(tmp_path / "relion_it_options.py", "r") as f:
+        lines = f.readlines()
+    assert "particle_diameter = 0\n" in lines
+    options.angpix = 1
+    assert options.angpix == 1
+    options.update_from_file(tmp_path / "relion_it_options.py")
+    assert options.angpix == 0.885
