@@ -264,7 +264,7 @@ def test_appended_results_are_picked_up_correctly(dials_data, proj):
 def test_prepended_results_are_picked_up_correctly_in_project_messages(dials_data):
     project = relion.Project(
         dials_data("relion_tutorial_data", pathlib=True),
-        run_options=RelionItOptions,
+        run_options=RelionItOptions(),
         message_constructors={"ispyb": construct_message},
     )
     corrected_star_path = os.fspath(
@@ -305,7 +305,7 @@ def test_prepended_results_are_picked_up_correctly_in_project_messages(dials_dat
 def test_appended_results_are_picked_up_correctly_in_project_messages(dials_data):
     project = relion.Project(
         dials_data("relion_tutorial_data", pathlib=True),
-        run_options=RelionItOptions,
+        run_options=RelionItOptions(),
         message_constructors={"ispyb": construct_message},
     )
     corrected_star_path = os.fspath(
