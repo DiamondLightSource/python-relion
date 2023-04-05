@@ -1020,6 +1020,9 @@ class RelionItOptions(BaseModel):
     ############ typically no need to change anything below this line
     #######################################################################
 
+    class Config:
+        validate_assignment = True
+
     @root_validator
     def if_particle_diameter_compute_box_sizes(cls, values):
         if values.get("particle_diameter"):
