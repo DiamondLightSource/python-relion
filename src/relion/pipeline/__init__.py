@@ -821,10 +821,14 @@ class PipelineRunner:
                                 ]
                                 / "run_it020_optimiser.star",
                                 "python_exe": self._relion_python_exe,
-                                "other_args": "--select_min_nr_classes 1",
+                                "other_args": f"--select_min_nr_particles {int(self.options.batch_size / 2)}",
                             },
                             lock=self._lock,
                         )
+
+                    if fraction_of_classes_to_remove == 1:
+                        # if fraction to remove is set to 1, select only on particles
+                        quantile_threshold = 1
                     if not quantile_threshold:
                         # get class rankings from the first batch
                         quantile_key = list(
@@ -844,7 +848,7 @@ class PipelineRunner:
                             star_block.find_loop("_rlnClassScore"), dtype=float
                         )
                         quantile_threshold = np.quantile(
-                            class_scores[class_scores >= 0],
+                            class_scores,
                             fraction_of_classes_to_remove,
                         )
 
@@ -909,7 +913,7 @@ class PipelineRunner:
                                 / "run_it020_optimiser.star",
                                 "rank_threshold": quantile_threshold,
                                 "python_exe": self._relion_python_exe,
-                                "other_args": "--select_min_nr_classes 1",
+                                "other_args": f"--select_min_nr_particles {int(self.options.batch_size / 2)}",
                             },
                             lock=self._lock,
                         )

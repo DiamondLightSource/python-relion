@@ -891,7 +891,7 @@ class RelionItOptions(object):
     # Use VDAM algorithm?
     do_class2d_vdam = False
     # Fraction of classes to attempt to remove using the RELION 2D class ranker
-    class2d_fraction_of_classes_to_remove = 0.75
+    class2d_fraction_of_classes_to_remove = 0.9
 
     ### 3D classification parameters
     # Number of iterations to perform in 3D classification
