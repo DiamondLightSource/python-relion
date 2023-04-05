@@ -626,6 +626,9 @@ class RelionItOptions(BaseModel):
     # Most cases won't need changes here...
 
     ### Autopick parameters
+    # Estimated particle diamter in Angstroms. Used to calculate other parameters such as mask diameter and extraction box size
+    # If 0 then unused
+    particle_diameter: float = 0
     # Use reference-free Laplacian-of-Gaussian picking (otherwise use reference-based template matching instead)
     autopick_do_LoG: bool = True
     # Minimum and maximum diameter in Angstrom for the LoG filter
