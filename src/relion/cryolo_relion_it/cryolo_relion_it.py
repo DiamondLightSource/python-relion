@@ -977,7 +977,7 @@ class RelionItOptions(BaseModel):
     # Number of in-between iterations
     inimodel_nr_iter_inbetween: int = 200
     # Number of final iterations
-    inimodel_nr_iter_finalL: int = 50
+    inimodel_nr_iter_final: int = 50
     # Frequency to write out information
     inimodel_freq_writeout: int = 10
     # Initial resolution (in A)
