@@ -1097,7 +1097,7 @@ class RelionItOptions(BaseModel):
             key
             for key in dir(self)
             if (
-                not (key.startswith("__") and key.endswith("__"))
+                not (key.startswith("__") and key.endswith("__") or key.startswith("_"))
                 and not callable(getattr(self, key))
             )
         ]
@@ -1105,6 +1105,10 @@ class RelionItOptions(BaseModel):
         # Parse the source code for this class, and write out all comments along with option lines containing new values
         for line in inspect.getsourcelines(RelionItOptions)[0]:
             line = line.strip()
+            if ":" in line:
+                colon_pos = line.find(":")
+                equals_pos = line.find("=")
+                line = line[:colon_pos] + line[equals_pos:]
             if not seen_start:
                 if line != "### General parameters":
                     # Ignore lines until this one
@@ -1120,7 +1124,7 @@ class RelionItOptions(BaseModel):
                 # Assume all other lines define an option name and value. Replace with new value.
                 equals_index = line.find("=")
                 if equals_index > 0:
-                    option_name = line[:equals_index].strip()
+                    option_name = line[:equals_index].strip().split(":")[0]
                     if option_name in option_names:
                         print(
                             "{} = {}".format(
