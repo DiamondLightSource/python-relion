@@ -307,6 +307,27 @@ class PipelineRunner:
         star_doc = cif.read_file(os.fspath(star_file))
         return len(list(star_doc[1].find_loop("_rlnMicrographName")))
 
+    def _set_particle_diameter(self, autopick_job: pathlib.Path):
+        # Find the diameter of the biggest particle in cryolo
+        max_diameter_pixels = 0
+        for cbox_file in autopick_job.glob("CBOX/*.cbox"):
+            cbox_block = cif.read_file(str(cbox_file)).find_block("cryolo")
+            cbox_sizes = np.append(
+                np.array(cbox_block.find_loop("_EstWidth"), dtype=float),
+                np.array(cbox_block.find_loop("_EstHeight"), dtype=float),
+            )
+            cbox_confidence = np.append(
+                np.array(cbox_block.find_loop("_Confidence"), dtype=float),
+                np.array(cbox_block.find_loop("_Confidence"), dtype=float),
+            )
+            max_size = max(cbox_sizes[cbox_confidence > self.options.cryolo_threshold])
+            if max_size > max_diameter_pixels:
+                max_diameter_pixels = max_size
+
+        # Set the new particle diameter in the pipeline options
+        self.options.particle_diameter = max_diameter_pixels * self.options.angpix
+        self.pipeline_options = self._generate_pipeline_options()
+
     def preprocessing(
         self, ref3d: str = "", ref3d_angpix: float = -1
     ) -> Optional[List[str]]:
@@ -406,6 +427,10 @@ class PipelineRunner:
                     except Exception:
                         logger.warning(f"Failed to register fresh job: {job}")
                         return None
+
+                if job == "cryolo.autopick" and self.options.estimate_particle_diameter:
+                    # set the particle diameter from the output of the first batch
+                    self._set_particle_diameter(self.job_paths[job])
             else:
                 if self._lock:
                     with self._lock:
