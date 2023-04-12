@@ -316,7 +316,7 @@ class PipelineRunner:
 
     def _set_particle_diameter(self, autopick_job: pathlib.Path):
         # Find the diameter of the biggest particle in cryolo
-        max_diameter_pixels = 0
+        cryolo_particle_sizes = np.array([])
         for cbox_file in autopick_job.glob("CBOX/*.cbox"):
             cbox_block = cif.read_file(str(cbox_file)).find_block("cryolo")
             cbox_sizes = np.append(
@@ -327,12 +327,14 @@ class PipelineRunner:
                 np.array(cbox_block.find_loop("_Confidence"), dtype=float),
                 np.array(cbox_block.find_loop("_Confidence"), dtype=float),
             )
-            max_size = max(cbox_sizes[cbox_confidence > self.options.cryolo_threshold])
-            if max_size > max_diameter_pixels:
-                max_diameter_pixels = max_size
+            cryolo_particle_sizes = np.append(
+                cryolo_particle_sizes,
+                cbox_sizes[cbox_confidence > self.options.cryolo_threshold],
+            )
+        particle_diameter_pixels = np.quantile(cryolo_particle_sizes, 0.75)
 
         # Set the new particle diameter in the pipeline options
-        self.options.particle_diameter = max_diameter_pixels * self.options.angpix
+        self.options.particle_diameter = particle_diameter_pixels * self.options.angpix
         self.pipeline_options = self._generate_pipeline_options()
 
     def preprocessing(
