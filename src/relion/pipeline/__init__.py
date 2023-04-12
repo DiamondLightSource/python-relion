@@ -200,6 +200,13 @@ class PipelineRunner:
                 self.job_paths["relion.initialmodel"] = list(
                     (self.path / "InitialModel").glob("*")
                 )[0].relative_to(self.path)
+            if (
+                self.job_paths.get("cryolo.autopick")
+                and (self.path / "AutoPick").is_dir()
+                and self.options.particle_diameter
+            ):
+                # set the particle diameter from the cryolo job
+                self._set_particle_diameter(self.job_paths["cryolo.autopick"])
 
     def _get_select_file(
         self, class_job_path: pathlib.Path, option_name: str = "fn_img"
@@ -428,7 +435,7 @@ class PipelineRunner:
                         logger.warning(f"Failed to register fresh job: {job}")
                         return None
 
-                if job == "cryolo.autopick" and self.options.estimate_particle_diameter:
+                if job == "cryolo.autopick" and self.options.particle_diameter:
                     # set the particle diameter from the output of the first batch
                     self._set_particle_diameter(self.job_paths[job])
             else:

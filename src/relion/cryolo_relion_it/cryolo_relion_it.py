@@ -671,8 +671,6 @@ class RelionItOptions(BaseModel):
     # Estimated particle diamter in Angstroms. Used to calculate other parameters such as mask diameter and extraction box size
     # If 0 then unused
     particle_diameter: float = 0
-    # Estimate the particle diameter from the particles picked by cryolo
-    estimate_particle_diameter: bool = True
     # Use reference-free Laplacian-of-Gaussian picking (otherwise use reference-based template matching instead)
     autopick_do_LoG: bool = True
     # Minimum and maximum diameter in Angstrom for the LoG filter
@@ -886,7 +884,7 @@ class RelionItOptions(BaseModel):
 
     ### Extract parameters
     # Diameter for background normalisation (in pixels; negative value defaults to 75% box size)
-    extract_bg_diameter: float = -1
+    extract_bg_diameter: int = -1
     # How many MPI processes to use for running particle extraction?
     extract_mpi: int = 1
     # Submit Extract job to the cluster?
