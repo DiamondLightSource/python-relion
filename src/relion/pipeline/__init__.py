@@ -31,6 +31,7 @@ from pipeliner.data_structure import (
 )
 from pipeliner.job_runner import JobRunner
 from pipeliner.pipeliner_job import PipelinerJob
+from pipeliner.project_graph import ProjectGraph
 from pipeliner.utils import touch
 
 from relion.cryolo_relion_it.cryolo_relion_it import RelionItOptions
@@ -54,26 +55,27 @@ def wait_for_queued_job_completion(job: PipelinerJob, project_name: str = "defau
                 return
             time.sleep(10)
 
-        job_runner = JobRunner(project_name=project_name)
-        try:
-            job.post_run_actions()
-            # re-add the process in case new nodes were added
-            job_runner.add_job_to_pipeline(job, JOBSTATUS_RUN, True)
+        with ProjectGraph(name=project_name, read_only=False) as post_run_pipeline:
+            job_runner = JobRunner(post_run_pipeline)
+            try:
+                job.post_run_actions()
+                # re-add the process in case new nodes were added
+                job_runner.add_job_to_pipeline(job, JOBSTATUS_RUN, True)
 
-        except Exception as e:
-            touch(output_path / FAIL_FILE)
-            job_runner.add_job_to_pipeline(job, JOBSTATUS_FAIL, True)
+            except Exception as e:
+                touch(output_path / FAIL_FILE)
+                job_runner.add_job_to_pipeline(job, JOBSTATUS_FAIL, True)
 
-            warn = (
-                f"WARNING: post_run_actions for {output_path} raised an error:\n"
-                f"{str(e)}\n{traceback.format_exc()}"
-            )
-            with open(output_path / "run.err", "a") as err_file:
-                err_file.write(f"\n{warn}")
+                warn = (
+                    f"WARNING: post_run_actions for {output_path} raised an error:\n"
+                    f"{str(e)}\n{traceback.format_exc()}"
+                )
+                with open(output_path / "run.err", "a") as err_file:
+                    err_file.write(f"\n{warn}")
 
-        # create default displays for the job's nodes
-        for node in job.input_nodes + job.output_nodes:
-            node.write_default_result_file()
+            # create default displays for the job's nodes
+            for node in job.input_nodes + job.output_nodes:
+                node.write_default_result_file()
 
 
 def _clear_queue(q: queue.Queue) -> List[str]:
