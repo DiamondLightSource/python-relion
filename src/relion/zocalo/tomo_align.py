@@ -35,13 +35,13 @@ class TomoParameters(BaseModel):
     align_file: Optional[str] = None
     angle_file: Optional[str] = None
     align_z: Optional[int] = None
-    pix_size: Optional[int] = None
+    pix_size: Optional[float] = None
     init_val: Optional[int] = None
     refine_flag: Optional[int] = None
     out_imod: int = 1
     out_imod_xf: Optional[int] = None
     dark_tol: Optional[Union[int, str]] = None
-    manual_tilt_offset: Optional[int] = None
+    manual_tilt_offset: Optional[float] = None
 
     @validator("input_file_list")
     def check_only_one_is_provided(cls, v, values):
@@ -188,7 +188,7 @@ class TomoAlign(CommonService):
                 )
             else:
                 tomo_params = TomoParameters(**{**rw.recipe_step.get("parameters", {})})
-
+            tomo_params.pix_size = tomo_params.pix_size * 1e10
         except (ValidationError, TypeError) as e:
             self.log.warning(
                 f"{e} TomoAlign parameter validation failed for message: {message} and recipe parameters: {rw.recipe_step.get('parameters', {})}"
