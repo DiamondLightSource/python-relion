@@ -74,7 +74,7 @@ spec:
     - type: rabbitmq
       metadata:
         host: {{ .Values.global.rmqHost }}
-        queueName: images-dev
+        queueName: images
         mode: QueueLength
         value: "{{ .Values.queueLengthTrigger }}"
 {{ end }}

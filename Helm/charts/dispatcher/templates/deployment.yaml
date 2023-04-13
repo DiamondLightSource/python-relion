@@ -74,7 +74,7 @@ spec:
     - type: rabbitmq
       metadata:
         host: {{ .Values.global.rmqHost }}
-        queueName: dispatcher-dev
+        queueName: processing_recipe
         mode: QueueLength
         value: "{{ .Values.queueLengthTrigger }}"
 {{ end }}
