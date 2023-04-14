@@ -1152,6 +1152,8 @@ class PipelineRunner:
                         ]
                         for sf in new_batches:
                             self._queues["ib_group"][iteration].put(sf)
+                        if not self.options.do_class2d:
+                            self._passes[iteration].update(new_batches)
                 if self.options.do_class2d:
                     if class_thread is None and not iteration:
                         curr_angpix = (
