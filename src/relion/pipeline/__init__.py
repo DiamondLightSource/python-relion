@@ -205,7 +205,7 @@ class PipelineRunner:
             if (
                 self.job_paths.get("cryolo.autopick")
                 and (self.path / "AutoPick").is_dir()
-                and self.options.use_particle_diameter
+                and self.options.get_particle_diameter
             ):
                 # set the particle diameter from the cryolo job
                 self._set_particle_diameter(self.job_paths["cryolo.autopick"])
@@ -439,7 +439,7 @@ class PipelineRunner:
                         logger.warning(f"Failed to register fresh job: {job}")
                         return None
 
-                if job == "cryolo.autopick" and self.options.use_particle_diameter:
+                if job == "cryolo.autopick" and self.options.get_particle_diameter:
                     # set the particle diameter from the output of the first batch
                     self._set_particle_diameter(self.job_paths[job])
             else:

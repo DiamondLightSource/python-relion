@@ -671,8 +671,8 @@ class RelionItOptions(BaseModel):
     # Estimated particle diameter in Angstroms. Used to calculate other parameters such as mask diameter and extraction box size
     # If 0 and use_particle_diameter is False then the other parameters are taken from the input form
     particle_diameter: float = 0
-    # Whether to calculate the particle diameter from cryolo picked particles
-    use_particle_diameter: bool = False
+    # Whether to estimate the particle diameter from cryolo picked particles
+    get_particle_diameter: bool = False
     # Use reference-free Laplacian-of-Gaussian picking (otherwise use reference-based template matching instead)
     autopick_do_LoG: bool = True
     # Minimum and maximum diameter in Angstrom for the LoG filter
