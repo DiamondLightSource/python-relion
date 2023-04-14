@@ -554,6 +554,8 @@ import subprocess
 import time
 import traceback
 
+from pydantic import BaseModel, root_validator
+
 from . import cryolo_external_job
 
 try:
@@ -586,7 +588,49 @@ def _is_industrial_user():
     return any(group in groups for group in not_allowed)
 
 
-class RelionItOptions(object):
+def calculate_box_size(particle_size_pixels):
+    # Use box 20% larger than particle and ensure size is even
+    box_size_exact = 1.2 * particle_size_pixels
+    box_size_int = int(math.ceil(box_size_exact))
+    return box_size_int + box_size_int % 2
+
+
+def calculate_downscaled_box_size(box_size_pix, angpix):
+    for small_box_pix in (
+        48,
+        64,
+        96,
+        128,
+        160,
+        192,
+        256,
+        288,
+        300,
+        320,
+        360,
+        384,
+        400,
+        420,
+        450,
+        480,
+        512,
+        640,
+        768,
+        896,
+        1024,
+    ):
+        # Don't go larger than the original box
+        if small_box_pix > box_size_pix:
+            return box_size_pix
+        # If Nyquist freq. is better than 8.5 A, use this downscaled box, otherwise continue to next size up
+        small_box_angpix = angpix * box_size_pix / small_box_pix
+        if small_box_angpix < 4.25:
+            return small_box_pix
+    # Fall back to a warning message
+    return "Box size is too large!"
+
+
+class RelionItOptions(BaseModel):
     """
     Options for the relion_it pipeline setup script.
 
@@ -601,126 +645,131 @@ class RelionItOptions(object):
 
     ### General parameters
     # Pixel size in Angstroms in the input movies
-    angpix = 0.885
+    angpix: float = 0.885
     # Acceleration voltage (in kV)
-    voltage = 200
+    voltage: int = 200
     # Polara = 2.0; Talos/Krios = 2.7; some Cryo-ARM = 1.4
-    Cs = 1.4
+    Cs: float = 1.4
 
     ### Import images (Linux wild card; movies as *.mrc, *.mrcs, *.tiff or *.tif; single-frame micrographs as *.mrc)
-    import_images = "Movies/*.tiff"
+    import_images: str = "Movies/*.tiff"
     # Are these multi-frame movies? Set to False for single-frame micrographs (and motion-correction will be skipped)
-    images_are_movies = True
+    images_are_movies: bool = True
 
     ### MotionCorrection parameters
     # Dose in electrons per squared Angstrom per frame
-    motioncor_doseperframe = 1.277
+    motioncor_doseperframe: float = 1.277
     # Gain-reference image in MRC format (only necessary if input movies are not yet gain-corrected, e.g. compressed TIFFs from K2)
-    motioncor_gainreference = "Movies/gain.mrc"
-    eer_upsampling = 1
-    eer_grouping = 20
+    motioncor_gainreference: str = "Movies/gain.mrc"
+    eer_upsampling: int = 1
+    eer_grouping: int = 20
 
     ### CTF estimation parameters
     # Most cases won't need changes here...
 
     ### Autopick parameters
+    # Estimated particle diameter in Angstroms. Used to calculate other parameters such as mask diameter and extraction box size
+    # If 0 and use_particle_diameter is False then the other parameters are taken from the input form
+    particle_diameter: float = 0
+    # Whether to estimate the particle diameter from cryolo picked particles
+    estimate_particle_diameter: bool = False
     # Use reference-free Laplacian-of-Gaussian picking (otherwise use reference-based template matching instead)
-    autopick_do_LoG = True
+    autopick_do_LoG: bool = True
     # Minimum and maximum diameter in Angstrom for the LoG filter
-    autopick_LoG_diam_min = 150
-    autopick_LoG_diam_max = 180
+    autopick_LoG_diam_min: int = 150
+    autopick_LoG_diam_max: int = 180
     # Use positive values (0-1) to pick fewer particles; use negative values (-1-0) to pick more particles
-    autopick_LoG_adjust_threshold = 0.0
-    autopick_LoG_upper_threshold = 999.0
+    autopick_LoG_adjust_threshold: float = 0.0
+    autopick_LoG_upper_threshold: float = 999.0
     #
     # OR:
     #
     # References for reference-based picking (when autopick_do_LoG = False)
-    autopick_2dreferences = ""
-    # OR: provide a 3D references for reference-based picking (when autopick_do_LoG = False)
-    autopick_3dreference = ""
+    autopick_2dreferences: str = ""
+    # OR provide a 3D references for reference-based picking (when autopick_do_LoG = False)
+    autopick_3dreference: str = ""
 
     # Threshold for reference-based autopicking (threshold 0 will pick too many particles. Default of 0.4 is hopefully better. Ultimately, just hope classification will sort it all out...)
-    autopick_refs_threshold = 0.4
+    autopick_refs_threshold: float = 0.4
     # Minimum inter-particle distance for reference-based picking (~70% of particle diameter often works well)
-    autopick_refs_min_distance = 120
+    autopick_refs_min_distance: int = 120
     #
     # For both LoG and refs:
     #
-    # Use this to remove false positives from carbon edges (useful range: 1.0-1.2, -1 to switch off)
-    autopick_stddev_noise = -1
-    # Use this to remove false positives from carbon edges (useful range: -0.5-0.0; -999 to switch off)
-    autopick_avg_noise = -999
+    # Use this to remove false positives from carbon edges (useful range 1.0-1.2, -1 to switch off)
+    autopick_stddev_noise: float = -1
+    # Use this to remove false positives from carbon edges (useful range -0.5-0.0; -999 to switch off)
+    autopick_avg_noise: float = -999
     #
     # OR:
     #
     # Run Cryolo picking or autopicking
-    autopick_do_cryolo = True
+    autopick_do_cryolo: bool = True
     # Threshold for cryolo autopicking (higher the threshold the more *discriminative the cryolo picker)
     # (* But beware it may still not be picking what you want! )
-    cryolo_threshold = 0.3
+    cryolo_threshold: float = 0.3
     # Finetune the cryolo general model by manually selecting good classes from 2D classification
-    cryolo_finetune = False
+    cryolo_finetune: bool = False
 
     # Location of the cryolo specific files
-    cryolo_config = ""
-    cryolo_gmodel = ""
+    cryolo_config: str = ""
+    cryolo_gmodel: str = ""
 
     # Running options for cryolo
     # Which GPUs to use for cryolo autopicking? ID numbers separated by spaces, e.g. "0" or "0 1 2 3". (Not used for fine tuning jobs, which just use GPU 0)
-    cryolo_pick_gpus = "0"
-    cryolo_submit_to_queue = False
-    cryolo_queue_submission_template = ""
+    cryolo_pick_gpus: str = "0"
+    cryolo_submit_to_queue: bool = False
+    cryolo_queue_submission_template: str = ""
 
     ### Extract parameters
     # Box size of particles in the averaged micrographs (in pixels) (Also used for cryolo boxsize)
-    extract_boxsize = 256
+    extract_boxsize: int = 256
     # Down-scale the particles upon extraction?
-    extract_downscale = False
+    extract_downscale: bool = False
     # Box size of the down-scaled particles (in pixels)
-    extract_small_boxsize = 64
+    extract_small_boxsize: int = 64
     # In second pass, down-scale the particles upon extraction?
-    extract2_downscale = False
+    extract2_downscale: bool = False
     # In second pass, box size of the down-scaled particles (in pixels)
-    extract2_small_boxsize = 128
+    extract2_small_boxsize: int = 128
 
     ### Now perform 2D and/or 3D classification with the extracted particles?
-    do_class2d = True
+    do_class2d: bool = True
     # And/or perform 3D classification?
-    do_class3d = True
+    do_class3d: bool = True
     # Repeat 2D and/or 3D-classification for batches of this many particles
-    batch_size = 10000
+    batch_size: int = 10000
     # Number of 2D classes to use
-    class2d_nr_classes = 50
+    class2d_nr_classes: int = 50
     # Diameter of the mask used for 2D/3D classification (in Angstrom)
-    mask_diameter = 190
+    mask_diameter: float = 190
     # Symmetry group (when using SGD for initial model generation, C1 may work best)
-    symmetry = "C1"
+    symmetry: str = "C1"
     #
     ### 3D-classification parameters
     # Number of 3D classes to use
-    class3d_nr_classes = 4
+    class3d_nr_classes: int = 4
     # Have initial 3D model? If not, calculate one using SGD initial model generation
-    have_3d_reference = False
+    have_3d_reference: bool = False
     # Initial reference model
-    class3d_reference = ""
+    class3d_reference: str = ""
     # Is reference on correct greyscale?
-    class3d_ref_is_correct_greyscale = False
+    class3d_ref_is_correct_greyscale: bool = False
     # Has the initial reference been CTF-corrected?
-    class3d_ref_is_ctf_corrected = True
+    class3d_ref_is_ctf_corrected: bool = True
     # Initial lowpass filter on reference
-    class3d_ini_lowpass = 40
+    class3d_ini_lowpass: int = 40
 
     ### Use the largest 3D class from the first batch as a 3D reference for a second pass of autopicking? (only when do_class3d is True)
-    do_second_pass = True
+    do_second_pass: bool = True
     # Only move on to template-based autopicking if the 3D references achieves this resolution (in A)
-    minimum_resolution_3dref_2ndpass = 20
+    minimum_resolution_3dref_2ndpass: int = 20
     # In the second pass, perform 2D classification?
-    do_class2d_pass2 = True
+    do_class2d_pass2: bool = True
     # In the second pass, perform 3D classification?
-    do_class3d_pass2 = False
+    do_class3d_pass2: bool = False
     # Batch size in the second pass
-    batch_size_pass2 = 100000
+    batch_size_pass2: int = 100000
 
     ###################################################################################
     ############ Often the parameters below can be kept the same for a given set-up
@@ -728,248 +777,271 @@ class RelionItOptions(object):
 
     ### Repeat settings for entire pipeline
     # Repeat the pre-processing runs this many times (or until RUNNING_PIPELINER_default_PREPROCESS file is deleted)
-    preprocess_repeat_times = 999
+    preprocess_repeat_times: int = 999
     # Wait at least this many minutes between each repeat cycle
-    preprocess_repeat_wait = 1
+    preprocess_repeat_wait: int = 1
     ### Stop after CTF estimation? I.e., skip autopicking, extraction, 2D/3D classification, etc?
-    stop_after_ctf_estimation = False
+    stop_after_ctf_estimation: bool = False
     # Check every this many minutes if enough particles have been extracted for a new batch of 2D-classification
-    batch_repeat_time = 1
+    batch_repeat_time: int = 1
 
     ### MotionCorrection parameters
     # Use RELION's own implementation of motion-correction (CPU-only) instead of the UCSF implementation?
-    motioncor_do_own = False
+    motioncor_do_own: bool = False
     # The number of threads (only for RELION's own implementation) is optimal when nr_movie_frames/nr_threads = integer
-    motioncor_threads = 12
+    motioncor_threads: int = 12
     # Exectutable of UCSF MotionCor2
-    motioncor_exe = "/public/EM/MOTIONCOR2/MotionCor2"
+    motioncor_exe: str = "/public/EM/MOTIONCOR2/MotionCor2"
     # On which GPU(s) to execute UCSF MotionCor2
-    motioncor_gpu = "0"
+    motioncor_gpu: str = "0"
     # How many MPI processes to use for running motion correction?
-    motioncor_mpi = 1
+    motioncor_mpi: int = 1
     # Local motion-estimation patches for MotionCor2
-    motioncor_patches_x = 5
-    motioncor_patches_y = 5
+    motioncor_patches_x: int = 5
+    motioncor_patches_y: int = 5
     # B-factor in A^2 for downweighting of high-spatial frequencies
-    motioncor_bfactor = 150
+    motioncor_bfactor: float = 150
     # Use binning=2 for super-resolution K2 movies
-    motioncor_binning = 1
+    motioncor_binning: int = 1
     # Provide a defect file for your camera if you have one
-    motioncor_defectfile = ""
+    motioncor_defectfile: str = ""
     # orientation of the gain-reference w.r.t your movies (if input movies are not yet gain-corrected, e.g. TIFFs)
-    motioncor_gainflip = "No flipping (0)"
-    motioncor_gainrot = "No rotation (0)"
+    motioncor_gainflip: str = "No flipping (0)"
+    motioncor_gainrot: str = "No rotation (0)"
     # Other arguments for MotionCor2
-    motioncor2_other_args = ""
+    motioncor2_other_args: str = ""
     # Additional arguments for RELION's Motion Correction wrapper
-    motioncor_other_args = ""
+    motioncor_other_args: str = ""
     # Submit motion correction job to the cluster?
-    motioncor_submit_to_queue = False
+    motioncor_submit_to_queue: bool = False
 
     #### Icebreaker
-    do_icebreaker_job_group = True
-    do_icebreaker_job_flatten = True
-    do_icebreaker_fivefig = True
-    do_icebreaker_group = True
-    icebreaker_threads_number = 10
+    do_icebreaker_job_group: bool = True
+    do_icebreaker_job_flatten: bool = True
+    do_icebreaker_fivefig: bool = True
+    do_icebreaker_group: bool = True
+    icebreaker_threads_number: int = 10
 
     ### CTF estimation parameters
     # Amplitude contrast (Q0)
-    ampl_contrast = 0.1
+    ampl_contrast: float = 0.1
     # CTFFIND-defined parameters
-    ctffind_boxsize = 512
-    ctffind_astigmatism = 100
-    ctffind_maxres = 5
-    ctffind_minres = 30
-    ctffind_defocus_max = 50000
-    ctffind_defocus_min = 5000
-    ctffind_defocus_step = 500
-    # For Gctf: ignore parameters on the 'Searches' tab?
-    ctffind_do_ignore_search_params = True
-    # For Gctf: perform equi-phase averaging?
-    ctffind_do_EPA = True
+    ctffind_boxsize: int = 512
+    ctffind_astigmatism: int = 100
+    ctffind_maxres: int = 5
+    ctffind_minres: int = 30
+    ctffind_defocus_max: int = 50000
+    ctffind_defocus_min: int = 5000
+    ctffind_defocus_step: int = 500
+    # For Gctf, ignore parameters on the 'Searches' tab?
+    ctffind_do_ignore_search_params: bool = True
+    # For Gctf, perform equi-phase averaging?
+    ctffind_do_EPA: bool = True
     # Also estimate phase shifts (for VPP data)
-    ctffind_do_phaseshift = False
+    ctffind_do_phaseshift: bool = False
     # Executable to Kai Zhang's Gctf
-    gctf_exe = "/public/EM/Gctf/bin/Gctf"
+    gctf_exe: str = "/public/EM/Gctf/bin/Gctf"
     # On which GPU(s) to execute Gctf
-    gctf_gpu = "0"
+    gctf_gpu: str = "0"
     # Use Alexis Rohou's CTFFIND4 (CPU-only) instead?
-    use_ctffind_instead = False
+    use_ctffind_instead: bool = False
     # Executable for Alexis Rohou's CTFFIND4
-    ctffind4_exe = "/public/EM/ctffind/ctffind.exe"
+    ctffind4_exe: str = "/public/EM/ctffind/ctffind.exe"
     # How many MPI processes to use for running CTF estimation?
-    ctffind_mpi = 1
+    ctffind_mpi: int = 1
     # Submit CTF estimation job to the cluster?
-    ctffind_submit_to_queue = False
+    ctffind_submit_to_queue: bool = False
 
     ### Autopick parameters
     # Use GPU-acceleration for autopicking?
-    autopick_do_gpu = True
+    autopick_do_gpu: bool = True
     # Which GPU(s) to use for autopicking
-    autopick_gpu = "0"
+    autopick_gpu: str = "0"
     # Low-pass filter for auto-picking the micrographs
-    autopick_lowpass = 20
+    autopick_lowpass: int = 20
     # Shrink factor for faster picking (0 = fastest; 1 = slowest)
-    autopick_shrink_factor = 0
+    autopick_shrink_factor: float = 0
     # How many MPI processes to use for running auto-picking?
-    autopick_mpi = 1
+    autopick_mpi: int = 1
     # Additional arguments for autopicking
-    autopick_other_args = ""
+    autopick_other_args: str = ""
     # Submit Autopick job to the cluster?
-    autopick_submit_to_queue = False
+    autopick_submit_to_queue: bool = False
     # Are the references CTF-corrected?
-    autopick_refs_are_ctf_corrected = True
+    autopick_refs_are_ctf_corrected: bool = True
     # Do the references have inverted contrast wrt the micrographs?
-    autopick_refs_have_inverted_contrast = True
+    autopick_refs_have_inverted_contrast: bool = True
     # Ignore CTFs until the first peak
-    autopick_refs_ignore_ctf1stpeak = False
+    autopick_refs_ignore_ctf1stpeak: bool = False
     # Diameter of mask for the references (in A; negative value for automated detection of mask diameter)
-    autopick_refs_mask_diam = -1
+    autopick_refs_mask_diam: float = -1
     # In-plane angular sampling interval
-    autopick_inplane_sampling = 10
+    autopick_inplane_sampling: int = 10
     # Symmetry of the 3D reference for autopicking
-    autopick_3dref_symmetry = "C1"
+    autopick_3dref_symmetry: str = "C1"
     # 3D angular sampling for generating projections of the 3D reference for autopicking (30 degrees is usually enough)
-    autopick_3dref_sampling = "30 degrees"
+    autopick_3dref_sampling: str = "30 degrees"
     # Pixel size in the provided 2D/3D references (negative for same as in motion-corrected movies)
-    autopick_ref_angpix = -1
+    autopick_ref_angpix: float = -1
 
     ### Extract parameters
-    # Diameter for background normalisation (in pixels; negative value: default is 75% box size)
-    extract_bg_diameter = -1
+    # Diameter for background normalisation (in pixels; negative value defaults to 75% box size)
+    extract_bg_diameter: int = -1
     # How many MPI processes to use for running particle extraction?
-    extract_mpi = 1
+    extract_mpi: int = 1
     # Submit Extract job to the cluster?
-    extract_submit_to_queue = False
+    extract_submit_to_queue: bool = False
 
     ## Discard particles based on average/stddev values? (this may be important for SGD initial model generation)
-    do_discard_on_image_statistics = False
+    do_discard_on_image_statistics: bool = False
     # Discard images that have average/stddev values that are more than this many sigma away from the ensemble average
-    discard_sigma = 4
+    discard_sigma: int = 4
     # Submit discard job to the cluster?
-    discard_submit_to_queue = False
+    discard_submit_to_queue: bool = False
 
     #### Common relion_refine paremeters used for 2D/3D classification and initial model generation
     # Read all particles in one batch into memory?
-    refine_preread_images = False
+    refine_preread_images: bool = False
     # Or copy particles to scratch disk?
-    refine_scratch_disk = ""
+    refine_scratch_disk: str = ""
     # Number of pooled particles?
-    refine_nr_pool = 10
+    refine_nr_pool: int = 10
     # Use GPU-acceleration?
-    refine_do_gpu = True
+    refine_do_gpu: bool = True
     # Which GPU to use (different from GPU used for pre-processing?)
-    refine_gpu = "1"
+    refine_gpu: str = "1"
     # How many MPI processes to use
-    refine_mpi = 1
+    refine_mpi: int = 1
     # How many threads to use
-    refine_threads = 6
+    refine_threads: int = 6
     # Skip padding?
-    refine_skip_padding = False
+    refine_skip_padding: bool = False
     # Submit jobs to the cluster?
-    refine_submit_to_queue = False
+    refine_submit_to_queue: bool = False
     # Use fast subsets in 2D/3D classification when batch_size is bigger than this
-    refine_batchsize_for_fast_subsets = 100000
+    refine_batchsize_for_fast_subsets: int = 100000
 
     ### 2D classification parameters
     # Wait with the first 2D classification batch until at least this many particles are extracted
-    minimum_batch_size = 1000
+    minimum_batch_size: int = 1000
     # Number of iterations to perform in 2D classification
     # Must be at least 20 for fast subsets
-    class2d_nr_iter = 20
+    class2d_nr_iter: int = 20
     # Rotational search step (in degrees)
-    class2d_angle_step = 6
+    class2d_angle_step: float = 6
     # Offset search range (in pixels)
-    class2d_offset_range = 5
+    class2d_offset_range: int = 5
     # Offset search step (in pixels)
-    class2d_offset_step = 1
+    class2d_offset_step: int = 1
     # Option to ignore the CTFs until their first peak (try this if all particles go into very few classes)
-    class2d_ctf_ign1stpeak = False
+    class2d_ctf_ign1stpeak: bool = False
     # Additional arguments to pass to relion-refine
-    class2d_other_args = ""
+    class2d_other_args: str = ""
     # Use VDAM algorithm?
-    do_class2d_vdam = False
+    do_class2d_vdam: bool = False
     # Fraction of classes to attempt to remove using the RELION 2D class ranker
-    class2d_fraction_of_classes_to_remove = 0.9
+    class2d_fraction_of_classes_to_remove: float = 0.9
 
     ### 3D classification parameters
     # Number of iterations to perform in 3D classification
     # Must be at least 20 for fast subsets
-    class3d_nr_iter = 20
+    class3d_nr_iter: int = 20
     # Reference mask
-    class3d_reference_mask = ""
+    class3d_reference_mask: str = ""
     # Option to ignore the CTFs until their first peak (try this if all particles go into very few classes)
-    class3d_ctf_ign1stpeak = False
+    class3d_ctf_ign1stpeak: bool = False
     # Regularisation parameter (T)
-    class3d_T_value = 4
+    class3d_T_value: int = 4
     # Angular sampling step
-    class3d_angle_step = "7.5 degrees"
+    class3d_angle_step: str = "7.5 degrees"
     # Offset search range (in pixels)
-    class3d_offset_range = 5
+    class3d_offset_range: int = 5
     # Offset search step (in pixels)
-    class3d_offset_step = 1
+    class3d_offset_step: int = 1
     # Additional arguments to pass to relion-refine
-    class3d_other_args = ""
+    class3d_other_args: str = ""
 
     ## SGD initial model generation
     # Number of models to generate simulatenously (K>1 may be useful for getting rid of outliers in the particle images)
-    inimodel_nr_classes = 4
+    inimodel_nr_classes: int = 4
     # Ignore CTFs until first peak?
-    inimodel_ctf_ign1stpeak = False
+    inimodel_ctf_ign1stpeak: bool = False
     # Enforce non-negative solvent?
-    inimodel_solvent_flatten = True
+    inimodel_solvent_flatten: bool = True
     # Initial angular sampling
-    inimodel_angle_step = "15 degrees"
+    inimodel_angle_step: str = "15 degrees"
     # Initial search range (in pixels)
-    inimodel_offset_range = 6
+    inimodel_offset_range: int = 6
     # Initial offset search step (in pixels)
-    inimodel_offset_step = 2
+    inimodel_offset_step: int = 2
     # Number of initial iterations
-    inimodel_nr_iter_initial = 50
+    inimodel_nr_iter_initial: int = 50
     # Number of in-between iterations
-    inimodel_nr_iter_inbetween = 200
+    inimodel_nr_iter_inbetween: int = 200
     # Number of final iterations
-    inimodel_nr_iter_final = 50
+    inimodel_nr_iter_final: int = 50
     # Frequency to write out information
-    inimodel_freq_writeout = 10
+    inimodel_freq_writeout: int = 10
     # Initial resolution (in A)
-    inimodel_resol_ini = 35
+    inimodel_resol_ini: float = 35
     # Final resolution (in A)
-    inimodel_resol_final = 15
+    inimodel_resol_final: float = 15
     # Initial mini-batch size
-    inimodel_batchsize_ini = 100
+    inimodel_batchsize_ini: int = 100
     # Final mini-batch size
-    inimodel_batchsize_final = 500
+    inimodel_batchsize_final: int = 500
     # Increased noise variance half-life (off, i.e. -1, by default; values of ~1000 have been observed to be useful in difficult cases)
-    inimodel_sigmafudge_halflife = -1
+    inimodel_sigmafudge_halflife: float = -1
     # Additional arguments to pass to relion_refine (skip annealing to get rid of outlier particles)
-    inimodel_other_args = " --sgd_skip_anneal "
+    inimodel_other_args: str = " --sgd_skip_anneal "
     # Option to use FSC based criterion for selecting the best SGD initial model
-    use_fsc_criterion = False
+    use_fsc_criterion: bool = False
     # Number of threads to use for initial model job
-    inimodel_threads = 12
+    inimodel_threads: int = 12
 
     ### Cluster submission settings
     # Name of the queue to which to submit the job
-    queue_name = "openmpi"
+    queue_name: str = "openmpi"
     # Name of the command used to submit scripts to the queue
-    queue_submit_command = "qsub"
+    queue_submit_command: str = "qsub"
     # The template for your standard queue job submission script
-    queue_submission_template = "/public/EM/RELION/relion/bin/qsub.csh"
-    queue_submission_template_smp = "/public/EM/RELION/relion/bin/qsub_smp.csh"
-    queue_submission_template_cpu = "/public/EM/RELION/relion/bin/qsub_cpu.csh"
+    queue_submission_template: str = "/public/EM/RELION/relion/bin/qsub.csh"
+    queue_submission_template_smp: str = "/public/EM/RELION/relion/bin/qsub_smp.csh"
+    queue_submission_template_cpu: str = "/public/EM/RELION/relion/bin/qsub_cpu.csh"
     # Template for CPU submissions using an SMP environment rather than MPI for applications that do not have
     # MPI support but do support other parallelistaion
-    queue_submission_template_cpu_smp = "/public/EM/RELION/relion/bin/qsub_cpu_smp.csh"
+    queue_submission_template_cpu_smp: str = (
+        "/public/EM/RELION/relion/bin/qsub_cpu_smp.csh"
+    )
     # Minimum number of dedicated cores that need to be requested on each node
-    queue_minimum_dedicated = 1
+    queue_minimum_dedicated: int = 1
 
     ### End of options
 
     #######################################################################
     ############ typically no need to change anything below this line
     #######################################################################
+
+    class Config:
+        validate_assignment = True
+
+    @root_validator
+    def if_particle_diameter_compute_box_sizes(cls, values):
+        if values.get("particle_diameter"):
+            values["mask_diameter"] = 1.1 * values["particle_diameter"]
+            values["extract_boxsize"] = calculate_box_size(
+                values["particle_diameter"] / values["angpix"]
+            )
+            values["extract_small_boxsize"] = calculate_downscaled_box_size(
+                values["extract_boxsize"], values["angpix"]
+            )
+            values["autopick_LoG_diam_min"] = int(
+                0.8 * values["particle_diameter"] / values["angpix"]
+            )
+            values["autopick_LoG_diam_max"] = int(
+                1.2 * values["particle_diameter"] / values["angpix"]
+            )
+        return values
 
     def update_from_file(self, opts_file):
         """
@@ -1027,7 +1099,7 @@ class RelionItOptions(object):
             key
             for key in dir(self)
             if (
-                not (key.startswith("__") and key.endswith("__"))
+                not (key.startswith("__") and key.endswith("__") or key.startswith("_"))
                 and not callable(getattr(self, key))
             )
         ]
@@ -1035,6 +1107,10 @@ class RelionItOptions(object):
         # Parse the source code for this class, and write out all comments along with option lines containing new values
         for line in inspect.getsourcelines(RelionItOptions)[0]:
             line = line.strip()
+            if ":" in line:
+                colon_pos = line.find(":")
+                equals_pos = line.find("=")
+                line = line[:colon_pos] + line[equals_pos:]
             if not seen_start:
                 if line != "### General parameters":
                     # Ignore lines until this one
@@ -1050,7 +1126,7 @@ class RelionItOptions(object):
                 # Assume all other lines define an option name and value. Replace with new value.
                 equals_index = line.find("=")
                 if equals_index > 0:
-                    option_name = line[:equals_index].strip()
+                    option_name = line[:equals_index].strip().split(":")[0]
                     if option_name in option_names:
                         print(
                             "{} = {}".format(
@@ -1405,46 +1481,6 @@ class RelionItGui(object):
             class3d_pass2_button.select()
 
         ### Add logic to the box size boxes
-
-        def calculate_box_size(particle_size_pixels):
-            # Use box 20% larger than particle and ensure size is even
-            box_size_exact = 1.2 * particle_size_pixels
-            box_size_int = int(math.ceil(box_size_exact))
-            return box_size_int + box_size_int % 2
-
-        def calculate_downscaled_box_size(box_size_pix, angpix):
-            for small_box_pix in (
-                48,
-                64,
-                96,
-                128,
-                160,
-                192,
-                256,
-                288,
-                300,
-                320,
-                360,
-                384,
-                400,
-                420,
-                450,
-                480,
-                512,
-                640,
-                768,
-                896,
-                1024,
-            ):
-                # Don't go larger than the original box
-                if small_box_pix > box_size_pix:
-                    return box_size_pix
-                # If Nyquist freq. is better than 8.5 A, use this downscaled box, otherwise continue to next size up
-                small_box_angpix = angpix * box_size_pix / small_box_pix
-                if small_box_angpix < 4.25:
-                    return small_box_pix
-            # Fall back to a warning message
-            return "Box size is too large!"
 
         def update_box_size_labels(*args_ignored, **kwargs_ignored):
             try:
