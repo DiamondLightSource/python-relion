@@ -668,9 +668,11 @@ class RelionItOptions(BaseModel):
     # Most cases won't need changes here...
 
     ### Autopick parameters
-    # Estimated particle diamter in Angstroms. Used to calculate other parameters such as mask diameter and extraction box size
-    # If 0 then unused
+    # Estimated particle diameter in Angstroms. Used to calculate other parameters such as mask diameter and extraction box size
+    # If 0 and use_particle_diameter is False then the other parameters are taken from the input form
     particle_diameter: float = 0
+    # Whether to estimate the particle diameter from cryolo picked particles
+    estimate_particle_diameter: bool = False
     # Use reference-free Laplacian-of-Gaussian picking (otherwise use reference-based template matching instead)
     autopick_do_LoG: bool = True
     # Minimum and maximum diameter in Angstrom for the LoG filter
@@ -684,7 +686,7 @@ class RelionItOptions(BaseModel):
     #
     # References for reference-based picking (when autopick_do_LoG = False)
     autopick_2dreferences: str = ""
-    # OR: provide a 3D references for reference-based picking (when autopick_do_LoG = False)
+    # OR provide a 3D references for reference-based picking (when autopick_do_LoG = False)
     autopick_3dreference: str = ""
 
     # Threshold for reference-based autopicking (threshold 0 will pick too many particles. Default of 0.4 is hopefully better. Ultimately, just hope classification will sort it all out...)
@@ -694,9 +696,9 @@ class RelionItOptions(BaseModel):
     #
     # For both LoG and refs:
     #
-    # Use this to remove false positives from carbon edges (useful range: 1.0-1.2, -1 to switch off)
+    # Use this to remove false positives from carbon edges (useful range 1.0-1.2, -1 to switch off)
     autopick_stddev_noise: float = -1
-    # Use this to remove false positives from carbon edges (useful range: -0.5-0.0; -999 to switch off)
+    # Use this to remove false positives from carbon edges (useful range -0.5-0.0; -999 to switch off)
     autopick_avg_noise: float = -999
     #
     # OR:
@@ -831,9 +833,9 @@ class RelionItOptions(BaseModel):
     ctffind_defocus_max: int = 50000
     ctffind_defocus_min: int = 5000
     ctffind_defocus_step: int = 500
-    # For Gctf: ignore parameters on the 'Searches' tab?
+    # For Gctf, ignore parameters on the 'Searches' tab?
     ctffind_do_ignore_search_params: bool = True
-    # For Gctf: perform equi-phase averaging?
+    # For Gctf, perform equi-phase averaging?
     ctffind_do_EPA: bool = True
     # Also estimate phase shifts (for VPP data)
     ctffind_do_phaseshift: bool = False
@@ -883,8 +885,8 @@ class RelionItOptions(BaseModel):
     autopick_ref_angpix: float = -1
 
     ### Extract parameters
-    # Diameter for background normalisation (in pixels; negative value: default is 75% box size)
-    extract_bg_diameter: float = -1
+    # Diameter for background normalisation (in pixels; negative value defaults to 75% box size)
+    extract_bg_diameter: int = -1
     # How many MPI processes to use for running particle extraction?
     extract_mpi: int = 1
     # Submit Extract job to the cluster?

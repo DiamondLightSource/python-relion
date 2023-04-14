@@ -31,6 +31,7 @@ from pipeliner.data_structure import (
 )
 from pipeliner.job_runner import JobRunner
 from pipeliner.pipeliner_job import PipelinerJob
+from pipeliner.project_graph import ProjectGraph
 from pipeliner.utils import touch
 
 from relion.cryolo_relion_it.cryolo_relion_it import RelionItOptions
@@ -54,26 +55,27 @@ def wait_for_queued_job_completion(job: PipelinerJob, project_name: str = "defau
                 return
             time.sleep(10)
 
-        job_runner = JobRunner(project_name=project_name)
-        try:
-            job.post_run_actions()
-            # re-add the process in case new nodes were added
-            job_runner.add_job_to_pipeline(job, JOBSTATUS_RUN, True)
+        with ProjectGraph(name=project_name, read_only=False) as post_run_pipeline:
+            job_runner = JobRunner(post_run_pipeline)
+            try:
+                job.post_run_actions()
+                # re-add the process in case new nodes were added
+                job_runner.add_job_to_pipeline(job, JOBSTATUS_RUN, True)
 
-        except Exception as e:
-            touch(output_path / FAIL_FILE)
-            job_runner.add_job_to_pipeline(job, JOBSTATUS_FAIL, True)
+            except Exception as e:
+                touch(output_path / FAIL_FILE)
+                job_runner.add_job_to_pipeline(job, JOBSTATUS_FAIL, True)
 
-            warn = (
-                f"WARNING: post_run_actions for {output_path} raised an error:\n"
-                f"{str(e)}\n{traceback.format_exc()}"
-            )
-            with open(output_path / "run.err", "a") as err_file:
-                err_file.write(f"\n{warn}")
+                warn = (
+                    f"WARNING: post_run_actions for {output_path} raised an error:\n"
+                    f"{str(e)}\n{traceback.format_exc()}"
+                )
+                with open(output_path / "run.err", "a") as err_file:
+                    err_file.write(f"\n{warn}")
 
-        # create default displays for the job's nodes
-        for node in job.input_nodes + job.output_nodes:
-            node.write_default_result_file()
+            # create default displays for the job's nodes
+            for node in job.input_nodes + job.output_nodes:
+                node.write_default_result_file()
 
 
 def _clear_queue(q: queue.Queue) -> List[str]:
@@ -200,6 +202,13 @@ class PipelineRunner:
                 self.job_paths["relion.initialmodel"] = list(
                     (self.path / "InitialModel").glob("*")
                 )[0].relative_to(self.path)
+            if (
+                self.job_paths.get("cryolo.autopick")
+                and (self.path / "AutoPick").is_dir()
+                and self.options.estimate_particle_diameter
+            ):
+                # set the particle diameter from the cryolo job
+                self._set_particle_diameter(self.job_paths["cryolo.autopick"])
 
     def _get_select_file(
         self, class_job_path: pathlib.Path, option_name: str = "fn_img"
@@ -307,6 +316,29 @@ class PipelineRunner:
         star_doc = cif.read_file(os.fspath(star_file))
         return len(list(star_doc[1].find_loop("_rlnMicrographName")))
 
+    def _set_particle_diameter(self, autopick_job: pathlib.Path):
+        # Find the diameter of the biggest particle in cryolo
+        cryolo_particle_sizes = np.array([])
+        for cbox_file in autopick_job.glob("CBOX/*.cbox"):
+            cbox_block = cif.read_file(str(cbox_file)).find_block("cryolo")
+            cbox_sizes = np.append(
+                np.array(cbox_block.find_loop("_EstWidth"), dtype=float),
+                np.array(cbox_block.find_loop("_EstHeight"), dtype=float),
+            )
+            cbox_confidence = np.append(
+                np.array(cbox_block.find_loop("_Confidence"), dtype=float),
+                np.array(cbox_block.find_loop("_Confidence"), dtype=float),
+            )
+            cryolo_particle_sizes = np.append(
+                cryolo_particle_sizes,
+                cbox_sizes[cbox_confidence > self.options.cryolo_threshold],
+            )
+        particle_diameter_pixels = np.quantile(cryolo_particle_sizes, 0.75)
+
+        # Set the new particle diameter in the pipeline options
+        self.options.particle_diameter = particle_diameter_pixels * self.options.angpix
+        self.pipeline_options = self._generate_pipeline_options()
+
     def preprocessing(
         self, ref3d: str = "", ref3d_angpix: float = -1
     ) -> Optional[List[str]]:
@@ -406,6 +438,10 @@ class PipelineRunner:
                     except Exception:
                         logger.warning(f"Failed to register fresh job: {job}")
                         return None
+
+                if job == "cryolo.autopick" and self.options.estimate_particle_diameter:
+                    # set the particle diameter from the output of the first batch
+                    self._set_particle_diameter(self.job_paths[job])
             else:
                 if self._lock:
                     with self._lock:
@@ -1110,11 +1146,14 @@ class PipelineRunner:
                             kwargs={"iteration": iteration},
                         )
                         ib_thread_second_pass.start()
-                    new_batches = [
-                        f for f in split_files if f not in self._passes[iteration]
-                    ]
-                    for sf in new_batches:
-                        self._queues["ib_group"][iteration].put(sf)
+                    if self._past_class_threshold:
+                        new_batches = [
+                            f for f in split_files if f not in self._passes[iteration]
+                        ]
+                        for sf in new_batches:
+                            self._queues["ib_group"][iteration].put(sf)
+                        if not self.options.do_class2d:
+                            self._passes[iteration].update(new_batches)
                 if self.options.do_class2d:
                     if class_thread is None and not iteration:
                         curr_angpix = (
@@ -1167,8 +1206,12 @@ class PipelineRunner:
                         )
                         class_thread_second_pass.start()
                     if len(split_files) == 1:
-                        self._queues["class2D"][iteration].put((split_files[0], False))
-                        self._passes[iteration].update(split_files)
+                        if split_files[0] not in self._passes[iteration]:
+                            self._queues["class2D"][iteration].put(
+                                (split_files[0], self._past_class_threshold)
+                            )
+                            if self._past_class_threshold:
+                                self._passes[iteration].update(split_files)
                     else:
                         new_batches = [
                             f for f in split_files if f not in self._passes[iteration]
