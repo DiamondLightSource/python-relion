@@ -1146,11 +1146,12 @@ class PipelineRunner:
                             kwargs={"iteration": iteration},
                         )
                         ib_thread_second_pass.start()
-                    new_batches = [
-                        f for f in split_files if f not in self._passes[iteration]
-                    ]
-                    for sf in new_batches:
-                        self._queues["ib_group"][iteration].put(sf)
+                    if self._past_class_threshold:
+                        new_batches = [
+                            f for f in split_files if f not in self._passes[iteration]
+                        ]
+                        for sf in new_batches:
+                            self._queues["ib_group"][iteration].put(sf)
                 if self.options.do_class2d:
                     if class_thread is None and not iteration:
                         curr_angpix = (
@@ -1203,8 +1204,12 @@ class PipelineRunner:
                         )
                         class_thread_second_pass.start()
                     if len(split_files) == 1:
-                        self._queues["class2D"][iteration].put((split_files[0], False))
-                        self._passes[iteration].update(split_files)
+                        if split_files[0] not in self._passes[iteration]:
+                            self._queues["class2D"][iteration].put(
+                                (split_files[0], self._past_class_threshold)
+                            )
+                            if self._past_class_threshold:
+                                self._passes[iteration].update(split_files)
                     else:
                         new_batches = [
                             f for f in split_files if f not in self._passes[iteration]
