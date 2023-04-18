@@ -55,28 +55,6 @@ def wait_for_queued_job_completion(job: PipelinerJob, project_name: str = "defau
                 return
             time.sleep(10)
 
-        with ProjectGraph(name=project_name, read_only=False) as post_run_pipeline:
-            job_runner = JobRunner(post_run_pipeline)
-            try:
-                job.post_run_actions()
-                # re-add the process in case new nodes were added
-                job_runner.add_job_to_pipeline(job, JOBSTATUS_RUN, True)
-
-            except Exception as e:
-                touch(output_path / FAIL_FILE)
-                job_runner.add_job_to_pipeline(job, JOBSTATUS_FAIL, True)
-
-                warn = (
-                    f"WARNING: post_run_actions for {output_path} raised an error:\n"
-                    f"{str(e)}\n{traceback.format_exc()}"
-                )
-                with open(output_path / "run.err", "a") as err_file:
-                    err_file.write(f"\n{warn}")
-
-            # create default displays for the job's nodes
-            for node in job.input_nodes + job.output_nodes:
-                node.write_default_result_file()
-
 
 def _clear_queue(q: queue.Queue) -> List[str]:
     results = []
@@ -249,6 +227,43 @@ class PipelineRunner:
         }
         return generate_pipeline_options(self.options, pipeline_jobs)
 
+    def _do_post_run_actions(self, job: PipelinerJob, project_name: str = "default"):
+        # for when a job is submitted to the queue
+        # post run actions are only run after the waiting is over
+        if job.joboptions.get("do_queue") and job.joboptions["do_queue"].get_boolean():
+            output_path = pathlib.Path(job.output_dir)
+            try:
+                job.post_run_actions()
+                post_run_status = JOBSTATUS_RUN
+            except Exception as e:
+                touch(output_path / FAIL_FILE)
+                post_run_status = JOBSTATUS_FAIL
+
+                warn = (
+                    f"WARNING: post_run_actions for {output_path} raised an error:\n"
+                    f"{str(e)}\n{traceback.format_exc()}"
+                )
+                with open(output_path / "run.err", "a") as err_file:
+                    err_file.write(f"\n{warn}")
+
+            # create default displays for the job's nodes
+            for node in job.input_nodes + job.output_nodes:
+                node.write_default_result_file()
+
+            if self._lock:
+                with self._lock:
+                    with ProjectGraph(
+                        name=project_name, read_only=False
+                    ) as post_run_pipeline:
+                        job_runner = JobRunner(post_run_pipeline)
+                        job_runner.add_job_to_pipeline(job, post_run_status, True)
+            else:
+                with ProjectGraph(
+                    name=project_name, read_only=False
+                ) as post_run_pipeline:
+                    job_runner = JobRunner(post_run_pipeline)
+                    job_runner.add_job_to_pipeline(job, post_run_status, True)
+
     def fresh_job(
         self,
         job: str,
@@ -293,6 +308,7 @@ class PipelineRunner:
                 if alias:
                     self.project.set_alias(job_object.output_dir, alias)
             wait_for_queued_job_completion(job_object)
+            self._do_post_run_actions(job_object)
         logger.info(f"New job registered: {job_object.output_dir}")
         return job_object, pathlib.Path(job_object.output_dir)
 
@@ -378,6 +394,7 @@ class PipelineRunner:
                             str(self.job_paths[job]), wait_for_queued=False
                         )
                     wait_for_queued_job_completion(self.job_objects[job])
+                    self._do_post_run_actions(self.job_objects[job])
                 else:
                     self.project.continue_job(str(self.job_paths[job]))
         if self.job_paths.get("relion.motioncorr.own"):
@@ -449,6 +466,7 @@ class PipelineRunner:
                             str(self.job_paths[job]), wait_for_queued=False
                         )
                     wait_for_queued_job_completion(self.job_objects[job])
+                    self._do_post_run_actions(self.job_objects[job])
                 else:
                     self.project.continue_job(str(self.job_paths[job]))
         select_path = self.job_paths["relion.select.split" + ref3d]
@@ -803,6 +821,9 @@ class PipelineRunner:
                                     wait_for_queued=False,
                                 )
                             wait_for_queued_job_completion(
+                                self.job_objects_batch[class2d_type][batch_file]
+                            )
+                            self._do_post_run_actions(
                                 self.job_objects_batch[class2d_type][batch_file]
                             )
                         except (AttributeError, FileNotFoundError) as e:
