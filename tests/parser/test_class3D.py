@@ -109,3 +109,17 @@ def test_sum_all(class3d_object):
         )
         == 5367
     )
+
+
+def test_db_unpack(class3d_object, dials_data):
+    unpacked = relion._parser.class3D.Class3D.db_unpack(class3d_object["job016"])
+    assert unpacked[0]["class_number"] == 1
+    assert unpacked[0]["particles_per_class"] == 300
+    assert float(unpacked[0]["rotation_accuracy"]) == 3.945
+    assert float(unpacked[0]["translation_accuracy"]) == 2.92404
+    assert float(unpacked[0]["estimated_resolution"]) == 20.596363
+    assert float(unpacked[0]["overall_fourier_completeness"]) == 0.95547
+    assert unpacked[0]["class_image_full_path"] == str(
+        dials_data("relion_tutorial_data", pathlib=True)
+        / "Class3D/job016/run_it025_class001.mrc"
+    )

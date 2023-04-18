@@ -198,7 +198,7 @@ def generate_pipeline_options(
     }
 
     job_options["relion.class3d"] = {
-        "fn_mask": relion_it_options.class3d_reference,
+        "fn_mask": relion_it_options.class3d_reference_mask,
         "nr_classes": relion_it_options.class3d_nr_classes,
         "sym_name": relion_it_options.symmetry,
         "ini_high": relion_it_options.class3d_ini_lowpass,

@@ -3,7 +3,9 @@ from __future__ import annotations
 import os
 import pathlib
 import warnings
+from collections import Counter
 from concurrent.futures import ThreadPoolExecutor
+from pathlib import Path
 from threading import RLock
 from typing import Optional, Tuple
 
@@ -19,6 +21,19 @@ import datetime
 
 from relion._parser.processgraph import ProcessGraph
 from relion._parser.processnode import ProcessNode
+
+
+def _max_class(ini_model_dir: Path) -> int:
+    number_list = [entry.stem[6:9] for entry in (ini_model_dir).glob("run_it*.star")]
+    last_iteration_number = max(
+        (int(n) for n in number_list if n.isnumeric()), default=0
+    )
+    data_file = ini_model_dir / f"run_it{last_iteration_number:03d}_data.star"
+    gemmi_readable_path = os.fspath(data_file)
+    star_doc = cif.read_file(gemmi_readable_path)
+    class_number_values = star_doc[1].find_loop("_rlnClassNumber")
+    counts = Counter(list(class_number_values))
+    return int(counts.most_common(1)[0][0])
 
 
 class RelionPipeline:
@@ -154,6 +169,16 @@ class RelionPipeline:
                 self._nodes[self._nodes.index(f._path)].environment[
                     "init_model_class_num"
                 ] = int(f._path.stem.split("class")[-1].split("_")[0])
+                self._nodes[self._nodes.index(f._path)].propagate(
+                    ("init_model_class_num", "init_model_class_num")
+                )
+            elif (
+                str(f._path.parent.parent) == "InitialModel"
+                and "initial" in f._path.name
+            ):
+                self._nodes[self._nodes.index(f._path)].environment[
+                    "init_model_class_num"
+                ] = _max_class(Path(star_path).parent / f._path.parent)
                 self._nodes[self._nodes.index(f._path)].propagate(
                     ("init_model_class_num", "init_model_class_num")
                 )
