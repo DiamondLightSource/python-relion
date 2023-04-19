@@ -37,7 +37,7 @@ logger = logging.getLogger("relion.Project")
 __all__ = []
 __author__ = "Diamond Light Source - Scientific Software"
 __email__ = "scientificsoftware@diamond.ac.uk"
-__version__ = "0.10.28"
+__version__ = "0.11.0"
 __version_tuple__ = tuple(int(x) for x in __version__.split("."))
 
 pipeline_lock = ".relion_lock"
@@ -227,7 +227,10 @@ class Project(RelionPipeline):
                 if isinstance(i_node, DBNode) or isinstance(i_node, DBGraph)
             ]
         self._jobs_collapsed = False
-        self.load_nodes_from_star(self.basepath / "default_pipeline.star")
+        try:
+            self.load_nodes_from_star(self.basepath / "default_pipeline.star")
+        except FileNotFoundError:
+            return
         self.check_job_node_statuses(self.basepath)
         self.collect_job_times(
             list(self.schedule_files), self.basepath / "pipeline_PREPROCESS.log"
