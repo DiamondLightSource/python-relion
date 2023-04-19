@@ -14,29 +14,30 @@ from workflows.services.common_service import CommonService
 
 class DenoiseParameters(BaseModel):
     volume: str = Field(..., min_length=1)
-    output: str = Field(..., min_length=1)
-    suffix: str = ".denoised"
-    model: str = "unet-3d"
+    output: Optional[str] = None  # volume directory
+    suffix: Optional[str] = None  # ".denoised"
+    model: Optional[str] = None  # "unet-3d"
     even_train_path: Optional[str] = None
     odd_train_path: Optional[str] = None
-    n_train: int = 1000
-    n_test: int = 200
-    crop: int = 96
-    base_kernel_width: int = 11
-    optim: str = "adagrad"
-    lr: float = 0.001
-    criteria: str = "L2"
-    momentum: float = 0.8
-    batch_size: int = 10
-    num_epochs: int = 500
-    weight_decay: int = 0
-    save_interval: int = 10
-    num_workers: int = 1
-    num_threads: int = 0
-    gaussian: int = 0
-    patch_size: int = 96
-    patch_padding: int = 48
-    device: int = -2
+    n_train: Optional[int] = None  # 1000
+    n_test: Optional[int] = None  # 200
+    crop: Optional[int] = None  # 96
+    base_kernel_width: Optional[int] = None  # 11
+    optim: Optional[str] = None  # "adagrad"
+    lr: Optional[float] = None  # 0.001
+    criteria: Optional[str] = None  # "L2"
+    momentum: Optional[float] = None  # 0.8
+    batch_size: Optional[int] = None  # 10
+    num_epochs: Optional[int] = None  # 500
+    weight_decay: Optional[int] = None  # 0
+    save_interval: Optional[int] = None  # 10
+    save_prefix: Optional[str] = None
+    num_workers: Optional[int] = None  # 1
+    num_threads: Optional[int] = None  # 0
+    gaussian: Optional[int] = None  # 0
+    patch_size: Optional[int] = None  # 96
+    patch_padding: Optional[int] = None  # 48
+    device: Optional[int] = None  # -2
 
     @validator("model")
     def saved_models(cls, v):
@@ -118,8 +119,6 @@ class Denoise(CommonService):
             rw.send = rw.dummy
             message = message["content"]
 
-        command = ["topaz"]
-
         parameter_map = ChainMapWithReplacement(
             message if isinstance(message, dict) else {},
             rw.recipe_step["parameters"],
@@ -137,7 +136,9 @@ class Denoise(CommonService):
             )
             rw.transport.nack(header)
             return
-        command.extend(d_params.volume)
+
+        command = ["topaz", "denoise3d", d_params.volume]
+
         denoise_flags = {
             "output": "-o",
             "suffix": "--suffix",
@@ -156,7 +157,8 @@ class Denoise(CommonService):
             "num_epochs": "--num-epochs",
             "weight_decay": "-w",
             "save_interval": "--save-interval",
-            "num_workers": "--save-prefix",
+            "num_workers": "--num-workers",
+            "save_prefix": "--save-prefix",
             "num_threads": "-j",
             "gaussian": "-g",
             "patch_size": "-s",
@@ -171,7 +173,10 @@ class Denoise(CommonService):
                 else:
                     command.extend((denoise_flags[k], str(v)))
 
-        self.log.info(f"Input: {d_params.volume} Output: {d_params.output}")
+        denoised_full_path = str(Path(d_params.volume).with_suffix(".denoised"))
+
+        self.log.info(f"Running Topaz {command}")
+        self.log.info(f"Input: {d_params.volume} Output: {denoised_full_path}")
 
         result = procrunner.run(command=command)
         if result.returncode:
@@ -182,16 +187,13 @@ class Denoise(CommonService):
             rw.transport.nack(header)
             return
 
-        denoised_full_path = (
-            d_params.output + str(Path(d_params.volume).stem) + ".denoised"
-        )
         # Forward results to images service
         self.log.info(f"Sending to images service {d_params.mrc_out}")
         if isinstance(rw, RW_mock):
             rw.transport.send(
                 destination="images",
                 message={
-                    "parameters": {"images_command": "mrc_to_jpeg"},
+                    "parameters": {"images_command": "mrc_central_slice"},
                     "file": denoised_full_path,
                 },
             )
@@ -199,7 +201,7 @@ class Denoise(CommonService):
             rw.send_to(
                 "images",
                 {
-                    "parameters": {"images_command": "mrc_to_jpeg"},
+                    "parameters": {"images_command": "mrc_central_slice"},
                     "file": denoised_full_path,
                 },
             )
