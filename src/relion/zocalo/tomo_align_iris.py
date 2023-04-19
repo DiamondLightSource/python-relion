@@ -19,12 +19,14 @@ class TomoAlignIris(TomoAlign, CommonService):
     _logger_name = "relion.zocalo.tomo_align_iris"
 
     def parse_tomo_output(self, tomo_output_file):
-        lines = open(tomo_output_file, "r").readlines()
+        tomo_file = open(tomo_output_file, "r")
+        lines = tomo_file.readlines()
         for line in lines:
             if line.startswith("Rot center Z"):
                 self.rot_centre_z_list.append(line.split()[5])
             if line.startswith("Tilt offset"):
                 self.tilt_offset = float(line.split()[2].strip(","))
+        tomo_file.close()
 
     def aretomo(self, tomo_parameters):
         """
