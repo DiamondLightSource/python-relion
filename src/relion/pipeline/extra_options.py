@@ -25,7 +25,7 @@ def _from_motioncorr(
             }
         return {
             in_key: str(
-                tracker["relion.motioncorr.motioncorr2"] / "corrected_micrographs.star"
+                tracker["relion.motioncorr.motioncor2"] / "corrected_micrographs.star"
             )
         }
     return _from_import(tracker, in_key=in_key)
@@ -59,7 +59,7 @@ def _extract(
 ) -> Dict[str, Any]:
     res = {}
     if options.autopick_do_cryolo:
-        res["coords_suffix"] = str(tracker["cryolo.autopick"] / "cryolo_autopick.star")
+        res["coords_suffix"] = str(tracker["cryolo.autopick"] / "autopick.star")
     elif ref:
         res["coords_suffix"] = str(tracker["relion.autopick.ref3d"] / "autopick.star")
     else:
@@ -75,7 +75,7 @@ def _select(
 
 
 _extra_options: Dict[str, Callable] = {
-    "relion.motioncorr.motioncorr2": _from_import,
+    "relion.motioncorr.motioncor2": _from_import,
     "relion.motioncorr.own": _from_import,
     "icebreaker.micrograph_analysis.micrographs": partial(
         _from_motioncorr, in_key="in_mics"

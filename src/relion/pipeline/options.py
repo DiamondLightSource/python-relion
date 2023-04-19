@@ -67,24 +67,21 @@ def generate_pipeline_options(
         "nr_threads": relion_it_options.motioncor_threads,
     }
 
-    job_options["relion.motioncorr.motioncorr2"] = {
+    job_options["relion.motioncorr.motioncor2"] = {
         **job_options["relion.motioncorr.own"],
         "other_motioncor2_args": relion_it_options.motioncor2_other_args,
     }
 
     job_options["icebreaker.micrograph_analysis.micrographs"] = {
         "nr_threads": relion_it_options.icebreaker_threads_number,
-        "nr_mpi": 1,
     }
 
     job_options["icebreaker.micrograph_analysis.enhancecontrast"] = {
         "nr_threads": relion_it_options.icebreaker_threads_number,
-        "nr_mpi": 1,
     }
 
     job_options["icebreaker.micrograph_analysis.summary"] = {
         "nr_threads": relion_it_options.icebreaker_threads_number,
-        "nr_mpi": 1,
     }
 
     job_options["relion.ctffind.ctffind4"] = {
@@ -96,7 +93,6 @@ def generate_pipeline_options(
         "resmax": relion_it_options.ctffind_maxres,
         "resmin": relion_it_options.ctffind_minres,
         "do_phaseshift": relion_it_options.ctffind_do_phaseshift,
-        "gpu_ids": "0:1:2:3",
         "nr_mpi": relion_it_options.ctffind_mpi,
     }
 
@@ -150,7 +146,6 @@ def generate_pipeline_options(
 
     job_options["icebreaker.micrograph_analysis.particles"] = {
         "nr_threads": relion_it_options.icebreaker_threads_number,
-        "nr_mpi": 1,
     }
 
     job_options["relion.class2d.em"] = {
@@ -199,7 +194,6 @@ def generate_pipeline_options(
         "nr_pool": relion_it_options.refine_nr_pool,
         "use_gpu": relion_it_options.refine_do_gpu,
         "gpu_ids": "0,1,2,3",
-        "nr_mpi": 1,
         "nr_threads": relion_it_options.inimodel_threads,
     }
 
