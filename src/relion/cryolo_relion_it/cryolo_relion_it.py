@@ -964,6 +964,8 @@ class RelionItOptions(BaseModel):
     ## SGD initial model generation
     # Number of models to generate simulatenously (K>1 may be useful for getting rid of outliers in the particle images)
     inimodel_nr_classes: int = 4
+    # Use C1 for optimisation and then apply symmetry?
+    inimodel_start_c1: bool = True
     # Ignore CTFs until first peak?
     inimodel_ctf_ign1stpeak: bool = False
     # Enforce non-negative solvent?
