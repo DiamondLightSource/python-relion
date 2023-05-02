@@ -49,7 +49,7 @@ class TomoParameters(BaseModel):
             raise ValueError("input_file_list or path_pattern must be provided")
         if v and values.get("path_pattern"):
             raise ValueError(
-                "Message must only include one of 'path_pattern' and 'input_tilt_list'. Both are set or one has been set by the recipe."
+                "Message must only include one of 'path_pattern' and 'input_file_list'. Both are set or one has been set by the recipe."
             )
         return v
 

@@ -196,7 +196,7 @@ class TomoAlignIris(TomoAlign, CommonService):
         if tomo_parameters.tilt_cor:
             self.parse_tomo_output(output_file)
 
-        tar_imod_dir = str(Path(self.imod_output_directory).with_suffix(".tar.gz"))
+        tar_imod_dir = str(Path(self.imod_directory).with_suffix(".tar.gz"))
         file = tarfile.open(tar_imod_dir)
         file.extractall(self.alignment_output_dir)
         file.close()
