@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import subprocess
+import tarfile
 import time
 from pathlib import Path
 
@@ -33,6 +34,7 @@ class TomoAlignIris(TomoAlign, CommonService):
         Run AreTomo on output of Newstack
         """
         args = [
+            "./AreTomo_1.3.0_Cuda112_09292022",
             "-OutMrc",
             tomo_parameters.aretomo_output_file,
             "-InMrc",
@@ -75,8 +77,8 @@ class TomoAlignIris(TomoAlign, CommonService):
             "align_file": "-AlnFile",
             "align_z": "-AlignZ",
             "pix_size": "-PixSize",
-            "init_val": "initVal",
-            "refine_flag": "refineFlag",
+            "init_val": "-initVal",
+            "refine_flag": "-refineFlag",
             "out_imod": "-OutImod",
             "out_imod_xf": "-OutXf",
             "dark_tol": "-DarkTol",
@@ -131,8 +133,8 @@ class TomoAlignIris(TomoAlign, CommonService):
         try:
             at_job = htcondor.Submit(
                 {
-                    "executable": "/dls/ebic/data/staff-scratch/murfey/AreTomo_1.3.0_Cuda112_09292022",
-                    "arguments": "$(input_args)",
+                    "executable": "/dls/ebic/data/staff-scratch/murfey/aretomo.sh",
+                    "arguments": "\"'$(input_args)'\"",  # needs to be in single quotes to be interpreted as one command
                     "output": "$(output_file)",
                     "error": "$(error_file)",
                     "log": "$(log_file)",
@@ -140,7 +142,7 @@ class TomoAlignIris(TomoAlign, CommonService):
                     "request_memory": "10240",
                     "request_disk": "10240",
                     "should_transfer_files": "yes",
-                    "transfer_input_files": "$(stack_file)",
+                    "transfer_input_files": "$(stack_file), /dls/ebic/data/staff-scratch/murfey/AreTomo_1.3.0_Cuda112_09292022",
                     "initialdir": "$(initial_dir)",
                 }
             )
@@ -193,5 +195,10 @@ class TomoAlignIris(TomoAlign, CommonService):
 
         if tomo_parameters.tilt_cor:
             self.parse_tomo_output(output_file)
+
+        tar_imod_dir = str(Path(self.imod_output_directory).with_suffix(".tar.gz"))
+        file = tarfile.open(tar_imod_dir)
+        file.extractall(self.alignment_output_dir)
+        file.close()
 
         return subprocess.CompletedProcess(args="", returncode=None)

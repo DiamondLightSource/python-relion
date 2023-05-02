@@ -71,7 +71,7 @@ spec:
   scaleTargetRef:
     name: ispyb-dev
   triggers:
-    - type: ispyb-dev
+    - type: rabbitmq
       metadata:
         host: {{ .Values.global.rmqHost }}
         queueName: ispyb_connector
