@@ -246,9 +246,10 @@ class PipelineRunner:
                 with open(output_path / "run.err", "a") as err_file:
                     err_file.write(f"\n{warn}")
 
-            # create default displays for the job's nodes
+            # create default displays for the job's nodes if they are inside the project
             for node in job.input_nodes + job.output_nodes:
-                node.write_default_result_file()
+                if node.name[0].isalpha():
+                    node.write_default_result_file()
 
             if self._lock:
                 with self._lock:
@@ -349,11 +350,17 @@ class PipelineRunner:
                 cryolo_particle_sizes,
                 cbox_sizes[cbox_confidence > self.options.cryolo_threshold],
             )
-        particle_diameter_pixels = np.quantile(cryolo_particle_sizes, 0.75)
-
-        # Set the new particle diameter in the pipeline options
-        self.options.particle_diameter = particle_diameter_pixels * self.options.angpix
-        self.pipeline_options = self._generate_pipeline_options()
+        try:
+            particle_diameter_pixels = np.quantile(cryolo_particle_sizes, 0.75)
+            # Set the new particle diameter in the pipeline options
+            self.options.particle_diameter = (
+                particle_diameter_pixels * self.options.angpix
+            )
+            self.pipeline_options = self._generate_pipeline_options()
+        except IndexError:
+            print(
+                "WARNING: Unable to set particle diameter as no particles were picked by cryolo"
+            )
 
     def preprocessing(
         self, ref3d: str = "", ref3d_angpix: float = -1
