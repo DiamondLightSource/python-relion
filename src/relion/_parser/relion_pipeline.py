@@ -188,6 +188,7 @@ class RelionPipeline:
     def check_job_node_statuses(self, basepath):
         for node in self._job_nodes:
             success = basepath / node._path / "RELION_JOB_EXIT_SUCCESS"
+            success_pipeliner = basepath / node._path / "PIPELINER_JOB_EXIT_SUCCESS"
             failure = basepath / node._path / "RELION_JOB_EXIT_FAILURE"
             aborted = basepath / node._path / "RELION_JOB_EXIT_ABORTED"
             # the try/except blocks below catch the case where Relion removes
@@ -204,6 +205,14 @@ class RelionPipeline:
             try:
                 node.environment["end_time_stamp"] = datetime.datetime.fromtimestamp(
                     success.stat().st_mtime
+                )
+                node.environment["status"] = True
+                continue
+            except FileNotFoundError:
+                pass
+            try:
+                node.environment["end_time_stamp"] = datetime.datetime.fromtimestamp(
+                    success_pipeliner.stat().st_mtime
                 )
                 node.environment["status"] = True
                 continue
