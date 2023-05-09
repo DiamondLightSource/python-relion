@@ -83,4 +83,7 @@ spec:
         queueName: tomo_align
         mode: QueueLength
         value: "{{ .Values.queueLengthTrigger }}"
+  minReplicaCount: {{ .Values.minReplicaCount }}
+  maxReplicaCount: {{ .Values.maxReplicaCount }}
+  idleReplicaCount: {{ .Values.idleReplicaCount }}
 {{ end }}
