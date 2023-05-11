@@ -15,6 +15,7 @@ from workflows.services.common_service import CommonService
 
 
 class MotionCorrParameters(BaseModel):
+    collection_type: str
     pix_size: float
     ctf: dict
     movie: str = Field(..., min_length=1)
@@ -49,6 +50,7 @@ class MotionCorrParameters(BaseModel):
     in_fm_motion: int = None
     split_sum: int = None
     movie_id: int
+    relion_it_options: Optional[dict] = None
 
     class Config:
         ignore_extra = True
@@ -73,7 +75,7 @@ class MotionCorr(CommonService):
     """
 
     # Human readable service name
-    _service_name = "DLS MotionCorr"
+    _service_name = "MotionCorr"
 
     # Logger name
     _logger_name = "relion.zocalo.motioncorr"
@@ -138,17 +140,30 @@ class MotionCorr(CommonService):
             if isinstance(message, dict):
                 mc_params = MotionCorrParameters(**{**dict(parameter_map), **message})
             else:
+                print(dict(parameter_map))
                 mc_params = MotionCorrParameters(**{**dict(parameter_map)})
         except (ValidationError, TypeError):
+            print(MotionCorrParameters(**{**dict(parameter_map)}))
             self.log.warning(
-                f"Motion correction parameter validation failed for message: {message} and recipe parameters: {rw.recipe_step.get('parameters', {})}"
+                f"Motion correction parameter validation failed for message: {message} "
+                f"and recipe parameters: {rw.recipe_step.get('parameters', {})}"
             )
             rw.transport.nack(header)
             return
+        # The collection type must be SPA or tomography
+        if mc_params.collection_type.lower() not in ["spa", "tomography"]:
+            self.log.warning(
+                f"Motion correction cannot be done for: {mc_params.collection_type}"
+            )
+            rw.transport.nack(header)
+            return
+        # Determine the input and output files
         if Path(mc_params.mrc_out).is_file():
             self.log.info(f"File exists {mc_params.mrc_out}")
             rw.transport.ack(header)
             return
+        if not Path(mc_params.mrc_out).parent.exists():
+            Path(mc_params.mrc_out).parent.mkdir()
         movie = mc_params.movie
         if movie.endswith(".mrc"):
             input_flag = "-InMrc"
@@ -195,6 +210,7 @@ class MotionCorr(CommonService):
             "split_sum": "-SplitSum",
         }
 
+        # Create the motion correction command
         for k, v in mc_params.dict().items():
             if v and (k in mc_flags):
                 if type(v) is tuple:
@@ -204,6 +220,7 @@ class MotionCorr(CommonService):
 
         self.log.info(f"Input: {movie} Output: {mc_params.mrc_out}")
 
+        # Run motion correction
         result = procrunner.run(command=command, callback_stdout=self.parse_mc_output)
         if result.returncode:
             self.log.error(
@@ -212,6 +229,48 @@ class MotionCorr(CommonService):
             )
             rw.transport.nack(header)
             return
+
+        # If this is SPA, send the results to be processed and set up the next jobs
+        if mc_params.collection_type.lower() == "spa":
+            # As this is the entry point we need to import the file to the project
+            import_parameters = {
+                "job_type": "relion.import.movies",
+                "output_file": mc_params.movie,
+                "relion_it_options": mc_params.relion_it_options,
+            }
+            if isinstance(rw, RW_mock):
+                rw.transport.send(
+                    destination="spa.node_creator",
+                    message={"parameters": import_parameters, "content": "dummy"},
+                )
+            else:
+                rw.send_to("spa.node_creator", import_parameters)
+
+            # Then register the motion correction
+            node_creator_parameters = {
+                "job_type": "relion.motioncorr.motioncor2",
+                "output_file": mc_params.mrc_out,
+                "relion_it_options": mc_params.relion_it_options,
+            }
+            if isinstance(rw, RW_mock):
+                rw.transport.send(
+                    destination="spa.node_creator",
+                    message={"parameters": node_creator_parameters, "content": "dummy"},
+                )
+            else:
+                rw.send_to("spa.node_creator", node_creator_parameters)
+
+            # Set up icebreaker if requested, then ctffind
+            if mc_params.relion_it_options["do_icebreaker_job_group"]:
+                ctf_job_number = 5
+            else:
+                ctf_job_number = 2
+            mc_params.ctf["output_image"] = Path(
+                mc_params.mrc_out.replace(
+                    "MotionCorr/job002", f"CtfFind/job00{ctf_job_number}"
+                )
+            ).with_suffix(".ctf")
+            mc_params.ctf["relion_it_options"] = mc_params.relion_it_options
 
         # Forward results to ctffind
         self.log.info("Sending to ctf")

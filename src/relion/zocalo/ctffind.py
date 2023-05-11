@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Optional
 
 import procrunner
 import workflows.recipe
@@ -28,6 +29,7 @@ class CTFParameters(BaseModel):
     input_image: str = Field(..., min_length=1)
     output_image: str = Field(..., min_length=1)
     mc_uuid: int
+    relion_it_options: Optional[dict] = None
 
 
 class CTFFind(CommonService):
