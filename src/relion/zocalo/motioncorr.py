@@ -227,8 +227,8 @@ class MotionCorr(CommonService):
             )
             rw.transport.nack(header)
             return
-        Path(mc_params.mrc_out).touch()
-        self.shift_list.append((0.1, 0.1))
+        # Path(mc_params.mrc_out).touch()
+        # self.shift_list.append((0.1, 0.1))
 
         # If this is SPA, send the results to be processed and set up the next jobs
         if mc_params.collection_type.lower() == "spa":
@@ -236,18 +236,18 @@ class MotionCorr(CommonService):
             project_dir = Path(
                 re.search(".+/job[0-9]+/", mc_params.mrc_out).group()
             ).parent.parent
-            import_file = (
+            import_movie = (
                 project_dir
                 / "Import/job001"
                 / Path(mc_params.movie).relative_to(project_dir)
             )
-            if not import_file.parent.is_dir():
-                import_file.parent.mkdir(parents=True)
-            import_file.symlink_to(mc_params.movie)
+            if not import_movie.parent.is_dir():
+                import_movie.parent.mkdir(parents=True)
+            import_movie.symlink_to(mc_params.movie)
             import_parameters = {
                 "job_type": "relion.import.movies",
                 "input_file": str(mc_params.movie),
-                "output_file": str(import_file),
+                "output_file": str(import_movie),
                 "relion_it_options": mc_params.relion_it_options,
             }
             if isinstance(rw, RW_mock):
@@ -261,7 +261,7 @@ class MotionCorr(CommonService):
             # Then register the motion correction
             node_creator_parameters = {
                 "job_type": "relion.motioncorr.motioncor2",
-                "input_file": str(mc_params.movie),
+                "input_file": str(import_movie),
                 "output_file": mc_params.mrc_out,
                 "relion_it_options": mc_params.relion_it_options,
             }

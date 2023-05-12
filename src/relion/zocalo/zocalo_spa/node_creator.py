@@ -23,10 +23,11 @@ from relion.pipeline.options import generate_pipeline_options
 from relion.zocalo.zocalo_spa.output_files import create_output_files
 
 pipeline_spa_jobs = {
-    "relion.import.movies": {"folder": "Import", "input": "fn_in_raw"},
+    "relion.import.movies": {"folder": "Import", "input_label": "fn_in_raw"},
     "relion.motioncorr.motioncor2": {
         "folder": "MotionCorr",
-        "input": "input_star_mics",
+        "input_label": "input_star_mics",
+        "input_star": "movies.star",
     },
     "icebreaker.micrograph_analysis.micrographs": {
         "folder": "IceBreaker",
@@ -143,10 +144,21 @@ class NodeCreator(CommonService):
                 job_info.relion_it_options,
                 {job_info.job_type: ""},
             )
-            # Add the input file relative to the project directory
+            # Work out the name of the input star file
+            if job_dir.parent.name != "Import":
+                input_job_dir = Path(
+                    re.search(".+/job[0-9]+/", job_info.input_file).group()
+                )
+                input_star_file = (
+                    input_job_dir.relative_to(project_dir)
+                    / pipeline_spa_jobs[job_info.job_type]["input_star"]
+                )
+            else:
+                input_star_file = Path(job_info.input_file).relative_to(project_dir)
+            # Add this to the job.star options
             pipeline_options[job_info.job_type][
-                pipeline_spa_jobs[job_info.job_type]["input"]
-            ] = Path(job_info.input_file).relative_to(project_dir)
+                pipeline_spa_jobs[job_info.job_type]["input_label"]
+            ] = input_star_file
 
             # If this is a new job we need a job.star
             if not Path(f"{job_info.job_type.replace('.', '_')}_job.star").is_file():
@@ -193,6 +205,7 @@ class NodeCreator(CommonService):
         # Load this job as a pipeliner job to create the nodes
         pipeliner_job = read_job(f"{job_dir}/job.star")
         pipeliner_job.output_dir = str(job_dir.relative_to(project_dir)) + "/"
+        pipeliner_job.create_input_nodes()
         relion_commands = pipeliner_job.get_commands()
 
         # Write the output files which Relion produces
