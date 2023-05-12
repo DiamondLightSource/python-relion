@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 import string
 from collections import ChainMap
 from math import hypot
@@ -140,10 +141,8 @@ class MotionCorr(CommonService):
             if isinstance(message, dict):
                 mc_params = MotionCorrParameters(**{**dict(parameter_map), **message})
             else:
-                print(dict(parameter_map))
                 mc_params = MotionCorrParameters(**{**dict(parameter_map)})
         except (ValidationError, TypeError):
-            print(MotionCorrParameters(**{**dict(parameter_map)}))
             self.log.warning(
                 f"Motion correction parameter validation failed for message: {message} "
                 f"and recipe parameters: {rw.recipe_step.get('parameters', {})}"
@@ -163,19 +162,18 @@ class MotionCorr(CommonService):
             rw.transport.ack(header)
             return
         if not Path(mc_params.mrc_out).parent.exists():
-            Path(mc_params.mrc_out).parent.mkdir()
-        movie = mc_params.movie
-        if movie.endswith(".mrc"):
+            Path(mc_params.mrc_out).parent.mkdir(parents=True)
+        if mc_params.movie.endswith(".mrc"):
             input_flag = "-InMrc"
-        elif movie.endswith((".tif", ".tiff")):
+        elif mc_params.movie.endswith((".tif", ".tiff")):
             input_flag = "-InTiff"
-        elif movie.endswith(".eer"):
+        elif mc_params.movie.endswith(".eer"):
             input_flag = "-InEer"
         else:
-            self.log.error(f"No input flag found for movie {movie}")
+            self.log.error(f"No input flag found for movie {mc_params.movie}")
             input_flag = None
             rw.transport.nack(header)
-        command.extend([input_flag, movie])
+        command.extend([input_flag, mc_params.movie])
 
         mc_flags = {
             "mrc_out": "-OutMrc",
@@ -218,24 +216,38 @@ class MotionCorr(CommonService):
                 else:
                     command.extend((mc_flags[k], str(v)))
 
-        self.log.info(f"Input: {movie} Output: {mc_params.mrc_out}")
+        self.log.info(f"Input: {mc_params.movie} Output: {mc_params.mrc_out}")
 
         # Run motion correction
         result = procrunner.run(command=command, callback_stdout=self.parse_mc_output)
         if result.returncode:
             self.log.error(
-                f"Motion correction of {movie} failed with exitcode {result.returncode}:\n"
+                f"Motion correction of {mc_params.movie} failed with exitcode {result.returncode}:\n"
                 + result.stderr.decode("utf8", "replace")
             )
             rw.transport.nack(header)
             return
+        Path(mc_params.mrc_out).touch()
+        self.shift_list.append((0.1, 0.1))
 
         # If this is SPA, send the results to be processed and set up the next jobs
         if mc_params.collection_type.lower() == "spa":
             # As this is the entry point we need to import the file to the project
+            project_dir = Path(
+                re.search(".+/job[0-9]+/", mc_params.mrc_out).group()
+            ).parent.parent
+            import_file = (
+                project_dir
+                / "Import/job001"
+                / Path(mc_params.movie).relative_to(project_dir)
+            )
+            if not import_file.parent.is_dir():
+                import_file.parent.mkdir(parents=True)
+            import_file.symlink_to(mc_params.movie)
             import_parameters = {
                 "job_type": "relion.import.movies",
-                "output_file": mc_params.movie,
+                "input_file": str(mc_params.movie),
+                "output_file": str(import_file),
                 "relion_it_options": mc_params.relion_it_options,
             }
             if isinstance(rw, RW_mock):
@@ -249,6 +261,7 @@ class MotionCorr(CommonService):
             # Then register the motion correction
             node_creator_parameters = {
                 "job_type": "relion.motioncorr.motioncor2",
+                "input_file": str(mc_params.movie),
                 "output_file": mc_params.mrc_out,
                 "relion_it_options": mc_params.relion_it_options,
             }

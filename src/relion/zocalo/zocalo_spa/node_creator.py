@@ -23,28 +23,39 @@ from relion.pipeline.options import generate_pipeline_options
 from relion.zocalo.zocalo_spa.output_files import create_output_files
 
 pipeline_spa_jobs = {
-    "relion.import.movies": "Import",
-    "relion.motioncorr.motioncor2": "MotionCorr",
-    "icebreaker.micrograph_analysis.micrographs": "IceBreaker",
-    "icebreaker.micrograph_analysis.enhancecontrast": "IceBreaker",
-    "icebreaker.micrograph_analysis.summary": "IceBreaker",
-    "relion.ctffind.ctffind4": "CtfFind",
-    "relion.autopick.log": "AutoPick",
-    "relion.autopick.ref3d": "AutoPick",
-    "cryolo.autopick": "AutoPick",
-    "relion.extract": "Extract",
-    "relion.select.split": "Select",
-    "icebreaker.micrograph_analysis.particles": "IceBreaker",
-    "relion.class2d.em": "Class2D",
-    "relion.class2d.vdam": "Class2D",
-    "relion.initialmodel": "InitialModel",
-    "relion.class3d": "Class3D",
+    "relion.import.movies": {"folder": "Import", "input": "fn_in_raw"},
+    "relion.motioncorr.motioncor2": {
+        "folder": "MotionCorr",
+        "input": "input_star_mics",
+    },
+    "icebreaker.micrograph_analysis.micrographs": {
+        "folder": "IceBreaker",
+        "input": "in_mics",
+    },
+    "icebreaker.micrograph_analysis.enhancecontrast": {
+        "folder": "IceBreaker",
+        "input": "in_mics",
+    },
+    "icebreaker.micrograph_analysis.summary": {
+        "folder": "IceBreaker",
+        "input": "in_mics",
+    },
+    "relion.ctffind.ctffind4": {"folder": "CtfFind", "input": "input_star_mics"},
+    "cryolo.autopick": {"folder": "AutoPick", "input": "input_file"},
+    "relion.extract": {"folder": "Extract", "input": "coords_suffix"},
+    "relion.select.split": {"folder": "Select", "input": "fn_data"},
+    "icebreaker.micrograph_analysis.particles": {"folder": "IceBreaker"},
+    "relion.class2d.em": {"folder": "Class2D"},
+    "relion.class2d.vdam": {"folder": "Class2D"},
+    "relion.initialmodel": {"folder": "InitialModel"},
+    "relion.class3d": {"folder": "Class3D"},
 }
 
 
 class NodeCreatorParameters(BaseModel):
     job_type: str
-    output_file: Field(..., min_length=1)
+    input_file: str = Field(..., min_length=1)
+    output_file: str = Field(..., min_length=1)
     relion_it_options: RelionItOptions
 
 
@@ -122,8 +133,9 @@ class NodeCreator(CommonService):
         )
 
         # Find the job directory and make sure we are in the processing directory
-        job_dir = re.search("[a-z0-9/]+/job[0-9]+/", job_info.output_file).group()
-        os.chdir(Path(job_dir).parent.parent)
+        job_dir = Path(re.search(".+/job[0-9]+/", job_info.output_file).group())
+        project_dir = job_dir.parent.parent
+        os.chdir(project_dir)
 
         try:
             # Get the options for this job out of the RelionItOptions
@@ -131,6 +143,10 @@ class NodeCreator(CommonService):
                 job_info.relion_it_options,
                 {job_info.job_type: ""},
             )
+            # Add the input file relative to the project directory
+            pipeline_options[job_info.job_type][
+                pipeline_spa_jobs[job_info.job_type]["input"]
+            ] = Path(job_info.input_file).relative_to(project_dir)
 
             # If this is a new job we need a job.star
             if not Path(f"{job_info.job_type.replace('.', '_')}_job.star").is_file():
@@ -156,7 +172,7 @@ class NodeCreator(CommonService):
                 )
 
                 # Copy the job.star file
-                Path(f"{job_dir}job.star").write_bytes(
+                (job_dir / "job.star").write_bytes(
                     Path(f"{job_info.job_type.replace('.', '_')}_job.star").read_bytes()
                 )
                 Path(
@@ -170,20 +186,20 @@ class NodeCreator(CommonService):
             return
 
         # Mark the job completion status
-        for exit_file in Path(job_dir).glob("PIPELINER_JOB_EXIT_*"):
+        for exit_file in job_dir.glob("PIPELINER_JOB_EXIT_*"):
             exit_file.unlink()
-        Path(f"{job_dir}/PIPELINER_JOB_EXIT_SUCCESS").touch()
+        (job_dir / "PIPELINER_JOB_EXIT_SUCCESS").touch()
 
         # Load this job as a pipeliner job to create the nodes
-        pipeliner_job = read_job(f"{job_dir}job.star")
-        pipeliner_job.output_dir = job_dir
+        pipeliner_job = read_job(f"{job_dir}/job.star")
+        pipeliner_job.output_dir = str(job_dir.relative_to(project_dir)) + "/"
         relion_commands = pipeliner_job.get_commands()
 
         # Write the output files which Relion produces
         create_output_files(
-            job_type=pipeline_spa_jobs[job_info.job_type],
-            job_dir=job_dir,
-            file_to_add=job_info.output_file,
+            job_type=job_info.job_type,
+            job_dir=job_dir.relative_to(project_dir),
+            file_to_add=Path(job_info.output_file).relative_to(project_dir),
             options=dict(job_info.relion_it_options),
         )
 
@@ -194,15 +210,15 @@ class NodeCreator(CommonService):
 
         # Save the metadata file
         metadata_dict = pipeliner_job.gather_metadata()
-        with open(f"{job_dir}job_metadata.json", "w") as metadata_file:
+        with open(job_dir / "job_metadata.json", "w") as metadata_file:
             metadata_file.write(json.dumps(metadata_dict))
 
         # Create the node and default_pipeline.star files in the project directory
         with ProjectGraph(read_only=False) as project:
             process = project.add_new_process(
                 Process(
-                    name=job_dir,
-                    p_type=pipeline_spa_jobs[job_info.job_type],
+                    name=str(job_dir.relative_to(project_dir)),
+                    p_type=job_info.job_type,
                     status="Running",
                 ),
                 do_overwrite=True,
@@ -221,15 +237,9 @@ class NodeCreator(CommonService):
             # Generate the default_pipeline.star file
             project.check_process_completion()
             # Copy the default_pipeline.star file
-            Path(f"{job_dir}default_pipeline.star").write_bytes(
+            (job_dir / "default_pipeline.star").write_bytes(
                 Path("default_pipeline.star").read_bytes()
             )
 
         self.log.info(f"Processed outputs from job {job_info.job_type}")
         rw.transport.ack(header)
-
-
-"""Files to create
-continue_job.star
-note.txt
-"""

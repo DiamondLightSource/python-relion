@@ -132,5 +132,5 @@ _output_files: Dict[str, Callable] = {
 }
 
 
-def create_output_files(job_type: str, job_dir: str, file_to_add: Path, options: dict):
-    _output_files[job_type](Path(job_dir), file_to_add, options)
+def create_output_files(job_type: str, job_dir: Path, file_to_add: Path, options: dict):
+    _output_files[job_type](job_dir, file_to_add, options)
