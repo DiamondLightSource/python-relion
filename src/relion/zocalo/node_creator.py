@@ -20,7 +20,7 @@ from workflows.services.common_service import CommonService
 
 from relion.cryolo_relion_it.cryolo_relion_it import RelionItOptions
 from relion.pipeline.options import generate_pipeline_options
-from relion.zocalo.zocalo_spa.output_files import create_output_files
+from relion.zocalo.spa_output_files import create_output_files
 
 pipeline_spa_jobs = {
     "relion.import.movies": {"folder": "Import", "input_label": "fn_in_raw"},
