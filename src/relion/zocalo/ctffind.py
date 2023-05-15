@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from pathlib import Path
 from typing import Optional
 
@@ -11,6 +12,7 @@ from workflows.services.common_service import CommonService
 
 
 class CTFParameters(BaseModel):
+    collection_type: str
     pix_size: float
     voltage: float = 300.0
     spher_aber: float = 2.7
@@ -29,6 +31,7 @@ class CTFParameters(BaseModel):
     input_image: str = Field(..., min_length=1)
     output_image: str = Field(..., min_length=1)
     mc_uuid: int
+    autopick: dict = {}
     relion_it_options: Optional[dict] = None
 
 
@@ -38,7 +41,7 @@ class CTFFind(CommonService):
     """
 
     # Human readable service name
-    _service_name = "DLS CTFFind"
+    _service_name = "CTFFind"
 
     # Logger name
     _logger_name = "relion.zocalo.ctffind"
@@ -128,6 +131,14 @@ class CTFFind(CommonService):
             rw.transport.nack(header)
             return
 
+        # Determine the output file
+        if Path(ctf_params.output_image).is_file():
+            self.log.info(f"File exists {ctf_params.output_image}")
+            rw.transport.ack(header)
+            return
+        if not Path(ctf_params.output_image).parent.exists():
+            Path(ctf_params.output_image).parent.mkdir(parents=True)
+
         parameters_list = [
             ctf_params.input_image,
             ctf_params.output_image,
@@ -152,6 +163,7 @@ class CTFFind(CommonService):
         self.log.info(
             f"Input: {ctf_params.input_image} Output: {ctf_params.output_image}"
         )
+        print(command, parameters_string)
         result = procrunner.run(
             command=command,
             stdin=parameters_string.encode("ascii"),
@@ -164,6 +176,51 @@ class CTFFind(CommonService):
             )
             rw.transport.nack(header)
             return
+
+        # If this is SPA, send the results to be processed and set up the next job
+        if ctf_params.collection_type.lower() == "spa":
+            # Register the ctf with the node creator
+            node_creator_parameters = {
+                "job_type": "relion.ctffind.ctffind4",
+                "input_file": ctf_params.input_image,
+                "output_file": ctf_params.output_image,
+                "relion_it_options": ctf_params.relion_it_options,
+            }
+            if isinstance(rw, RW_mock):
+                rw.transport.send(
+                    destination="spa.node_creator",
+                    message={"parameters": node_creator_parameters, "content": "dummy"},
+                )
+            else:
+                rw.send_to("spa.node_creator", node_creator_parameters)
+
+            # Forward results to particle picking
+            self.log.info("Sending to autopicking")
+            job_number = int(
+                re.search("/job[0-9]+/", ctf_params.output_image).group()[4:7]
+            )
+            ctf_params.autopick["input_path"] = ctf_params.input_image
+            ctf_params.autopick["output_path"] = str(
+                Path(
+                    re.sub(
+                        f"CtfFind/job{job_number:03}/.",
+                        f"AutoPick/job{job_number+1:03}",
+                        ctf_params.output_image,
+                    )
+                )
+                / Path(ctf_params.output_image).stem
+                / ".star"
+            )
+            ctf_params.autopick["relion_it_options"] = ctf_params.relion_it_options
+            ctf_params.autopick["mc_uuid"] = ctf_params.mc_uuid
+            ctf_params.autopick["pix_size"] = ctf_params.pix_size
+            if isinstance(rw, RW_mock):
+                rw.transport.send(
+                    destination="cryolo",
+                    message={"parameters": ctf_params.autopick, "content": "dummy"},
+                )
+            else:
+                rw.send_to("cryolo", ctf_params.autopick)
 
         # Extract results for ispyb
         astigmatism = self.defocus2 - self.defocus1

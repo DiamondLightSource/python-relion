@@ -41,7 +41,11 @@ pipeline_spa_jobs = {
         "folder": "IceBreaker",
         "input": "in_mics",
     },
-    "relion.ctffind.ctffind4": {"folder": "CtfFind", "input": "input_star_mics"},
+    "relion.ctffind.ctffind4": {
+        "folder": "CtfFind",
+        "input_label": "input_star_mics",
+        "input_star": "corrected_micrographs.star",
+    },
     "cryolo.autopick": {"folder": "AutoPick", "input": "input_file"},
     "relion.extract": {"folder": "Extract", "input": "coords_suffix"},
     "relion.select.split": {"folder": "Select", "input": "fn_data"},
@@ -212,7 +216,8 @@ class NodeCreator(CommonService):
         create_output_files(
             job_type=job_info.job_type,
             job_dir=job_dir.relative_to(project_dir),
-            file_to_add=Path(job_info.output_file).relative_to(project_dir),
+            input_file=Path(job_info.input_file).relative_to(project_dir),
+            output_file=Path(job_info.output_file).relative_to(project_dir),
             options=dict(job_info.relion_it_options),
         )
 

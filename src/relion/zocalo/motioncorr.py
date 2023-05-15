@@ -5,7 +5,7 @@ import string
 from collections import ChainMap
 from math import hypot
 from pathlib import Path
-from typing import Optional
+from typing import Literal, Optional
 
 import plotly.express as px
 import procrunner
@@ -16,7 +16,7 @@ from workflows.services.common_service import CommonService
 
 
 class MotionCorrParameters(BaseModel):
-    collection_type: str
+    collection_type: Literal["spa", "tomography"]
     pix_size: float
     ctf: dict
     movie: str = Field(..., min_length=1)
@@ -149,13 +149,7 @@ class MotionCorr(CommonService):
             )
             rw.transport.nack(header)
             return
-        # The collection type must be SPA or tomography
-        if mc_params.collection_type.lower() not in ["spa", "tomography"]:
-            self.log.warning(
-                f"Motion correction cannot be done for: {mc_params.collection_type}"
-            )
-            rw.transport.nack(header)
-            return
+
         # Determine the input and output files
         if Path(mc_params.mrc_out).is_file():
             self.log.info(f"File exists {mc_params.mrc_out}")
@@ -227,8 +221,6 @@ class MotionCorr(CommonService):
             )
             rw.transport.nack(header)
             return
-        # Path(mc_params.mrc_out).touch()
-        # self.shift_list.append((0.1, 0.1))
 
         # If this is SPA, send the results to be processed and set up the next jobs
         if mc_params.collection_type.lower() == "spa":
@@ -275,14 +267,17 @@ class MotionCorr(CommonService):
 
             # Set up icebreaker if requested, then ctffind
             if mc_params.relion_it_options["do_icebreaker_job_group"]:
-                ctf_job_number = 5
+                ctf_job_number = 6
             else:
-                ctf_job_number = 2
-            mc_params.ctf["output_image"] = Path(
-                mc_params.mrc_out.replace(
-                    "MotionCorr/job002", f"CtfFind/job00{ctf_job_number}"
-                )
-            ).with_suffix(".ctf")
+                ctf_job_number = 3
+            mc_params.ctf["collection_type"] = "spa"
+            mc_params.ctf["output_image"] = str(
+                Path(
+                    mc_params.mrc_out.replace(
+                        "MotionCorr/job002", f"CtfFind/job{ctf_job_number:03}"
+                    )
+                ).with_suffix(".ctf")
+            )
             mc_params.ctf["relion_it_options"] = mc_params.relion_it_options
 
         # Forward results to ctffind
@@ -296,7 +291,7 @@ class MotionCorr(CommonService):
                 message={"parameters": mc_params.ctf, "content": "dummy"},
             )
         else:
-            rw.send_to("ctf", mc_params.ctf)
+            rw.send_to("ctffind", mc_params.ctf)
 
         # Extract results for ispyb
         total_x_shift = sum([item[0] for item in self.shift_list])
