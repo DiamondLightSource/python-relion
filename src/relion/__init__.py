@@ -277,7 +277,10 @@ class Project(RelionPipeline):
                     self._data_pipeline.origins = [jobnode]
 
     def _update_pipeline(self, jobnode, label, prop=None, in_db_model=True):
-        jobnode.environment["result"] = self._results_dict[label]
+        if jobnode.environment["status"]:
+            jobnode.environment["result"] = self._results_dict[label]
+        else:
+            jobnode.environment["result"] = {}
         if in_db_model:
             jobnode.environment["extra_options"] = self.run_options
             self._db_model[label].environment["extra_options"] = self.run_options
