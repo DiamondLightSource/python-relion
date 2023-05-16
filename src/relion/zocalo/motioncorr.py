@@ -250,7 +250,7 @@ class MotionCorr(CommonService):
             else:
                 rw.send_to("spa.node_creator", import_parameters)
 
-            # Then register the motion correction
+            # Then register the motion correction job with the node creator
             node_creator_parameters = {
                 "job_type": "relion.motioncorr.motioncor2",
                 "input_file": str(import_movie),
@@ -267,8 +267,68 @@ class MotionCorr(CommonService):
 
             # Set up icebreaker if requested, then ctffind
             if mc_params.relion_it_options["do_icebreaker_job_group"]:
+                # Three IceBreaker jobs: CtfFind job is MC+4
                 ctf_job_number = 6
+
+                # Both IceBreaker micrographs and flattening inherit from motioncorr
+                self.log.info("Sending to IceBreaker micrograph analysis")
+                icebreaker_job003_params = {
+                    "icebreaker_type": "micrographs",
+                    "input_micrographs": mc_params.mrc_out,
+                    "output_path": str(
+                        Path(
+                            re.sub(
+                                "MotionCorr/job002/.",
+                                "IceBreaker/job003",
+                                mc_params.mrc_out,
+                            )
+                        )
+                        / "grouped_micrographs.star"
+                    ),
+                    "mc_uuid": mc_params.mc_uuid,
+                    "relion_it_options": mc_params.relion_it_options,
+                }
+                if isinstance(rw, RW_mock):
+                    rw.transport.send(
+                        destination="icebreaker",
+                        message={
+                            "parameters": icebreaker_job003_params,
+                            "content": "dummy",
+                        },
+                    )
+                else:
+                    rw.send_to("icebreaker", icebreaker_job003_params)
+
+                self.log.info("Sending to IceBreaker contract enhancement")
+                icebreaker_job004_params = {
+                    "icebreaker_type": "micrographs",
+                    "input_micrographs": mc_params.mrc_out,
+                    "output_path": str(
+                        Path(
+                            re.sub(
+                                "MotionCorr/job002/.",
+                                "IceBreaker/job004",
+                                mc_params.mrc_out,
+                            )
+                        )
+                        / "flattened_micrographs.star"
+                    ),
+                    "mc_uuid": mc_params.mc_uuid,
+                    "relion_it_options": mc_params.relion_it_options,
+                }
+                if isinstance(rw, RW_mock):
+                    rw.transport.send(
+                        destination="icebreaker",
+                        message={
+                            "parameters": icebreaker_job004_params,
+                            "content": "dummy",
+                        },
+                    )
+                else:
+                    rw.send_to("icebreaker", icebreaker_job004_params)
+
             else:
+                # No IceBreaker jobs: CtfFind job is MC+1
                 ctf_job_number = 3
             mc_params.ctf["collection_type"] = "spa"
             mc_params.ctf["output_image"] = str(

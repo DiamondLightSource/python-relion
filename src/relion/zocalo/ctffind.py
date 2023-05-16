@@ -163,7 +163,7 @@ class CTFFind(CommonService):
         self.log.info(
             f"Input: {ctf_params.input_image} Output: {ctf_params.output_image}"
         )
-        print(command, parameters_string)
+
         result = procrunner.run(
             command=command,
             stdin=parameters_string.encode("ascii"),
@@ -179,7 +179,7 @@ class CTFFind(CommonService):
 
         # If this is SPA, send the results to be processed and set up the next job
         if ctf_params.collection_type.lower() == "spa":
-            # Register the ctf with the node creator
+            # Register the ctf job with the node creator
             node_creator_parameters = {
                 "job_type": "relion.ctffind.ctffind4",
                 "input_file": ctf_params.input_image,

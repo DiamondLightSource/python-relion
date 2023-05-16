@@ -31,15 +31,15 @@ pipeline_spa_jobs = {
     },
     "icebreaker.micrograph_analysis.micrographs": {
         "folder": "IceBreaker",
-        "input": "in_mics",
+        "input_label": "in_mics",
     },
     "icebreaker.micrograph_analysis.enhancecontrast": {
         "folder": "IceBreaker",
-        "input": "in_mics",
+        "input_label": "in_mics",
     },
     "icebreaker.micrograph_analysis.summary": {
         "folder": "IceBreaker",
-        "input": "in_mics",
+        "input_label": "in_mics",
     },
     "relion.ctffind.ctffind4": {
         "folder": "CtfFind",

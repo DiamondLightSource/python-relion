@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from typing import Optional
 
 import procrunner
 import workflows.recipe
@@ -21,7 +22,8 @@ class CryoloParameters(BaseModel):
     )
     threshold: float = 0.3
     mc_uuid: int
-    cryolo_command: str
+    cryolo_command: str = "cryolo_predict.py"
+    relion_it_options: Optional[dict] = None
 
 
 class CrYOLO(CommonService):
