@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 import string
+import subprocess
+import time
 from collections import ChainMap
 from pathlib import Path
 from typing import Optional
 
-import procrunner
+import htcondor
 import workflows.recipe
 from pydantic import BaseModel, Field, validator
 from pydantic.error_wrappers import ValidationError
@@ -173,22 +175,110 @@ class Denoise(CommonService):
                 else:
                     command.extend((denoise_flags[k], str(v)))
 
-        denoised_full_path = str(Path(d_params.volume).with_suffix(".denoised"))
+        suffix = str(Path(d_params.volume).suffix)
+        denoised_file = str(Path(d_params.volume).stem) + ".denoised" + suffix
+        denoised_full_path = str(Path(d_params.volume).parent) + "/" + denoised_file
 
         self.log.info(f"Running Topaz {command}")
         self.log.info(f"Input: {d_params.volume} Output: {denoised_full_path}")
 
-        result = procrunner.run(command=command)
-        if result.returncode:
-            self.log.error(
-                f"Denoising of {d_params.volume} failed with exitcode {result.returncode}:\n"
-                + result.stderr.decode("utf8", "replace")
+        # Set-up condor config
+        htcondor.param["RELEASE_DIR"] = "/usr"
+        htcondor.param["LOCAL_DIR"] = "/var"
+        htcondor.param["RUN"] = "/var/run/condor"
+        htcondor.param["LOG"] = "/var/log/condor"
+        htcondor.param["LOCK"] = "/var/lock/condor"
+        htcondor.param["SPOOL"] = "/var/lib/condor/spool"
+        htcondor.param["EXECUTE"] = "/var/lib/condor/execute"
+        htcondor.param["BIN"] = "/usr/bin"
+        htcondor.param["LIB"] = "/usr/lib64/condor"
+        htcondor.param["INCLUDE"] = "/usr/include/condor"
+        htcondor.param["SBIN"] = "/usr/sbin"
+        htcondor.param["LIBEXEC"] = "/usr/libexec/condor"
+        htcondor.param["SHARE"] = "/usr/share/condor"
+        htcondor.param["PROCD_ADDRESS"] = "/var/run/condor/procd_pipe"
+        htcondor.param[
+            "JAVA_CLASSPATH_DEFAULT"
+        ] = "/usr/share/condor /usr/share/condor/scimark2lib.jar ."
+        htcondor.param["CONDOR_HOST"] = "pool-gpu-htcondor-manager.diamond.ac.uk"
+        htcondor.param["COLLECTOR_HOST"] = "pool-gpu-htcondor-manager.diamond.ac.uk"
+        htcondor.param["ALLOW_READ"] = "*"
+        htcondor.param["ALLOW_WRITE"] = "*"
+        htcondor.param["ALLOW_NEGOTIATOR"] = "*"
+        htcondor.param["ALLOW_DAEMON"] = "*"
+        htcondor.param["SEC_DEFAULT_AUTHENTICATION_METHODS"] = "FS_REMOTE, PASSWORD"
+        htcondor.param[
+            "SEC_WRITE_AUTHENTICATION_METHODS"
+        ] = "FS_REMOTE, PASSWORD, ANONYMOUS"
+        htcondor.param[
+            "SEC_READ_AUTHENTICATION_METHODS"
+        ] = "FS_REMOTE, PASSWORD, ANONYMOUS"
+        htcondor.param["FS_REMOTE_DIR"] = "/dls/tmp/htcondor"
+
+        output_file = (
+            self.alignment_output_dir + "/" + self.stack_name + "_denoise_iris_out"
+        )
+        error_file = (
+            self.alignment_output_dir + "/" + self.stack_name + "_denoise_iris_error"
+        )
+        log_file = (
+            self.alignment_output_dir + "/" + self.stack_name + "_denoise_iris_log"
+        )
+
+        try:
+            at_job = htcondor.Submit(
+                {
+                    "executable": "/dls/ebic/data/staff-scratch/murfey/topaz.sh",
+                    "arguments": "\"'$(input_args)'\"",  # needs to be in single quotes to be interpreted as one command
+                    "output": "$(output_file)",
+                    "error": "$(error_file)",
+                    "log": "$(log_file)",
+                    "request_gpus": "1",
+                    "request_memory": "15000",
+                    "request_disk": "10240",
+                    "should_transfer_files": "yes",
+                    "transfer_input_files": "$(volume)",
+                    "transfer_output_files": "$(output_file)",
+                }
             )
-            rw.transport.nack(header)
-            return
+        except Exception:
+            self.log.warn("Couldn't connect submitter")
+            return None
+
+        itemdata = [
+            {
+                "input_args": " ".join(command),
+                "volume": d_params.volume,
+                "output_file": output_file,
+                "error_file": error_file,
+                "log_file": log_file,
+                "output_file": denoised_file,
+            }
+        ]
+
+        coll = htcondor.Collector(htcondor.param["COLLECTOR_HOST"])
+        schedd_ad = coll.locate(htcondor.DaemonTypes.Schedd)
+        schedd = htcondor.Schedd(schedd_ad)
+        job = schedd.submit(at_job, itemdata=iter(itemdata))
+        cluster_id = job.cluster()
+        self.log.info(f"Submitting to Iris, ID: {str(cluster_id)}")
+
+        res = 1
+        while res:
+            try:
+                res = schedd.query(
+                    constraint="ClusterId=={}".format(cluster_id),
+                    projection=["JobStatus"],
+                )[0]["JobStatus"]
+            except IndexError:
+                break
+            if res == 12:
+                schedd.act(htcondor.JobAction.Remove, f"ClusterId == {cluster_id}")
+                return subprocess.CompletedProcess(args="", returncode=res)
+            time.sleep(10)
 
         # Forward results to images service
-        self.log.info(f"Sending to images service {d_params.mrc_out}")
+        self.log.info(f"Sending to images service {d_params.volume}")
         if isinstance(rw, RW_mock):
             rw.transport.send(
                 destination="images",
@@ -207,3 +297,4 @@ class Denoise(CommonService):
             )
 
         rw.transport.ack(header)
+        return subprocess.CompletedProcess(args="", returncode=None)
