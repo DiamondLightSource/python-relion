@@ -176,6 +176,7 @@ class Denoise(CommonService):
                     command.extend((denoise_flags[k], str(v)))
 
         suffix = str(Path(d_params.volume).suffix)
+        alignment_output_dir = str(Path(d_params.volume).parent)
         denoised_file = str(Path(d_params.volume).stem) + ".denoised" + suffix
         denoised_full_path = str(Path(d_params.volume).parent) + "/" + denoised_file
 
@@ -215,15 +216,10 @@ class Denoise(CommonService):
         ] = "FS_REMOTE, PASSWORD, ANONYMOUS"
         htcondor.param["FS_REMOTE_DIR"] = "/dls/tmp/htcondor"
 
-        output_file = (
-            self.alignment_output_dir + "/" + self.stack_name + "_denoise_iris_out"
-        )
-        error_file = (
-            self.alignment_output_dir + "/" + self.stack_name + "_denoise_iris_error"
-        )
-        log_file = (
-            self.alignment_output_dir + "/" + self.stack_name + "_denoise_iris_log"
-        )
+        output_file = str(Path(d_params.volume).with_suffix("")) + "_denoise_iris_out"
+        error_file = str(Path(d_params.volume).with_suffix("")) + "_denoise_iris_error"
+        log_file = str(Path(d_params.volume).with_suffix("")) + "_denoise_iris_log"
+        self.log.info(f"Log file: {log_file}")
 
         try:
             at_job = htcondor.Submit(
@@ -239,6 +235,7 @@ class Denoise(CommonService):
                     "should_transfer_files": "yes",
                     "transfer_input_files": "$(volume)",
                     "transfer_output_files": "$(output_file)",
+                    "initial_dir": "$(initial_dir)",
                 }
             )
         except Exception:
@@ -253,6 +250,7 @@ class Denoise(CommonService):
                 "error_file": error_file,
                 "log_file": log_file,
                 "output_file": denoised_file,
+                "initial_dir": alignment_output_dir,
             }
         ]
 
