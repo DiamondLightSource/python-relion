@@ -293,17 +293,14 @@ def _cryolo_output_files(
         )
     else:
         output_cif = cif.read_file(str(star_file))
-        data_movies = output_cif.find_block("micrographs")
+        data_movies = output_cif.find_block("coordinate_files")
         movies_loop = data_movies.find_loop("_rlnMicrographName").get_loop()
 
-    ctf_job = int(re.search("/job[0-9]{3}/", str(input_file))[0][4:7])
-    movies_loop.add_row(
-        [
-            re.sub("MotionCorr/job002", f"CtfFind/job{ctf_job:03}", str(input_file)),
-            str(output_file),
-        ]
-    )
+    movies_loop.add_row([str(input_file), str(output_file)])
     output_cif.write_file(str(star_file), style=cif.Style.Simple)
+
+    # run.out is expected but will not be made
+    (star_file.parent / "run.out").touch()
 
 
 _output_files: Dict[str, Callable] = {
@@ -314,6 +311,7 @@ _output_files: Dict[str, Callable] = {
     "icebreaker.micrograph_analysis.enhancecontrast": _icebreaker_output_files,
     "icebreaker.micrograph_analysis.summary": _icebreaker_output_files,
     "relion.ctffind.ctffind4": _ctffind_output_files,
+    "cryolo.autopick": _cryolo_output_files,
     # "relion.ctffind.gctf": _from_motioncorr,
     # "relion.autopick.log": _from_ctf,
     # "relion.autopick.ref3d": _from_ctf,

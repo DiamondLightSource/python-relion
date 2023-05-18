@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import re
 from pathlib import Path
 from typing import Optional
 
@@ -31,7 +30,6 @@ class CTFParameters(BaseModel):
     input_image: str = Field(..., min_length=1)
     output_image: str = Field(..., min_length=1)
     mc_uuid: int
-    autopick: dict = {}
     relion_it_options: Optional[dict] = None
 
 
@@ -177,53 +175,6 @@ class CTFFind(CommonService):
             )
             rw.transport.nack(header)
             return
-
-        # If this is SPA, set up the input for the next job
-        if ctf_params.collection_type.lower() == "spa":
-            # Register the ctf job with the node creator
-            node_creator_parameters = {
-                "job_type": "relion.ctffind.ctffind4",
-                "input_file": ctf_params.input_image,
-                "output_file": ctf_params.output_image,
-                "relion_it_options": ctf_params.relion_it_options,
-            }
-            if isinstance(rw, RW_mock):
-                rw.transport.send(
-                    destination="spa.node_creator",
-                    message={"parameters": node_creator_parameters, "content": "dummy"},
-                )
-            else:
-                rw.send_to("spa.node_creator", node_creator_parameters)
-
-            # Forward results to particle picking
-            self.log.info(f"Sending to autopicking: {ctf_params.output_image}")
-            job_number = int(
-                re.search("/job[0-9]{3}/", ctf_params.output_image)[0][4:7]
-            )
-            ctf_params.autopick["input_path"] = ctf_params.output_image
-            ctf_params.autopick["output_path"] = str(
-                Path(
-                    re.sub(
-                        f"CtfFind/job{job_number:03}/.+",
-                        f"AutoPick/job{job_number+1:03}/STAR/",
-                        ctf_params.output_image,
-                    )
-                )
-                / Path(ctf_params.output_image).with_suffix(".star").name
-            )
-            ctf_params.autopick["relion_it_options"] = ctf_params.relion_it_options
-            ctf_params.autopick["mc_uuid"] = ctf_params.mc_uuid
-            ctf_params.autopick["pix_size"] = ctf_params.pix_size
-            ctf_params.autopick["threshold"] = ctf_params.relion_it_options[
-                "cryolo_threshold"
-            ]
-            if isinstance(rw, RW_mock):
-                rw.transport.send(
-                    destination="cryolo",
-                    message={"parameters": ctf_params.autopick, "content": "dummy"},
-                )
-            else:
-                rw.send_to("cryolo", ctf_params.autopick)
 
         # Extract results for ispyb
         astigmatism = self.defocus2 - self.defocus1

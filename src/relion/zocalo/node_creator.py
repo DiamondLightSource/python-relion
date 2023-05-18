@@ -13,6 +13,8 @@ from pipeliner.api.api_utils import (
     write_default_jobstar,
 )
 from pipeliner.job_factory import read_job
+from pipeliner.node_factory import create_node
+from pipeliner.nodes import NODE_MICROGRAPHCOORDSGROUP
 from pipeliner.process import Process
 from pipeliner.project_graph import ProjectGraph, update_jobinfo_file
 from pydantic import BaseModel, Field
@@ -53,7 +55,8 @@ pipeline_spa_jobs = {
     "cryolo.autopick": {
         "folder": "AutoPick",
         "input_label": "input_file",
-        "input_star": "micrographs_ctf.star",
+        "input_star": "corrected_micrographs.star",
+        "extra_output_nodes": {"autopick.star": NODE_MICROGRAPHCOORDSGROUP},
     },
     "relion.extract": {"folder": "Extract", "input_label": "coords_suffix"},
     "relion.select.split": {"folder": "Select", "input_label": "fn_data"},
@@ -233,6 +236,18 @@ class NodeCreator(CommonService):
             relion_it_options=dict(job_info.relion_it_options),
             results=job_info.results,
         )
+
+        if pipeline_spa_jobs[job_info.job_type].get("extra_output_nodes"):
+            for node_name, node_type in pipeline_spa_jobs[job_info.job_type][
+                "extra_output_nodes"
+            ].items():
+                pipeliner_job.output_nodes.append(
+                    create_node(
+                        str(job_dir.relative_to(project_dir) / node_name),
+                        node_type,
+                        job_info.job_type.split("."),
+                    )
+                )
 
         # Produce the node display files
         for node in pipeliner_job.input_nodes + pipeliner_job.output_nodes:

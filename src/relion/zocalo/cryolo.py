@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import os
+import re
+import shutil
 from pathlib import Path
 from typing import Optional
 
@@ -118,14 +121,19 @@ class CrYOLO(CommonService):
             rw.transport.nack(header)
             return
 
+        # CrYOLO requires running in the project directory
+        job_dir = Path(re.search(".+/job[0-9]{3}/", cryolo_params.output_path)[0])
+        project_dir = job_dir.parent.parent
+        os.chdir(project_dir)
+
         # Construct a command to run cryolo with the given parameters
         command = cryolo_params.cryolo_command.split()
         command.extend((["--conf", cryolo_params.config_file]))
+        command.extend((["-o", str(job_dir)]))
 
         cryolo_flags = {
             "weights": "--weights",
             "input_path": "-i",
-            "output_path": "-o",
             "threshold": "--threshold",
             "cryolo_gpus": "--gpu",
         }
@@ -153,6 +161,10 @@ class CrYOLO(CommonService):
             )
             rw.transport.nack(header)
             return
+
+        # Remove the temporary directories made by cryolo
+        shutil.rmtree(project_dir / "logs")
+        shutil.rmtree(project_dir / "filtered")
 
         # Extract results for ispyb
         ispyb_parameters = {
@@ -183,11 +195,7 @@ class CrYOLO(CommonService):
             rw.send_to("ispyb", ispyb_parameters)
 
         # Extract results for images service
-        with open(
-            Path(cryolo_params.output_path + "/STAR/")
-            / Path(cryolo_params.input_path).with_suffix(".star").name,
-            "r",
-        ) as coords_file:
+        with open(cryolo_params.output_path, "r") as coords_file:
             coords = [line.split() for line in coords_file][6:]
             coords_file.close()
 
