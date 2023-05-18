@@ -139,7 +139,7 @@ class Denoise(CommonService):
             rw.transport.nack(header)
             return
 
-        command = ["topaz", "denoise3d", d_params.volume]
+        command = ["topaz", "denoise3d", str(Path(d_params.volume).name)]
 
         denoise_flags = {
             "output": "-o",
@@ -234,7 +234,7 @@ class Denoise(CommonService):
                     "request_disk": "10240",
                     "should_transfer_files": "yes",
                     "transfer_input_files": "$(volume)",
-                    "transfer_output_files": "$(output_file)",
+                    "transfer_output_files": "$(output_files)",
                     "initial_dir": "$(initial_dir)",
                 }
             )
@@ -249,7 +249,7 @@ class Denoise(CommonService):
                 "output_file": output_file,
                 "error_file": error_file,
                 "log_file": log_file,
-                "output_file": denoised_file,
+                "output_files": denoised_file,  # denoised_file,
                 "initial_dir": alignment_output_dir,
             }
         ]
