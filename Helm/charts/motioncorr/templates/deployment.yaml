@@ -50,7 +50,7 @@ spec:
       volumes:
       - name: config-file
         configMap:
-          name: zocalo-configmap-dev
+          name: zocalo-conf
       - name: secrets
         projected:
           defaultMode: 0444
@@ -58,9 +58,9 @@ spec:
           - secret: 
               name: {{ .Values.dbSecretName }}
           - secret:
-              name: staging-rmq-creds
+              name: {{ .Values.rmqSecretName }}
           - secret:
-              name: staging-rmq-api-reader
+              name: {{ .Values.rmqApiSecretName }}
 {{- if .Values.extraVolumes }}
 {{ toYaml .Values.extraVolumes | indent 6 }}
 {{ end }}
@@ -72,3 +72,24 @@ spec:
         key: nodetype
         operator: Equal
         value: gpu
+{{- if .Values.scaleOnQueueLength }}
+---
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: motioncorr
+  namespace: {{ .Values.global.namespace }}
+spec:
+  scaleTargetRef:
+    name: motioncorr
+  triggers:
+    - type: rabbitmq
+      metadata:
+        host: {{ .Values.global.rmqHost }}
+        queueName: motioncorr
+        mode: QueueLength
+        value: "{{ .Values.queueLengthTrigger }}"
+  minReplicaCount: {{ .Values.minReplicaCount }}
+  maxReplicaCount: {{ .Values.maxReplicaCount }}
+  idleReplicaCount: {{ .Values.idleReplicaCount }}
+{{ end }}

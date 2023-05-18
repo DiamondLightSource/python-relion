@@ -184,6 +184,8 @@ def generate_pipeline_options(
 
     job_options["relion.initialmodel"] = {
         "nr_classes": relion_it_options.inimodel_nr_classes,
+        "sym_name": relion_it_options.symmetry,
+        "do_run_C1": relion_it_options.inimodel_start_c1,
         "sampling": relion_it_options.inimodel_angle_step,
         "offset_step": relion_it_options.inimodel_offset_step,
         "offset_range": relion_it_options.inimodel_offset_range,
