@@ -237,7 +237,9 @@ class MotionCorr(CommonService):
                 ctf_job_number = 6
 
                 # Both IceBreaker micrographs and flattening inherit from motioncorr
-                self.log.info("Sending to IceBreaker micrograph analysis")
+                self.log.info(
+                    f"Sending to IceBreaker micrograph analysis: {mc_params.mrc_out}"
+                )
                 icebreaker_job003_params = {
                     "icebreaker_type": "micrographs",
                     "input_micrographs": mc_params.mrc_out,
@@ -261,7 +263,9 @@ class MotionCorr(CommonService):
                 else:
                     rw.send_to("icebreaker", icebreaker_job003_params)
 
-                self.log.info("Sending to IceBreaker contract enhancement")
+                self.log.info(
+                    f"Sending to IceBreaker contract enhancement: {mc_params.mrc_out}"
+                )
                 icebreaker_job004_params = {
                     "icebreaker_type": "enhancecontrast",
                     "input_micrographs": mc_params.mrc_out,
@@ -299,7 +303,7 @@ class MotionCorr(CommonService):
             mc_params.ctf["relion_it_options"] = mc_params.relion_it_options
 
         # Forward results to ctffind
-        self.log.info("Sending to ctf")
+        self.log.info(f"Sending to ctf: {mc_params.mrc_out}")
         mc_params.ctf["input_image"] = mc_params.mrc_out
         mc_params.ctf["mc_uuid"] = mc_params.mc_uuid
         mc_params.ctf["pix_size"] = mc_params.pix_size

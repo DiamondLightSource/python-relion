@@ -270,6 +270,42 @@ def _icebreaker_output_files(
     output_cif.write_file(str(star_file), style=cif.Style.Simple)
 
 
+def _cryolo_output_files(
+    job_dir: Path,
+    input_file: Path,
+    output_file: Path,
+    relion_it_options: dict,
+    results: dict,
+):
+    star_file = job_dir / "autopick.star"
+
+    # Read the existing output file, or otherwise create one
+    if not star_file.exists():
+        output_cif = cif.Document()
+
+        data_movies = output_cif.add_new_block("coordinate_files")
+        movies_loop = data_movies.init_loop(
+            "_rln",
+            [
+                "MicrographName",
+                "MicrographCoordinates",
+            ],
+        )
+    else:
+        output_cif = cif.read_file(str(star_file))
+        data_movies = output_cif.find_block("micrographs")
+        movies_loop = data_movies.find_loop("_rlnMicrographName").get_loop()
+
+    ctf_job = int(re.search("/job[0-9]{3}/", str(input_file))[0][4:7])
+    movies_loop.add_row(
+        [
+            re.sub("MotionCorr/job002", f"CtfFind/job{ctf_job:03}", str(input_file)),
+            str(output_file),
+        ]
+    )
+    output_cif.write_file(str(star_file), style=cif.Style.Simple)
+
+
 _output_files: Dict[str, Callable] = {
     "relion.import.movies": _import_output_files,
     "relion.motioncorr.motioncor2": _motioncorr_output_files,

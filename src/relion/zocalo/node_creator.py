@@ -50,7 +50,11 @@ pipeline_spa_jobs = {
         "input_label": "input_star_mics",
         "input_star": "corrected_micrographs.star",
     },
-    "cryolo.autopick": {"folder": "AutoPick", "input_label": "input_file"},
+    "cryolo.autopick": {
+        "folder": "AutoPick",
+        "input_label": "input_file",
+        "input_star": "micrographs_ctf.star",
+    },
     "relion.extract": {"folder": "Extract", "input_label": "coords_suffix"},
     "relion.select.split": {"folder": "Select", "input_label": "fn_data"},
     "icebreaker.micrograph_analysis.particles": {"folder": "IceBreaker"},

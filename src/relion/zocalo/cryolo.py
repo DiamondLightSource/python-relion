@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 from pathlib import Path
 from typing import Optional
 
@@ -12,7 +11,6 @@ from workflows.services.common_service import CommonService
 
 
 class CryoloParameters(BaseModel):
-    boxsize: int
     pix_size: float
     input_path: str = Field(..., min_length=1)
     output_path: str = Field(..., min_length=1)
@@ -23,6 +21,7 @@ class CryoloParameters(BaseModel):
     threshold: float = 0.3
     mc_uuid: int
     cryolo_command: str = "cryolo_predict.py"
+    extract: dict = {}
     relion_it_options: Optional[dict] = None
 
 
@@ -119,16 +118,9 @@ class CrYOLO(CommonService):
             rw.transport.nack(header)
             return
 
-        # Make a cryolo config file with the correct box size
-        with open(cryolo_params.config_file, "r") as json_file:
-            data = json.load(json_file)
-            data["model"]["anchors"] = [cryolo_params.boxsize, cryolo_params.boxsize]
-        with open("config.json", "w") as outfile:
-            json.dump(data, outfile)
-
         # Construct a command to run cryolo with the given parameters
         command = cryolo_params.cryolo_command.split()
-        command.extend((["--conf", "config.json"]))
+        command.extend((["--conf", cryolo_params.config_file]))
 
         cryolo_flags = {
             "weights": "--weights",
@@ -165,7 +157,6 @@ class CrYOLO(CommonService):
         # Extract results for ispyb
         ispyb_parameters = {
             "particle_picking_template": cryolo_params.weights,
-            "particle_diameter": cryolo_params.pix_size * cryolo_params.boxsize / 10,
             "number_of_particles": self.number_of_particles,
             "summary_image_full_path": cryolo_params.output_path
             + "/picked_particles.mrc",
@@ -210,7 +201,7 @@ class CrYOLO(CommonService):
                     "file": cryolo_params.input_path,
                     "coordinates": coords,
                     "angpix": cryolo_params.pix_size,
-                    "diameter": cryolo_params.pix_size * cryolo_params.boxsize,
+                    "diameter": cryolo_params.pix_size * 160,
                     "outfile": cryolo_params.output_path + "/picked_particles.jpeg",
                 },
             )
@@ -222,9 +213,47 @@ class CrYOLO(CommonService):
                     "file": cryolo_params.input_path,
                     "coordinates": coords,
                     "angpix": cryolo_params.pix_size,
-                    "diameter": cryolo_params.pix_size * cryolo_params.boxsize,
+                    "diameter": cryolo_params.pix_size * 160,
                     "outfile": cryolo_params.output_path + "/picked_particles.jpeg",
                 },
             )
+
+        # Forward results to murfey
+        self.log.info("Sending to Murfey")
+        if isinstance(rw, RW_mock):
+            rw.transport.send(
+                "murfey_feedback",
+                {
+                    "register": "picked_particles",
+                    "motion_correction_id": cryolo_params.mc_uuid,
+                    "number_of_particles": self.number_of_particles,
+                    "output_image": cryolo_params.output_path,
+                },
+            )
+        else:
+            rw.send_to(
+                "murfey",
+                {
+                    "register": "picked_particles",
+                    "motion_correction_id": cryolo_params.mc_uuid,
+                    "number_of_particles": self.number_of_particles,
+                    "output_image": cryolo_params.output_path,
+                },
+            )
+
+        # Register the cryolo job with the node creator
+        node_creator_parameters = {
+            "job_type": "cryolo.autopick",
+            "input_file": cryolo_params.input_path,
+            "output_file": cryolo_params.output_path,
+            "relion_it_options": cryolo_params.relion_it_options,
+        }
+        if isinstance(rw, RW_mock):
+            rw.transport.send(
+                destination="spa.node_creator",
+                message={"parameters": node_creator_parameters, "content": "dummy"},
+            )
+        else:
+            rw.send_to("spa.node_creator", node_creator_parameters)
 
         rw.transport.ack(header)
