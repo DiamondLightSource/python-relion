@@ -222,49 +222,15 @@ class MotionCorr(CommonService):
             rw.transport.nack(header)
             return
 
-        # If this is SPA, send the results to be processed and set up the next jobs
+        # Extract the motion for the image
+        total_x_shift = sum([item[0] for item in self.shift_list])
+        total_y_shift = sum([item[1] for item in self.shift_list])
+        total_motion = hypot(total_x_shift, total_y_shift)
+        each_total_motion = [hypot(item[0], item[1]) for item in self.shift_list]
+        average_motion_per_frame = sum(each_total_motion) / len(self.shift_list)
+
+        # If this is SPA, determine and set up the next jobs
         if mc_params.collection_type.lower() == "spa":
-            # As this is the entry point we need to import the file to the project
-            project_dir = Path(
-                re.search(".+/job[0-9]+/", mc_params.mrc_out).group()
-            ).parent.parent
-            import_movie = (
-                project_dir
-                / "Import/job001"
-                / Path(mc_params.movie).relative_to(project_dir)
-            )
-            if not import_movie.parent.is_dir():
-                import_movie.parent.mkdir(parents=True)
-            import_movie.symlink_to(mc_params.movie)
-            import_parameters = {
-                "job_type": "relion.import.movies",
-                "input_file": str(mc_params.movie),
-                "output_file": str(import_movie),
-                "relion_it_options": mc_params.relion_it_options,
-            }
-            if isinstance(rw, RW_mock):
-                rw.transport.send(
-                    destination="spa.node_creator",
-                    message={"parameters": import_parameters, "content": "dummy"},
-                )
-            else:
-                rw.send_to("spa.node_creator", import_parameters)
-
-            # Then register the motion correction job with the node creator
-            node_creator_parameters = {
-                "job_type": "relion.motioncorr.motioncor2",
-                "input_file": str(import_movie),
-                "output_file": mc_params.mrc_out,
-                "relion_it_options": mc_params.relion_it_options,
-            }
-            if isinstance(rw, RW_mock):
-                rw.transport.send(
-                    destination="spa.node_creator",
-                    message={"parameters": node_creator_parameters, "content": "dummy"},
-                )
-            else:
-                rw.send_to("spa.node_creator", node_creator_parameters)
-
             # Set up icebreaker if requested, then ctffind
             if mc_params.relion_it_options["do_icebreaker_job_group"]:
                 # Three IceBreaker jobs: CtfFind job is MC+4
@@ -275,18 +241,14 @@ class MotionCorr(CommonService):
                 icebreaker_job003_params = {
                     "icebreaker_type": "micrographs",
                     "input_micrographs": mc_params.mrc_out,
-                    "output_path": str(
-                        Path(
-                            re.sub(
-                                "MotionCorr/job002/.",
-                                "IceBreaker/job003",
-                                mc_params.mrc_out,
-                            )
-                        )
-                        / "grouped_micrographs.star"
+                    "output_path": re.sub(
+                        "MotionCorr/job002/.+",
+                        "IceBreaker/job003/",
+                        mc_params.mrc_out,
                     ),
                     "mc_uuid": mc_params.mc_uuid,
                     "relion_it_options": mc_params.relion_it_options,
+                    "total_motion": total_motion,
                 }
                 if isinstance(rw, RW_mock):
                     rw.transport.send(
@@ -301,20 +263,16 @@ class MotionCorr(CommonService):
 
                 self.log.info("Sending to IceBreaker contract enhancement")
                 icebreaker_job004_params = {
-                    "icebreaker_type": "micrographs",
+                    "icebreaker_type": "enhancecontrast",
                     "input_micrographs": mc_params.mrc_out,
-                    "output_path": str(
-                        Path(
-                            re.sub(
-                                "MotionCorr/job002/.",
-                                "IceBreaker/job004",
-                                mc_params.mrc_out,
-                            )
-                        )
-                        / "flattened_micrographs.star"
+                    "output_path": re.sub(
+                        "MotionCorr/job002/.+",
+                        "IceBreaker/job004/",
+                        mc_params.mrc_out,
                     ),
                     "mc_uuid": mc_params.mc_uuid,
                     "relion_it_options": mc_params.relion_it_options,
+                    "total_motion": total_motion,
                 }
                 if isinstance(rw, RW_mock):
                     rw.transport.send(
@@ -354,12 +312,6 @@ class MotionCorr(CommonService):
             rw.send_to("ctffind", mc_params.ctf)
 
         # Extract results for ispyb
-        total_x_shift = sum([item[0] for item in self.shift_list])
-        total_y_shift = sum([item[1] for item in self.shift_list])
-        total_motion = hypot(total_x_shift, total_y_shift)
-        each_total_motion = [hypot(item[0], item[1]) for item in self.shift_list]
-        average_motion_per_frame = sum(each_total_motion) / len(self.shift_list)
-
         drift_plot_x = [range(0, len(self.shift_list))]
         drift_plot_y = each_total_motion
         fig = px.scatter(x=drift_plot_x, y=drift_plot_y)
@@ -442,6 +394,50 @@ class MotionCorr(CommonService):
                     "file": mc_params.mrc_out,
                 },
             )
+
+        # If this is SPA, send the results to be processed by the node creator
+        if mc_params.collection_type == "spa":
+            # As this is the entry point we need to import the file to the project
+            project_dir = Path(
+                re.search(".+/job[0-9]{3}/", mc_params.mrc_out)[0]
+            ).parent.parent
+            import_movie = (
+                project_dir
+                / "Import/job001"
+                / Path(mc_params.movie).relative_to(project_dir)
+            )
+            if not import_movie.parent.is_dir():
+                import_movie.parent.mkdir(parents=True)
+            import_movie.symlink_to(mc_params.movie)
+            import_parameters = {
+                "job_type": "relion.import.movies",
+                "input_file": str(mc_params.movie),
+                "output_file": str(import_movie),
+                "relion_it_options": mc_params.relion_it_options,
+            }
+            if isinstance(rw, RW_mock):
+                rw.transport.send(
+                    destination="spa.node_creator",
+                    message={"parameters": import_parameters, "content": "dummy"},
+                )
+            else:
+                rw.send_to("spa.node_creator", import_parameters)
+
+            # Then register the motion correction job with the node creator
+            node_creator_parameters = {
+                "job_type": "relion.motioncorr.motioncor2",
+                "input_file": str(import_movie),
+                "output_file": mc_params.mrc_out,
+                "relion_it_options": mc_params.relion_it_options,
+                "results": {"total_motion": str(total_motion)},
+            }
+            if isinstance(rw, RW_mock):
+                rw.transport.send(
+                    destination="spa.node_creator",
+                    message={"parameters": node_creator_parameters, "content": "dummy"},
+                )
+            else:
+                rw.send_to("spa.node_creator", node_creator_parameters)
 
         rw.transport.ack(header)
         self.shift_list = []

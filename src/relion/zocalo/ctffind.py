@@ -126,7 +126,8 @@ class CTFFind(CommonService):
                 ctf_params = CTFParameters(**{**rw.recipe_step.get("parameters", {})})
         except (ValidationError, TypeError):
             self.log.warning(
-                f"CTF estimation parameter validation failed for message: {message} and recipe parameters: {rw.recipe_step.get('parameters', {})}"
+                f"CTF estimation parameter validation failed for message: {message} "
+                f"and recipe parameters: {rw.recipe_step.get('parameters', {})}"
             )
             rw.transport.nack(header)
             return
@@ -177,7 +178,7 @@ class CTFFind(CommonService):
             rw.transport.nack(header)
             return
 
-        # If this is SPA, send the results to be processed and set up the next job
+        # If this is SPA, set up the input for the next job
         if ctf_params.collection_type.lower() == "spa":
             # Register the ctf job with the node creator
             node_creator_parameters = {
@@ -197,13 +198,13 @@ class CTFFind(CommonService):
             # Forward results to particle picking
             self.log.info("Sending to autopicking")
             job_number = int(
-                re.search("/job[0-9]+/", ctf_params.output_image).group()[4:7]
+                re.search("/job[0-9]{3}/", ctf_params.output_image)[0][4:7]
             )
             ctf_params.autopick["input_path"] = ctf_params.input_image
             ctf_params.autopick["output_path"] = str(
                 Path(
                     re.sub(
-                        f"CtfFind/job{job_number:03}/.",
+                        f"CtfFind/job{job_number:03}/.+",
                         f"AutoPick/job{job_number+1:03}",
                         ctf_params.output_image,
                     )
@@ -283,5 +284,22 @@ class CTFFind(CommonService):
                     "file": ctf_params.output_image,
                 },
             )
+
+        # If this is SPA, send the results to be processed by the node creator
+        if ctf_params.collection_type.lower() == "spa":
+            # Register the ctf job with the node creator
+            node_creator_parameters = {
+                "job_type": "relion.ctffind.ctffind4",
+                "input_file": ctf_params.input_image,
+                "output_file": ctf_params.output_image,
+                "relion_it_options": ctf_params.relion_it_options,
+            }
+            if isinstance(rw, RW_mock):
+                rw.transport.send(
+                    destination="spa.node_creator",
+                    message={"parameters": node_creator_parameters, "content": "dummy"},
+                )
+            else:
+                rw.send_to("spa.node_creator", node_creator_parameters)
 
         rw.transport.ack(header)

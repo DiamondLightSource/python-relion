@@ -4,6 +4,7 @@ import json
 import os
 import re
 from pathlib import Path
+from typing import Optional
 
 import workflows.recipe
 from pipeliner.api.api_utils import (
@@ -32,23 +33,26 @@ pipeline_spa_jobs = {
     "icebreaker.micrograph_analysis.micrographs": {
         "folder": "IceBreaker",
         "input_label": "in_mics",
+        "input_star": "corrected_micrographs.star",
     },
     "icebreaker.micrograph_analysis.enhancecontrast": {
         "folder": "IceBreaker",
         "input_label": "in_mics",
+        "input_star": "corrected_micrographs.star",
     },
     "icebreaker.micrograph_analysis.summary": {
         "folder": "IceBreaker",
         "input_label": "in_mics",
+        "input_star": "grouped_micrographs.star",
     },
     "relion.ctffind.ctffind4": {
         "folder": "CtfFind",
         "input_label": "input_star_mics",
         "input_star": "corrected_micrographs.star",
     },
-    "cryolo.autopick": {"folder": "AutoPick", "input": "input_file"},
-    "relion.extract": {"folder": "Extract", "input": "coords_suffix"},
-    "relion.select.split": {"folder": "Select", "input": "fn_data"},
+    "cryolo.autopick": {"folder": "AutoPick", "input_label": "input_file"},
+    "relion.extract": {"folder": "Extract", "input_label": "coords_suffix"},
+    "relion.select.split": {"folder": "Select", "input_label": "fn_data"},
     "icebreaker.micrograph_analysis.particles": {"folder": "IceBreaker"},
     "relion.class2d.em": {"folder": "Class2D"},
     "relion.class2d.vdam": {"folder": "Class2D"},
@@ -62,6 +66,7 @@ class NodeCreatorParameters(BaseModel):
     input_file: str = Field(..., min_length=1)
     output_file: str = Field(..., min_length=1)
     relion_it_options: RelionItOptions
+    results: Optional[dict] = None
 
 
 class NodeCreator(CommonService):
@@ -138,7 +143,7 @@ class NodeCreator(CommonService):
         )
 
         # Find the job directory and make sure we are in the processing directory
-        job_dir = Path(re.search(".+/job[0-9]+/", job_info.output_file).group())
+        job_dir = Path(re.search(".+/job[0-9]{3}/", job_info.output_file)[0])
         project_dir = job_dir.parent.parent
         os.chdir(project_dir)
 
@@ -151,7 +156,7 @@ class NodeCreator(CommonService):
             # Work out the name of the input star file
             if job_dir.parent.name != "Import":
                 input_job_dir = Path(
-                    re.search(".+/job[0-9]+/", job_info.input_file).group()
+                    re.search(".+/job[0-9]{3}/", job_info.input_file)[0]
                 )
                 input_star_file = (
                     input_job_dir.relative_to(project_dir)
@@ -211,6 +216,9 @@ class NodeCreator(CommonService):
         pipeliner_job.output_dir = str(job_dir.relative_to(project_dir)) + "/"
         pipeliner_job.create_input_nodes()
         relion_commands = pipeliner_job.get_commands()
+        relion_commands = pipeliner_job.prepare_final_command(
+            relion_commands, do_makedir=False
+        )
 
         # Write the output files which Relion produces
         create_output_files(
@@ -218,7 +226,8 @@ class NodeCreator(CommonService):
             job_dir=job_dir.relative_to(project_dir),
             input_file=Path(job_info.input_file).relative_to(project_dir),
             output_file=Path(job_info.output_file).relative_to(project_dir),
-            options=dict(job_info.relion_it_options),
+            relion_it_options=dict(job_info.relion_it_options),
+            results=job_info.results,
         )
 
         # Produce the node display files
@@ -248,10 +257,8 @@ class NodeCreator(CommonService):
             for node in pipeliner_job.output_nodes:
                 if node.name[0].isalpha():
                     project.add_new_output_edge(process, node)
-            # Add the job commands to the process jobinfo
-            update_jobinfo_file(
-                process, action="Run", command_list=[[], relion_commands]
-            )
+            # Add the job commands to the process .CCPEM_pipeliner_jobinfo file
+            update_jobinfo_file(process, action="Run", command_list=relion_commands)
             # Generate the default_pipeline.star file
             project.check_process_completion()
             # Copy the default_pipeline.star file

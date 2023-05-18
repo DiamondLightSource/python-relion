@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import re
 from pathlib import Path
 from typing import Literal, Optional
@@ -17,7 +18,9 @@ class IceBreakerParameters(BaseModel):
     input_particles: Optional[str] = None
     output_path: str = Field(..., min_length=1)
     mc_uuid: int
+    cpus: int = 1
     relion_it_options: Optional[dict] = None
+    total_motion: float = 0
 
 
 class IceBreaker(CommonService):
@@ -98,50 +101,63 @@ class IceBreaker(CommonService):
             rw.transport.nack(header)
             return
 
-        output_dir = str(Path(icebreaker_params.output_path).parent)
+        # IceBreaker requires running in the project directory
+        if not Path(icebreaker_params.output_path).exists():
+            Path(icebreaker_params.output_path).mkdir(parents=True)
+        project_dir = Path(icebreaker_params.output_path).parent.parent
+        os.chdir(project_dir)
+        mic_from_project = Path(icebreaker_params.input_micrographs).relative_to(
+            project_dir
+        )
+
         self.log.info(
             f"Type: {icebreaker_params.icebreaker_type} "
             f"Input: {icebreaker_params.input_micrographs} "
-            f"Output: {output_dir}"
+            f"Output: {icebreaker_params.output_path}"
         )
 
+        # Create commands depending on the icebreaker types
         if icebreaker_params.icebreaker_type == "micrographs":
             command = [
                 "ib_job",
+                "--j",
+                str(icebreaker_params.cpus),
                 "--mode",
                 "group",
-                "--in_mics",
-                icebreaker_params.input_micrographs,
+                "--single_mic",
+                str(mic_from_project),
                 "--o",
-                output_dir,
+                icebreaker_params.output_path,
             ]
         elif icebreaker_params.icebreaker_type == "enhancecontrast":
             command = [
                 "ib_job",
+                "--j",
+                str(icebreaker_params.cpus),
                 "--mode",
                 "flatten",
-                "--in_mics",
-                icebreaker_params.input_micrographs,
+                "--single_mic",
+                str(mic_from_project),
                 "--o",
-                output_dir,
+                icebreaker_params.output_path,
             ]
         elif icebreaker_params.icebreaker_type == "summary":
             command = [
                 "ib_5fig",
-                "--in_mics",
-                icebreaker_params.input_micrographs,
+                "--single_mic",
+                str(mic_from_project),
                 "--o",
-                output_dir,
+                icebreaker_params.output_path,
             ]
         else:  # icebreaker_params.icebreaker_type == "particles":
             command = [
                 "ib_group",
                 "--in_mics",
-                icebreaker_params.input_micrographs,
+                str(mic_from_project),
                 "--in_parts",
-                icebreaker_params.input_particles,
+                str(Path(icebreaker_params.input_particles).relative_to(project_dir)),
                 "--o",
-                output_dir,
+                icebreaker_params.output_path,
             ]
 
         result = procrunner.run(
@@ -149,49 +165,38 @@ class IceBreaker(CommonService):
         )
         if result.returncode:
             self.log.error(
-                f"CTFFind failed with exitcode {result.returncode}:\n"
+                f"IceBreaker failed with exitcode {result.returncode}:\n"
                 + result.stderr.decode("utf8", "replace")
             )
             rw.transport.nack(header)
             return
-
-        # Register the icebreaker job with the node creator
-        node_creator_parameters = {
-            "job_type": "icebreaker.micrograph_analysis."
-            + icebreaker_params.icebreaker_type,
-            "input_file": icebreaker_params.input_micrographs,
-            "output_file": icebreaker_params.output_path,
-            "relion_it_options": icebreaker_params.relion_it_options,
-        }
-        if isinstance(rw, RW_mock):
-            rw.transport.send(
-                destination="spa.node_creator",
-                message={"parameters": node_creator_parameters, "content": "dummy"},
-            )
-        else:
-            rw.send_to("spa.node_creator", node_creator_parameters)
 
         # Forward results to next IceBreaker job
         if icebreaker_params.icebreaker_type == "micrographs":
             self.log.info("Sending to IceBreaker summary")
             next_icebreaker_params = {
                 "icebreaker_type": "summary",
-                "input_micrographs": icebreaker_params.output_path,
+                "input_micrographs": str(
+                    Path(
+                        re.sub(
+                            ".+/job[0-9]{3}/",
+                            icebreaker_params.output_path,
+                            str(mic_from_project),
+                        )
+                    ).parent
+                    / mic_from_project.stem
+                )
+                + "_grouped.mrc",
                 "mc_uuid": icebreaker_params.mc_uuid,
                 "relion_it_options": icebreaker_params.relion_it_options,
             }
             job_number = int(
-                re.search("/job[0-9]+/", icebreaker_params.output_path).group()[4:7]
+                re.search("/job[0-9]{3}/", icebreaker_params.output_path)[0][4:7]
             )
-            next_icebreaker_params["output_path"] = str(
-                Path(
-                    re.sub(
-                        f"IceBreaker/job{job_number:03}/.",
-                        f"IceBreaker/job{job_number + 2:03}",
-                        icebreaker_params.output_path,
-                    )
-                )
-                / "five_figs_test.csv"
+            next_icebreaker_params["output_path"] = re.sub(
+                f"IceBreaker/job{job_number:03}/",
+                f"IceBreaker/job{job_number + 2:03}/",
+                icebreaker_params.output_path,
             )
             if isinstance(rw, RW_mock):
                 rw.transport.send(
@@ -223,5 +228,24 @@ class IceBreaker(CommonService):
             )
         else:
             rw.send_to("ispyb", ispyb_parameters)
+
+        # Register the icebreaker job with the node creator
+        node_creator_parameters = {
+            "job_type": f"icebreaker.micrograph_analysis.{icebreaker_params.icebreaker_type}",
+            "input_file": icebreaker_params.input_micrographs,
+            "output_file": icebreaker_params.output_path,
+            "relion_it_options": icebreaker_params.relion_it_options,
+            "results": {
+                "icebreaker_type": icebreaker_params.icebreaker_type,
+                "total_motion": str(icebreaker_params.total_motion),
+            },
+        }
+        if isinstance(rw, RW_mock):
+            rw.transport.send(
+                destination="spa.node_creator",
+                message={"parameters": node_creator_parameters, "content": "dummy"},
+            )
+        else:
+            rw.send_to("spa.node_creator", node_creator_parameters)
 
         rw.transport.ack(header)
