@@ -209,8 +209,7 @@ class CTFFind(CommonService):
                         ctf_params.output_image,
                     )
                 )
-                / Path(ctf_params.output_image).stem
-                / ".star"
+                / Path(ctf_params.output_image).with_suffix(".star").name
             )
             ctf_params.autopick["relion_it_options"] = ctf_params.relion_it_options
             ctf_params.autopick["mc_uuid"] = ctf_params.mc_uuid
