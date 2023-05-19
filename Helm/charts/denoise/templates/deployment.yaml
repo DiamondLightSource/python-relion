@@ -54,9 +54,9 @@ spec:
           - secret: 
               name: {{ .Values.dbSecretName }}
           - secret:
-              name: rmq-creds-k8s
+              name: {{ .Values.rmqSecretName }}
           - secret:
-              name: rmq-api-reader-k8s
+              name: {{ .Values.rmqApiSecretName }}
 {{- if .Values.extraVolumes }}
 {{ toYaml .Values.extraVolumes | indent 6 }}
 {{ end }}
