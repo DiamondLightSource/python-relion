@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import sys
 from unittest import mock
 
 import pytest
@@ -30,6 +31,7 @@ def offline_transport(mocker):
     return transport
 
 
+@pytest.mark.skipif(sys.platform == "win32", reason="does not run on windows")
 @mock.patch("relion.zocalo.cryolo.procrunner.run")
 def test_cryolo_service(mock_procrunner, mock_environment, offline_transport, tmp_path):
     """

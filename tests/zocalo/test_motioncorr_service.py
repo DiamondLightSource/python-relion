@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import sys
 from math import hypot
 from unittest import mock
 
@@ -31,6 +32,7 @@ def offline_transport(mocker):
     return transport
 
 
+@pytest.mark.skipif(sys.platform == "win32", reason="does not run on windows")
 @mock.patch("relion.zocalo.motioncorr.procrunner.run")
 def test_motioncorr_service(
     mock_procrunner, mock_environment, offline_transport, tmp_path
