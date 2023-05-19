@@ -788,6 +788,8 @@ class RelionItOptions(BaseModel):
     ### MotionCorrection parameters
     # Use RELION's own implementation of motion-correction (CPU-only) instead of the UCSF implementation?
     motioncor_do_own: bool = False
+    # Save the output in float16 format?
+    motioncor_do_float16: bool = False
     # The number of threads (only for RELION's own implementation) is optimal when nr_movie_frames/nr_threads = integer
     motioncor_threads: int = 12
     # Exectutable of UCSF MotionCor2

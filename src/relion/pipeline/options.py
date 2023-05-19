@@ -48,7 +48,6 @@ def generate_pipeline_options(
     }
 
     job_options["relion.motioncorr.own"] = {
-        "fn_motioncor2_exe": relion_it_options.motioncor_exe,
         "fn_defect": relion_it_options.motioncor_defectfile,
         "dose_per_frame": relion_it_options.motioncor_doseperframe,
         "fn_gain_ref": relion_it_options.motioncor_gainreference
@@ -62,13 +61,15 @@ def generate_pipeline_options(
         "gain_flip": relion_it_options.motioncor_gainflip,
         "gain_rot": relion_it_options.motioncor_gainrot,
         "other_args": f"{relion_it_options.motioncor_other_args} --skip_logfile",
-        "gpu_ids": "0:1:2:3",
         "nr_mpi": relion_it_options.motioncor_mpi,
         "nr_threads": relion_it_options.motioncor_threads,
+        "do_float16": relion_it_options.motioncor_do_float16,
     }
 
     job_options["relion.motioncorr.motioncor2"] = {
         **job_options["relion.motioncorr.own"],
+        "fn_motioncor2_exe": relion_it_options.motioncor_exe,
+        "gpu_ids": "0:1:2:3",
         "other_motioncor2_args": relion_it_options.motioncor2_other_args,
     }
 
