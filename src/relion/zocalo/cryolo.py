@@ -240,7 +240,7 @@ class CrYOLO(CommonService):
             )
         else:
             rw.send_to(
-                "murfey",
+                "murfey_feedback",
                 {
                     "register": "picked_particles",
                     "motion_correction_id": cryolo_params.mc_uuid,

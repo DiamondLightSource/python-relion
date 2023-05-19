@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Optional
+from typing import Literal, Optional
 
 import procrunner
 import workflows.recipe
@@ -11,7 +11,7 @@ from workflows.services.common_service import CommonService
 
 
 class CTFParameters(BaseModel):
-    collection_type: str
+    collection_type: Literal["spa", "tomography"]
     pix_size: float
     voltage: float = 300.0
     spher_aber: float = 2.7
@@ -130,11 +130,7 @@ class CTFFind(CommonService):
             rw.transport.nack(header)
             return
 
-        # Determine the output file
-        if Path(ctf_params.output_image).is_file():
-            self.log.info(f"File exists {ctf_params.output_image}")
-            rw.transport.ack(header)
-            return
+        # Make sure the output directory exists
         if not Path(ctf_params.output_image).parent.exists():
             Path(ctf_params.output_image).parent.mkdir(parents=True)
 

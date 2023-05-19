@@ -152,10 +152,6 @@ class MotionCorr(CommonService):
             return
 
         # Determine the input and output files
-        if Path(mc_params.mrc_out).is_file():
-            self.log.info(f"File exists {mc_params.mrc_out}")
-            rw.transport.ack(header)
-            return
         if not Path(mc_params.mrc_out).parent.exists():
             Path(mc_params.mrc_out).parent.mkdir(parents=True)
         if mc_params.movie.endswith(".mrc"):
