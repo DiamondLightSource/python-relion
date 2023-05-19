@@ -492,14 +492,14 @@ class TomoAlign(CommonService):
             rw.transport.send(
                 destination="denoise",
                 message={
-                    "parameters": {"volume": tomo_params.aretomo_output_file},
+                    "volume": tomo_params.aretomo_output_file,
                 },
             )
         else:
             rw.send_to(
                 "denoise",
                 {
-                    "parameters": {"volume": tomo_params.aretomo_output_file},
+                    "volume": tomo_params.aretomo_output_file,
                 },
             )
 
