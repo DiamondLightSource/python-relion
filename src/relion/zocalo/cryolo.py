@@ -24,7 +24,6 @@ class CryoloParameters(BaseModel):
     threshold: float = 0.3
     mc_uuid: int
     cryolo_command: str = "cryolo_predict.py"
-    extract: dict = {}
     relion_it_options: Optional[dict] = None
 
 

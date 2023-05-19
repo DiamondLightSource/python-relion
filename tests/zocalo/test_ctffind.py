@@ -85,23 +85,23 @@ def test_ctffind_service(
     service.ctf_find(None, header=header, message=ctffind_test_message)
 
     parameters_list = [
-        f"{tmp_path}/MotionCorr/job002/sample.mrc",
-        f"{tmp_path}/CtfFind/job003/sample.ctf",
-        "0.1",
-        "300.0",
-        "2.7",
-        "0.8",
-        "512",
-        "30.0",
-        "5.0",
-        "5000.0",
-        "50000.0",
-        "100.0",
-        "no",
-        "no",
-        "no",
-        "no",
-        "no",
+        ctffind_test_message["parameters"]["input_image"],
+        ctffind_test_message["parameters"]["output_image"],
+        ctffind_test_message["parameters"]["pix_size"],
+        ctffind_test_message["parameters"]["voltage"],
+        ctffind_test_message["parameters"]["spher_aber"],
+        ctffind_test_message["parameters"]["ampl_contrast"],
+        ctffind_test_message["parameters"]["ampl_spectrum"],
+        ctffind_test_message["parameters"]["min_res"],
+        ctffind_test_message["parameters"]["max_res"],
+        ctffind_test_message["parameters"]["min_defocus"],
+        ctffind_test_message["parameters"]["max_defocus"],
+        ctffind_test_message["parameters"]["defocus_step"],
+        ctffind_test_message["parameters"]["astigmatism_known"],
+        ctffind_test_message["parameters"]["slow_search"],
+        ctffind_test_message["parameters"]["astigmatism_restrain"],
+        ctffind_test_message["parameters"]["additional_phase_shift"],
+        ctffind_test_message["parameters"]["expert_options"],
     ]
     parameters_string = "\n".join(map(str, parameters_list))
 
@@ -116,18 +116,22 @@ def test_ctffind_service(
         destination="ispyb_connector",
         message={
             "parameters": {
-                "box_size_x": str(512),
-                "box_size_y": str(512),
-                "min_resolution": str(30.0),
-                "max_resolution": str(5.0),
-                "min_defocus": str(5000.0),
-                "max_defocus": str(50000.0),
+                "box_size_x": str(ctffind_test_message["parameters"]["ampl_spectrum"]),
+                "box_size_y": str(ctffind_test_message["parameters"]["ampl_spectrum"]),
+                "min_resolution": str(ctffind_test_message["parameters"]["min_res"]),
+                "max_resolution": str(ctffind_test_message["parameters"]["max_res"]),
+                "min_defocus": str(ctffind_test_message["parameters"]["min_defocus"]),
+                "max_defocus": str(ctffind_test_message["parameters"]["max_defocus"]),
                 "astigmatism": str(service.defocus2 - service.defocus1),
-                "defocus_step_size": str(100.0),
+                "defocus_step_size": str(
+                    ctffind_test_message["parameters"]["defocus_step"]
+                ),
                 "astigmatism_angle": str(service.astigmatism_angle),
                 "estimated_resolution": str(service.estimated_resolution),
                 "estimated_defocus": str((service.defocus1 + service.defocus2) / 2),
-                "amplitude_contrast": str(0.8),
+                "amplitude_contrast": str(
+                    ctffind_test_message["parameters"]["ampl_contrast"]
+                ),
                 "cc_value": str(service.cc_value),
                 "fft_theoretical_full_path": f"{tmp_path}/CtfFind/job003/sample.jpeg",
                 "ispyb_command": "buffer",

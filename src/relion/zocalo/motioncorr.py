@@ -397,7 +397,7 @@ class MotionCorr(CommonService):
             )
         else:
             rw.send_to(
-                "murfey",
+                "murfey_feedback",
                 {
                     "register": "motion_corrected",
                     "movie": mc_params.movie,
