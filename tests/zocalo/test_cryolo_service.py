@@ -36,8 +36,8 @@ def offline_transport(mocker):
 def test_cryolo_service(mock_procrunner, mock_environment, offline_transport, tmp_path):
     """
     Send a test message to CrYOLO
-    This should call the mock procrunner
-    then send messages on to the ispyb_connector and images services
+    This should call the mock procrunner then send messages on to the
+    node_creator, murfey_feedback, ispyb_connector and images services
     """
     mock_procrunner().returncode = 0
 

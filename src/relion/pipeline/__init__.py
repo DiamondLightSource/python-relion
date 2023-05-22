@@ -41,7 +41,7 @@ from relion.pipeline.options import generate_pipeline_options
 logger = logging.getLogger("relion.pipeline")
 
 
-def wait_for_queued_job_completion(job: PipelinerJob, project_name: str = "default"):
+def wait_for_queued_job_completion(job: PipelinerJob):
     if job.joboptions.get("do_queue") and job.joboptions["do_queue"].get_boolean():
         output_path = pathlib.Path(job.output_dir)
         while not (output_path / SUCCESS_FILE).exists():

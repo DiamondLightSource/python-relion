@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import datetime
 import json
 import os
 import re
@@ -148,6 +149,7 @@ class NodeCreator(CommonService):
         self.log.info(
             f"Received job {job_info.job_type} with output file {job_info.output_file}"
         )
+        start_time = datetime.datetime.now()
 
         # Find the job directory and make sure we are in the processing directory
         job_dir = Path(re.search(".+/job[0-9]{3}/", job_info.output_file)[0])
@@ -217,6 +219,8 @@ class NodeCreator(CommonService):
         for exit_file in job_dir.glob("PIPELINER_JOB_EXIT_*"):
             exit_file.unlink()
         (job_dir / "PIPELINER_JOB_EXIT_SUCCESS").touch()
+        (job_dir / "run.out").touch(exist_ok=True)
+        (job_dir / "run.err").touch(exist_ok=True)
 
         # Load this job as a pipeliner job to create the nodes
         pipeliner_job = read_job(f"{job_dir}/job.star")
@@ -285,5 +289,9 @@ class NodeCreator(CommonService):
                 Path("default_pipeline.star").read_bytes()
             )
 
-        self.log.info(f"Processed outputs from job {job_info.job_type}")
+        end_time = datetime.datetime.now()
+        self.log.info(
+            f"Processed outputs from job {job_info.job_type}, "
+            f"in {(end_time - start_time).total_seconds()} seconds."
+        )
         rw.transport.ack(header)
