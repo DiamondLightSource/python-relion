@@ -121,20 +121,16 @@ class Denoise(CommonService):
             rw.send = rw.dummy
             message = message["content"]
 
-        parameter_map = ChainMapWithReplacement(
-            message if isinstance(message, dict) else {},
-            rw.recipe_step["parameters"],
-            substitutions=rw.environment,
-        )
-
         try:
             if isinstance(message, dict):
-                d_params = DenoiseParameters(**{**dict(parameter_map), **message})
+                d_params = DenoiseParameters(
+                    **{**rw.recipe_step.get("parameters", {}), **message}
+                )
             else:
-                d_params = DenoiseParameters(**{**dict(parameter_map)})
-        except (ValidationError, TypeError):
+                d_params = DenoiseParameters(**{**rw.recipe_step.get("parameters", {})})
+        except (ValidationError, TypeError) as e:
             self.log.warning(
-                f"Denoise parameter validation failed for message: {message} and recipe parameters: {rw.recipe_step.get('parameters', {})}"
+                f"{e} Denoise parameter validation failed for message: {message} and recipe parameters: {rw.recipe_step.get('parameters', {})}"
             )
             rw.transport.nack(header)
             return
