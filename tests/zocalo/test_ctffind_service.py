@@ -39,7 +39,7 @@ def test_ctffind_service(
     """
     Send a test message to CTFFind
     This should call the mock procrunner
-    then send messages on to the ispyb_connector and images services
+    then send messages on to the node_creator, ispyb_connector and images services
     """
     mock_procrunner().returncode = 0
 

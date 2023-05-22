@@ -208,7 +208,7 @@ class IceBreaker(CommonService):
 
         # Forward results to ISPyB
         ispyb_parameters = {
-            "buffer_store": icebreaker_params.mc_uuid,
+            "buffer_lookup": {"motion_correction_id": icebreaker_params.mc_uuid},
         }
 
         ispyb_parameters.update(

@@ -40,7 +40,9 @@ def test_motioncorr_service(
     """
     Send a test message to MotionCorr
     This should call the mock procrunner
-    then send messages on to the ispyb_connector and images services
+    then send messages on to the murfey_feedback, ispyb_connector and images services.
+    It also creates the next jobs (ctffind, cryolo and two icebreaker jobs)
+    and the node_creator is called for both import and motion correction.
     """
     mock_procrunner().returncode = 0
 
