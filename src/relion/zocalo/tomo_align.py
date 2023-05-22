@@ -487,19 +487,19 @@ class TomoAlign(CommonService):
             )
 
         # Forward results to denoise service
-        self.log.info(f"Sending to denoise service {tomo_params.aretomo_output_file}")
+        self.log.info(f"Sending to denoise service {self.aretomo_output_path}")
         if isinstance(rw, RW_mock):
             rw.transport.send(
                 destination="denoise",
                 message={
-                    "volume": tomo_params.aretomo_output_file,
+                    "volume": self.aretomo_output_path,
                 },
             )
         else:
             rw.send_to(
                 "denoise",
                 {
-                    "volume": tomo_params.aretomo_output_file,
+                    "volume": self.aretomo_output_path,
                 },
             )
 
