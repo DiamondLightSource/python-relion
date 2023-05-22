@@ -697,6 +697,7 @@ class PipelineRunner:
         angpix: Optional[float] = None,
         boxsize: Optional[int] = None,
         iteration: int = 0,
+        single_job: bool = True,
     ):
         while True:
             batch_file = self._queues["class3D"][iteration].get()
@@ -731,17 +732,56 @@ class PipelineRunner:
                     ref = self._best_class_fsc(angpix, boxsize)[0]
                 else:
                     ref = self._best_class()[0]
-                (
-                    self.job_objects_batch["relion.class3d"][batch_file],
-                    self.job_paths_batch["relion.class3d"][batch_file],
-                ) = self.fresh_job(
-                    "relion.class3d",
-                    extra_params={
-                        "fn_img": batch_file,
-                        "fn_ref": ref,
-                    },
-                    lock=self._lock,
-                )
+                if (
+                    not self.job_paths_batch["relion.class3d"].get(batch_file)
+                    or not single_job
+                ):
+                    (
+                        self.job_objects_batch["relion.class3d"][batch_file],
+                        self.job_paths_batch["relion.class3d"][batch_file],
+                    ) = self.fresh_job(
+                        "relion.class3d",
+                        extra_params={
+                            "fn_img": batch_file,
+                            "fn_ref": ref,
+                        },
+                        lock=self._lock,
+                    )
+                else:
+                    if self._lock:
+                        try:
+                            with self._lock:
+                                self.job_objects_batch["relion.class3d"][
+                                    batch_file
+                                ] = self.project.run_job(
+                                    "relion_class3d_job.star",
+                                    overwrite=str(
+                                        self.job_paths_batch["relion.class3d"][
+                                            batch_file
+                                        ]
+                                    ),
+                                    wait_for_queued=False,
+                                )
+                            wait_for_queued_job_completion(
+                                self.job_objects_batch["relion.class3d"][batch_file]
+                            )
+                            self._do_post_run_actions(
+                                self.job_objects_batch["relion.class3d"][batch_file]
+                            )
+                        except (AttributeError, FileNotFoundError) as e:
+                            logger.warning(
+                                f"Exception encountered in 3D classification runner. Try again: {e}"
+                            )
+                            self.clear_relion_lock()
+                            continue
+                    else:
+                        self.project.run_job(
+                            "relion_class3d_job.star",
+                            overwrite=str(
+                                self.job_paths_batch["relion.class3d"][batch_file]
+                            ),
+                            wait_for_queued=True,
+                        )
             except (AttributeError, FileNotFoundError) as e:
                 logger.warning(
                     f"Exception encountered in 3D classification runner. Try again: {e}"
@@ -770,6 +810,7 @@ class PipelineRunner:
         files_to_combine = ""
         quantile_threshold = 0
         last_completed_split = 0
+        batch_size_3d = 0
         class3d_thread = None
         while True:
             try:
@@ -1004,7 +1045,7 @@ class PipelineRunner:
                             extra_params={
                                 "files_to_process": files_to_combine,
                                 "do_split": True,
-                                "split_size": self.options.batch_size,
+                                "split_size": batch_size_3d or self.options.batch_size,
                             },
                             lock=self._lock,
                         )
@@ -1038,17 +1079,24 @@ class PipelineRunner:
                         self.job_paths["combine_star_files_job"] / "particles_all.star "
                     )
                     # find the last batch and check if it is complete
-                    split_file = str(
-                        self.job_paths["combine_star_files_job"]
-                        / f"particles_split{last_completed_split + 1}.star"
-                    )
+                    if files_to_combine:
+                        split_file = str(
+                            self.job_paths["combine_star_files_job"]
+                            / "particles_split1.star"
+                        )
+                    else:
+                        split_file = str(
+                            self.job_paths["combine_star_files_job"]
+                            / f"particles_split{last_completed_split + 1}.star"
+                        )
                     split_file_block = cif.read_file(split_file)["particles"]
                     split_file_column = list(
                         split_file_block.find_loop("_rlnCoordinateX")
                     )
 
                 if (
-                    len(split_file_column) == self.options.batch_size
+                    len(split_file_column)
+                    >= (last_completed_split + 1) * self.options.batch_size
                     and files_to_combine
                 ) or (batch_is_complete and not fraction_of_classes_to_remove):
                     # if the split is complete then run 3D classification
@@ -1060,9 +1108,11 @@ class PipelineRunner:
                                 "iteration": iteration,
                                 "angpix": angpix,
                                 "boxsize": boxsize,
+                                "single_job": True if files_to_combine else False,
                             },
                         )
                         class3d_thread.start()
+                        batch_size_3d = self.options.class3d_max_size
                     self._queues["class3D"][iteration].put(
                         split_file if files_to_combine else batch_file
                     )
