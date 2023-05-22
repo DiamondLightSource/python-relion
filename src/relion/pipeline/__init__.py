@@ -698,9 +698,17 @@ class PipelineRunner:
         boxsize: Optional[int] = None,
         iteration: int = 0,
         single_job: bool = True,
+        clear_queue: bool = True,
     ):
         while True:
             batch_file = self._queues["class3D"][iteration].get()
+            if clear_queue and self.job_paths_batch.get("relion.class3d", {}).get(
+                batch_file
+            ):
+                # clear the queue down to the most recent item (doesn't need to function perfectly)
+                while self._queues["class3D"][iteration].qsize() > 1:
+                    self._queues["class3D"][iteration].get()
+                batch_file = self._queues["class3D"][iteration].get()
             if not batch_file:
                 return
             if (
@@ -1109,6 +1117,7 @@ class PipelineRunner:
                                 "angpix": angpix,
                                 "boxsize": boxsize,
                                 "single_job": True if files_to_combine else False,
+                                "clear_queue": True if files_to_combine else False,
                             },
                         )
                         class3d_thread.start()
