@@ -820,6 +820,7 @@ class PipelineRunner:
         last_completed_split = 0
         batch_size_3d = 0
         class3d_thread = None
+        stop_3d = False
         while True:
             try:
                 batch_file, batch_is_complete = self._queues["class2D"][iteration].get()
@@ -1101,12 +1102,15 @@ class PipelineRunner:
                     split_file_column = list(
                         split_file_block.find_loop("_rlnCoordinateX")
                     )
-
+                if stop_3d:
+                    continue
                 if (
                     len(split_file_column)
                     >= (last_completed_split + 1) * self.options.batch_size
                     and files_to_combine
                 ) or (batch_is_complete and not fraction_of_classes_to_remove):
+                    if len(split_file_column) == batch_size_3d:
+                        stop_3d = True
                     # if the split is complete then run 3D classification
                     if self.options.do_class3d and class3d_thread is None:
                         class3d_thread = threading.Thread(
