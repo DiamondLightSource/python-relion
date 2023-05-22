@@ -68,7 +68,7 @@ autopick_submit_to_queue = True
 extract_mpi = 40
 extract_submit_to_queue = True
 
-batch_size = 20000
+batch_size = 50000
 
 refine_do_gpu = True
 refine_gpu = ""
