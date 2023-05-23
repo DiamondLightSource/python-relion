@@ -172,6 +172,12 @@ class CTFFind(CommonService):
             rw.transport.nack(header)
             return
 
+        # Write stdout to logfile
+        with open(
+            str(Path(ctf_params.output_image).with_suffix("")) + "_ctffind4.log", "w"
+        ) as f:
+            f.write(result.stdout.decode("utf8", "replace"))
+
         # Extract results for ispyb
         astigmatism = self.defocus2 - self.defocus1
         estimated_defocus = (self.defocus1 + self.defocus2) / 2

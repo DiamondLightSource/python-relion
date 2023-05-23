@@ -254,7 +254,7 @@ class NodeCreator(CommonService):
                 )
 
         # Produce the node display files
-        for node in pipeliner_job.input_nodes + pipeliner_job.output_nodes:
+        for node in pipeliner_job.output_nodes:
             if node.name[0].isalpha():
                 node.write_default_result_file()
 

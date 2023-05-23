@@ -438,6 +438,7 @@ class MotionCorr(CommonService):
             )
             if not import_movie.parent.is_dir():
                 import_movie.parent.mkdir(parents=True)
+            import_movie.unlink(missing_ok=True)
             import_movie.symlink_to(mc_params.movie)
             import_parameters = {
                 "job_type": "relion.import.movies",
