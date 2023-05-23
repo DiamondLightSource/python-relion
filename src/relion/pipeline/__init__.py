@@ -246,7 +246,7 @@ class PipelineRunner:
                     err_file.write(f"\n{warn}")
 
             # create default displays for the job's nodes if they are inside the project
-            for node in job.input_nodes + job.output_nodes:
+            for node in job.output_nodes:
                 if node.name[0].isalpha():
                     node.write_default_result_file()
 
