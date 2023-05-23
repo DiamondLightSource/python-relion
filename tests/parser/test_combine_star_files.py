@@ -8,8 +8,9 @@ import pandas as pd
 from relion._parser import combine_star_files
 
 
+@mock.patch("relion._parser.combine_star_files.Path.rename")
 @mock.patch("relion._parser.combine_star_files.starfile")
-def test_combine_star_files(mock_starfile, tmp_path):
+def test_combine_star_files(mock_starfile, mock_rename, tmp_path):
     """Check that star files can be read in and a combine file written"""
     Path(tmp_path / "particles_split1.star").touch()
     Path(tmp_path / "particles_split2.star").touch()
@@ -55,8 +56,9 @@ def test_combine_star_files(mock_starfile, tmp_path):
     assert write_call[1] == {"overwrite": True}
 
 
+@mock.patch("relion._parser.combine_star_files.Path.rename")
 @mock.patch("relion._parser.combine_star_files.starfile")
-def test_split_star_file_n_splits(mock_starfile, tmp_path):
+def test_split_star_file_n_splits(mock_starfile, mock_rename, tmp_path):
     """Test the star file splitting when given number of files to split into"""
     # set up a mock star file structure
     mock_starfile.read.return_value = {
@@ -92,7 +94,7 @@ def test_split_star_file_n_splits(mock_starfile, tmp_path):
         .all()
         .all()
     )
-    assert write_call[0][0][1] == tmp_path / "particles_split1.star"
+    assert write_call[0][0][1] == tmp_path / ".particles_split1_tmp.star"
     assert write_call[0][1] == {"overwrite": True}
 
     assert (
@@ -111,12 +113,16 @@ def test_split_star_file_n_splits(mock_starfile, tmp_path):
         .all()
         .all()
     )
-    assert write_call[1][0][1] == tmp_path / "particles_split2.star"
+    assert write_call[1][0][1] == tmp_path / ".particles_split2_tmp.star"
     assert write_call[1][1] == {"overwrite": True}
 
+    assert mock_rename.call_count == 2
+    mock_rename.assert_called_with(tmp_path / "particles_split2.star")
 
+
+@mock.patch("relion._parser.combine_star_files.Path.rename")
 @mock.patch("relion._parser.combine_star_files.starfile")
-def test_split_star_file_n_particles(mock_starfile, tmp_path):
+def test_split_star_file_n_particles(mock_starfile, mock_rename, tmp_path):
     """Test the star file splitting when given number of particles for each file"""
     # set up a mock star file structure
     mock_starfile.read.return_value = {
@@ -152,7 +158,7 @@ def test_split_star_file_n_particles(mock_starfile, tmp_path):
         .all()
         .all()
     )
-    assert write_call[0][0][1] == tmp_path / "particles_split1.star"
+    assert write_call[0][0][1] == tmp_path / ".particles_split1_tmp.star"
     assert write_call[0][1] == {"overwrite": True}
 
     assert (
@@ -171,8 +177,11 @@ def test_split_star_file_n_particles(mock_starfile, tmp_path):
         .all()
         .all()
     )
-    assert write_call[1][0][1] == tmp_path / "particles_split2.star"
+    assert write_call[1][0][1] == tmp_path / ".particles_split2_tmp.star"
     assert write_call[1][1] == {"overwrite": True}
+
+    assert mock_rename.call_count == 2
+    mock_rename.assert_called_with(tmp_path / "particles_split2.star")
 
 
 @mock.patch("relion._parser.combine_star_files.argparse._sys")
