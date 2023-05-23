@@ -759,7 +759,7 @@ class RelionItOptions(BaseModel):
     class3d_ref_is_ctf_corrected: bool = True
     # Initial lowpass filter on reference
     class3d_ini_lowpass: int = 40
-    # If non-zero use this as the batch size for a single batch of 3D classification which will update whenever a @D classification batch completes (only available when running RELION 4 through the pipeliner)
+    # If non-zero use this as the batch size for a single batch of 3D classification which will update whenever a 2D classification batch completes (only available when running RELION 4 through the pipeliner)
     class3d_max_size: int = 200000
 
     ### Use the largest 3D class from the first batch as a 3D reference for a second pass of autopicking? (only when do_class3d is True)

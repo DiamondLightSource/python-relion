@@ -7,7 +7,6 @@ import math
 import os
 import pathlib
 import queue
-import re
 import subprocess
 import threading
 import time
@@ -41,7 +40,7 @@ from relion.pipeline.options import generate_pipeline_options
 logger = logging.getLogger("relion.pipeline")
 
 
-def wait_for_queued_job_completion(job: PipelinerJob, project_name: str = "default"):
+def wait_for_queued_job_completion(job: PipelinerJob):
     if job.joboptions.get("do_queue") and job.joboptions["do_queue"].get_boolean():
         output_path = pathlib.Path(job.output_dir)
         while not (output_path / SUCCESS_FILE).exists():
@@ -701,13 +700,12 @@ class PipelineRunner:
         clear_queue: bool = True,
     ):
         while True:
-            batch_file = self._queues["class3D"][iteration].get()
-            if clear_queue and self.job_paths_batch.get("relion.class3d", {}).get(
-                batch_file
-            ):
+            if clear_queue:
                 # clear the queue down to the most recent item (doesn't need to function perfectly)
                 while self._queues["class3D"][iteration].qsize() > 1:
                     self._queues["class3D"][iteration].get()
+                batch_file = self._queues["class3D"][iteration].get()
+            else:
                 batch_file = self._queues["class3D"][iteration].get()
             if not batch_file:
                 return
@@ -938,7 +936,7 @@ class PipelineRunner:
                                 "fn_model": self.job_paths_batch[class2d_type][
                                     batch_file
                                 ]
-                                / "run_it020_optimiser.star",
+                                / f"run_it{self.options.class2d_nr_iter:03}_optimiser.star",
                                 "python_exe": self._relion_python_exe,
                                 "other_args": f"--select_min_nr_particles {int(self.options.batch_size / 2)}",
                             },
@@ -975,28 +973,21 @@ class PipelineRunner:
                         batch_file
                     ):
                         # re-run selection for the first batch using the threshold
-                        with open(
-                            self.job_paths_batch["relion.select.class2dauto"][
-                                batch_file
-                            ]
-                            / "job.star",
-                            "r",
-                        ) as f:
-                            job_runner = f.read()
-                        job_runner = re.sub(
-                            "'rank_threshold'[0-9 .]+",
-                            f"'rank_threshold'  {quantile_threshold}",
-                            job_runner,
+                        edit_jobstar(
+                            str(
+                                self.job_paths_batch["relion.select.class2dauto"][
+                                    batch_file
+                                ]
+                                / "job.star"
+                            ),
+                            {"rank_threshold": quantile_threshold},
+                            str(
+                                self.job_paths_batch["relion.select.class2dauto"][
+                                    batch_file
+                                ]
+                                / "job.star"
+                            ),
                         )
-                        with open(
-                            self.job_paths_batch["relion.select.class2dauto"][
-                                batch_file
-                            ]
-                            / "job.star",
-                            "w",
-                        ) as f:
-                            f.write(job_runner)
-
                         if self._lock is None:
                             self.project.continue_job(
                                 str(
@@ -1029,7 +1020,7 @@ class PipelineRunner:
                                 "fn_model": self.job_paths_batch[class2d_type][
                                     batch_file
                                 ]
-                                / "run_it020_optimiser.star",
+                                / f"run_it{self.options.class2d_nr_iter:03}_optimiser.star",
                                 "rank_threshold": quantile_threshold,
                                 "python_exe": self._relion_python_exe,
                                 "other_args": f"--select_min_nr_particles {int(self.options.batch_size / 2)}",
@@ -1060,19 +1051,15 @@ class PipelineRunner:
                         )
                     else:
                         # other batches can be run in the same job, with a new file list
-                        with open(
-                            self.job_paths["combine_star_files_job"] / "job.star", "r"
-                        ) as f:
-                            job_runner = f.read()
-                        job_runner = re.sub(
-                            "'files_to_process'[a-zA-Z0-9 ._'/]+",
-                            f"'files_to_process'  '{files_to_combine}'",
-                            job_runner,
+                        changed_params = {
+                            "files_to_process": files_to_combine,
+                            "split_size": str(batch_size_3d or self.options.batch_size),
+                        }
+                        edit_jobstar(
+                            str(self.job_paths["combine_star_files_job"] / "job.star"),
+                            changed_params,
+                            str(self.job_paths["combine_star_files_job"] / "job.star"),
                         )
-                        with open(
-                            self.job_paths["combine_star_files_job"] / "job.star", "w"
-                        ) as f:
-                            f.write(job_runner)
                         if self._lock is None:
                             self.project.continue_job(
                                 str(self.job_paths["combine_star_files_job"])
@@ -1087,17 +1074,11 @@ class PipelineRunner:
                     files_to_combine = str(
                         self.job_paths["combine_star_files_job"] / "particles_all.star "
                     )
-                    # find the last batch and check if it is complete
-                    if files_to_combine:
-                        split_file = str(
-                            self.job_paths["combine_star_files_job"]
-                            / "particles_split1.star"
-                        )
-                    else:
-                        split_file = str(
-                            self.job_paths["combine_star_files_job"]
-                            / f"particles_split{last_completed_split + 1}.star"
-                        )
+                    # find the batch to determine its length
+                    split_file = str(
+                        self.job_paths["combine_star_files_job"]
+                        / "particles_split1.star"
+                    )
                     split_file_block = cif.read_file(split_file)["particles"]
                     split_file_column = list(
                         split_file_block.find_loop("_rlnCoordinateX")
@@ -1109,7 +1090,10 @@ class PipelineRunner:
                     >= (last_completed_split + 1) * self.options.batch_size
                     and files_to_combine
                 ) or (batch_is_complete and not fraction_of_classes_to_remove):
-                    if len(split_file_column) == batch_size_3d:
+                    if (
+                        len(split_file_column) == batch_size_3d
+                        and fraction_of_classes_to_remove
+                    ):
                         stop_3d = True
                     # if the split is complete then run 3D classification
                     if self.options.do_class3d and class3d_thread is None:
