@@ -298,6 +298,9 @@ class MotionCorr(CommonService):
                 ).with_suffix(".ctf")
             )
             mc_params.ctf["relion_it_options"] = mc_params.relion_it_options
+            mc_params.ctf["amplitude_contrast"] = mc_params.relion_it_options[
+                "ampl_contrast"
+            ]
 
         # Forward results to ctffind (in both SPA and tomography)
         self.log.info(f"Sending to ctf: {mc_params.mrc_out}")

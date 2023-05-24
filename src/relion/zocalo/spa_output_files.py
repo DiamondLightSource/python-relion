@@ -198,8 +198,8 @@ def _ctffind_output_files(
             ctf_results[2],
             str(abs(float(ctf_results[1]) - float(ctf_results[2]))),
             ctf_results[3],
-            ctf_results[4],
             ctf_results[5],
+            ctf_results[6],
         ]
     )
     output_cif.write_file(str(star_file), style=cif.Style.Simple)
