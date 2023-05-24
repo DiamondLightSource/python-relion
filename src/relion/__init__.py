@@ -22,6 +22,7 @@ from relion._parser.initialmodel import InitialModel
 from relion._parser.motioncorrection import MotionCorr
 from relion._parser.relativeicethickness import RelativeIceThickness
 from relion._parser.relion_pipeline import RelionPipeline
+from relion._parser.select import Select
 
 try:
     from relion.cryolo_relion_it.cryolo_relion_it import RelionItOptions
@@ -140,6 +141,7 @@ class Project(RelionPipeline):
             "Class3D": self.class3D,
             "External/Icebreaker_5fig/": self.relativeicethickness,
             "IceBreaker/Icebreaker_5fig/": self.relativeicethickness_ib,
+            "Select": self.select,
         }
         return resd
 
@@ -204,6 +206,11 @@ class Project(RelionPipeline):
     @functools.lru_cache(maxsize=1)
     def relativeicethickness_ib(self):
         return RelativeIceThickness(self.basepath / "IceBreaker")
+
+    @property
+    @functools.lru_cache(maxsize=1)
+    def select(self):
+        return Select(self.basepath / "Select")
 
     def origin_present(self):
         try:

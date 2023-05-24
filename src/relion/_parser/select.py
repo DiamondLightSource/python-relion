@@ -10,7 +10,6 @@ logger = logging.getLogger("relion._parser.select")
 
 class SelectedClass(NamedTuple):
     selected_class: str
-    class_name: str
 
 
 SelectedClass.__doc__ = "Automated 2D class selection stage."
@@ -49,7 +48,7 @@ class Select(JobType):
 
         names = self.parse_star_file("_rlnReferenceImage", file, info_table)
 
-        class_list = [n.split("@")[0] for n in names]
+        class_list = [SelectedClass(selected_class=n.split("@")[0]) for n in names]
         return class_list
 
     @staticmethod
@@ -57,7 +56,7 @@ class Select(JobType):
         res = [
             {
                 "selected": True,
-                "class_name": cl.class_name,
+                "class_number": int(cl.selected_class),
             }
             for cl in selected_class_list
         ]

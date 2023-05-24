@@ -160,6 +160,7 @@ class DBModel(collections.abc.Mapping):
             "Class3D": self.class3d_db_node,
             "External/Icebreaker_5fig/": self.rel_ice_db_node,
             "IceBreaker/Icebreaker_5fig/": self.rel_ice_db_node,
+            "Select": self.class2d_db_node,
         }
 
         return db_dict
