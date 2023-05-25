@@ -27,39 +27,39 @@ from relion.pipeline.options import generate_pipeline_options
 from relion.zocalo.spa_output_files import create_output_files
 
 pipeline_spa_jobs = {
-    "relion.import.movies": {"folder": "Import", "input_label": "fn_in_raw"},
+    "relion.import.movies": {"folder": "Import"},
     "relion.motioncorr.motioncor2": {
         "folder": "MotionCorr",
-        "input_label": "input_star_mics",
-        "input_star": "movies.star",
+        "input_stars": {"input_star_mics": "movies.star"},
     },
     "icebreaker.micrograph_analysis.micrographs": {
         "folder": "IceBreaker",
-        "input_label": "in_mics",
-        "input_star": "corrected_micrographs.star",
+        "input_stars": {"in_mics": "corrected_micrographs.star"},
     },
     "icebreaker.micrograph_analysis.enhancecontrast": {
         "folder": "IceBreaker",
-        "input_label": "in_mics",
-        "input_star": "corrected_micrographs.star",
+        "input_stars": {"in_mics": "corrected_micrographs.star"},
     },
     "icebreaker.micrograph_analysis.summary": {
         "folder": "IceBreaker",
-        "input_label": "in_mics",
-        "input_star": "grouped_micrographs.star",
+        "input_stars": {"in_mics": "grouped_micrographs.star"},
     },
     "relion.ctffind.ctffind4": {
         "folder": "CtfFind",
-        "input_label": "input_star_mics",
-        "input_star": "corrected_micrographs.star",
+        "input_stars": {"input_star_mics": "corrected_micrographs.star"},
     },
     "cryolo.autopick": {
         "folder": "AutoPick",
-        "input_label": "input_file",
-        "input_star": "corrected_micrographs.star",
+        "input_stars": {"input_file": "corrected_micrographs.star"},
         "extra_output_nodes": {"autopick.star": NODE_MICROGRAPHCOORDSGROUP},
     },
-    "relion.extract": {"folder": "Extract", "input_label": "coords_suffix"},
+    "relion.extract": {
+        "folder": "Extract",
+        "input_stars": {
+            "coords_suffix": "autopick.star",
+            "star_mics": "micrographs_ctf.star",
+        },
+    },
     "relion.select.split": {"folder": "Select", "input_label": "fn_data"},
     "icebreaker.micrograph_analysis.particles": {"folder": "IceBreaker"},
     "relion.class2d.em": {"folder": "Class2D"},
@@ -162,21 +162,25 @@ class NodeCreator(CommonService):
                 job_info.relion_it_options,
                 {job_info.job_type: ""},
             )
-            # Work out the name of the input star file
+            # Work out the name of the input star file and add this to the job.star
             if job_dir.parent.name != "Import":
-                input_job_dir = Path(
-                    re.search(".+/job[0-9]{3}/", job_info.input_file)[0]
-                )
-                input_star_file = (
-                    input_job_dir.relative_to(project_dir)
-                    / pipeline_spa_jobs[job_info.job_type]["input_star"]
-                )
+                ii = 0
+                for label, star in pipeline_spa_jobs[job_info.job_type][
+                    "input_stars"
+                ].items():
+                    input_job_dir = Path(
+                        re.search(
+                            ".+/job[0-9]{3}/", job_info.input_file.split(":")[ii]
+                        )[0]
+                    )
+                    pipeline_options[job_info.job_type][label] = (
+                        input_job_dir.relative_to(project_dir) / star
+                    )
+                    ii += 1
             else:
-                input_star_file = Path(job_info.input_file).relative_to(project_dir)
-            # Add this to the job.star options
-            pipeline_options[job_info.job_type][
-                pipeline_spa_jobs[job_info.job_type]["input_label"]
-            ] = input_star_file
+                pipeline_options[job_info.job_type]["fn_in_raw"] = Path(
+                    job_info.input_file
+                ).relative_to(project_dir)
 
             # If this is a new job we need a job.star
             if not Path(f"{job_info.job_type.replace('.', '_')}_job.star").is_file():
@@ -254,9 +258,9 @@ class NodeCreator(CommonService):
                 )
 
         # Produce the node display files
-        for node in pipeliner_job.output_nodes:
-            if node.name[0].isalpha():
-                node.write_default_result_file()
+        # for node in pipeliner_job.output_nodes:
+        #    if node.name[0].isalpha():
+        #        node.write_default_result_file()
 
         # Save the metadata file
         metadata_dict = pipeliner_job.gather_metadata()

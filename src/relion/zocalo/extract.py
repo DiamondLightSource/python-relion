@@ -20,7 +20,7 @@ class ExtractParameters(BaseModel):
     output_file: str = Field(..., min_length=1)
     extract_boxsize: int = 256
     norm: bool = True
-    bg_radius: int = 96
+    bg_radius: int = -1
     downscale: bool = False
     downscale_boxsize: int = 64
     invert_contrast: bool = True
@@ -111,6 +111,10 @@ class Extract(CommonService):
             / Path(extract_params.micrographs_file).with_suffix(".mrcs").name
         )
 
+        # If no background radius set diameter as 75% of box
+        if extract_params.bg_radius == -1:
+            extract_params.bg_radius = round(0.375 * extract_params.extract_boxsize)
+
         # Find the locations of the particles
         coords_file = cif.read(extract_params.coord_list_file)
         coords_block = coords_file.sole_block()
@@ -123,7 +127,7 @@ class Extract(CommonService):
 
         # Construct the output star file
         output_document = cif.Document()
-        output_file_block = output_document.add_new_block("images")
+        output_file_block = output_document.add_new_block("particles")
         output_loop = output_file_block.init_loop(
             "_rln",
             [
@@ -160,26 +164,18 @@ class Extract(CommonService):
                     "0.0",
                 ]
             )
+        output_document.write_file(extract_params.output_file, style=cif.Style.Simple)
 
         # Extraction
-        if extract_params.downscale:
-            output_angpix = (
-                extract_params.pix_size
-                * extract_params.extract_boxsize
-                / extract_params.downscale_boxsize
-            )
-        else:
-            output_angpix = extract_params.pix_size
-        extract_width = int(extract_params.extract_boxsize / 2)
-
+        extract_width = round(extract_params.extract_boxsize / 2)
         input_micrograph = mrcfile.open(extract_params.micrographs_file)
         input_micrograph_image = np.array(input_micrograph.data, dtype=np.float32)
         image_size = np.shape(input_micrograph_image)
         output_mrc_stack = []
 
         for particle in range(len(particles_x)):
-            pixel_location_x = int(float(particles_x[particle]))
-            pixel_location_y = int(float(particles_y[particle]))
+            pixel_location_x = round(float(particles_x[particle]))
+            pixel_location_y = round(float(particles_y[particle]))
 
             # Extract the particle image and pad the edges if it is not square
             x_low_pad = 0
@@ -204,24 +200,74 @@ class Extract(CommonService):
                 y_high_pad = y_high - image_size[1]
                 y_high = image_size[1]
 
-            subimage = input_micrograph_image[x_low:x_high, y_low:y_high]
-            subimage = np.pad(
-                subimage,
+            particle_subimage = input_micrograph_image[x_low:x_high, y_low:y_high]
+            particle_subimage = np.pad(
+                particle_subimage,
                 ((x_low_pad, x_high_pad), (y_low_pad, y_high_pad)),
                 mode="edge",
             )
 
-            # Downscale
+            # Flip all the values on inversion
+            if extract_params.invert_contrast:
+                particle_subimage = -1 * particle_subimage
 
-            # Background subtract
+            # Background normalisation
+            if extract_params.norm:
+                # Distance of each pixel from the centre, compared to background radius
+                grid_indexes = np.meshgrid(
+                    np.arange(2 * extract_width), np.arange(2 * extract_width)
+                )
+                distance_from_centre = np.sqrt(
+                    (grid_indexes[0] - extract_width + 0.5) ** 2
+                    + (grid_indexes[1] - extract_width + 0.5) ** 2
+                )
+                bg_region = (
+                    distance_from_centre
+                    > np.ones(np.shape(particle_subimage)) * extract_params.bg_radius
+                )
+
+                # Standardise the values using the background
+                bg_mean = np.mean(particle_subimage[bg_region])
+                bg_std = np.std(particle_subimage[bg_region])
+                particle_subimage = (particle_subimage - bg_mean) / bg_std
+
+            # Downscaling (not yet implemented)
+            # if extract_params.downscale:
+            #     output_angpix = (
+            #             extract_params.pix_size
+            #             * extract_params.extract_boxsize
+            #             / extract_params.downscale_boxsize
+            #     )
+            #     downscale_factor = (
+            #         extract_params.extract_boxsize / extract_params.downscale_boxsize
+            #     )
 
             # Add to output stack
             if len(output_mrc_stack):
-                output_mrc_stack = np.append(output_mrc_stack, [subimage], axis=0)
+                output_mrc_stack = np.append(
+                    output_mrc_stack, [particle_subimage], axis=0
+                )
             else:
-                output_mrc_stack = np.array([subimage], dtype=np.float32)
-        print(np.shape(output_mrc_stack), output_angpix)
+                output_mrc_stack = np.array([particle_subimage], dtype=np.float32)
 
+        self.log.info(f"Extracted {np.shape(output_mrc_stack)[0]} particles")
         mrcfile.write(output_mrc_file, data=output_mrc_stack, overwrite=True)
+
+        # Then register the extract job with the node creator
+        node_creator_parameters = {
+            "job_type": "relion.extract",
+            "input_file": extract_params.coord_list_file
+            + ":"
+            + extract_params.ctf_file,
+            "output_file": extract_params.output_file,
+            "relion_it_options": extract_params.relion_it_options,
+        }
+        if isinstance(rw, RW_mock):
+            rw.transport.send(
+                destination="spa.node_creator",
+                message={"parameters": node_creator_parameters, "content": "dummy"},
+            )
+        else:
+            rw.send_to("spa.node_creator", node_creator_parameters)
 
         rw.transport.ack(header)
