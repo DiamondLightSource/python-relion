@@ -161,7 +161,7 @@ def generate_pipeline_options(
         "scratch_dir": relion_it_options.refine_scratch_disk,
         "nr_pool": relion_it_options.refine_nr_pool,
         "use_gpu": relion_it_options.refine_do_gpu,
-        "gpu_ids": "0:1:2:3",
+        "gpu_ids": relion_it_options.refine_gpu,
         "nr_mpi": relion_it_options.refine_mpi,
         "nr_threads": relion_it_options.refine_threads,
     }
@@ -216,7 +216,7 @@ def generate_pipeline_options(
         "ctf_intact_first_peak": relion_it_options.class3d_ctf_ign1stpeak,
         "do_preread_images": relion_it_options.refine_preread_images,
         "use_gpu": relion_it_options.refine_do_gpu,
-        "gpu_ids": "0:1:2:3",
+        "gpu_ids": relion_it_options.refine_gpu,
         "nr_mpi": relion_it_options.refine_mpi,
         "nr_threads": relion_it_options.refine_threads,
     }
