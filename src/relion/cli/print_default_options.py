@@ -34,5 +34,7 @@ def run():
         opts.update_from(cluster_config)
     if args.gpus:
         opts.motioncor_gpu = ":".join(str(i) for i in range(args.gpus))
+        opts.motioncor_mpi = args.gpus
         opts.refine_gpu = ":".join(str(i) for i in range(args.gpus))
+        opts.refine_mpi = args.gpus + 1
     opts.print_options(out_file=open(args.options_file, "w"))
