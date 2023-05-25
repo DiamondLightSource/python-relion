@@ -37,4 +37,6 @@ def run():
         opts.motioncor_mpi = args.gpus
         opts.refine_gpu = ":".join(str(i) for i in range(args.gpus))
         opts.refine_mpi = args.gpus + 1
+        opts.extract_mpi = 4
+        opts.ctffind_mpi = 4
     opts.print_options(out_file=open(args.options_file, "w"))
