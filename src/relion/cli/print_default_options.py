@@ -18,6 +18,13 @@ def run():
         dest="options_file",
         default="relion_it_options.py",
     )
+    parser.add_argument(
+        "--gpus",
+        help="Number of GPUs available on a local system",
+        dest="gpus",
+        type=int,
+        default=0,
+    )
     args = parser.parse_args()
     opts = RelionItOptions()
     opts.update_from(vars(dls_options))
@@ -25,4 +32,7 @@ def run():
         with open(os.getenv("RELION_CLUSTER_CONFIG"), "r") as config:
             cluster_config = yaml.safe_load(config)
         opts.update_from(cluster_config)
+    if args.gpus:
+        opts.motioncor_gpu = ":".join(str(i) for i in range(args.gpus))
+        opts.refine_gpu = ":".join(str(i) for i in range(args.gpus))
     opts.print_options(out_file=open(args.options_file, "w"))

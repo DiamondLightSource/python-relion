@@ -71,8 +71,10 @@ class PipelineRunner:
         moviesdir: str = "Movies",
         movietype: str = "mrc",
         restarted: bool = False,
+        local: bool = False,
     ):
         self.path = projpath
+        self.local = local
         self._restarted = restarted
         self.movies_path = projpath / moviesdir
         self.movietype = movietype if not movietype[0] == "." else movietype[1:]
@@ -205,25 +207,46 @@ class PipelineRunner:
             return ""
 
     def _generate_pipeline_options(self):
-        pipeline_jobs = {
-            "relion.import.movies": "",
-            "relion.motioncorr.motioncor2": "gpu",
-            "relion.motioncorr.own": "cpu",
-            "icebreaker.micrograph_analysis.micrographs": "cpu-smp",
-            "icebreaker.micrograph_analysis.enhancecontrast": "cpu-smp",
-            "icebreaker.micrograph_analysis.summary": "cpu-smp",
-            "relion.ctffind.ctffind4": "cpu",
-            "relion.autopick.log": "cpu",
-            "relion.autopick.ref3d": "cpu",
-            "cryolo.autopick": "gpu-smp",
-            "relion.extract": "cpu",
-            "relion.select.split": "",
-            "icebreaker.micrograph_analysis.particles": "cpu-smp",
-            "relion.class2d.em": "gpu",
-            "relion.class2d.vdam": "gpu-smp",
-            "relion.initialmodel": "gpu-smp",
-            "relion.class3d": "gpu",
-        }
+        if self.local:
+            pipeline_jobs = {
+                "relion.import.movies": "",
+                "relion.motioncorr.motioncor2": "",
+                "relion.motioncorr.own": "",
+                "icebreaker.micrograph_analysis.micrographs": "",
+                "icebreaker.micrograph_analysis.enhancecontrast": "",
+                "icebreaker.micrograph_analysis.summary": "",
+                "relion.ctffind.ctffind4": "",
+                "relion.autopick.log": "",
+                "relion.autopick.ref3d": "",
+                "cryolo.autopick": "",
+                "relion.extract": "",
+                "relion.select.split": "",
+                "icebreaker.micrograph_analysis.particles": "",
+                "relion.class2d.em": "",
+                "relion.class2d.vdam": "",
+                "relion.initialmodel": "",
+                "relion.class3d": "",
+            }
+        else:
+            pipeline_jobs = {
+                "relion.import.movies": "",
+                "relion.motioncorr.motioncor2": "gpu",
+                "relion.motioncorr.own": "cpu",
+                "icebreaker.micrograph_analysis.micrographs": "cpu-smp",
+                "icebreaker.micrograph_analysis.enhancecontrast": "cpu-smp",
+                "icebreaker.micrograph_analysis.summary": "cpu-smp",
+                "relion.ctffind.ctffind4": "cpu",
+                "relion.autopick.log": "cpu",
+                "relion.autopick.ref3d": "cpu",
+                "cryolo.autopick": "gpu-smp",
+                "relion.extract": "cpu",
+                "relion.select.split": "",
+                "icebreaker.micrograph_analysis.particles": "cpu-smp",
+                "relion.class2d.em": "gpu",
+                "relion.class2d.vdam": "gpu-smp",
+                "relion.initialmodel": "gpu-smp",
+                "relion.class3d": "gpu",
+            }
         return generate_pipeline_options(self.options, pipeline_jobs)
 
     def _do_post_run_actions(self, job: PipelinerJob, project_name: str = "default"):
