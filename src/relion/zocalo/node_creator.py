@@ -14,10 +14,7 @@ from pipeliner.api.api_utils import (
     write_default_jobstar,
 )
 from pipeliner.job_factory import read_job
-from pipeliner.node_factory import create_node
-from pipeliner.nodes import NODE_MICROGRAPHCOORDSGROUP
-from pipeliner.process import Process
-from pipeliner.project_graph import ProjectGraph, update_jobinfo_file
+from pipeliner.project_graph import ProjectGraph
 from pydantic import BaseModel, Field
 from pydantic.error_wrappers import ValidationError
 from workflows.services.common_service import CommonService
@@ -51,7 +48,6 @@ pipeline_spa_jobs = {
     "cryolo.autopick": {
         "folder": "AutoPick",
         "input_stars": {"input_file": "corrected_micrographs.star"},
-        "extra_output_nodes": {"autopick.star": NODE_MICROGRAPHCOORDSGROUP},
     },
     "relion.extract": {
         "folder": "Extract",
@@ -209,11 +205,6 @@ class NodeCreator(CommonService):
                 (job_dir / "job.star").write_bytes(
                     Path(f"{job_info.job_type.replace('.', '_')}_job.star").read_bytes()
                 )
-                Path(
-                    f".gui_{job_info.job_type.replace('.', '_')}_job.star"
-                ).write_bytes(
-                    Path(f"{job_info.job_type.replace('.', '_')}_job.star").read_bytes()
-                )
         except IndexError:
             self.log.error(f"Unknown job type: {job_info.job_type}")
             rw.transport.nack(header)
@@ -223,17 +214,12 @@ class NodeCreator(CommonService):
         for exit_file in job_dir.glob("PIPELINER_JOB_EXIT_*"):
             exit_file.unlink()
         (job_dir / "PIPELINER_JOB_EXIT_SUCCESS").touch()
-        (job_dir / "run.out").touch(exist_ok=True)
-        (job_dir / "run.err").touch(exist_ok=True)
 
         # Load this job as a pipeliner job to create the nodes
         pipeliner_job = read_job(f"{job_dir}/job.star")
         pipeliner_job.output_dir = str(job_dir.relative_to(project_dir)) + "/"
-        pipeliner_job.create_input_nodes()
         relion_commands = pipeliner_job.get_commands()
-        relion_commands = pipeliner_job.prepare_final_command(
-            relion_commands, do_makedir=False
-        )
+        relion_commands = pipeliner_job.prepare_to_run()
 
         # Write the output files which Relion produces
         create_output_files(
@@ -245,23 +231,6 @@ class NodeCreator(CommonService):
             results=job_info.results,
         )
 
-        if pipeline_spa_jobs[job_info.job_type].get("extra_output_nodes"):
-            for node_name, node_type in pipeline_spa_jobs[job_info.job_type][
-                "extra_output_nodes"
-            ].items():
-                pipeliner_job.output_nodes.append(
-                    create_node(
-                        str(job_dir.relative_to(project_dir) / node_name),
-                        node_type,
-                        job_info.job_type.split("."),
-                    )
-                )
-
-        # Produce the node display files
-        # for node in pipeliner_job.output_nodes:
-        #    if node.name[0].isalpha():
-        #        node.write_default_result_file()
-
         # Save the metadata file
         metadata_dict = pipeliner_job.gather_metadata()
         with open(job_dir / "job_metadata.json", "w") as metadata_file:
@@ -269,23 +238,13 @@ class NodeCreator(CommonService):
 
         # Create the node and default_pipeline.star files in the project directory
         with ProjectGraph(read_only=False) as project:
-            process = project.add_new_process(
-                Process(
-                    name=str(job_dir.relative_to(project_dir)),
-                    p_type=job_info.job_type,
-                    status="Running",
-                ),
+            process = project.add_job(
+                pipeliner_job,
+                as_status="Succeeded",
                 do_overwrite=True,
             )
-            # Add each of the nodes to the project process
-            for node in pipeliner_job.input_nodes:
-                if node.name[0].isalpha():
-                    project.add_new_input_edge(node, process)
-            for node in pipeliner_job.output_nodes:
-                if node.name[0].isalpha():
-                    project.add_new_output_edge(process, node)
             # Add the job commands to the process .CCPEM_pipeliner_jobinfo file
-            update_jobinfo_file(process, action="Run", command_list=relion_commands)
+            process.update_jobinfo_file(action="Run", command_list=relion_commands)
             # Generate the default_pipeline.star file
             project.check_process_completion()
             # Copy the default_pipeline.star file
