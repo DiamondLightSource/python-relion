@@ -360,21 +360,30 @@ def _extract_output_files(
     particles_cif.write_file(str(star_file), style=cif.Style.Simple)
 
 
+def _job_without_extra_outputs(
+    job_dir: Path,
+    input_file: Path,
+    output_file: Path,
+    relion_it_options: dict,
+    results: dict,
+):
+    return
+
+
 _output_files: Dict[str, Callable] = {
     "relion.import.movies": _import_output_files,
     "relion.motioncorr.motioncor2": _motioncorr_output_files,
-    # "relion.motioncorr.own": _from_import,
     "icebreaker.micrograph_analysis.micrographs": _icebreaker_output_files,
     "icebreaker.micrograph_analysis.enhancecontrast": _icebreaker_output_files,
     "icebreaker.micrograph_analysis.summary": _icebreaker_output_files,
     "relion.ctffind.ctffind4": _ctffind_output_files,
     "cryolo.autopick": _cryolo_output_files,
     "relion.extract": _extract_output_files,
+    "relion.select.split": _job_without_extra_outputs,
+    # "relion.motioncorr.own": _from_import,
     # "relion.ctffind.gctf": _from_motioncorr,
     # "relion.autopick.log": _from_ctf,
     # "relion.autopick.ref3d": _from_ctf,
-    # "cryolo.autopick": partial(_from_ctf, in_key="input_file"),
-    # "relion.select.split": _select,
 }
 
 

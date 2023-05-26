@@ -56,7 +56,10 @@ pipeline_spa_jobs = {
             "star_mics": "micrographs_ctf.star",
         },
     },
-    "relion.select.split": {"folder": "Select", "input_label": "fn_data"},
+    "relion.select.split": {
+        "folder": "Select",
+        "input_stars": {"fn_data": "particles.star"},
+    },
     "icebreaker.micrograph_analysis.particles": {"folder": "IceBreaker"},
     "relion.class2d.em": {"folder": "Class2D"},
     "relion.class2d.vdam": {"folder": "Class2D"},

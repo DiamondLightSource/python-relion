@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import re
 from pathlib import Path
 from typing import Optional
 
+import cv2
 import mrcfile
 import numpy as np
 import workflows.recipe
@@ -14,16 +16,17 @@ from workflows.services.common_service import CommonService
 
 class ExtractParameters(BaseModel):
     pix_size: float
+    ctf_values: dict
     micrographs_file: str = Field(..., min_length=1)
-    ctf_file: str = Field(..., min_length=1)
     coord_list_file: str = Field(..., min_length=1)
     output_file: str = Field(..., min_length=1)
     extract_boxsize: int = 256
     norm: bool = True
     bg_radius: int = -1
-    downscale: bool = False
+    downscale: bool = True
     downscale_boxsize: int = 64
     invert_contrast: bool = True
+    select_batch_size: int
     mc_uuid: int
     relion_it_options: Optional[dict] = None
 
@@ -99,7 +102,7 @@ class Extract(CommonService):
 
         self.log.info(
             f"Inputs: {extract_params.micrographs_file}, "
-            f"{extract_params.ctf_file}, {extract_params.coord_list_file} "
+            f"{extract_params.ctf_values['file']}, {extract_params.coord_list_file} "
             f"Output: {extract_params.output_file}"
         )
 
@@ -120,10 +123,6 @@ class Extract(CommonService):
         coords_block = coords_file.sole_block()
         particles_x = np.array(coords_block.find_loop("_rlnCoordinateX"))
         particles_y = np.array(coords_block.find_loop("_rlnCoordinateY"))
-
-        # CTF results are stored in a txt file with the CTF outputs
-        with open(Path(extract_params.ctf_file).with_suffix(".txt"), "r") as f:
-            ctf_results = f.readlines()[-1].split()
 
         # Construct the output star file
         output_document = cif.Document()
@@ -154,11 +153,11 @@ class Extract(CommonService):
                     f"{particle:06}@{output_mrc_file}",
                     extract_params.micrographs_file,
                     "1",
-                    ctf_results[6],
-                    ctf_results[5],
-                    ctf_results[1],
-                    ctf_results[2],
-                    ctf_results[3],
+                    str(extract_params.ctf_values["CtfMaxResolution"]),
+                    str(extract_params.ctf_values["CtfFigureOfMerit"]),
+                    str(extract_params.ctf_values["DefocusU"]),
+                    str(extract_params.ctf_values["DefocusV"]),
+                    str(extract_params.ctf_values["DefocusAngle"]),
                     "0.0",
                     "1.0",
                     "0.0",
@@ -232,15 +231,20 @@ class Extract(CommonService):
                 particle_subimage = (particle_subimage - bg_mean) / bg_std
 
             # Downscaling (not yet implemented)
-            # if extract_params.downscale:
-            #     output_angpix = (
-            #             extract_params.pix_size
-            #             * extract_params.extract_boxsize
-            #             / extract_params.downscale_boxsize
-            #     )
-            #     downscale_factor = (
-            #         extract_params.extract_boxsize / extract_params.downscale_boxsize
-            #     )
+            if extract_params.downscale:
+                extract_params.relion_it_options["angpix"] = (
+                    extract_params.pix_size
+                    * extract_params.extract_boxsize
+                    / extract_params.downscale_boxsize
+                )
+                particle_subimage = cv2.resize(
+                    particle_subimage,
+                    dsize=(
+                        extract_params.downscale_boxsize,
+                        extract_params.downscale_boxsize,
+                    ),
+                    interpolation=cv2.INTER_CUBIC,
+                )
 
             # Add to output stack
             if len(output_mrc_stack):
@@ -253,12 +257,12 @@ class Extract(CommonService):
         self.log.info(f"Extracted {np.shape(output_mrc_stack)[0]} particles")
         mrcfile.write(output_mrc_file, data=output_mrc_stack, overwrite=True)
 
-        # Then register the extract job with the node creator
+        # Register the extract job with the node creator
         node_creator_parameters = {
             "job_type": "relion.extract",
             "input_file": extract_params.coord_list_file
             + ":"
-            + extract_params.ctf_file,
+            + extract_params.ctf_values["file"],
             "output_file": extract_params.output_file,
             "relion_it_options": extract_params.relion_it_options,
         }
@@ -269,5 +273,31 @@ class Extract(CommonService):
             )
         else:
             rw.send_to("spa.node_creator", node_creator_parameters)
+
+        # Register the files needed for selection and batching
+        select_params = {
+            "job_type": "relion.select.split",
+            "input_file": extract_params.output_file,
+            "relion_it_options": extract_params.relion_it_options,
+        }
+        job_dir = Path(re.search(".+/job[0-9]{3}/", extract_params.output_file)[0])
+        project_dir = job_dir.parent.parent
+
+        select_job_num = int(re.search("/job[0-9]{3}", str(job_dir))[0][4:7]) + 1
+        select_dir = project_dir / f"Select/job{select_job_num:03}"
+        select_dir.mkdir(parents=True, exist_ok=True)
+
+        current_splits = sorted(select_dir.glob("particles_split*.star"))
+        if current_splits:
+            select_params["output_file"] = str(current_splits[-1])
+        else:
+            select_params["output_file"] = str(select_dir / "particles_split1.star")
+        if isinstance(rw, RW_mock):
+            rw.transport.send(
+                destination="spa.node_creator",
+                message={"parameters": select_params, "content": "dummy"},
+            )
+        else:
+            rw.send_to("spa.node_creator", select_params)
 
         rw.transport.ack(header)
