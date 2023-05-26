@@ -7,6 +7,35 @@ from typing import Callable, Dict
 from gemmi import cif
 
 
+def get_optics_table(relion_it_options: dict):
+    output_cif = cif.Document()
+    data_optics = output_cif.add_new_block("optics")
+    optics_loop = data_optics.init_loop(
+        "_rln",
+        [
+            "OpticsGroupName",
+            "OpticsGroup",
+            "MicrographOriginalPixelSize",
+            "Voltage",
+            "SphericalAberration",
+            "AmplitudeContrast",
+            "MicrographPixelSize",
+        ],
+    )
+    optics_loop.add_row(
+        [
+            "opticsGroup1",
+            "1",
+            str(relion_it_options["angpix"]),
+            str(relion_it_options["voltage"]),
+            str(relion_it_options["Cs"]),
+            str(relion_it_options["ampl_contrast"]),
+            str(relion_it_options["angpix"]),
+        ]
+    )
+    return output_cif
+
+
 def _import_output_files(
     job_dir: Path,
     input_file: Path,
@@ -18,30 +47,7 @@ def _import_output_files(
 
     # Read the existing output file, or otherwise create one
     if not star_file.exists():
-        output_cif = cif.Document()
-
-        data_optics = output_cif.add_new_block("optics")
-        optics_loop = data_optics.init_loop(
-            "_rln",
-            [
-                "OpticsGroupName",
-                "OpticsGroup",
-                "MicrographOriginalPixelSize",
-                "Voltage",
-                "SphericalAberration",
-                "AmplitudeContrast",
-            ],
-        )
-        optics_loop.add_row(
-            [
-                "opticsGroup1",
-                "1",
-                str(relion_it_options["angpix"]),
-                str(relion_it_options["voltage"]),
-                str(relion_it_options["Cs"]),
-                str(relion_it_options["ampl_contrast"]),
-            ]
-        )
+        output_cif = get_optics_table(relion_it_options)
 
         data_movies = output_cif.add_new_block("movies")
         movies_loop = data_movies.init_loop(
@@ -67,32 +73,7 @@ def _motioncorr_output_files(
 
     # Read the existing output file, or otherwise create one
     if not star_file.exists():
-        output_cif = cif.Document()
-
-        data_optics = output_cif.add_new_block("optics")
-        optics_loop = data_optics.init_loop(
-            "_rln",
-            [
-                "OpticsGroupName",
-                "OpticsGroup",
-                "MicrographOriginalPixelSize",
-                "Voltage",
-                "SphericalAberration",
-                "AmplitudeContrast",
-                "MicrographPixelSize",
-            ],
-        )
-        optics_loop.add_row(
-            [
-                "opticsGroup1",
-                "1",
-                str(relion_it_options["angpix"]),
-                str(relion_it_options["voltage"]),
-                str(relion_it_options["Cs"]),
-                str(relion_it_options["ampl_contrast"]),
-                str(relion_it_options["angpix"]),
-            ]
-        )
+        output_cif = get_optics_table(relion_it_options)
 
         data_movies = output_cif.add_new_block("micrographs")
         movies_loop = data_movies.init_loop(
@@ -138,32 +119,7 @@ def _ctffind_output_files(
 
     # Read the existing output file, or otherwise create one
     if not star_file.exists():
-        output_cif = cif.Document()
-
-        data_optics = output_cif.add_new_block("optics")
-        optics_loop = data_optics.init_loop(
-            "_rln",
-            [
-                "OpticsGroupName",
-                "OpticsGroup",
-                "MicrographOriginalPixelSize",
-                "Voltage",
-                "SphericalAberration",
-                "AmplitudeContrast",
-                "MicrographPixelSize",
-            ],
-        )
-        optics_loop.add_row(
-            [
-                "opticsGroup1",
-                "1",
-                str(relion_it_options["angpix"]),
-                str(relion_it_options["voltage"]),
-                str(relion_it_options["Cs"]),
-                str(relion_it_options["ampl_contrast"]),
-                str(relion_it_options["angpix"]),
-            ]
-        )
+        output_cif = get_optics_table(relion_it_options)
 
         data_movies = output_cif.add_new_block("micrographs")
         movies_loop = data_movies.init_loop(
@@ -314,42 +270,20 @@ def _extract_output_files(
 
     # Read the existing output file, or otherwise create one
     if not star_file.exists():
-        output_cif = cif.Document()
-
-        data_optics = output_cif.add_new_block("optics")
-        optics_loop = data_optics.init_loop(
-            "_rln",
-            [
-                "OpticsGroupName",
-                "OpticsGroup",
-                "MicrographOriginalPixelSize",
-                "Voltage",
-                "SphericalAberration",
-                "AmplitudeContrast",
-                "MicrographPixelSize",
-            ],
-        )
-        optics_loop.add_row(
-            [
-                "opticsGroup1",
-                "1",
-                str(relion_it_options["angpix"]),
-                str(relion_it_options["voltage"]),
-                str(relion_it_options["Cs"]),
-                str(relion_it_options["ampl_contrast"]),
-                str(relion_it_options["angpix"]),
-            ]
-        )
+        output_cif = get_optics_table(relion_it_options)
 
         particles_cif = cif.read_file(str(output_file))
+        data_particles = particles_cif.find_block("particles")
+        output_cif.add_copied_block(data_particles)
+
     else:
-        particles_cif = cif.read_file(str(star_file))
-        data_movies = particles_cif.find_block("particles")
-        particles_loop = data_movies.find_loop("_rlnCoordinateX").get_loop()
+        output_cif = cif.read_file(str(star_file))
+        data_particles = output_cif.find_block("particles")
+        particles_loop = data_particles.find_loop("_rlnCoordinateX").get_loop()
 
         added_cif = cif.read_file(str(output_file))
-        added_movies = added_cif.find_block("particles")
-        added_loop = added_movies.find_loop("_rlnCoordinateX").get_loop()
+        added_particles = added_cif.find_block("particles")
+        added_loop = added_particles.find_loop("_rlnCoordinateX").get_loop()
 
         for row in range(added_loop.length()):
             new_row = []
@@ -357,7 +291,7 @@ def _extract_output_files(
                 new_row.append(added_loop.val(row, col))
             particles_loop.add_row(new_row)
 
-    particles_cif.write_file(str(star_file), style=cif.Style.Simple)
+    output_cif.write_file(str(star_file), style=cif.Style.Simple)
 
 
 def _job_without_extra_outputs(
