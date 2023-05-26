@@ -18,7 +18,6 @@ from workflows.services.common_service import CommonService
 class MotionCorrParameters(BaseModel):
     collection_type: Literal["spa", "tomography"]
     pix_size: float
-    autopick: dict = {}
     ctf: dict
     movie: str = Field(..., min_length=1)
     mrc_out: str = Field(..., min_length=1)
@@ -314,35 +313,6 @@ class MotionCorr(CommonService):
             )
         else:
             rw.send_to("ctffind", mc_params.ctf)
-
-        # If this is SPA, also set up a cryolo job
-        if mc_params.collection_type.lower() == "spa":
-            # Forward results to particle picking
-            self.log.info(f"Sending to autopicking: {mc_params.mrc_out}")
-            mc_params.autopick["input_path"] = mc_params.mrc_out
-            mc_params.autopick["output_path"] = str(
-                Path(
-                    re.sub(
-                        "MotionCorr/job002/.+",
-                        f"AutoPick/job{ctf_job_number + 1:03}/STAR/",
-                        mc_params.mrc_out,
-                    )
-                )
-                / Path(mc_params.mrc_out).with_suffix(".star").name
-            )
-            mc_params.autopick["relion_it_options"] = mc_params.relion_it_options
-            mc_params.autopick["mc_uuid"] = mc_params.mc_uuid
-            mc_params.autopick["pix_size"] = mc_params.pix_size
-            mc_params.autopick["threshold"] = mc_params.relion_it_options[
-                "cryolo_threshold"
-            ]
-            if isinstance(rw, RW_mock):
-                rw.transport.send(
-                    destination="cryolo",
-                    message={"parameters": mc_params.autopick, "content": "dummy"},
-                )
-            else:
-                rw.send_to("cryolo", mc_params.autopick)
 
         # Extract results for ispyb
         drift_plot_x = [range(0, len(self.shift_list))]

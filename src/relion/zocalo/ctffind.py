@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from pathlib import Path
 from typing import Literal, Optional
 
@@ -31,6 +32,7 @@ class CTFParameters(BaseModel):
     output_image: str = Field(..., min_length=1)
     mc_uuid: int
     relion_it_options: Optional[dict] = None
+    autopick: dict = {}
 
 
 class CTFFind(CommonService):
@@ -256,5 +258,45 @@ class CTFFind(CommonService):
                 )
             else:
                 rw.send_to("spa.node_creator", node_creator_parameters)
+
+        # If this is SPA, also set up a cryolo job
+        if ctf_params.collection_type.lower() == "spa":
+            # Forward results to particle picking
+            self.log.info(f"Sending to autopicking: {ctf_params.input_image}")
+            ctf_params.autopick["input_path"] = ctf_params.input_image
+            ctf_job_number = int(
+                re.search("/job[0-9]{3}/", ctf_params.output_image)[0][4:7]
+            )
+            ctf_params.autopick["output_path"] = str(
+                Path(
+                    re.sub(
+                        "MotionCorr/job002/.+",
+                        f"AutoPick/job{ctf_job_number + 1:03}/STAR/",
+                        ctf_params.input_image,
+                    )
+                )
+                / Path(ctf_params.input_image).with_suffix(".star").name
+            )
+            ctf_params.autopick["ctf_values"] = {
+                "file": f"CtfFind/job{ctf_job_number}/micrographs_ctf.star",
+                "CtfMaxResolution": self.estimated_resolution,
+                "CtfFigureOfMerit": self.cc_value,
+                "DefocusU": self.defocus1,
+                "DefocusV": self.defocus2,
+                "DefocusAngle": self.astigmatism_angle,
+            }
+            ctf_params.autopick["relion_it_options"] = ctf_params.relion_it_options
+            ctf_params.autopick["mc_uuid"] = ctf_params.mc_uuid
+            ctf_params.autopick["pix_size"] = ctf_params.pix_size
+            ctf_params.autopick["threshold"] = ctf_params.relion_it_options[
+                "cryolo_threshold"
+            ]
+            if isinstance(rw, RW_mock):
+                rw.transport.send(
+                    destination="cryolo",
+                    message={"parameters": ctf_params.autopick, "content": "dummy"},
+                )
+            else:
+                rw.send_to("cryolo", ctf_params.autopick)
 
         rw.transport.ack(header)

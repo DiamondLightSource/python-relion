@@ -24,6 +24,7 @@ class CryoloParameters(BaseModel):
     threshold: float = 0.3
     mc_uuid: int
     cryolo_command: str = "cryolo_predict.py"
+    ctf_values: dict = {}
     relion_it_options: Optional[dict] = None
 
 
@@ -164,6 +165,36 @@ class CrYOLO(CommonService):
         # Remove the temporary directories made by cryolo
         shutil.rmtree(project_dir / "logs")
         shutil.rmtree(project_dir / "filtered")
+
+        # Forward results to particle extraction
+        self.log.info(f"Sending to particle extraction: {cryolo_params.output_path}")
+        extraction_params = {
+            "pix_size": cryolo_params.pix_size,
+            "ctf_values": cryolo_params.ctf_values,
+            "micrographs_file": cryolo_params.input_path,
+            "coord_list_file": cryolo_params.output_path,
+            "mc_uuid": cryolo_params.mc_uuid,
+            "relion_it_options": cryolo_params.relion_it_options,
+            "select_batch_size": cryolo_params.relion_it_options["batch_size"],
+        }
+        job_number = int(re.search("/job[0-9]{3}/", cryolo_params.output_path)[0][4:7])
+        extraction_params["output_file"] = str(
+            Path(
+                re.sub(
+                    "MotionCorr/job002/.+",
+                    f"Extract/job{job_number + 1:03}/STAR/",
+                    cryolo_params.input_path,
+                )
+            )
+            / (Path(cryolo_params.input_path).stem + "_extract.star")
+        )
+        if isinstance(rw, RW_mock):
+            rw.transport.send(  # type: ignore
+                destination="extract",
+                message={"parameters": extraction_params, "content": "dummy"},
+            )
+        else:
+            rw.send_to("extract", extraction_params)
 
         # Extract results for ispyb
         ispyb_parameters = {
