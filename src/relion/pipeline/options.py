@@ -48,7 +48,6 @@ def generate_pipeline_options(
     }
 
     job_options["relion.motioncorr.own"] = {
-        "fn_motioncor2_exe": relion_it_options.motioncor_exe,
         "fn_defect": relion_it_options.motioncor_defectfile,
         "dose_per_frame": relion_it_options.motioncor_doseperframe,
         "fn_gain_ref": relion_it_options.motioncor_gainreference
@@ -62,13 +61,15 @@ def generate_pipeline_options(
         "gain_flip": relion_it_options.motioncor_gainflip,
         "gain_rot": relion_it_options.motioncor_gainrot,
         "other_args": f"{relion_it_options.motioncor_other_args} --skip_logfile",
-        "gpu_ids": "0:1:2:3",
         "nr_mpi": relion_it_options.motioncor_mpi,
         "nr_threads": relion_it_options.motioncor_threads,
+        "do_float16": relion_it_options.motioncor_do_float16,
     }
 
     job_options["relion.motioncorr.motioncor2"] = {
         **job_options["relion.motioncorr.own"],
+        "fn_motioncor2_exe": relion_it_options.motioncor_exe,
+        "gpu_ids": "0:1:2:3",
         "other_motioncor2_args": relion_it_options.motioncor2_other_args,
     }
 
@@ -160,7 +161,7 @@ def generate_pipeline_options(
         "scratch_dir": relion_it_options.refine_scratch_disk,
         "nr_pool": relion_it_options.refine_nr_pool,
         "use_gpu": relion_it_options.refine_do_gpu,
-        "gpu_ids": "0:1:2:3",
+        "gpu_ids": relion_it_options.refine_gpu,
         "nr_mpi": relion_it_options.refine_mpi,
         "nr_threads": relion_it_options.refine_threads,
     }
@@ -184,6 +185,8 @@ def generate_pipeline_options(
 
     job_options["relion.initialmodel"] = {
         "nr_classes": relion_it_options.inimodel_nr_classes,
+        "sym_name": relion_it_options.symmetry,
+        "do_run_C1": relion_it_options.inimodel_start_c1,
         "sampling": relion_it_options.inimodel_angle_step,
         "offset_step": relion_it_options.inimodel_offset_step,
         "offset_range": relion_it_options.inimodel_offset_range,
@@ -213,7 +216,7 @@ def generate_pipeline_options(
         "ctf_intact_first_peak": relion_it_options.class3d_ctf_ign1stpeak,
         "do_preread_images": relion_it_options.refine_preread_images,
         "use_gpu": relion_it_options.refine_do_gpu,
-        "gpu_ids": "0:1:2:3",
+        "gpu_ids": relion_it_options.refine_gpu,
         "nr_mpi": relion_it_options.refine_mpi,
         "nr_threads": relion_it_options.refine_threads,
     }

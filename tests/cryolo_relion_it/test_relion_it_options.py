@@ -38,7 +38,8 @@ def test_relion_it_options_pixel_size_changes_propagate():
 
 def test_relion_it_options_write_method(tmp_path):
     options = RelionItOptions()
-    options.print_options(out_file=open(tmp_path / "relion_it_options.py", "w"))
+    with open(tmp_path / "relion_it_options.py", "w") as f:
+        options.print_options(out_file=f)
     assert (tmp_path / "relion_it_options.py").exists()
     with open(tmp_path / "relion_it_options.py", "r") as f:
         lines = f.readlines()

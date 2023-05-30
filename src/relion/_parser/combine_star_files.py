@@ -86,8 +86,11 @@ def split_star_file(
         dictionary_to_write = {"optics": data_optics, "particles": particles_to_use}
         starfile.write(
             dictionary_to_write,
-            output_dir / f"particles_split{split+1}.star",
+            output_dir / f".particles_split{split+1}_tmp.star",
             overwrite=True,
+        )
+        (output_dir / f".particles_split{split+1}_tmp.star").rename(
+            output_dir / f"particles_split{split+1}.star"
         )
 
     print(

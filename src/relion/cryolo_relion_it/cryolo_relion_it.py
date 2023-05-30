@@ -759,6 +759,8 @@ class RelionItOptions(BaseModel):
     class3d_ref_is_ctf_corrected: bool = True
     # Initial lowpass filter on reference
     class3d_ini_lowpass: int = 40
+    # If non-zero use this as the batch size for a single batch of 3D classification which will update whenever a 2D classification batch completes (only available when running RELION 4 through the pipeliner)
+    class3d_max_size: int = 200000
 
     ### Use the largest 3D class from the first batch as a 3D reference for a second pass of autopicking? (only when do_class3d is True)
     do_second_pass: bool = True
@@ -788,6 +790,8 @@ class RelionItOptions(BaseModel):
     ### MotionCorrection parameters
     # Use RELION's own implementation of motion-correction (CPU-only) instead of the UCSF implementation?
     motioncor_do_own: bool = False
+    # Save the output in float16 format?
+    motioncor_do_float16: bool = False
     # The number of threads (only for RELION's own implementation) is optimal when nr_movie_frames/nr_threads = integer
     motioncor_threads: int = 12
     # Exectutable of UCSF MotionCor2
@@ -964,6 +968,8 @@ class RelionItOptions(BaseModel):
     ## SGD initial model generation
     # Number of models to generate simulatenously (K>1 may be useful for getting rid of outliers in the particle images)
     inimodel_nr_classes: int = 4
+    # Use C1 for optimisation and then apply symmetry?
+    inimodel_start_c1: bool = True
     # Ignore CTFs until first peak?
     inimodel_ctf_ign1stpeak: bool = False
     # Enforce non-negative solvent?
