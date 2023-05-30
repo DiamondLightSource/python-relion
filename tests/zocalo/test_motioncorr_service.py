@@ -91,6 +91,7 @@ def test_motioncorr_service(
             "relion_it_options": {
                 "do_icebreaker_job_group": True,
                 "cryolo_threshold": 0.3,
+                "ampl_contrast": 0.2,
             },
         },
         "content": "dummy",
@@ -171,28 +172,12 @@ def test_motioncorr_service(
                 "relion_it_options": motioncorr_test_message["parameters"][
                     "relion_it_options"
                 ],
+                "amplitude_contrast": motioncorr_test_message["parameters"][
+                    "relion_it_options"
+                ]["ampl_contrast"],
                 "collection_type": "spa",
                 "output_image": "CtfFind/job006/Movies/sample.ctf",
                 "pix_size": motioncorr_test_message["parameters"]["pix_size"],
-            },
-            "content": "dummy",
-        },
-    )
-    offline_transport.send.assert_any_call(
-        destination="cryolo",
-        message={
-            "parameters": {
-                "autopick": "autopick",
-                "input_path": motioncorr_test_message["parameters"]["mrc_out"],
-                "output_path": "AutoPick/job007/STAR/sample.star",
-                "relion_it_options": motioncorr_test_message["parameters"][
-                    "relion_it_options"
-                ],
-                "mc_uuid": motioncorr_test_message["parameters"]["mc_uuid"],
-                "pix_size": motioncorr_test_message["parameters"]["pix_size"],
-                "threshold": motioncorr_test_message["parameters"]["relion_it_options"][
-                    "cryolo_threshold"
-                ],
             },
             "content": "dummy",
         },

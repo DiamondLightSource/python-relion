@@ -42,6 +42,7 @@ def test_ctffind_service(
     then send messages on to the node_creator, ispyb_connector and images services
     """
     mock_procrunner().returncode = 0
+    mock_procrunner().stdout = "test output".encode("utf8")
 
     header = {
         "message-id": mock.sentinel,
@@ -68,7 +69,7 @@ def test_ctffind_service(
             "input_image": f"{tmp_path}/MotionCorr/job002/sample.mrc",
             "output_image": f"{tmp_path}/CtfFind/job003/sample.ctf",
             "mc_uuid": 0,
-            "relion_it_options": {"options": "options"},
+            "relion_it_options": {"cryolo_threshold": 0.3},
         },
         "content": "dummy",
     }
@@ -107,13 +108,39 @@ def test_ctffind_service(
     ]
     parameters_string = "\n".join(map(str, parameters_list))
 
-    assert mock_procrunner.call_count == 2
+    assert mock_procrunner.call_count == 3
     mock_procrunner.assert_called_with(
         command=["ctffind"],
         stdin=parameters_string.encode("ascii"),
         callback_stdout=mock.ANY,
     )
 
+    offline_transport.send.assert_any_call(
+        destination="cryolo",
+        message={
+            "content": "dummy",
+            "parameters": {
+                "input_path": ctffind_test_message["parameters"]["input_image"],
+                "output_path": f"{tmp_path}/AutoPick/job004/STAR/sample.star",
+                "ctf_values": {
+                    "file": ctffind_test_message["parameters"]["output_image"],
+                    "CtfMaxResolution": service.estimated_resolution,
+                    "CtfFigureOfMerit": service.cc_value,
+                    "DefocusU": service.defocus1,
+                    "DefocusV": service.defocus2,
+                    "DefocusAngle": service.astigmatism_angle,
+                },
+                "relion_it_options": ctffind_test_message["parameters"][
+                    "relion_it_options"
+                ],
+                "mc_uuid": ctffind_test_message["parameters"]["mc_uuid"],
+                "pix_size": ctffind_test_message["parameters"]["pix_size"],
+                "threshold": ctffind_test_message["parameters"]["relion_it_options"][
+                    "cryolo_threshold"
+                ],
+            },
+        },
+    )
     offline_transport.send.assert_any_call(
         destination="ispyb_connector",
         message={
@@ -157,7 +184,9 @@ def test_ctffind_service(
                 "job_type": "relion.ctffind.ctffind4",
                 "input_file": f"{tmp_path}/MotionCorr/job002/sample.mrc",
                 "output_file": f"{tmp_path}/CtfFind/job003/sample.ctf",
-                "relion_it_options": {"options": "options"},
+                "relion_it_options": ctffind_test_message["parameters"][
+                    "relion_it_options"
+                ],
             },
             "content": "dummy",
         },
