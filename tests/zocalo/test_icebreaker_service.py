@@ -100,17 +100,6 @@ def test_icebreaker_micrographs_service(
         },
     )
     offline_transport.send.assert_any_call(
-        destination="ispyb_connector",
-        message={
-            "parameters": {
-                "ispyb_command": "buffer",
-                "buffer_lookup": {"motion_correction_id": 0},
-                "buffer_command": {"ispyb_command": "insert_icebreaker"},
-            },
-            "content": {"dummy": "dummy"},
-        },
-    )
-    offline_transport.send.assert_any_call(
         destination="spa.node_creator",
         message={
             "parameters": {
@@ -187,17 +176,6 @@ def test_icebreaker_enhancecontrast_service(
     )
 
     offline_transport.send.assert_any_call(
-        destination="ispyb_connector",
-        message={
-            "parameters": {
-                "ispyb_command": "buffer",
-                "buffer_lookup": {"motion_correction_id": 0},
-                "buffer_command": {"ispyb_command": "insert_icebreaker"},
-            },
-            "content": {"dummy": "dummy"},
-        },
-    )
-    offline_transport.send.assert_any_call(
         destination="spa.node_creator",
         message={
             "parameters": {
@@ -269,17 +247,6 @@ def test_icebreaker_summary_service(
         callback_stdout=mock.ANY,
     )
 
-    offline_transport.send.assert_any_call(
-        destination="ispyb_connector",
-        message={
-            "parameters": {
-                "ispyb_command": "buffer",
-                "buffer_lookup": {"motion_correction_id": 0},
-                "buffer_command": {"ispyb_command": "insert_icebreaker"},
-            },
-            "content": {"dummy": "dummy"},
-        },
-    )
     offline_transport.send.assert_any_call(
         destination="spa.node_creator",
         message={

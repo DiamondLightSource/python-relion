@@ -208,29 +208,6 @@ class IceBreaker(CommonService):
             else:
                 rw.send_to("icebreaker", next_icebreaker_params)
 
-        # Forward results to ISPyB
-        ispyb_parameters = {
-            "buffer_lookup": {"motion_correction_id": icebreaker_params.mc_uuid},
-        }
-
-        ispyb_parameters.update(
-            {
-                "ispyb_command": "buffer",
-                "buffer_command": {"ispyb_command": "insert_icebreaker"},
-            }
-        )
-        self.log.info(f"Sending to ispyb {ispyb_parameters}")
-        if isinstance(rw, MockRW):
-            rw.transport.send(
-                destination="ispyb_connector",
-                message={
-                    "parameters": ispyb_parameters,
-                    "content": {"dummy": "dummy"},
-                },
-            )
-        else:
-            rw.send_to("ispyb", ispyb_parameters)
-
         # Register the icebreaker job with the node creator
         node_creator_parameters = {
             "job_type": f"icebreaker.micrograph_analysis.{icebreaker_params.icebreaker_type}",
