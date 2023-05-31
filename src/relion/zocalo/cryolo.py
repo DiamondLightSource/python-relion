@@ -274,12 +274,12 @@ class CrYOLO(CommonService):
         self.log.info("Sending to Murfey")
         if isinstance(rw, MockRW):
             rw.transport.send(
-                "murfey_feedback",
-                {
+                destination="murfey_feedback",
+                message={
                     "register": "picked_particles",
                     "motion_correction_id": cryolo_params.mc_uuid,
                     "micrograph": cryolo_params.input_path,
-                    "particle_diameters": cryolo_particle_sizes,
+                    "particle_diameters": list(cryolo_particle_sizes),
                     "extraction_parameters": extraction_params,
                 },
             )
@@ -290,7 +290,7 @@ class CrYOLO(CommonService):
                     "register": "picked_particles",
                     "motion_correction_id": cryolo_params.mc_uuid,
                     "micrograph": cryolo_params.input_path,
-                    "particle_diameters": cryolo_particle_sizes,
+                    "particle_diameters": list(cryolo_particle_sizes),
                     "extraction_parameters": extraction_params,
                 },
             )

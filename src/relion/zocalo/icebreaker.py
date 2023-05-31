@@ -13,7 +13,9 @@ from workflows.services.common_service import CommonService
 
 
 class IceBreakerParameters(BaseModel):
-    icebreaker_type: Literal["micrographs", "enhancecontrast", "summary", "particles"]
+    icebreaker_type: str = Literal[
+        "micrographs", "enhancecontrast", "summary", "particles"
+    ]
     input_micrographs: str = Field(..., min_length=1)
     input_particles: Optional[str] = None
     output_path: str = Field(..., min_length=1)

@@ -173,36 +173,38 @@ class Extract(CommonService):
         output_mrc_stack = []
 
         for particle in range(len(particles_x)):
+            # Pixel locations are from bottom left, need to flip the image later
             pixel_location_x = round(float(particles_x[particle]))
             pixel_location_y = round(float(particles_y[particle]))
 
             # Extract the particle image and pad the edges if it is not square
-            x_low_pad = 0
-            x_high_pad = 0
-            y_low_pad = 0
-            y_high_pad = 0
+            x_left_pad = 0
+            x_right_pad = 0
+            y_top_pad = 0
+            y_bot_pad = 0
 
-            x_low = pixel_location_x - extract_width
-            if x_low < 0:
-                x_low_pad = -x_low
-                x_low = 0
-            x_high = pixel_location_x + extract_width
-            if x_high >= image_size[0]:
-                x_high_pad = x_high - image_size[0]
-                x_high = image_size[0]
-            y_low = pixel_location_y - extract_width
-            if y_low < 0:
-                y_low_pad = -y_low
-                y_low = 0
-            y_high = pixel_location_y + extract_width
-            if y_high >= image_size[1]:
-                y_high_pad = y_high - image_size[1]
-                y_high = image_size[1]
+            x_left = pixel_location_x - extract_width
+            if x_left < 0:
+                x_left_pad = -x_left
+                x_left = 0
+            x_right = pixel_location_x + extract_width
+            if x_right >= image_size[1]:
+                x_right_pad = x_right - image_size[1]
+                x_right = image_size[1]
+            y_top = pixel_location_y - extract_width
+            if y_top < 0:
+                y_top_pad = -y_top
+                y_top = 0
+            y_bot = pixel_location_y + extract_width
+            if y_bot >= image_size[0]:
+                y_bot_pad = y_bot - image_size[0]
+                y_bot = image_size[0]
 
-            particle_subimage = input_micrograph_image[x_low:x_high, y_low:y_high]
+            particle_subimage = input_micrograph_image[y_top:y_bot, x_left:x_right]
+            particle_subimage = np.flip(particle_subimage, axis=0)
             particle_subimage = np.pad(
                 particle_subimage,
-                ((x_low_pad, x_high_pad), (y_low_pad, y_high_pad)),
+                ((y_bot_pad, y_top_pad), (x_left_pad, x_right_pad)),
                 mode="edge",
             )
 

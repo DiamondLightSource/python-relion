@@ -16,7 +16,7 @@ from workflows.services.common_service import CommonService
 
 
 class MotionCorrParameters(BaseModel):
-    collection_type: Literal["spa", "tomography"]
+    collection_type: str = Literal["spa", "tomography"]
     pix_size: float
     ctf: dict
     movie: str = Field(..., min_length=1)

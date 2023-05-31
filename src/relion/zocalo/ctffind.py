@@ -12,7 +12,7 @@ from workflows.services.common_service import CommonService
 
 
 class CTFParameters(BaseModel):
-    collection_type: Literal["spa", "tomography"]
+    collection_type: str = Literal["spa", "tomography"]
     pix_size: float
     voltage: float = 300.0
     spher_aber: float = 2.7

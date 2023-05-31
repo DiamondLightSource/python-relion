@@ -47,6 +47,7 @@ def test_cryolo_service(mock_procrunner, mock_environment, offline_transport, tm
     }
 
     output_path = tmp_path / "AutoPick/job004/STAR/sample.star"
+    cbox_path = tmp_path / "AutoPick/job004/CBOX/sample.cbox"
     cryolo_test_message = {
         "parameters": {
             "boxsize": 256,
@@ -71,7 +72,13 @@ def test_cryolo_service(mock_procrunner, mock_environment, offline_transport, tm
     # write star co-ordinate file in the format cryolo will output
     output_path.parent.mkdir(parents=True)
     with open(output_path, "w") as f:
-        f.write("data_\n\nloop_\n\n_rlnCoordinateX\n_rlnCoordinateY\n 0.1, 0.2")
+        f.write("data_\n\nloop_\n\n_rlnCoordinateX\n_rlnCoordinateY\n 0.1 0.2")
+    cbox_path.parent.mkdir(parents=True)
+    with open(cbox_path, "w") as f:
+        f.write(
+            "data_cryolo\n\nloop_\n\n_EstWidth\n_EstHeight\n_Confidence\n"
+            "100 200 0.5\n100 200 0.5"
+        )
 
     # make the cryolo temporary dirs
     (tmp_path / "logs").mkdir()
@@ -101,26 +108,15 @@ def test_cryolo_service(mock_procrunner, mock_environment, offline_transport, tm
         callback_stdout=mock.ANY,
     )
 
-    offline_transport.send.assert_any_call(
-        destination="extract",
-        message={
-            "parameters": {
-                "pix_size": cryolo_test_message["parameters"]["pix_size"],
-                "ctf_values": cryolo_test_message["parameters"]["ctf_values"],
-                "micrographs_file": cryolo_test_message["parameters"]["input_path"],
-                "coord_list_file": cryolo_test_message["parameters"]["output_path"],
-                "mc_uuid": cryolo_test_message["parameters"]["mc_uuid"],
-                "relion_it_options": cryolo_test_message["parameters"][
-                    "relion_it_options"
-                ],
-                "select_batch_size": cryolo_test_message["parameters"][
-                    "relion_it_options"
-                ]["batch_size"],
-                "output_file": "Extract/job005/Movies/sample_extract.star",
-            },
-            "content": "dummy",
-        },
-    )
+    extraction_params = {
+        "pix_size": cryolo_test_message["parameters"]["pix_size"],
+        "ctf_values": cryolo_test_message["parameters"]["ctf_values"],
+        "micrographs_file": cryolo_test_message["parameters"]["input_path"],
+        "coord_list_file": cryolo_test_message["parameters"]["output_path"],
+        "mc_uuid": cryolo_test_message["parameters"]["mc_uuid"],
+        "relion_it_options": cryolo_test_message["parameters"]["relion_it_options"],
+        "output_file": "Extract/job005/Movies/sample_extract.star",
+    }
     offline_transport.send.assert_any_call(
         destination="ispyb_connector",
         message={
@@ -140,7 +136,7 @@ def test_cryolo_service(mock_procrunner, mock_environment, offline_transport, tm
         message={
             "parameters": {"images_command": "picked_particles"},
             "file": cryolo_test_message["parameters"]["input_path"],
-            "coordinates": [["0.1,", "0.2"]],
+            "coordinates": [["0.1", "0.2"]],
             "angpix": 0.1,
             "diameter": 16.0,
             "outfile": str(output_path) + "/picked_particles.jpeg",
@@ -150,9 +146,10 @@ def test_cryolo_service(mock_procrunner, mock_environment, offline_transport, tm
         destination="murfey_feedback",
         message={
             "register": "picked_particles",
-            "motion_correction_id": 0,
-            "number_of_particles": 0,
-            "output_image": str(output_path),
+            "motion_correction_id": cryolo_test_message["parameters"]["mc_uuid"],
+            "micrograph": cryolo_test_message["parameters"]["input_path"],
+            "particle_diameters": [100.0, 100.0, 200.0, 200.0],
+            "extraction_parameters": extraction_params,
         },
     )
     offline_transport.send.assert_any_call(
