@@ -37,7 +37,7 @@ logger = logging.getLogger("relion.Project")
 __all__ = []
 __author__ = "Diamond Light Source - Scientific Software"
 __email__ = "scientificsoftware@diamond.ac.uk"
-__version__ = "0.11.1"
+__version__ = "0.11.3"
 __version_tuple__ = tuple(int(x) for x in __version__.split("."))
 
 pipeline_lock = ".relion_lock"
@@ -277,7 +277,10 @@ class Project(RelionPipeline):
                     self._data_pipeline.origins = [jobnode]
 
     def _update_pipeline(self, jobnode, label, prop=None, in_db_model=True):
-        jobnode.environment["result"] = self._results_dict[label]
+        if jobnode.environment["status"]:
+            jobnode.environment["result"] = self._results_dict[label]
+        else:
+            jobnode.environment["result"] = {}
         if in_db_model:
             jobnode.environment["extra_options"] = self.run_options
             self._db_model[label].environment["extra_options"] = self.run_options

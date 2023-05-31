@@ -59,7 +59,8 @@ class ProcessStarFiles(PipelinerJob):
     def get_commands(self):
         """Construct the command for combining and splitting star files"""
         command = [COMBINE_STAR_NAME]
-        command.extend(self.joboptions["files_to_process"].get_string().split(" "))
+        file_list = self.joboptions["files_to_process"].get_string().split(" ")
+        command.extend(file_list)
         command.extend(["--output_dir", str(self.output_dir)])
 
         if self.joboptions["do_split"].get_boolean():
@@ -82,6 +83,10 @@ class ProcessStarFiles(PipelinerJob):
                     ["--split_size", self.joboptions["split_size"].get_string()]
                 )
 
+        # Add files as input nodes, as long as they are not also the output node
+        for particle_file in file_list:
+            if particle_file != self.output_dir + "particles_all.star":
+                self.input_nodes.append(Node(particle_file, NODE_PARTICLESDATA))
         self.output_nodes.append(
             Node(self.output_dir + "particles_all.star", NODE_PARTICLESDATA)
         )
@@ -92,4 +97,4 @@ class ProcessStarFiles(PipelinerJob):
         """Find any output files produced by the splitting"""
         output_files = Path(self.output_dir).glob("particles_split*.star")
         for split in output_files:
-            self.output_nodes.append(Node(split, NODE_PARTICLESDATA))
+            self.output_nodes.append(Node(str(split), NODE_PARTICLESDATA))
