@@ -151,7 +151,7 @@ class NodeCreator(CommonService):
         start_time = datetime.datetime.now()
 
         # Find the job directory and make sure we are in the processing directory
-        job_dir = Path(re.search(".+/job[0-9]{3}/", job_info.output_file)[0])
+        job_dir = Path(re.search(".+/job[0-9]{3}", job_info.output_file)[0])
         project_dir = job_dir.parent.parent
         os.chdir(project_dir)
 
@@ -221,7 +221,7 @@ class NodeCreator(CommonService):
         # Load this job as a pipeliner job to create the nodes
         pipeliner_job = read_job(f"{job_dir}/job.star")
         pipeliner_job.output_dir = str(job_dir.relative_to(project_dir)) + "/"
-        relion_commands = [[], pipeliner_job.get_commands()]
+        relion_commands = [[], pipeliner_job.get_final_commands()]
         pipeliner_job.prepare_to_run()
 
         # Write the output files which Relion produces
