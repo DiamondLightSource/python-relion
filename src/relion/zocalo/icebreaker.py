@@ -59,7 +59,7 @@ class IceBreaker(CommonService):
         and sends messages to the ispyb and image services
         """
 
-        class RW_mock:
+        class MockRW:
             def dummy(self, *args, **kwargs):
                 pass
 
@@ -75,7 +75,7 @@ class IceBreaker(CommonService):
 
             # Create a wrapper-like object that can be passed to functions
             # as if a recipe wrapper was present.
-            rw = RW_mock()
+            rw = MockRW()
             rw.transport = self._transport
             rw.recipe_step = {"parameters": message["parameters"]}
             rw.environment = {"has_recipe_wrapper": False}
@@ -198,7 +198,7 @@ class IceBreaker(CommonService):
                 f"IceBreaker/job{job_number + 2:03}/",
                 icebreaker_params.output_path,
             )
-            if isinstance(rw, RW_mock):
+            if isinstance(rw, MockRW):
                 rw.transport.send(
                     destination="icebreaker",
                     message={"parameters": next_icebreaker_params, "content": "dummy"},
@@ -218,7 +218,7 @@ class IceBreaker(CommonService):
             }
         )
         self.log.info(f"Sending to ispyb {ispyb_parameters}")
-        if isinstance(rw, RW_mock):
+        if isinstance(rw, MockRW):
             rw.transport.send(
                 destination="ispyb_connector",
                 message={
@@ -240,7 +240,7 @@ class IceBreaker(CommonService):
                 "total_motion": str(icebreaker_params.total_motion),
             },
         }
-        if isinstance(rw, RW_mock):
+        if isinstance(rw, MockRW):
             rw.transport.send(
                 destination="spa.node_creator",
                 message={"parameters": node_creator_parameters, "content": "dummy"},

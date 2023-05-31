@@ -5,11 +5,19 @@ from pathlib import Path
 from typing import Callable, Dict
 
 from gemmi import cif
+from pipeliner.data_structure import NODE_PARTICLESDATA
 
 
 def get_optics_table(relion_it_options: dict):
     output_cif = cif.Document()
     data_optics = output_cif.add_new_block("optics")
+
+    new_angpix = (
+        str(relion_it_options["angpix_downscale"])
+        if relion_it_options.get("angpix_downscale")
+        else str(relion_it_options["angpix"])
+    )
+
     optics_loop = data_optics.init_loop(
         "_rln",
         [
@@ -30,7 +38,7 @@ def get_optics_table(relion_it_options: dict):
             str(relion_it_options["voltage"]),
             str(relion_it_options["Cs"]),
             str(relion_it_options["ampl_contrast"]),
-            str(relion_it_options["angpix"]),
+            new_angpix,
         ]
     )
     return output_cif
@@ -294,14 +302,18 @@ def _extract_output_files(
     output_cif.write_file(str(star_file), style=cif.Style.Simple)
 
 
-def _job_without_extra_outputs(
+def _select_output_files(
     job_dir: Path,
     input_file: Path,
     output_file: Path,
     relion_it_options: dict,
     results: dict,
 ):
-    return
+    # Find and add all the output files
+    split_files = {}
+    for node in job_dir.glob("particles_split*.star"):
+        split_files[node.name] = [NODE_PARTICLESDATA, ["relion"]]
+    return split_files
 
 
 _output_files: Dict[str, Callable] = {
@@ -313,7 +325,7 @@ _output_files: Dict[str, Callable] = {
     "relion.ctffind.ctffind4": _ctffind_output_files,
     "cryolo.autopick": _cryolo_output_files,
     "relion.extract": _extract_output_files,
-    "relion.select.split": _job_without_extra_outputs,
+    "relion.select.split": _select_output_files,
     # "relion.motioncorr.own": _from_import,
     # "relion.ctffind.gctf": _from_motioncorr,
     # "relion.autopick.log": _from_ctf,
@@ -329,6 +341,6 @@ def create_output_files(
     relion_it_options: dict,
     results: dict,
 ):
-    _output_files[job_type](
+    return _output_files[job_type](
         job_dir, input_file, output_file, relion_it_options, results
     )

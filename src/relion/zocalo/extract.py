@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import re
 from pathlib import Path
 from typing import Optional
 
@@ -12,8 +11,6 @@ from gemmi import cif
 from pydantic import BaseModel, Field
 from pydantic.error_wrappers import ValidationError
 from workflows.services.common_service import CommonService
-
-from relion.zocalo.spa_output_files import get_optics_table
 
 
 class ExtractParameters(BaseModel):
@@ -28,14 +25,13 @@ class ExtractParameters(BaseModel):
     downscale: bool = True
     downscale_boxsize: int = 64
     invert_contrast: bool = True
-    select_batch_size: int
     mc_uuid: int
     relion_it_options: Optional[dict] = None
 
 
 class Extract(CommonService):
     """
-    A service for CTF estimating micrographs with CTFFind
+    A service for extracting particles from cryolo autopicking
     """
 
     # Human readable service name
@@ -57,7 +53,7 @@ class Extract(CommonService):
         )
 
     def extract(self, rw, header: dict, message: dict):
-        class RW_mock:
+        class MockRW:
             def dummy(self, *args, **kwargs):
                 pass
 
@@ -77,7 +73,7 @@ class Extract(CommonService):
 
             # Create a wrapper-like object that can be passed to functions
             # as if a recipe wrapper was present.
-            rw = RW_mock()
+            rw = MockRW()
             rw.transport = self._transport
             rw.recipe_step = {"parameters": message["parameters"]}
             rw.environment = {"has_recipe_wrapper": False}
@@ -128,8 +124,8 @@ class Extract(CommonService):
 
         # Construct the output star file
         extracted_parts_doc = cif.Document()
-        extracted_parts_file_block = extracted_parts_doc.add_new_block("particles")
-        extracted_parts_loop = extracted_parts_file_block.init_loop(
+        extracted_parts_block = extracted_parts_doc.add_new_block("particles")
+        extracted_parts_loop = extracted_parts_block.init_loop(
             "_rln",
             [
                 "CoordinateX",
@@ -234,9 +230,9 @@ class Extract(CommonService):
                 bg_std = np.std(particle_subimage[bg_region])
                 particle_subimage = (particle_subimage - bg_mean) / bg_std
 
-            # Downscaling (not yet implemented)
+            # Downscale the image size
             if extract_params.downscale:
-                extract_params.relion_it_options["angpix"] = (
+                extract_params.relion_it_options["angpix_downscale"] = (
                     extract_params.pix_size
                     * extract_params.extract_boxsize
                     / extract_params.downscale_boxsize
@@ -270,7 +266,7 @@ class Extract(CommonService):
             "output_file": extract_params.output_file,
             "relion_it_options": extract_params.relion_it_options,
         }
-        if isinstance(rw, RW_mock):
+        if isinstance(rw, MockRW):
             rw.transport.send(
                 destination="spa.node_creator",
                 message={"parameters": node_creator_parameters, "content": "dummy"},
@@ -280,105 +276,17 @@ class Extract(CommonService):
 
         # Register the files needed for selection and batching
         select_params = {
-            "job_type": "relion.select.split",
             "input_file": extract_params.output_file,
             "relion_it_options": extract_params.relion_it_options,
+            "batch_size": extract_params.relion_it_options["batch_size"],
+            "mc_uuid": extract_params.mc_uuid,
         }
-        job_dir = Path(re.search(".+/job[0-9]{3}/", extract_params.output_file)[0])
-        project_dir = job_dir.parent.parent
-
-        select_job_num = int(re.search("/job[0-9]{3}", str(job_dir))[0][4:7]) + 1
-        select_dir = project_dir / f"Select/job{select_job_num:03}"
-        select_dir.mkdir(parents=True, exist_ok=True)
-
-        current_splits = sorted(select_dir.glob("particles_split*.star"))
-        if current_splits:
-            # If this is a continuation, find the previous split files
-            select_params["output_file"] = str(current_splits[-1])
-
-            particles_cif = cif.read_file(select_params["output_file"])
-            prev_parts_block = particles_cif.find_block("particles")
-            prev_parts_loop = prev_parts_block.find_loop("_rlnCoordinateX").get_loop()
-
-            num_prev_parts = prev_parts_loop.length()
-            num_new_parts = extracted_parts_loop.length()
-            num_remaining_parts = extracted_parts_loop.length()
-
-            # While we have particles to add and the file is not full
-            while (
-                num_prev_parts < extract_params.select_batch_size
-                and num_remaining_parts > 0
-            ):
-                new_row = []
-                for col in range(extracted_parts_loop.width()):
-                    new_row.append(
-                        extracted_parts_loop.val(
-                            num_new_parts - num_remaining_parts, col
-                        )
-                    )
-                prev_parts_loop.add_row(new_row)
-
-                num_prev_parts += 1
-                num_remaining_parts -= 1
-
-            particles_cif.write_file(select_params["output_file"])
-
-            # If we filled the file we need a new one for the remaining particles
-            if num_remaining_parts > 0:
-                new_split = (
-                    int(re.search("split[0-9]+", select_params["output_file"])[0][5:])
-                    + 1
-                )
-                select_params["output_file"] = str(
-                    select_dir / f"particles_split{new_split}.star"
-                )
-                new_particles_cif = get_optics_table(extract_params.relion_it_options)
-
-                new_split_block = new_particles_cif.add_new_block("particles")
-                new_split_loop = new_split_block.init_loop(
-                    "_rln",
-                    [
-                        "CoordinateX",
-                        "CoordinateY",
-                        "ImageName",
-                        "MicrographName",
-                        "OpticsGroup",
-                        "CtfMaxResolution",
-                        "CtfFigureOfMerit",
-                        "DefocusU",
-                        "DefocusV",
-                        "DefocusAngle",
-                        "CtfBfactor",
-                        "CtfScalefactor",
-                        "PhaseShift",
-                    ],
-                )
-                while num_remaining_parts > 0:
-                    new_row = []
-                    for col in range(extracted_parts_loop.width()):
-                        new_row.append(
-                            extracted_parts_loop.val(
-                                num_new_parts - num_remaining_parts, col
-                            )
-                        )
-                    new_split_loop.add_row(new_row)
-                    num_remaining_parts -= 1
-
-                new_particles_cif.write_file(select_params["output_file"])
-        else:
-            # If this is the first time we ran the job create a new particle split
-            select_params["output_file"] = str(select_dir / "particles_split1.star")
-            particles_cif = get_optics_table(extract_params.relion_it_options)
-            particles_cif.add_copied_block(extracted_parts_file_block)
-
-            particles_cif.write_file(select_params["output_file"])
-
-        if isinstance(rw, RW_mock):
+        if isinstance(rw, MockRW):
             rw.transport.send(
-                destination="spa.node_creator",
+                destination="select.particles",
                 message={"parameters": select_params, "content": "dummy"},
             )
         else:
-            rw.send_to("spa.node_creator", select_params)
+            rw.send_to("select.particles", select_params)
 
         rw.transport.ack(header)

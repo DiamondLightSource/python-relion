@@ -126,7 +126,7 @@ class TomoAlign(CommonService):
         return tomo_aln_file  # not needed anywhere atm
 
     def tomo_align(self, rw, header: dict, message: dict):
-        class RW_mock:
+        class MockRW:
             transport: workflows.transport.common_transport.CommonTransport
 
             def dummy(self, *args, **kwargs):
@@ -148,7 +148,7 @@ class TomoAlign(CommonService):
             # Create a wrapper-like object that can be passed to functions
             # as if a recipe wrapper was present.
 
-            rw = RW_mock()
+            rw = MockRW()
             rw.transport = self._transport
             rw.recipe_step = {"parameters": message["parameters"]}
             rw.environment = {"has_recipe_wrapper": False}
@@ -165,7 +165,8 @@ class TomoAlign(CommonService):
                 tomo_params = TomoParameters(**{**rw.recipe_step.get("parameters", {})})
         except (ValidationError, TypeError) as e:
             self.log.warning(
-                f"{e} TomoAlign parameter validation failed for message: {message} and recipe parameters: {rw.recipe_step.get('parameters', {})}"
+                f"{e} TomoAlign parameter validation failed for message: {message} "
+                f"and recipe parameters: {rw.recipe_step.get('parameters', {})}"
             )
             rw.transport.nack(header)
             return
@@ -241,7 +242,7 @@ class TomoAlign(CommonService):
                 + aretomo_result.stderr.decode("utf8", "replace")
             )
             # Update failure processing status
-            if isinstance(rw, RW_mock):
+            if isinstance(rw, MockRW):
                 rw.transport.send(
                     destination="failure",
                     message="",
@@ -346,7 +347,7 @@ class TomoAlign(CommonService):
             "ispyb_command_list": ispyb_command_list,
         }
         self.log.info(f"Sending to ispyb {ispyb_parameters}")
-        if isinstance(rw, RW_mock):
+        if isinstance(rw, MockRW):
             rw.transport.send(
                 destination="ispyb_connector",
                 message={
@@ -359,7 +360,7 @@ class TomoAlign(CommonService):
 
         # Forward results to images service
         self.log.info(f"Sending to images service {tomo_params.aretomo_output_file}")
-        if isinstance(rw, RW_mock):
+        if isinstance(rw, MockRW):
             rw.transport.send(
                 destination="images",
                 message={
@@ -400,7 +401,7 @@ class TomoAlign(CommonService):
             + str(Path(self.xz_proj_file).with_suffix(".mrc"))
         )
         self.log.info(f"Sending to images service {xy_input}, {xz_input}")
-        if isinstance(rw, RW_mock):
+        if isinstance(rw, MockRW):
             rw.transport.send(
                 destination="projxy",
                 message={
@@ -432,7 +433,7 @@ class TomoAlign(CommonService):
             )
 
         # Update success processing status
-        if isinstance(rw, RW_mock):
+        if isinstance(rw, MockRW):
             rw.transport.send(
                 destination="success",
                 message="",

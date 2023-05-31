@@ -6,8 +6,10 @@ import shutil
 from pathlib import Path
 from typing import Optional
 
+import numpy as np
 import procrunner
 import workflows.recipe
+from gemmi import cif
 from pydantic import BaseModel, Field
 from pydantic.error_wrappers import ValidationError
 from workflows.services.common_service import CommonService
@@ -76,7 +78,7 @@ class CrYOLO(CommonService):
         and sends messages to the ispyb and image services
         """
 
-        class RW_mock:
+        class MockRW:
             def dummy(self, *args, **kwargs):
                 pass
 
@@ -92,7 +94,7 @@ class CrYOLO(CommonService):
 
             # Create a wrapper-like object that can be passed to functions
             # as if a recipe wrapper was present.
-            rw = RW_mock()
+            rw = MockRW()
             rw.transport = self._transport
             rw.recipe_step = {"parameters": message["parameters"]}
             rw.environment = {"has_recipe_wrapper": False}
@@ -166,8 +168,7 @@ class CrYOLO(CommonService):
         shutil.rmtree(project_dir / "logs")
         shutil.rmtree(project_dir / "filtered")
 
-        # Forward results to particle extraction
-        self.log.info(f"Sending to particle extraction: {cryolo_params.output_path}")
+        # Gather results needed for particle extraction
         extraction_params = {
             "pix_size": cryolo_params.pix_size,
             "ctf_values": cryolo_params.ctf_values,
@@ -175,26 +176,39 @@ class CrYOLO(CommonService):
             "coord_list_file": cryolo_params.output_path,
             "mc_uuid": cryolo_params.mc_uuid,
             "relion_it_options": cryolo_params.relion_it_options,
-            "select_batch_size": cryolo_params.relion_it_options["batch_size"],
         }
         job_number = int(re.search("/job[0-9]{3}/", cryolo_params.output_path)[0][4:7])
         extraction_params["output_file"] = str(
             Path(
                 re.sub(
                     "MotionCorr/job002/.+",
-                    f"Extract/job{job_number + 1:03}/STAR/",
+                    f"Extract/job{job_number + 1:03}/Movies/",
                     cryolo_params.input_path,
                 )
             )
             / (Path(cryolo_params.input_path).stem + "_extract.star")
         )
-        if isinstance(rw, RW_mock):
-            rw.transport.send(  # type: ignore
-                destination="extract",
-                message={"parameters": extraction_params, "content": "dummy"},
+
+        # Find the diameters of the particles
+        cryolo_particle_sizes = np.array([])
+        cbox_block = cif.read_file(
+            str(
+                job_dir
+                / f"CBOX/{Path(cryolo_params.output_path).with_suffix('.cbox').name}"
             )
-        else:
-            rw.send_to("extract", extraction_params)
+        ).find_block("cryolo")
+        cbox_sizes = np.append(
+            np.array(cbox_block.find_loop("_EstWidth"), dtype=float),
+            np.array(cbox_block.find_loop("_EstHeight"), dtype=float),
+        )
+        cbox_confidence = np.append(
+            np.array(cbox_block.find_loop("_Confidence"), dtype=float),
+            np.array(cbox_block.find_loop("_Confidence"), dtype=float),
+        )
+        cryolo_particle_sizes = np.append(
+            cryolo_particle_sizes,
+            cbox_sizes[cbox_confidence > cryolo_params.threshold],
+        )
 
         # Extract results for ispyb
         ispyb_parameters = {
@@ -213,7 +227,7 @@ class CrYOLO(CommonService):
             }
         )
         self.log.info(f"Sending to ispyb {ispyb_parameters}")
-        if isinstance(rw, RW_mock):
+        if isinstance(rw, MockRW):
             rw.transport.send(
                 destination="ispyb_connector",
                 message={
@@ -231,7 +245,7 @@ class CrYOLO(CommonService):
 
         # Forward results to images service
         self.log.info("Sending to images service")
-        if isinstance(rw, RW_mock):
+        if isinstance(rw, MockRW):
             rw.transport.send(
                 destination="images",
                 message={
@@ -258,14 +272,15 @@ class CrYOLO(CommonService):
 
         # Forward results to murfey
         self.log.info("Sending to Murfey")
-        if isinstance(rw, RW_mock):
+        if isinstance(rw, MockRW):
             rw.transport.send(
                 "murfey_feedback",
                 {
                     "register": "picked_particles",
                     "motion_correction_id": cryolo_params.mc_uuid,
-                    "number_of_particles": self.number_of_particles,
-                    "output_image": cryolo_params.output_path,
+                    "micrograph": cryolo_params.input_path,
+                    "particle_diameters": cryolo_particle_sizes,
+                    "extraction_parameters": extraction_params,
                 },
             )
         else:
@@ -274,8 +289,9 @@ class CrYOLO(CommonService):
                 {
                     "register": "picked_particles",
                     "motion_correction_id": cryolo_params.mc_uuid,
-                    "number_of_particles": self.number_of_particles,
-                    "output_image": cryolo_params.output_path,
+                    "micrograph": cryolo_params.input_path,
+                    "particle_diameters": cryolo_particle_sizes,
+                    "extraction_parameters": extraction_params,
                 },
             )
 
@@ -286,7 +302,7 @@ class CrYOLO(CommonService):
             "output_file": cryolo_params.output_path,
             "relion_it_options": cryolo_params.relion_it_options,
         }
-        if isinstance(rw, RW_mock):
+        if isinstance(rw, MockRW):
             rw.transport.send(
                 destination="spa.node_creator",
                 message={"parameters": node_creator_parameters, "content": "dummy"},

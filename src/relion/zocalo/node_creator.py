@@ -103,7 +103,7 @@ class NodeCreator(CommonService):
         )
 
     def spa_node_creator(self, rw, header: dict, message: dict):
-        class RW_mock:
+        class MockRW:
             def dummy(self, *args, **kwargs):
                 pass
 
@@ -119,7 +119,7 @@ class NodeCreator(CommonService):
 
             # Create a wrapper-like object that can be passed to functions
             # as if a recipe wrapper was present.
-            rw = RW_mock()
+            rw = MockRW()
             rw.transport = self._transport
             rw.recipe_step = {"parameters": message["parameters"]}
             rw.environment = {"has_recipe_wrapper": False}
@@ -221,11 +221,11 @@ class NodeCreator(CommonService):
         # Load this job as a pipeliner job to create the nodes
         pipeliner_job = read_job(f"{job_dir}/job.star")
         pipeliner_job.output_dir = str(job_dir.relative_to(project_dir)) + "/"
-        relion_commands = pipeliner_job.get_commands()
-        relion_commands = pipeliner_job.prepare_to_run()
+        relion_commands = [[], pipeliner_job.get_commands()]
+        pipeliner_job.prepare_to_run()
 
         # Write the output files which Relion produces
-        create_output_files(
+        extra_output_nodes = create_output_files(
             job_type=job_info.job_type,
             job_dir=job_dir.relative_to(project_dir),
             input_file=Path(job_info.input_file).relative_to(project_dir),
@@ -233,6 +233,11 @@ class NodeCreator(CommonService):
             relion_it_options=dict(job_info.relion_it_options),
             results=job_info.results,
         )
+        if extra_output_nodes:
+            for node in extra_output_nodes.keys():
+                pipeliner_job.add_output_node(
+                    node, extra_output_nodes[node][0], extra_output_nodes[node][1]
+                )
 
         # Save the metadata file
         metadata_dict = pipeliner_job.gather_metadata()

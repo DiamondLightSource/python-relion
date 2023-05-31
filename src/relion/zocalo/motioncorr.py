@@ -105,7 +105,7 @@ class MotionCorr(CommonService):
             self.shift_list.append((float(line_split[-2]), float(line_split[-1])))
 
     def motion_correction(self, rw, header: dict, message: dict):
-        class RW_mock:
+        class MockRW:
             def dummy(self, *args, **kwargs):
                 pass
 
@@ -121,7 +121,7 @@ class MotionCorr(CommonService):
 
             # Create a wrapper-like object that can be passed to functions
             # as if a recipe wrapper was present.
-            rw = RW_mock()
+            rw = MockRW()
             rw.transport = self._transport
             rw.recipe_step = {"parameters": message["parameters"], "output": None}
             rw.environment = {"has_recipe_wrapper": False}
@@ -212,7 +212,8 @@ class MotionCorr(CommonService):
         result = procrunner.run(command=command, callback_stdout=self.parse_mc_output)
         if result.returncode:
             self.log.error(
-                f"Motion correction of {mc_params.movie} failed with exitcode {result.returncode}:\n"
+                f"Motion correction of {mc_params.movie} "
+                f"failed with exitcode {result.returncode}:\n"
                 + result.stderr.decode("utf8", "replace")
             )
             rw.transport.nack(header)
@@ -248,7 +249,7 @@ class MotionCorr(CommonService):
                     "relion_it_options": mc_params.relion_it_options,
                     "total_motion": total_motion,
                 }
-                if isinstance(rw, RW_mock):
+                if isinstance(rw, MockRW):
                     rw.transport.send(
                         destination="icebreaker",
                         message={
@@ -274,7 +275,7 @@ class MotionCorr(CommonService):
                     "relion_it_options": mc_params.relion_it_options,
                     "total_motion": total_motion,
                 }
-                if isinstance(rw, RW_mock):
+                if isinstance(rw, MockRW):
                     rw.transport.send(
                         destination="icebreaker",
                         message={
@@ -306,7 +307,7 @@ class MotionCorr(CommonService):
         mc_params.ctf["input_image"] = mc_params.mrc_out
         mc_params.ctf["mc_uuid"] = mc_params.mc_uuid
         mc_params.ctf["pix_size"] = mc_params.pix_size
-        if isinstance(rw, RW_mock):
+        if isinstance(rw, MockRW):
             rw.transport.send(  # type: ignore
                 destination="ctffind",
                 message={"parameters": mc_params.ctf, "content": "dummy"},
@@ -345,7 +346,7 @@ class MotionCorr(CommonService):
             }
         )
         self.log.info(f"Sending to ispyb {ispyb_parameters}")
-        if isinstance(rw, RW_mock):
+        if isinstance(rw, MockRW):
             rw.transport.send(
                 destination="ispyb_connector",
                 message={
@@ -358,7 +359,7 @@ class MotionCorr(CommonService):
 
         # Forward results to murfey
         self.log.info("Sending to Murfey")
-        if isinstance(rw, RW_mock):
+        if isinstance(rw, MockRW):
             rw.transport.send(
                 "murfey_feedback",
                 {
@@ -381,7 +382,7 @@ class MotionCorr(CommonService):
 
         # Forward results to images service
         self.log.info(f"Sending to images service {mc_params.mrc_out}")
-        if isinstance(rw, RW_mock):
+        if isinstance(rw, MockRW):
             rw.transport.send(
                 destination="images",
                 message={
@@ -419,7 +420,7 @@ class MotionCorr(CommonService):
                 "output_file": str(import_movie),
                 "relion_it_options": mc_params.relion_it_options,
             }
-            if isinstance(rw, RW_mock):
+            if isinstance(rw, MockRW):
                 rw.transport.send(
                     destination="spa.node_creator",
                     message={"parameters": import_parameters, "content": "dummy"},
@@ -435,7 +436,7 @@ class MotionCorr(CommonService):
                 "relion_it_options": mc_params.relion_it_options,
                 "results": {"total_motion": str(total_motion)},
             }
-            if isinstance(rw, RW_mock):
+            if isinstance(rw, MockRW):
                 rw.transport.send(
                     destination="spa.node_creator",
                     message={"parameters": node_creator_parameters, "content": "dummy"},

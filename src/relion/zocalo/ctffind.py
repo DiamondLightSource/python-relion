@@ -87,7 +87,7 @@ class CTFFind(CommonService):
             self.log.warning(f"{e}")
 
     def ctf_find(self, rw, header: dict, message: dict):
-        class RW_mock:
+        class MockRW:
             def dummy(self, *args, **kwargs):
                 pass
 
@@ -107,7 +107,7 @@ class CTFFind(CommonService):
 
             # Create a wrapper-like object that can be passed to functions
             # as if a recipe wrapper was present.
-            rw = RW_mock()
+            rw = MockRW()
             rw.transport = self._transport
             rw.recipe_step = {"parameters": message["parameters"]}
             rw.environment = {"has_recipe_wrapper": False}
@@ -212,7 +212,7 @@ class CTFFind(CommonService):
             }
         )
         self.log.info(f"Sending to ispyb {ispyb_parameters}")
-        if isinstance(rw, RW_mock):
+        if isinstance(rw, MockRW):
             rw.transport.send(
                 destination="ispyb_connector",
                 message={
@@ -225,7 +225,7 @@ class CTFFind(CommonService):
 
         # Forward results to images service
         self.log.info(f"Sending to images service {ctf_params.output_image}")
-        if isinstance(rw, RW_mock):
+        if isinstance(rw, MockRW):
             rw.transport.send(
                 destination="images",
                 message={
@@ -251,7 +251,7 @@ class CTFFind(CommonService):
                 "output_file": ctf_params.output_image,
                 "relion_it_options": ctf_params.relion_it_options,
             }
-            if isinstance(rw, RW_mock):
+            if isinstance(rw, MockRW):
                 rw.transport.send(
                     destination="spa.node_creator",
                     message={"parameters": node_creator_parameters, "content": "dummy"},
@@ -291,7 +291,7 @@ class CTFFind(CommonService):
             ctf_params.autopick["threshold"] = ctf_params.relion_it_options[
                 "cryolo_threshold"
             ]
-            if isinstance(rw, RW_mock):
+            if isinstance(rw, MockRW):
                 rw.transport.send(
                     destination="cryolo",
                     message={"parameters": ctf_params.autopick, "content": "dummy"},
