@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import ast
 import os.path
+import time
 from pathlib import Path
 from typing import List, Optional, Union
 
@@ -15,8 +16,9 @@ from workflows.services.common_service import CommonService
 
 
 class TomoParameters(BaseModel):
-    input_file_list: List[list]
     stack_file: str = Field(..., min_length=1)
+    path_pattern: str = None
+    input_file_list: str = None
     position: Optional[str] = None
     aretomo_output_file: Optional[str] = None
     vol_z: int = 1200
@@ -33,21 +35,44 @@ class TomoParameters(BaseModel):
     align_file: Optional[str] = None
     angle_file: Optional[str] = None
     align_z: Optional[int] = None
-    pix_size: Optional[int] = None
+    pix_size: Optional[float] = None
     init_val: Optional[int] = None
     refine_flag: Optional[int] = None
     out_imod: int = 1
     out_imod_xf: Optional[int] = None
     dark_tol: Optional[Union[int, str]] = None
-    manual_tilt_offset: Optional[int] = None
+    manual_tilt_offset: Optional[float] = None
 
-    @validator("input_file_list", pre=True)
+    @validator("input_file_list")
+    def check_only_one_is_provided(cls, v, values):
+        if not v and not values.get("path_pattern"):
+            raise ValueError("input_file_list or path_pattern must be provided")
+        if v and values.get("path_pattern"):
+            raise ValueError(
+                "Message must only include one of 'path_pattern' and 'input_file_list'. Both are set or one has been set by the recipe."
+            )
+        return v
+
+    @validator("input_file_list")
     def convert_to_list_of_lists(cls, v):
-        file_list = ast.literal_eval(v)
+        file_list = None
+        try:
+            file_list = ast.literal_eval(
+                v
+            )  # if input_file_list is '' it will break here
+        except Exception:
+            return v
         if isinstance(file_list, list) and isinstance(file_list[0], list):
             return file_list
         else:
             raise ValueError("input_file_list is not a list of lists")
+
+    @validator("input_file_list")
+    def check_lists_are_not_empty(cls, v):
+        for item in v:
+            if not item:
+                raise ValueError("Empty list found")
+        return v
 
 
 class TomoAlign(CommonService):
@@ -163,6 +188,7 @@ class TomoAlign(CommonService):
                 )
             else:
                 tomo_params = TomoParameters(**{**rw.recipe_step.get("parameters", {})})
+            tomo_params.pix_size = tomo_params.pix_size * 1e10
         except (ValidationError, TypeError) as e:
             self.log.warning(
                 f"{e} TomoAlign parameter validation failed for message: {message} "
@@ -174,10 +200,25 @@ class TomoAlign(CommonService):
         def _tilt(file_list):
             return float(file_list[1])
 
+        if tomo_params.path_pattern:
+            directory = Path(tomo_params.path_pattern).parent
+
+            input_file_list = []
+            for item in directory.glob(Path(tomo_params.path_pattern).name):
+                parts = str(Path(item).with_suffix("").name).split("_")
+                for part in parts:
+                    if "." in part:
+                        input_file_list.append([str(item), part])
+            tomo_params.input_file_list = input_file_list
+
+        self.log.info(f"Input list {tomo_params.input_file_list}")
         tomo_params.input_file_list.sort(key=_tilt)
 
         tilt_dict: dict = {}
         for tilt in tomo_params.input_file_list:
+            if not Path(tilt[0]).is_file():
+                self.log.warning(f"File not found {tilt[0]}")
+                rw.transport.nack(header)
             if tilt[1] not in tilt_dict:
                 tilt_dict[tilt[1]] = []
             tilt_dict[tilt[1]].append(tilt[0])
@@ -199,8 +240,9 @@ class TomoAlign(CommonService):
         self.alignment_output_dir = str(Path(tomo_params.stack_file).parent)
         self.stack_name = str(Path(tomo_params.stack_file).stem)
 
-        tomo_params.aretomo_output_file = (
-            self.alignment_output_dir + "/" + self.stack_name + "_aretomo.mrc"
+        tomo_params.aretomo_output_file = self.stack_name + "_aretomo.mrc"
+        self.aretomo_output_path = (
+            self.alignment_output_dir + "/" + tomo_params.aretomo_output_file
         )
         self.plot_file = self.stack_name + "_xy_shift_plot.json"
         self.plot_path = self.alignment_output_dir + "/" + self.plot_file
@@ -234,7 +276,15 @@ class TomoAlign(CommonService):
         if d.is_file():
             d.chmod(0o740)
 
-        aretomo_result = self.aretomo(tomo_params.aretomo_output_file, tomo_params)
+        if tomo_params.out_imod:
+            self.imod_directory = (
+                self.alignment_output_dir + "/" + self.stack_name + "_aretomo_Imod"
+            )
+
+        aretomo_result = self.aretomo(tomo_params)
+
+        if not aretomo_result:
+            rw.send("tomo_align", message)
 
         if aretomo_result.returncode:
             self.log.error(
@@ -256,13 +306,18 @@ class TomoAlign(CommonService):
             return
 
         if tomo_params.out_imod:
-            self.imod_directory = (
-                self.alignment_output_dir + "/" + self.stack_name + "_aretomo_Imod"
-            )
-            _f = Path(self.imod_directory)
-            _f.chmod(0o750)
-            for file in _f.iterdir():
-                file.chmod(0o740)
+            start_time = time.time()
+            while not Path(self.imod_directory).is_dir():
+                time.sleep(30)
+                elapsed = time.time() - start_time
+                if elapsed > 600:
+                    self.log.warning("Timeout waiting for Imod directory")
+                    break
+            else:
+                _f = Path(self.imod_directory)
+                _f.chmod(0o750)
+                for file in _f.iterdir():
+                    file.chmod(0o740)
 
         # Extract results for ispyb
 
@@ -334,7 +389,7 @@ class TomoAlign(CommonService):
                             if self.refined_tilts
                             else None,
                             "refined_tilt_axis": str(self.rot),
-                            "movie_id": movie[2],
+                            "path": movie[0],
                         }
                     )
                 except IndexError as e:
@@ -359,20 +414,20 @@ class TomoAlign(CommonService):
             rw.send_to("ispyb", ispyb_parameters)
 
         # Forward results to images service
-        self.log.info(f"Sending to images service {tomo_params.aretomo_output_file}")
+        self.log.info(f"Sending to images service {self.aretomo_output_path}")
         if isinstance(rw, MockRW):
             rw.transport.send(
                 destination="images",
                 message={
                     "parameters": {"images_command": "mrc_central_slice"},
-                    "file": tomo_params.aretomo_output_file,
+                    "file": self.aretomo_output_path,
                 },
             )
             rw.transport.send(
                 destination="movie",
                 message={
                     "parameters": {"images_command": "mrc_to_apng"},
-                    "file": tomo_params.aretomo_output_file,
+                    "file": self.aretomo_output_path,
                 },
             )
         else:
@@ -380,14 +435,14 @@ class TomoAlign(CommonService):
                 "images",
                 {
                     "parameters": {"images_command": "mrc_central_slice"},
-                    "file": tomo_params.aretomo_output_file,
+                    "file": self.aretomo_output_path,
                 },
             )
             rw.send_to(
                 "movie",
                 {
                     "parameters": {"images_command": "mrc_to_apng"},
-                    "file": tomo_params.aretomo_output_file,
+                    "file": self.aretomo_output_path,
                 },
             )
         xy_input = (
@@ -432,6 +487,23 @@ class TomoAlign(CommonService):
                 },
             )
 
+        # Forward results to denoise service
+        self.log.info(f"Sending to denoise service {self.aretomo_output_path}")
+        if isinstance(rw, MockRW):
+            rw.transport.send(
+                destination="denoise",
+                message={
+                    "volume": self.aretomo_output_path,
+                },
+            )
+        else:
+            rw.send_to(
+                "denoise",
+                {
+                    "volume": self.aretomo_output_path,
+                },
+            )
+
         # Update success processing status
         if isinstance(rw, MockRW):
             rw.transport.send(
@@ -469,11 +541,11 @@ class TomoAlign(CommonService):
         result = procrunner.run(newstack_cmd)
         return result
 
-    def aretomo(self, output_file, tomo_parameters):
+    def aretomo(self, tomo_parameters):
         """
         Run AreTomo on output of Newstack
         """
-        command = ["AreTomo", "-OutMrc", output_file]
+        command = ["AreTomo", "-OutMrc", self.aretomo_output_path]
 
         if tomo_parameters.angle_file:
             command.extend(("-AngFile", tomo_parameters.angle_file))
@@ -525,7 +597,7 @@ class TomoAlign(CommonService):
 
         self.log.info(f"Running AreTomo {command}")
         self.log.info(
-            f"Input stack: {tomo_parameters.stack_file} \nOutput file: {output_file}"
+            f"Input stack: {tomo_parameters.stack_file} \nOutput file: {self.aretomo_output_path}"
         )
         if tomo_parameters.tilt_cor:
             callback = self.parse_tomo_output

@@ -1,23 +1,23 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: ispyb-dev
+  name: denoise
   namespace: {{ .Values.global.namespace }}
 spec:
   replicas: {{ .Values.replicas }}
   selector:
     matchLabels:
-      app: ispyb-dev
+      app: denoise
   template:
     metadata:
       labels:
-        app: ispyb-dev
+        app: denoise
     spec:
       securityContext:
         runAsUser: {{ .Values.global.runAsUser }}
         runAsGroup: {{ .Values.global.runAsGroup }}
       containers:
-      - name: ispyb-runner
+      - name: denoise-runner
         image: {{ .Values.image }}
         imagePullPolicy: Always
         resources:
@@ -59,25 +59,4 @@ spec:
               name: {{ .Values.rmqApiSecretName }}
 {{- if .Values.extraVolumes }}
 {{ toYaml .Values.extraVolumes | indent 6 }}
-{{ end }}
-{{- if .Values.scaleOnQueueLength }}
----
-apiVersion: keda.sh/v1alpha1
-kind: ScaledObject
-metadata:
-  name: ispyb-dev
-  namespace: {{ .Values.global.namespace }}
-spec:
-  scaleTargetRef:
-    name: ispyb-dev
-  triggers:
-    - type: rabbitmq
-      metadata:
-        host: {{ .Values.global.rmqHost }}
-        queueName: ispyb_connector
-        mode: QueueLength
-        value: "{{ .Values.queueLengthTrigger }}"
-  minReplicaCount: {{ .Values.minReplicaCount }}
-  maxReplicaCount: {{ .Values.maxReplicaCount }}
-  idleReplicaCount: {{ .Values.idleReplicaCount }}
 {{ end }}

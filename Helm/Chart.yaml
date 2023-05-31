@@ -9,3 +9,5 @@ dependencies:
 - name: dispatcher
 - name: ispyb
 - name: images
+- name: denoise
+- name: tomo_align_iris

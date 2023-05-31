@@ -45,7 +45,11 @@ class Cryolo(JobType):
         first_mic = ""
         coords = {}
         for star_file in (self._basepath / jobdir / star_location).glob("**/*"):
-            if star_file.is_file() and "gain" not in str(star_file):
+            if (
+                star_file.is_file()
+                and "gain" not in str(star_file)
+                and "copy" not in str(star_file)
+            ):
                 part_coords = self._get_particle_info(jobdir, star_file)
                 if part_coords:
                     coords[star_file] = part_coords

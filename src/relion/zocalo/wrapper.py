@@ -462,6 +462,7 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
         success = False
         oldpwd = os.getcwd()
         try:
+            version = int(version)
             os.chdir(self.working_directory)
             if version == 3:
                 cryolo_relion_it.run_pipeline(self.opts)

@@ -59,6 +59,12 @@ def run():
         action="store_true",
         dest="continue_pipeline",
     )
+    parser.add_argument(
+        "--local",
+        help="Turn off all cluster queue submission",
+        dest="local",
+        action="store_true",
+    )
     args = parser.parse_args()
 
     opts = RelionItOptions()
@@ -123,5 +129,6 @@ def run():
             opts,
             movietype=suffix,
             restarted=args.continue_pipeline,
+            local=args.local,
         )
         pipeline.run(args.timeout)
