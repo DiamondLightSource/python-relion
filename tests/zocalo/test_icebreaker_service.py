@@ -39,7 +39,7 @@ def test_icebreaker_micrographs_service(
     """
     Send a test message to IceBreaker for running the micrographs job
     This should call the mock procrunner
-    then send messages on to the node_creator and ispyb_connector services.
+    then send a message on to the node_creator service.
     It also creates the icebreaker summary jobs.
     """
     mock_procrunner().returncode = 0
@@ -62,7 +62,7 @@ def test_icebreaker_micrographs_service(
         "content": "dummy",
     }
 
-    # set up the mock service and send a message to the service
+    # Set up the mock service and send a message to the service
     service = icebreaker.IceBreaker(environment=mock_environment)
     service.transport = offline_transport
     service.start()
@@ -84,6 +84,7 @@ def test_icebreaker_micrographs_service(
         callback_stdout=mock.ANY,
     )
 
+    # Check that the correct messages were sent
     offline_transport.send.assert_any_call(
         destination="icebreaker",
         message={
@@ -131,7 +132,7 @@ def test_icebreaker_enhancecontrast_service(
     """
     Send a test message to IceBreaker for running the enhance contrast job
     This should call the mock procrunner
-    then send messages on to the node_creator and ispyb_connector services
+    then send a message on to the node_creator service
     """
     mock_procrunner().returncode = 0
 
@@ -153,7 +154,7 @@ def test_icebreaker_enhancecontrast_service(
         "content": "dummy",
     }
 
-    # set up the mock service and send a message to the service
+    # Set up the mock service and send a message to the service
     service = icebreaker.IceBreaker(environment=mock_environment)
     service.transport = offline_transport
     service.start()
@@ -175,6 +176,7 @@ def test_icebreaker_enhancecontrast_service(
         callback_stdout=mock.ANY,
     )
 
+    # Check that the correct messages were sent
     offline_transport.send.assert_any_call(
         destination="spa.node_creator",
         message={
@@ -207,7 +209,7 @@ def test_icebreaker_summary_service(
     """
     Send a test message to IceBreaker for running the summary job
     This should call the mock procrunner
-    then send messages on to the node_creator and ispyb_connector services
+    then send a message on to the node_creator service
     """
     mock_procrunner().returncode = 0
 
@@ -229,7 +231,7 @@ def test_icebreaker_summary_service(
         "content": "dummy",
     }
 
-    # set up the mock service and send a message to the service
+    # Set up the mock service and send a message to the service
     service = icebreaker.IceBreaker(environment=mock_environment)
     service.transport = offline_transport
     service.start()
@@ -247,6 +249,7 @@ def test_icebreaker_summary_service(
         callback_stdout=mock.ANY,
     )
 
+    # Check that the correct messages were sent
     offline_transport.send.assert_any_call(
         destination="spa.node_creator",
         message={

@@ -38,8 +38,8 @@ def test_ctffind_service(
 ):
     """
     Send a test message to CTFFind
-    This should call the mock procrunner
-    then send messages on to the node_creator, ispyb_connector and images services
+    This should call the mock procrunner then send messages on to the
+    cryolo, node_creator, ispyb_connector and images services
     """
     mock_procrunner().returncode = 0
     mock_procrunner().stdout = "test output".encode("utf8")
@@ -67,19 +67,19 @@ def test_ctffind_service(
             "additional_phase_shift": "no",
             "expert_options": "no",
             "input_image": f"{tmp_path}/MotionCorr/job002/sample.mrc",
-            "output_image": f"{tmp_path}/CtfFind/job003/sample.ctf",
+            "output_image": f"{tmp_path}/CtfFind/job006/sample.ctf",
             "mc_uuid": 0,
             "relion_it_options": {"cryolo_threshold": 0.3},
         },
         "content": "dummy",
     }
 
-    # set up the mock service
+    # Set up the mock service
     service = ctffind.CTFFind(environment=mock_environment)
     service.transport = offline_transport
     service.start()
 
-    # set some parameters then send a message to the service
+    # Set some parameters then send a message to the service
     service.defocus1 = 1
     service.defocus2 = 2
     service.astigmatism_angle = 3
@@ -115,13 +115,14 @@ def test_ctffind_service(
         callback_stdout=mock.ANY,
     )
 
+    # Check that the correct messages were sent
     offline_transport.send.assert_any_call(
         destination="cryolo",
         message={
             "content": "dummy",
             "parameters": {
                 "input_path": ctffind_test_message["parameters"]["input_image"],
-                "output_path": f"{tmp_path}/AutoPick/job004/STAR/sample.star",
+                "output_path": f"{tmp_path}/AutoPick/job007/STAR/sample.star",
                 "ctf_values": {
                     "file": ctffind_test_message["parameters"]["output_image"],
                     "CtfMaxResolution": service.estimated_resolution,
@@ -162,7 +163,7 @@ def test_ctffind_service(
                     ctffind_test_message["parameters"]["ampl_contrast"]
                 ),
                 "cc_value": str(service.cc_value),
-                "fft_theoretical_full_path": f"{tmp_path}/CtfFind/job003/sample.jpeg",
+                "fft_theoretical_full_path": f"{tmp_path}/CtfFind/job006/sample.jpeg",
                 "ispyb_command": "buffer",
                 "buffer_lookup": {"motion_correction_id": 0},
                 "buffer_command": {"ispyb_command": "insert_ctf"},
@@ -174,7 +175,7 @@ def test_ctffind_service(
         destination="images",
         message={
             "parameters": {"images_command": "mrc_to_jpeg"},
-            "file": f"{tmp_path}/CtfFind/job003/sample.ctf",
+            "file": f"{tmp_path}/CtfFind/job006/sample.ctf",
         },
     )
     offline_transport.send.assert_any_call(
@@ -183,7 +184,7 @@ def test_ctffind_service(
             "parameters": {
                 "job_type": "relion.ctffind.ctffind4",
                 "input_file": f"{tmp_path}/MotionCorr/job002/sample.mrc",
-                "output_file": f"{tmp_path}/CtfFind/job003/sample.ctf",
+                "output_file": f"{tmp_path}/CtfFind/job006/sample.ctf",
                 "relion_it_options": ctffind_test_message["parameters"][
                     "relion_it_options"
                 ],

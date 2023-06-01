@@ -46,8 +46,8 @@ def test_cryolo_service(mock_procrunner, mock_environment, offline_transport, tm
         "subscription": mock.sentinel,
     }
 
-    output_path = tmp_path / "AutoPick/job004/STAR/sample.star"
-    cbox_path = tmp_path / "AutoPick/job004/CBOX/sample.cbox"
+    output_path = tmp_path / "AutoPick/job007/STAR/sample.star"
+    cbox_path = tmp_path / "AutoPick/job007/CBOX/sample.cbox"
     cryolo_test_message = {
         "parameters": {
             "boxsize": 256,
@@ -65,11 +65,11 @@ def test_cryolo_service(mock_procrunner, mock_environment, offline_transport, tm
         "content": "dummy",
     }
 
-    # write a dummy config file expected by cryolo
+    # Write a dummy config file expected by cryolo
     with open(tmp_path / "config.json", "w") as f:
         f.write('{\n"model": {\n"anchors": [160, 160]\n}\n}')
 
-    # write star co-ordinate file in the format cryolo will output
+    # Write star co-ordinate file in the format cryolo will output
     output_path.parent.mkdir(parents=True)
     with open(output_path, "w") as f:
         f.write("data_\n\nloop_\n\n_rlnCoordinateX\n_rlnCoordinateY\n 0.1 0.2")
@@ -80,11 +80,11 @@ def test_cryolo_service(mock_procrunner, mock_environment, offline_transport, tm
             "100 200 0.5\n100 200 0.5"
         )
 
-    # make the cryolo temporary dirs
+    # Make the cryolo temporary dirs
     (tmp_path / "logs").mkdir()
     (tmp_path / "filtered").mkdir()
 
-    # set up the mock service and send the message to it
+    # Set up the mock service and send the message to it
     service = cryolo.CrYOLO(environment=mock_environment)
     service.transport = offline_transport
     service.start()
@@ -108,6 +108,7 @@ def test_cryolo_service(mock_procrunner, mock_environment, offline_transport, tm
         callback_stdout=mock.ANY,
     )
 
+    # Check that the correct messages were sent
     extraction_params = {
         "pix_size": cryolo_test_message["parameters"]["pix_size"],
         "ctf_values": cryolo_test_message["parameters"]["ctf_values"],
@@ -115,7 +116,7 @@ def test_cryolo_service(mock_procrunner, mock_environment, offline_transport, tm
         "coord_list_file": cryolo_test_message["parameters"]["output_path"],
         "mc_uuid": cryolo_test_message["parameters"]["mc_uuid"],
         "relion_it_options": cryolo_test_message["parameters"]["relion_it_options"],
-        "output_file": "Extract/job005/Movies/sample_extract.star",
+        "output_file": "Extract/job008/Movies/sample_extract.star",
     }
     offline_transport.send.assert_any_call(
         destination="ispyb_connector",

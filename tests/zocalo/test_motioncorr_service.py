@@ -39,9 +39,9 @@ def test_motioncorr_service(
 ):
     """
     Send a test message to MotionCorr
-    This should call the mock procrunner
-    then send messages on to the murfey_feedback, ispyb_connector and images services.
-    It also creates the next jobs (ctffind, cryolo and two icebreaker jobs)
+    This should call the mock procrunner then send messages on to
+    the murfey_feedback, ispyb_connector and images services.
+    It also creates the next jobs (ctffind and two icebreaker jobs)
     and the node_creator is called for both import and motion correction.
     """
     mock_procrunner().returncode = 0
@@ -97,12 +97,12 @@ def test_motioncorr_service(
         "content": "dummy",
     }
 
-    # set up the mock service
+    # Set up the mock service
     service = motioncorr.MotionCorr(environment=mock_environment)
     service.transport = offline_transport
     service.start()
 
-    # work out the expected shifts
+    # Work out the expected shifts
     service.shift_list = [(-1.0, 2.0), (-3.0, 4.0)]
     total_x_shift = sum([item[0] for item in service.shift_list])
     total_y_shift = sum([item[1] for item in service.shift_list])
@@ -110,7 +110,7 @@ def test_motioncorr_service(
     each_total_motion = [hypot(item[0], item[1]) for item in service.shift_list]
     average_motion_per_frame = sum(each_total_motion) / len(service.shift_list)
 
-    # send a message to the service
+    # Send a message to the service
     service.motion_correction(None, header=header, message=motioncorr_test_message)
 
     assert mock_procrunner.call_count == 2
@@ -129,7 +129,7 @@ def test_motioncorr_service(
         callback_stdout=mock.ANY,
     )
 
-    # check all of the messages motioncorr sends onwards
+    # Check that the correct messages were sent
     offline_transport.send.assert_any_call(
         destination="icebreaker",
         message={

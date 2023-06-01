@@ -109,6 +109,8 @@ class SelectParticles(CommonService):
         ).get_loop()
 
         current_splits = sorted(select_dir.glob("particles_split*.star"))
+        num_new_parts = extracted_parts_loop.length()
+        num_remaining_parts = extracted_parts_loop.length()
         if current_splits:
             # If this is a continuation, find the previous split files
             select_output_file = str(current_splits[-1])
@@ -118,9 +120,6 @@ class SelectParticles(CommonService):
             prev_parts_loop = prev_parts_block.find_loop("_rlnCoordinateX").get_loop()
 
             num_prev_parts = prev_parts_loop.length()
-            num_new_parts = extracted_parts_loop.length()
-            num_remaining_parts = extracted_parts_loop.length()
-
             # While we have particles to add and the file is not full
             while num_prev_parts < select_params.batch_size and num_remaining_parts > 0:
                 new_row = []
@@ -136,53 +135,53 @@ class SelectParticles(CommonService):
                 num_remaining_parts -= 1
 
             particles_cif.write_file(select_output_file)
-
-            # If we filled the file we need a new one for the remaining particles
-            if num_remaining_parts > 0:
-                new_split = int(re.search("split[0-9]+", select_output_file)[0][5:]) + 1
-                select_output_file = str(
-                    select_dir / f"particles_split{new_split}.star"
-                )
-                new_particles_cif = get_optics_table(select_params.relion_it_options)
-
-                new_split_block = new_particles_cif.add_new_block("particles")
-                new_split_loop = new_split_block.init_loop(
-                    "_rln",
-                    [
-                        "CoordinateX",
-                        "CoordinateY",
-                        "ImageName",
-                        "MicrographName",
-                        "OpticsGroup",
-                        "CtfMaxResolution",
-                        "CtfFigureOfMerit",
-                        "DefocusU",
-                        "DefocusV",
-                        "DefocusAngle",
-                        "CtfBfactor",
-                        "CtfScalefactor",
-                        "PhaseShift",
-                    ],
-                )
-                while num_remaining_parts > 0:
-                    new_row = []
-                    for col in range(extracted_parts_loop.width()):
-                        new_row.append(
-                            extracted_parts_loop.val(
-                                num_new_parts - num_remaining_parts, col
-                            )
-                        )
-                    new_split_loop.add_row(new_row)
-                    num_remaining_parts -= 1
-
-                new_particles_cif.write_file(select_output_file)
         else:
             # If this is the first time we ran the job create a new particle split
-            select_output_file = str(select_dir / "particles_split1.star")
-            particles_cif = get_optics_table(select_params.relion_it_options)
-            particles_cif.add_copied_block(extracted_parts_block)
+            # Set this to be split zero so the while loop starts from one
+            select_output_file = str(select_dir / "particles_split0.star")
 
-            particles_cif.write_file(select_output_file)
+        # If we filled the last file we need a new one for the remaining particles
+        while num_remaining_parts > 0:
+            new_split = int(re.search("split[0-9]+", select_output_file)[0][5:]) + 1
+            select_output_file = str(select_dir / f"particles_split{new_split}.star")
+            new_particles_cif = get_optics_table(select_params.relion_it_options)
+
+            new_split_block = new_particles_cif.add_new_block("particles")
+            new_split_loop = new_split_block.init_loop(
+                "_rln",
+                [
+                    "CoordinateX",
+                    "CoordinateY",
+                    "ImageName",
+                    "MicrographName",
+                    "OpticsGroup",
+                    "CtfMaxResolution",
+                    "CtfFigureOfMerit",
+                    "DefocusU",
+                    "DefocusV",
+                    "DefocusAngle",
+                    "CtfBfactor",
+                    "CtfScalefactor",
+                    "PhaseShift",
+                ],
+            )
+
+            num_prev_parts = 0
+            # While we have particles to add and the file is not full
+            while num_prev_parts < select_params.batch_size and num_remaining_parts > 0:
+                new_row = []
+                for col in range(extracted_parts_loop.width()):
+                    new_row.append(
+                        extracted_parts_loop.val(
+                            num_new_parts - num_remaining_parts, col
+                        )
+                    )
+                new_split_loop.add_row(new_row)
+
+                num_prev_parts += 1
+                num_remaining_parts -= 1
+
+            new_particles_cif.write_file(select_output_file)
 
         # Send to node creator
         node_creator_params = {
