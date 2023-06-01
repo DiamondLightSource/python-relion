@@ -140,10 +140,13 @@ class SelectParticles(CommonService):
             # Set this to be split zero so the while loop starts from one
             select_output_file = str(select_dir / "particles_split0.star")
 
+        new_finished_files = []
         # If we filled the last file we need a new one for the remaining particles
         while num_remaining_parts > 0:
             new_split = int(re.search("split[0-9]+", select_output_file)[0][5:]) + 1
-            select_output_file = str(select_dir / f"particles_split{new_split}.star")
+            if new_split != 1:
+                new_finished_files.append(new_split - 1)
+            select_output_file = f"{select_dir}/particles_split{new_split}.star"
             new_particles_cif = get_optics_table(select_params.relion_it_options)
 
             new_split_block = new_particles_cif.add_new_block("particles")
@@ -197,5 +200,36 @@ class SelectParticles(CommonService):
             )
         else:
             rw.send_to("spa.node_creator", node_creator_params)
+
+        # Create icebreaker particle jobs for all complete split files
+        ib_job_num = 8
+        if new_finished_files:
+            for new_split in new_finished_files:
+                print(new_split)
+                ib_job_num += 2
+                if select_params.relion_it_options["do_icebreaker_group"]:
+                    self.log.info(f"Sending file {new_split} to IceBreaker particles")
+                    icebreaker_params = {
+                        "icebreaker_type": "particles",
+                        "input_micrographs": (
+                            f"{project_dir}/IceBreaker/job003/grouped_micrographs.star"
+                        ),
+                        "input_particles": (
+                            f"{select_dir}/particles_split{new_split}.star"
+                        ),
+                        "output_path": f"{project_dir}/IceBreaker/job{ib_job_num:03}",
+                        "mc_uuid": select_params.mc_uuid,
+                        "relion_it_options": select_params.relion_it_options,
+                    }
+                    if isinstance(rw, MockRW):
+                        rw.transport.send(
+                            destination="icebreaker",
+                            message={
+                                "parameters": icebreaker_params,
+                                "content": "dummy",
+                            },
+                        )
+                    else:
+                        rw.send_to("icebreaker", icebreaker_params)
 
         rw.transport.ack(header)

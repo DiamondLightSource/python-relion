@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from pathlib import Path
 from typing import Optional
 
@@ -105,6 +106,8 @@ class Extract(CommonService):
         )
 
         # Make sure the output directory exists
+        job_dir = Path(re.search(".+/job[0-9]{3}/", extract_params.output_file)[0])
+        project_dir = job_dir.parent.parent
         if not Path(extract_params.output_file).parent.exists():
             Path(extract_params.output_file).parent.mkdir(parents=True)
         output_mrc_file = (
@@ -148,8 +151,8 @@ class Extract(CommonService):
                 [
                     particles_x[particle],
                     particles_y[particle],
-                    f"{particle:06}@{output_mrc_file}",
-                    extract_params.micrographs_file,
+                    f"{particle:06}@{output_mrc_file.relative_to(project_dir)}",
+                    str(Path(extract_params.micrographs_file).relative_to(project_dir)),
                     "1",
                     str(extract_params.ctf_values["CtfMaxResolution"]),
                     str(extract_params.ctf_values["CtfFigureOfMerit"]),

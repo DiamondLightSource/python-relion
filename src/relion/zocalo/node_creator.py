@@ -60,7 +60,13 @@ pipeline_spa_jobs = {
         "folder": "Select",
         "input_stars": {"fn_data": "particles.star"},
     },
-    "icebreaker.micrograph_analysis.particles": {"folder": "IceBreaker"},
+    "icebreaker.micrograph_analysis.particles": {
+        "folder": "IceBreaker",
+        "input_stars": {
+            "in_mics": "grouped_micrographs.star",
+            "in_parts": "particles_split1.star",
+        },
+    },
     "relion.class2d.em": {"folder": "Class2D"},
     "relion.class2d.vdam": {"folder": "Class2D"},
     "relion.initialmodel": {"folder": "InitialModel"},
@@ -203,15 +209,15 @@ class NodeCreator(CommonService):
                     params,
                     f"{job_info.job_type.replace('.', '_')}_job.star",
                 )
-
-                # Copy the job.star file
-                (job_dir / "job.star").write_bytes(
-                    Path(f"{job_info.job_type.replace('.', '_')}_job.star").read_bytes()
-                )
         except IndexError:
             self.log.error(f"Unknown job type: {job_info.job_type}")
             rw.transport.nack(header)
             return
+
+        # Copy the job.star file
+        (job_dir / "job.star").write_bytes(
+            Path(f"{job_info.job_type.replace('.', '_')}_job.star").read_bytes()
+        )
 
         # Mark the job completion status
         for exit_file in job_dir.glob("PIPELINER_JOB_EXIT_*"):

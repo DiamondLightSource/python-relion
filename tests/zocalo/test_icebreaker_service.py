@@ -272,3 +272,78 @@ def test_icebreaker_summary_service(
             "content": "dummy",
         },
     )
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="does not run on windows")
+@mock.patch("relion.zocalo.icebreaker.procrunner.run")
+def test_icebreaker_particles_service(
+    mock_procrunner, mock_environment, offline_transport, tmp_path
+):
+    """
+    Send a test message to IceBreaker for running the particle analysis job
+    This should call the mock procrunner
+    then send a message on to the node_creator service
+    """
+    mock_procrunner().returncode = 0
+
+    header = {
+        "message-id": mock.sentinel,
+        "subscription": mock.sentinel,
+    }
+    icebreaker_test_message = {
+        "parameters": {
+            "icebreaker_type": "particles",
+            "input_micrographs": f"{tmp_path}/IceBreaker/job003/sample_grouped.star",
+            "input_particles": f"{tmp_path}/Select/job009/particles_split1.star",
+            "output_path": f"{tmp_path}/IceBreaker/job010/",
+            "mc_uuid": 0,
+            "cpus": 1,
+            "relion_it_options": {"options": "options"},
+            "total_motion": 0.5,
+        },
+        "content": "dummy",
+    }
+
+    # Set up the mock service and send a message to the service
+    service = icebreaker.IceBreaker(environment=mock_environment)
+    service.transport = offline_transport
+    service.start()
+    service.icebreaker(None, header=header, message=icebreaker_test_message)
+
+    assert mock_procrunner.call_count == 2
+    mock_procrunner.assert_called_with(
+        command=[
+            "ib_group",
+            "--in_mics",
+            "IceBreaker/job003/sample_grouped.star",
+            "--in_parts",
+            "Select/job009/particles_split1.star",
+            "--o",
+            icebreaker_test_message["parameters"]["output_path"],
+        ],
+        callback_stdout=mock.ANY,
+    )
+
+    # Check that the correct messages were sent
+    offline_transport.send.assert_any_call(
+        destination="spa.node_creator",
+        message={
+            "parameters": {
+                "job_type": "icebreaker.micrograph_analysis.particles",
+                "input_file": icebreaker_test_message["parameters"]["input_micrographs"]
+                + ":"
+                + icebreaker_test_message["parameters"]["input_particles"],
+                "output_file": icebreaker_test_message["parameters"]["output_path"],
+                "relion_it_options": icebreaker_test_message["parameters"][
+                    "relion_it_options"
+                ],
+                "results": {
+                    "icebreaker_type": "particles",
+                    "total_motion": str(
+                        icebreaker_test_message["parameters"]["total_motion"]
+                    ),
+                },
+            },
+            "content": "dummy",
+        },
+    )

@@ -219,6 +219,10 @@ class IceBreaker(CommonService):
                 "total_motion": str(icebreaker_params.total_motion),
             },
         }
+        if icebreaker_params.icebreaker_type == "particles":
+            node_creator_parameters[
+                "input_file"
+            ] += f":{icebreaker_params.input_particles}"
         if isinstance(rw, MockRW):
             rw.transport.send(
                 destination="spa.node_creator",

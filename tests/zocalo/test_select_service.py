@@ -37,7 +37,7 @@ def test_select_service(mock_environment, offline_transport, tmp_path):
     """
     Send a test message to the extract service
     This should call the mock file reader then send a message on to
-    the node_creator service
+    the node_creator service, as well as creating icebreaker jobs
     """
     header = {
         "message-id": mock.sentinel,
@@ -64,6 +64,7 @@ def test_select_service(mock_environment, offline_transport, tmp_path):
         "voltage": 200,
         "Cs": 2.7,
         "ampl_contrast": 0.1,
+        "do_icebreaker_group": True,
     }
 
     select_test_message = {
@@ -90,6 +91,42 @@ def test_select_service(mock_environment, offline_transport, tmp_path):
                 "job_type": "relion.select.split",
                 "input_file": str(extract_file),
                 "output_file": f"{output_dir}/particles_split3.star",
+                "relion_it_options": select_test_message["parameters"][
+                    "relion_it_options"
+                ],
+            },
+            "content": "dummy",
+        },
+    )
+    offline_transport.send.assert_any_call(
+        destination="icebreaker",
+        message={
+            "parameters": {
+                "icebreaker_type": "particles",
+                "input_micrographs": (
+                    f"{tmp_path}/IceBreaker/job003/grouped_micrographs.star"
+                ),
+                "input_particles": f"{tmp_path}/Select/job009/particles_split1.star",
+                "output_path": f"{tmp_path}/IceBreaker/job010",
+                "mc_uuid": 0,
+                "relion_it_options": select_test_message["parameters"][
+                    "relion_it_options"
+                ],
+            },
+            "content": "dummy",
+        },
+    )
+    offline_transport.send.assert_any_call(
+        destination="icebreaker",
+        message={
+            "parameters": {
+                "icebreaker_type": "particles",
+                "input_micrographs": (
+                    f"{tmp_path}/IceBreaker/job003/grouped_micrographs.star"
+                ),
+                "input_particles": f"{tmp_path}/Select/job009/particles_split2.star",
+                "output_path": f"{tmp_path}/IceBreaker/job012",
+                "mc_uuid": 0,
                 "relion_it_options": select_test_message["parameters"][
                     "relion_it_options"
                 ],

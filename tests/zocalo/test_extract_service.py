@@ -57,14 +57,14 @@ def test_extract_service(mock_mrcfile, mock_environment, offline_transport, tmp_
         "parameters": {
             "pix_size": 0.1,
             "ctf_values": {
-                "file": "CtFind/job006/Movies/sample.ctf",
+                "file": f"{tmp_path}/CtFind/job006/Movies/sample.ctf",
                 "CtfMaxResolution": "10",
                 "CtfFigureOfMerit": "20",
                 "DefocusU": "1.0",
                 "DefocusV": "2.0",
                 "DefocusAngle": "0.0",
             },
-            "micrographs_file": "MotionCorr/job002/sample.mrc",
+            "micrographs_file": f"{tmp_path}/MotionCorr/job002/sample.mrc",
             "coord_list_file": str(cryolo_file),
             "output_file": str(output_path),
             "extract_boxsize": 256,
@@ -131,7 +131,7 @@ def test_extract_service(mock_mrcfile, mock_environment, offline_transport, tmp_
     assert list(particles_data.find_loop("_rlnCoordinateX")) == ["1.0"]
     assert list(particles_data.find_loop("_rlnCoordinateY")) == ["2.0"]
     assert list(particles_data.find_loop("_rlnImageName")) == [
-        f"000000@{output_path.with_suffix('.mrcs')}"
+        f"000000@{output_path.relative_to(tmp_path).with_suffix('.mrcs')}"
     ]
     assert list(particles_data.find_loop("_rlnMicrographName")) == [
         "MotionCorr/job002/sample.mrc"

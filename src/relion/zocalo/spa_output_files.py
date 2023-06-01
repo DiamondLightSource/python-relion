@@ -199,6 +199,7 @@ def _icebreaker_output_files(
             + "_flattened.mrc"
         )
     else:
+        # Nothing to do for summary and particles jobs
         return
 
     # Read the existing output file, or otherwise create one
@@ -324,6 +325,7 @@ _output_files: Dict[str, Callable] = {
     "cryolo.autopick": _cryolo_output_files,
     "relion.extract": _extract_output_files,
     "relion.select.split": _select_output_files,
+    "icebreaker.micrograph_analysis.particles": _icebreaker_output_files,
 }
 
 
