@@ -104,10 +104,10 @@ class IceBreaker(CommonService):
             return
 
         # IceBreaker requires running in the project directory
-        if not Path(icebreaker_params.output_path).exists():
-            Path(icebreaker_params.output_path).mkdir(parents=True)
         project_dir = Path(icebreaker_params.output_path).parent.parent
         os.chdir(project_dir)
+        if not Path(icebreaker_params.output_path).exists():
+            Path(icebreaker_params.output_path).mkdir(parents=True)
         mic_from_project = Path(icebreaker_params.input_micrographs).relative_to(
             project_dir
         )
