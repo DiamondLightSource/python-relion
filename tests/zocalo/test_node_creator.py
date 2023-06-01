@@ -10,10 +10,12 @@ import zocalo.configuration
 from gemmi import cif
 from workflows.transport.offline_transport import OfflineTransport
 
+from relion.cryolo_relion_it import dls_options
 from relion.cryolo_relion_it.cryolo_relion_it import RelionItOptions
 from relion.zocalo import node_creator
 
 relion_it_options = RelionItOptions()
+relion_it_options.update_from(vars(dls_options))
 
 
 @pytest.fixture
@@ -310,3 +312,185 @@ def test_node_creator_icebreaker_summary(mock_environment, offline_transport, tm
         output_file,
         results={"icebreaker_type": "summary", "total_motion": "10"},
     )
+
+
+def test_node_creator_ctffind(mock_environment, offline_transport, tmp_path):
+    """
+    Send a test message to the node creator for
+    relion.ctffind.ctffind4
+    """
+    job_dir = "CtfFind/job006"
+    input_file = tmp_path / "MotionCorr/job002/Movies/sample.mrc"
+    output_file = tmp_path / job_dir / "Movies/sample.ctf"
+
+    output_file.parent.mkdir(parents=True)
+    with open(output_file.with_suffix(".txt"), "w") as f:
+        f.write("0.0 1.0 2.0 3.0 4.0 5.0 6.0")
+
+    setup_and_run_node_creation(
+        mock_environment,
+        offline_transport,
+        tmp_path,
+        job_dir,
+        "relion.ctffind.ctffind4",
+        input_file,
+        output_file,
+    )
+
+    # Check the output file structure
+    assert (tmp_path / job_dir / "micrographs_ctf.star").exists()
+    micrographs_file = cif.read_file(str(tmp_path / job_dir / "micrographs_ctf.star"))
+
+    micrographs_optics = micrographs_file.find_block("optics")
+    assert list(micrographs_optics.find_loop("_rlnOpticsGroupName")) == ["opticsGroup1"]
+    assert list(micrographs_optics.find_loop("_rlnOpticsGroup")) == ["1"]
+    assert list(micrographs_optics.find_loop("_rlnMicrographOriginalPixelSize")) == [
+        str(relion_it_options.angpix)
+    ]
+    assert list(micrographs_optics.find_loop("_rlnVoltage")) == [
+        str(relion_it_options.voltage)
+    ]
+    assert list(micrographs_optics.find_loop("_rlnSphericalAberration")) == [
+        str(relion_it_options.Cs)
+    ]
+    assert list(micrographs_optics.find_loop("_rlnAmplitudeContrast")) == [
+        str(relion_it_options.ampl_contrast)
+    ]
+    assert list(micrographs_optics.find_loop("_rlnMicrographPixelSize")) == [
+        str(relion_it_options.angpix)
+    ]
+
+    micrographs_data = micrographs_file.find_block("micrographs")
+    assert list(micrographs_data.find_loop("_rlnMicrographName")) == [
+        "MotionCorr/job002/Movies/sample.mrc"
+    ]
+    assert list(micrographs_data.find_loop("_rlnOpticsGroup")) == ["1"]
+    assert list(micrographs_data.find_loop("_rlnCtfImage")) == [
+        "CtfFind/job006/Movies/sample.star:mrc"
+    ]
+    assert list(micrographs_data.find_loop("_rlnDefocusU")) == ["1.0"]
+    assert list(micrographs_data.find_loop("_rlnDefocusV")) == ["2.0"]
+    assert list(micrographs_data.find_loop("_rlnCtfAstigmatism")) == ["1.0"]
+    assert list(micrographs_data.find_loop("_rlnDefocusAngle")) == ["3.0"]
+    assert list(micrographs_data.find_loop("_rlnCtfFigureOfMerit")) == ["5.0"]
+    assert list(micrographs_data.find_loop("_rlnCtfMaxResolution")) == ["6.0"]
+
+
+def test_node_creator_cryolo(mock_environment, offline_transport, tmp_path):
+    """
+    Send a test message to the node creator for
+    cryolo.autopick
+    """
+    job_dir = "AutoPick/job007"
+    input_file = tmp_path / "MotionCorr/job002/Movies/sample.mrc"
+    output_file = tmp_path / job_dir / "STAR/sample.star"
+
+    (tmp_path / "MotionCorr/job002/").mkdir(parents=True)
+    (tmp_path / "MotionCorr/job002/corrected_micrographs.star").touch()
+
+    (tmp_path / job_dir / "DISTR").mkdir(parents=True)
+    with open(
+        tmp_path / job_dir / "DISTR/confidence_distribution_summary_1.txt", "w"
+    ) as f:
+        f.write("Metric, Value\nMEAN, 1.0\nSD, 1.0\nQ25, 0.5\nQ50, 1.0\nQ75, 1.5")
+
+    setup_and_run_node_creation(
+        mock_environment,
+        offline_transport,
+        tmp_path,
+        job_dir,
+        "cryolo.autopick",
+        input_file,
+        output_file,
+    )
+
+    # Check the output file structure
+    assert (tmp_path / job_dir / "autopick.star").exists()
+    micrographs_file = cif.read_file(str(tmp_path / job_dir / "autopick.star"))
+
+    micrographs_data = micrographs_file.find_block("coordinate_files")
+    assert list(micrographs_data.find_loop("_rlnMicrographName")) == [
+        "MotionCorr/job002/Movies/sample.mrc"
+    ]
+    assert list(micrographs_data.find_loop("_rlnMicrographCoordinates")) == [
+        "AutoPick/job007/STAR/sample.star"
+    ]
+
+
+def test_node_creator_extract(mock_environment, offline_transport, tmp_path):
+    """
+    Send a test message to the node creator for
+    relion.extract
+    """
+    job_dir = "Extract/job008"
+    input_file = Path(
+        f"{tmp_path}/AutoPick/job007/STAR/sample.star"
+        f":{tmp_path}/CtfFind/job006/Movies/sample.ctf"
+    )
+    output_file = tmp_path / job_dir / "Movies/sample.star"
+
+    output_file.parent.mkdir(parents=True)
+    with open(output_file, "w") as f:
+        f.write("data_particles\n\nloop_\n_rlnCoordinateX\n_rlnCoordinateY\n1.0 2.0")
+
+    setup_and_run_node_creation(
+        mock_environment,
+        offline_transport,
+        tmp_path,
+        job_dir,
+        "relion.extract",
+        input_file,
+        output_file,
+    )
+
+    # Check the output file structure
+    assert (tmp_path / job_dir / "particles.star").exists()
+    micrographs_file = cif.read_file(str(tmp_path / job_dir / "particles.star"))
+
+    micrographs_optics = micrographs_file.find_block("optics")
+    assert list(micrographs_optics.find_loop("_rlnOpticsGroupName")) == ["opticsGroup1"]
+    assert list(micrographs_optics.find_loop("_rlnOpticsGroup")) == ["1"]
+    assert list(micrographs_optics.find_loop("_rlnMicrographOriginalPixelSize")) == [
+        str(relion_it_options.angpix)
+    ]
+    assert list(micrographs_optics.find_loop("_rlnVoltage")) == [
+        str(relion_it_options.voltage)
+    ]
+    assert list(micrographs_optics.find_loop("_rlnSphericalAberration")) == [
+        str(relion_it_options.Cs)
+    ]
+    assert list(micrographs_optics.find_loop("_rlnAmplitudeContrast")) == [
+        str(relion_it_options.ampl_contrast)
+    ]
+    assert list(micrographs_optics.find_loop("_rlnMicrographPixelSize")) == [
+        str(relion_it_options.angpix)
+    ]
+
+    micrographs_data = micrographs_file.find_block("particles")
+    assert list(micrographs_data.find_loop("_rlnCoordinateX")) == ["1.0"]
+    assert list(micrographs_data.find_loop("_rlnCoordinateY")) == ["2.0"]
+
+
+def test_node_creator_select(mock_environment, offline_transport, tmp_path):
+    """
+    Send a test message to the node creator for
+    relion.select.split
+    """
+    job_dir = "Select/job009"
+    input_file = tmp_path / "Extract/job007/Movies/sample.star"
+    output_file = tmp_path / job_dir / "particles_split2.star"
+
+    setup_and_run_node_creation(
+        mock_environment,
+        offline_transport,
+        tmp_path,
+        job_dir,
+        "relion.select.split",
+        input_file,
+        output_file,
+    )
+
+    # Check the output file structure
+    assert (
+        tmp_path / ".Nodes/ParticlesData/Select/job009/particles_split2.star"
+    ).exists()

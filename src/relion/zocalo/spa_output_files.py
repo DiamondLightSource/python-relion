@@ -263,9 +263,6 @@ def _cryolo_output_files(
     movies_loop.add_row([str(input_file), str(output_file)])
     output_cif.write_file(str(star_file), style=cif.Style.Simple)
 
-    # run.out is expected but will not be made
-    (star_file.parent / "run.out").touch()
-
 
 def _extract_output_files(
     job_dir: Path,
@@ -326,10 +323,6 @@ _output_files: Dict[str, Callable] = {
     "cryolo.autopick": _cryolo_output_files,
     "relion.extract": _extract_output_files,
     "relion.select.split": _select_output_files,
-    # "relion.motioncorr.own": _from_import,
-    # "relion.ctffind.gctf": _from_motioncorr,
-    # "relion.autopick.log": _from_ctf,
-    # "relion.autopick.ref3d": _from_ctf,
 }
 
 
