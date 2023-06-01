@@ -17,6 +17,10 @@ from relion.zocalo import node_creator
 relion_it_options = RelionItOptions()
 relion_it_options.update_from(vars(dls_options))
 
+pytest.importorskip(
+    "pipeliner", reason="these tests require a modified version of the ccpem pipeliner"
+)
+
 
 @pytest.fixture
 def mock_zocalo_configuration(tmp_path):
