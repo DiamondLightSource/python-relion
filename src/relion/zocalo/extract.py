@@ -257,7 +257,7 @@ class Extract(CommonService):
                 output_mrc_stack = np.array([particle_subimage], dtype=np.float32)
 
         self.log.info(f"Extracted {np.shape(output_mrc_stack)[0]} particles")
-        mrcfile.write(output_mrc_file, data=output_mrc_stack, overwrite=True)
+        mrcfile.write(str(output_mrc_file), data=output_mrc_stack, overwrite=True)
 
         # Register the extract job with the node creator
         node_creator_parameters = {
