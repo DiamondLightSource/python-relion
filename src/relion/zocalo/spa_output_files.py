@@ -5,7 +5,8 @@ from pathlib import Path
 from typing import Callable, Dict
 
 from gemmi import cif
-from pipeliner.data_structure import NODE_PARTICLESDATA
+
+NODE_PARTICLESDATA = "ParticlesData"
 
 
 def get_optics_table(relion_it_options: dict):

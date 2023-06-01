@@ -12,13 +12,13 @@ from workflows.transport.offline_transport import OfflineTransport
 
 from relion.cryolo_relion_it import dls_options
 from relion.cryolo_relion_it.cryolo_relion_it import RelionItOptions
-from relion.zocalo import node_creator
 
 relion_it_options = RelionItOptions()
 relion_it_options.update_from(vars(dls_options))
 
-pytest.importorskip(
-    "pipeliner", reason="these tests require a modified version of the ccpem pipeliner"
+node_creator = pytest.importorskip(
+    "relion.zocalo.node_creator",
+    reason="these tests require a modified version of the ccpem pipeliner",
 )
 
 
