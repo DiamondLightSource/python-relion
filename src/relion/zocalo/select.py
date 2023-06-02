@@ -17,6 +17,7 @@ class SelectParticlesParameters(BaseModel):
     input_file: str = Field(..., min_length=1)
     batch_size: int
     mc_uuid: int
+    image_size: int
     relion_it_options: Optional[dict] = None
 
 
@@ -147,7 +148,11 @@ class SelectParticles(CommonService):
             if new_split != 1:
                 new_finished_files.append(new_split - 1)
             select_output_file = f"{select_dir}/particles_split{new_split}.star"
-            new_particles_cif = get_optics_table(select_params.relion_it_options)
+            new_particles_cif = get_optics_table(
+                select_params.relion_it_options,
+                particle=True,
+                im_size=select_params.image_size,
+            )
 
             new_split_block = new_particles_cif.add_new_block("particles")
             new_split_loop = new_split_block.init_loop(
@@ -205,7 +210,6 @@ class SelectParticles(CommonService):
         ib_job_num = 8
         if new_finished_files:
             for new_split in new_finished_files:
-                print(new_split)
                 ib_job_num += 2
                 if select_params.relion_it_options["do_icebreaker_group"]:
                     self.log.info(f"Sending file {new_split} to IceBreaker particles")

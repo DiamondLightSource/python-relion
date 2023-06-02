@@ -259,8 +259,22 @@ class Extract(CommonService):
             else:
                 output_mrc_stack = np.array([particle_subimage], dtype=np.float32)
 
+        if extract_params.downscale:
+            box_len = extract_params.downscale_boxsize
+            pix_size = extract_params.relion_it_options["angpix_downscale"]
+        else:
+            box_len = extract_params.extract_boxsize
+            pix_size = extract_params.relion_it_options["angpix"]
+
         self.log.info(f"Extracted {np.shape(output_mrc_stack)[0]} particles")
-        mrcfile.write(str(output_mrc_file), data=output_mrc_stack, overwrite=True)
+        with mrcfile.new(str(output_mrc_file), overwrite=True) as mrc:
+            mrc.set_data(output_mrc_stack)
+            mrc.header.mx = box_len
+            mrc.header.my = box_len
+            mrc.header.mz = 1
+            mrc.header.cella.x = pix_size * box_len
+            mrc.header.cella.y = pix_size * box_len
+            mrc.header.cella.z = 1
 
         # Register the extract job with the node creator
         node_creator_parameters = {
@@ -270,6 +284,7 @@ class Extract(CommonService):
             + extract_params.ctf_values["file"],
             "output_file": extract_params.output_file,
             "relion_it_options": extract_params.relion_it_options,
+            "results": {"box_size": box_len},
         }
         if isinstance(rw, MockRW):
             rw.transport.send(
@@ -284,6 +299,7 @@ class Extract(CommonService):
             "input_file": extract_params.output_file,
             "relion_it_options": extract_params.relion_it_options,
             "batch_size": extract_params.relion_it_options["batch_size"],
+            "image_size": box_len,
             "mc_uuid": extract_params.mc_uuid,
         }
         if isinstance(rw, MockRW):
