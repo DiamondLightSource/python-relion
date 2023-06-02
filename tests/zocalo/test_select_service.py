@@ -72,6 +72,7 @@ def test_select_service(mock_environment, offline_transport, tmp_path):
             "input_file": str(extract_file),
             "batch_size": 2,
             "mc_uuid": 0,
+            "image_size": 64,
             "relion_it_options": relion_it_options,
         },
         "content": "dummy",
@@ -160,6 +161,9 @@ def test_select_service(mock_environment, offline_transport, tmp_path):
     assert list(micrographs_optics.find_loop("_rlnAmplitudeContrast")) == [
         str(relion_it_options["ampl_contrast"])
     ]
-    assert list(micrographs_optics.find_loop("_rlnMicrographPixelSize")) == [
+    assert list(micrographs_optics.find_loop("_rlnImagePixelSize")) == [
         str(relion_it_options["angpix"])
     ]
+    assert list(micrographs_optics.find_loop("_rlnImageSize")) == ["64"]
+    assert list(micrographs_optics.find_loop("_rlnImageDimensionality")) == ["2"]
+    assert list(micrographs_optics.find_loop("_rlnCtfDataAreCtfPremultiplied")) == ["0"]

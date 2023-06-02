@@ -445,6 +445,7 @@ def test_node_creator_extract(mock_environment, offline_transport, tmp_path):
         "relion.extract",
         input_file,
         output_file,
+        results={"box_size": 64},
     )
 
     # Check the output file structure
@@ -466,9 +467,12 @@ def test_node_creator_extract(mock_environment, offline_transport, tmp_path):
     assert list(micrographs_optics.find_loop("_rlnAmplitudeContrast")) == [
         str(relion_it_options.ampl_contrast)
     ]
-    assert list(micrographs_optics.find_loop("_rlnMicrographPixelSize")) == [
+    assert list(micrographs_optics.find_loop("_rlnImagePixelSize")) == [
         str(relion_it_options.angpix)
     ]
+    assert list(micrographs_optics.find_loop("_rlnImageSize")) == ["64"]
+    assert list(micrographs_optics.find_loop("_rlnImageDimensionality")) == ["2"]
+    assert list(micrographs_optics.find_loop("_rlnCtfDataAreCtfPremultiplied")) == ["0"]
 
     micrographs_data = micrographs_file.find_block("particles")
     assert list(micrographs_data.find_loop("_rlnCoordinateX")) == ["1.0"]
