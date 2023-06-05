@@ -36,7 +36,7 @@ class MotionCorrParameters(BaseModel):
     trunc: int = None
     fm_ref: int = 1
     kv: int = None
-    fm_dose: float = None
+    fm_dose: float
     fm_int_file: str = None
     mag: Optional[tuple] = None
     ft_bin: float = None

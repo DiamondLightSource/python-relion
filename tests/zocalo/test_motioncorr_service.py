@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import sys
-from math import hypot
 from unittest import mock
 
 import pytest
@@ -71,9 +70,9 @@ def test_motioncorr_service(
             "tol": None,
             "throw": None,
             "trunc": None,
-            "fm_ref": None,
+            "fm_ref": 1,
             "kv": None,
-            "fm_dose": None,
+            "fm_dose": 1,
             "fm_int_file": None,
             "mag": None,
             "ft_bin": None,
@@ -103,12 +102,11 @@ def test_motioncorr_service(
     service.start()
 
     # Work out the expected shifts
-    service.shift_list = [(-1.0, 2.0), (-3.0, 4.0)]
-    total_x_shift = sum([item[0] for item in service.shift_list])
-    total_y_shift = sum([item[1] for item in service.shift_list])
-    total_motion = hypot(total_x_shift, total_y_shift)
-    each_total_motion = [hypot(item[0], item[1]) for item in service.shift_list]
-    average_motion_per_frame = sum(each_total_motion) / len(service.shift_list)
+    service.x_shift_list = [-3.0, 3.0]
+    service.y_shift_list = [4.0, -4.0]
+    service.each_total_motion = [5.0, 5.0]
+    total_motion = 10.0
+    average_motion_per_frame = 5
 
     # Send a message to the service
     service.motion_correction(None, header=header, message=motioncorr_test_message)
@@ -125,6 +123,10 @@ def test_motioncorr_service(
             motioncorr_test_message["parameters"]["mrc_out"],
             "-Gain",
             motioncorr_test_message["parameters"]["gain_ref"],
+            "-FmRef",
+            "1",
+            "-FmDose",
+            "1.0",
         ],
         callback_stdout=mock.ANY,
     )
@@ -245,7 +247,11 @@ def test_motioncorr_service(
                 "relion_it_options": motioncorr_test_message["parameters"][
                     "relion_it_options"
                 ],
-                "results": {"total_motion": str(total_motion)},
+                "results": {
+                    "total_motion": str(total_motion),
+                    "early_motion": str(total_motion),
+                    "late_motion": str(0),
+                },
             },
             "content": "dummy",
         },
@@ -262,9 +268,11 @@ def test_parse_motioncorr_output(mock_environment, offline_transport):
     service.start()
 
     motioncorr.MotionCorr.parse_mc_output(
-        service, "...... Frame (  1) shift:    -1.0      2.0"
+        service, "...... Frame (  1) shift:    -3.0      4.0"
     )
     motioncorr.MotionCorr.parse_mc_output(
-        service, "...... Frame (  2) shift:    -3.0      4.0"
+        service, "...... Frame (  2) shift:    3.0      -4.0"
     )
-    assert service.shift_list == [(-1.0, 2.0), (-3.0, 4.0)]
+    assert service.x_shift_list == [-3.0, 3.0]
+    assert service.y_shift_list == [4.0, -4.0]
+    assert service.each_total_motion == [5.0, 5.0]

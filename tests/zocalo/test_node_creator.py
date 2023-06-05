@@ -168,7 +168,7 @@ def test_node_creator_motioncorr(mock_environment, offline_transport, tmp_path):
         "relion.motioncorr.motioncor2",
         input_file,
         output_file,
-        results={"total_motion": "10"},
+        results={"total_motion": "10", "early_motion": "4", "late_motion": "6"},
     )
 
     # Check the output file structure
@@ -205,8 +205,8 @@ def test_node_creator_motioncorr(mock_environment, offline_transport, tmp_path):
     ]
     assert list(micrographs_data.find_loop("_rlnOpticsGroup")) == ["1"]
     assert list(micrographs_data.find_loop("_rlnAccumMotionTotal")) == ["10"]
-    assert list(micrographs_data.find_loop("_rlnAccumMotionEarly")) == ["0.0"]
-    assert list(micrographs_data.find_loop("_rlnAccumMotionLate")) == ["10"]
+    assert list(micrographs_data.find_loop("_rlnAccumMotionEarly")) == ["4"]
+    assert list(micrographs_data.find_loop("_rlnAccumMotionLate")) == ["6"]
 
 
 @pytest.mark.skipif(sys.platform == "win32", reason="does not run on windows")
