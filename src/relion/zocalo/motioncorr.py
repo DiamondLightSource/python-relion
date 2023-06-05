@@ -79,7 +79,9 @@ class MotionCorr(CommonService):
     _logger_name = "relion.zocalo.motioncorr"
 
     # Values to extract for ISPyB
-    shift_list = []
+    x_shift_list = []
+    y_shift_list = []
+    each_total_motion = []
 
     def initializing(self):
         """Subscribe to a queue. Received messages must be acknowledged."""
@@ -99,7 +101,11 @@ class MotionCorr(CommonService):
 
         if line.startswith("...... Frame"):
             line_split = line.split()
-            self.shift_list.append((float(line_split[-2]), float(line_split[-1])))
+            self.x_shift_list.append(float(line_split[-2]))
+            self.y_shift_list.append(float(line_split[-1]))
+            self.each_total_motion.append(
+                hypot(float(line_split[-2]), float(line_split[-1]))
+            )
 
     def motion_correction(self, rw, header: dict, message: dict):
         class RW_mock:
@@ -227,14 +233,16 @@ class MotionCorr(CommonService):
             rw.send_to("ctf", mc_params.ctf)
 
         # Extract results for ispyb
-        total_x_shift = sum([item[0] for item in self.shift_list])
-        total_y_shift = sum([item[1] for item in self.shift_list])
-        total_motion = hypot(total_x_shift, total_y_shift)
-        each_total_motion = [hypot(item[0], item[1]) for item in self.shift_list]
-        average_motion_per_frame = sum(each_total_motion) / len(self.shift_list)
+        total_motion = 0
+        for i in range(1, len(self.x_shift_list)):
+            total_motion += hypot(
+                self.x_shift_list[i] - self.x_shift_list[i - 1],
+                self.y_shift_list[i] - self.y_shift_list[i - 1],
+            )
+        average_motion_per_frame = total_motion / len(self.x_shift_list)
 
-        drift_plot_x = [range(0, len(self.shift_list))]
-        drift_plot_y = each_total_motion
+        drift_plot_x = [range(0, len(self.x_shift_list))]
+        drift_plot_y = self.each_total_motion
         fig = px.scatter(x=drift_plot_x, y=drift_plot_y)
         drift_plot_name = str(Path(mc_params.movie).stem) + "_drift_plot.json"
         plot_path = Path(mc_params.mrc_out).parent / drift_plot_name
@@ -243,7 +251,7 @@ class MotionCorr(CommonService):
 
         ispyb_parameters = {
             "first_frame": 1,
-            "last_frame": len(self.shift_list),
+            "last_frame": len(self.x_shift_list),
             "total_motion": total_motion,
             "average_motion_per_frame": average_motion_per_frame,
             "drift_plot_full_path": str(plot_path),
