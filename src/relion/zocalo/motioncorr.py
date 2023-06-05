@@ -325,4 +325,6 @@ class MotionCorr(CommonService):
             )
 
         rw.transport.ack(header)
-        self.shift_list = []
+        self.x_shift_list = []
+        self.y_shift_list = []
+        self.each_total_motion = []
