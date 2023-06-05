@@ -123,8 +123,8 @@ def _motioncorr_output_files(
             str(output_file.with_suffix(".star")),
             "1",
             results["total_motion"],
-            "0.0",
-            results["total_motion"],
+            results["early_motion"],
+            results["late_motion"],
         ]
     )
     output_cif.write_file(str(star_file), style=cif.Style.Simple)

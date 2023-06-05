@@ -34,7 +34,7 @@ class MotionCorrParameters(BaseModel):
     tol: float = None
     throw: int = None
     trunc: int = None
-    fm_ref: int = None
+    fm_ref: int = 1
     kv: int = None
     fm_dose: float = None
     fm_int_file: str = None
@@ -50,6 +50,7 @@ class MotionCorrParameters(BaseModel):
     arc_dir: str = None
     in_fm_motion: int = None
     split_sum: int = None
+    dose_motionstats_cutoff: float = 4.0
     movie_id: int
     relion_it_options: Optional[dict] = None
 
@@ -225,6 +226,14 @@ class MotionCorr(CommonService):
         total_motion = hypot(total_x_shift, total_y_shift)
         each_total_motion = [hypot(item[0], item[1]) for item in self.shift_list]
         average_motion_per_frame = sum(each_total_motion) / len(self.shift_list)
+
+        cutoff_frame = round(mc_params.dose_motionstats_cutoff / mc_params.fm_dose)
+        early_x_shift = sum([item[0] for item in self.shift_list][:cutoff_frame])
+        early_y_shift = sum([item[1] for item in self.shift_list][:cutoff_frame])
+        early_motion = hypot(early_x_shift, early_y_shift)
+        late_x_shift = sum([item[0] for item in self.shift_list][cutoff_frame:])
+        late_y_shift = sum([item[1] for item in self.shift_list][cutoff_frame:])
+        late_motion = hypot(late_x_shift, late_y_shift)
 
         # If this is SPA, determine and set up the next jobs
         if mc_params.collection_type.lower() == "spa":
@@ -434,7 +443,11 @@ class MotionCorr(CommonService):
                 "input_file": str(import_movie),
                 "output_file": mc_params.mrc_out,
                 "relion_it_options": mc_params.relion_it_options,
-                "results": {"total_motion": str(total_motion)},
+                "results": {
+                    "total_motion": str(total_motion),
+                    "early_motion": str(early_motion),
+                    "late_motion": str(late_motion),
+                },
             }
             if isinstance(rw, MockRW):
                 rw.transport.send(
