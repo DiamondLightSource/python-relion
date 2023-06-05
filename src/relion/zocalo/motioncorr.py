@@ -83,7 +83,9 @@ class MotionCorr(CommonService):
     _logger_name = "relion.zocalo.motioncorr"
 
     # Values to extract for ISPyB
-    shift_list = []
+    x_shift_list = []
+    y_shift_list = []
+    each_total_motion = []
 
     def initializing(self):
         """Subscribe to a queue. Received messages must be acknowledged."""
@@ -103,7 +105,11 @@ class MotionCorr(CommonService):
 
         if line.startswith("...... Frame"):
             line_split = line.split()
-            self.shift_list.append((float(line_split[-2]), float(line_split[-1])))
+            self.x_shift_list.append(float(line_split[-2]))
+            self.y_shift_list.append(float(line_split[-1]))
+            self.each_total_motion.append(
+                hypot(float(line_split[-2]), float(line_split[-1]))
+            )
 
     def motion_correction(self, rw, header: dict, message: dict):
         class MockRW:
@@ -220,20 +226,27 @@ class MotionCorr(CommonService):
             rw.transport.nack(header)
             return
 
-        # Extract the motion for the image
-        total_x_shift = sum([item[0] for item in self.shift_list])
-        total_y_shift = sum([item[1] for item in self.shift_list])
-        total_motion = hypot(total_x_shift, total_y_shift)
-        each_total_motion = [hypot(item[0], item[1]) for item in self.shift_list]
-        average_motion_per_frame = sum(each_total_motion) / len(self.shift_list)
-
+        # Extract results for ispyb
+        total_motion = 0
+        early_motion = 0
+        late_motion = 0
         cutoff_frame = round(mc_params.dose_motionstats_cutoff / mc_params.fm_dose)
-        early_x_shift = sum([item[0] for item in self.shift_list][:cutoff_frame])
-        early_y_shift = sum([item[1] for item in self.shift_list][:cutoff_frame])
-        early_motion = hypot(early_x_shift, early_y_shift)
-        late_x_shift = sum([item[0] for item in self.shift_list][cutoff_frame:])
-        late_y_shift = sum([item[1] for item in self.shift_list][cutoff_frame:])
-        late_motion = hypot(late_x_shift, late_y_shift)
+        for i in range(1, len(self.x_shift_list)):
+            total_motion += hypot(
+                self.x_shift_list[i] - self.x_shift_list[i - 1],
+                self.y_shift_list[i] - self.y_shift_list[i - 1],
+            )
+            if i < cutoff_frame:
+                early_motion += hypot(
+                    self.x_shift_list[i] - self.x_shift_list[i - 1],
+                    self.y_shift_list[i] - self.y_shift_list[i - 1],
+                )
+            else:
+                late_motion += hypot(
+                    self.x_shift_list[i] - self.x_shift_list[i - 1],
+                    self.y_shift_list[i] - self.y_shift_list[i - 1],
+                )
+        average_motion_per_frame = total_motion / len(self.x_shift_list)
 
         # If this is SPA, determine and set up the next jobs
         if mc_params.collection_type.lower() == "spa":
@@ -325,8 +338,8 @@ class MotionCorr(CommonService):
             rw.send_to("ctffind", mc_params.ctf)
 
         # Extract results for ispyb
-        drift_plot_x = [range(0, len(self.shift_list))]
-        drift_plot_y = each_total_motion
+        drift_plot_x = [range(0, len(self.x_shift_list))]
+        drift_plot_y = self.each_total_motion
         fig = px.scatter(x=drift_plot_x, y=drift_plot_y)
         drift_plot_name = str(Path(mc_params.movie).stem) + "_drift_plot.json"
         plot_path = Path(mc_params.mrc_out).parent / drift_plot_name
@@ -335,7 +348,7 @@ class MotionCorr(CommonService):
 
         ispyb_parameters = {
             "first_frame": 1,
-            "last_frame": len(self.shift_list),
+            "last_frame": len(self.x_shift_list),
             "total_motion": total_motion,
             "average_motion_per_frame": average_motion_per_frame,
             "drift_plot_full_path": str(plot_path),
@@ -458,4 +471,6 @@ class MotionCorr(CommonService):
                 rw.send_to("spa.node_creator", node_creator_parameters)
 
         rw.transport.ack(header)
-        self.shift_list = []
+        self.x_shift_list = []
+        self.y_shift_list = []
+        self.each_total_motion = []
