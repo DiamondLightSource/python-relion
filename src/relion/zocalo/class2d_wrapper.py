@@ -22,8 +22,30 @@ class Class2DParameters(BaseModel):
     particles_file: str = Field(..., min_length=1)
     class2d_dir: str = Field(..., min_length=1)
     particle_diameter: int
+    dont_combine_weights_via_disc: bool = True
+    preread_images: bool = True
+    scratch_dir: str = None
+    nr_pool: int = 10
+    pad: int = 2
+    do_ctf: bool = True
+    ctf_intact_first_peak: bool = False
     nr_iter: int = 20
+    tau_fudge: float = 2
     nr_classes: int = 50
+    flatten_solvent: bool = True
+    do_zero_mask: bool = True
+    highres_limit: float = None
+    centre_classes: bool = True
+    oversampling: int = 1
+    skip_align: bool = False
+    psi_step: float = 12.0
+    offset_range: float = 5
+    offset_step: float = 2
+    allow_coarser: bool = False
+    do_norm: bool = True
+    do_scale: bool = True
+    threads: int = 4
+    gpus: str = "0"
     mc_uuid: int
     relion_it_options: Optional[dict] = None
 
@@ -72,45 +94,58 @@ class Class2DWrapper(zocalo.wrapper.BaseWrapper):
         )
         self.log.info(f"Running Class2D for {particles_file}")
 
+        class2d_flags = {
+            "dont_combine_weights_via_disc": "--dont_combine_weights_via_disc",
+            "preread_images": "--preread_images",
+            "scratch_dir": "--scratch_dir",
+            "nr_pool": "--pool",
+            "pad": "--pad",
+            "do_ctf": "--ctf",
+            "ctf_intact_first_peak": "--ctf_intact_first_peak",
+            "nr_iter": "--iter",
+            "tau_fudge": "--tau2_fudge",
+            "particle_diameter": "--particle_diameter",
+            "nr_classes": "--K",
+            "flatten_solvent": "--flatten_solvent",
+            "do_zero_mask": "--zero_mask",
+            "highres_limit": "--strict_highres_exp",
+            "centre_classes": "--center_classes",
+            "oversampling": "--oversampling",
+            "skip_align": "--skip_align",
+            "psi_step": "--psi_step",
+            "offset_range": "--offset_range",
+            "offset_step": "--offset_step",
+            "allow_coarser": "--allow_coarser_sampling",
+            "do_norm": "--norm",
+            "do_scale": "--scale",
+            "threads": "--j",
+            "gpus": "--gpu",
+        }
+
+        # Create the classification command
         class2d_command = [
             "relion_refine",
             "--i",
             particles_file,
             "--o",
             f"{job_dir.relative_to(project_dir)}/run",
-            "--dont_combine_weights_via_disc",
-            "--preread_images",
-            "--pool",
-            "10",
-            "--pad",
-            "2",
-            "--ctf",
-            "--iter",
-            str(class2d_params.nr_iter),
-            "--tau2_fudge",
-            "2",
-            "--particle_diameter",
-            str(class2d_params.particle_diameter),
-            "--K",
-            str(class2d_params.nr_classes),
-            "--flatten_solvent",
-            "--zero_mask",
-            "--center_classes",
-            "--oversampling",
-            "1",
-            "--psi_step",
-            "12.0",
-            "--offset_range",
-            "5",
-            "--offset_step",
-            "2.0",
-            "--norm",
-            "--scale",
-            "--pipeline_control",
-            f"{job_dir.relative_to(project_dir)}/",
         ]
+        for k, v in class2d_params.dict().items():
+            if v and (k in class2d_flags):
+                if type(v) is tuple:
+                    class2d_command.extend(
+                        (class2d_flags[k], " ".join(str(_) for _ in v))
+                    )
+                elif type(v) is bool:
+                    class2d_command.append(class2d_flags[k])
+                else:
+                    class2d_command.extend((class2d_flags[k], str(v)))
+        class2d_command.extend(
+            ("--pipeline_control", f"{job_dir.relative_to(project_dir)}/")
+        )
+        self.log.info(f"Running {class2d_command}")
 
-        # Run cryolo and confirm it ran successfully
+        # Run Class2D and confirm it ran successfully
         result = procrunner.run(
             command=class2d_command,
             callback_stdout=self.parse_class2d_output,
@@ -123,6 +158,8 @@ class Class2DWrapper(zocalo.wrapper.BaseWrapper):
             )
             return False
 
+        # Register the job with the node creator
+        self.log.info("Sending to node creator")
         node_creator_parameters = {
             "job_type": "relion.class2d.em",
             "input_file": class2d_params.particles_file,
