@@ -16,15 +16,14 @@ from workflows.services.common_service import CommonService
 
 
 class MotionCorrParameters(BaseModel):
-    collection_type: str = Literal["spa", "tomography"]
-    pix_size: float
-    ctf: dict
     movie: str = Field(..., min_length=1)
     mrc_out: str = Field(..., min_length=1)
+    collection_type: str = Literal["spa", "tomography"]
+    pix_size: float
+    fm_dose: float
     patch_size: int = 5
     gpu: int = 0
     gain_ref: str = None
-    mc_uuid: int
     rot_gain: int = None
     flip_gain: int = None
     dark: str = None
@@ -36,7 +35,6 @@ class MotionCorrParameters(BaseModel):
     trunc: int = None
     fm_ref: int = 1
     kv: int = None
-    fm_dose: float
     fm_int_file: str = None
     mag: Optional[tuple] = None
     ft_bin: float = None
@@ -52,7 +50,9 @@ class MotionCorrParameters(BaseModel):
     split_sum: int = None
     dose_motionstats_cutoff: float = 4.0
     movie_id: int
+    mc_uuid: int
     relion_it_options: Optional[dict] = None
+    ctf: dict
 
     class Config:
         ignore_extra = True

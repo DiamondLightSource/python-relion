@@ -12,6 +12,8 @@ from workflows.services.common_service import CommonService
 
 
 class CTFParameters(BaseModel):
+    input_image: str = Field(..., min_length=1)
+    output_image: str = Field(..., min_length=1)
     collection_type: str = Literal["spa", "tomography"]
     pix_size: float
     voltage: float = 300.0
@@ -28,8 +30,6 @@ class CTFParameters(BaseModel):
     astigmatism_restrain: str = "no"
     additional_phase_shift: str = "no"
     expert_options: str = "no"
-    input_image: str = Field(..., min_length=1)
-    output_image: str = Field(..., min_length=1)
     mc_uuid: int
     relion_it_options: Optional[dict] = None
     autopick: dict = {}

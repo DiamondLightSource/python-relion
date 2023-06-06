@@ -16,18 +16,18 @@ from workflows.services.common_service import CommonService
 
 
 class CryoloParameters(BaseModel):
-    pix_size: float
     input_path: str = Field(..., min_length=1)
     output_path: str = Field(..., min_length=1)
+    pix_size: float
     config_file: str = "/dls_sw/apps/EM/crYOLO/phosaurus_models/config.json"
     weights: str = (
         "/dls_sw/apps/EM/crYOLO/phosaurus_models/gmodel_phosnet_202005_N63_c17.h5"
     )
     threshold: float = 0.3
-    mc_uuid: int
     cryolo_command: str = "cryolo_predict.py"
-    ctf_values: dict = {}
+    mc_uuid: int
     relion_it_options: Optional[dict] = None
+    ctf_values: dict = {}
 
 
 class CrYOLO(CommonService):

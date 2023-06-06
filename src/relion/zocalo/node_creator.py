@@ -67,7 +67,10 @@ pipeline_spa_jobs = {
             "in_parts": "particles_split1.star",
         },
     },
-    "relion.class2d.em": {"folder": "Class2D"},
+    "relion.class2d.em": {
+        "folder": "Class2D",
+        "input_stars": {"fn_img": "particles_split1.star"},
+    },
     "relion.class2d.vdam": {"folder": "Class2D"},
     "relion.initialmodel": {"folder": "InitialModel"},
     "relion.class3d": {"folder": "Class3D"},

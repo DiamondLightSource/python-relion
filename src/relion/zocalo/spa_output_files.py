@@ -333,6 +333,16 @@ def _select_output_files(
     return split_files
 
 
+def _class2d_output_files(
+    job_dir: Path,
+    input_file: Path,
+    output_file: Path,
+    relion_it_options: dict,
+    results: dict,
+):
+    return
+
+
 _output_files: Dict[str, Callable] = {
     "relion.import.movies": _import_output_files,
     "relion.motioncorr.motioncor2": _motioncorr_output_files,
@@ -344,6 +354,7 @@ _output_files: Dict[str, Callable] = {
     "relion.extract": _extract_output_files,
     "relion.select.split": _select_output_files,
     "icebreaker.micrograph_analysis.particles": _icebreaker_output_files,
+    "relion.class2d.em": _class2d_output_files,
 }
 
 

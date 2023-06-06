@@ -16,8 +16,8 @@ from relion.zocalo.spa_output_files import get_optics_table
 class SelectParticlesParameters(BaseModel):
     input_file: str = Field(..., min_length=1)
     batch_size: int
-    mc_uuid: int
     image_size: int
+    mc_uuid: int
     relion_it_options: Optional[dict] = None
 
 

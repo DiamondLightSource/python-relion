@@ -15,11 +15,11 @@ from workflows.services.common_service import CommonService
 
 
 class ExtractParameters(BaseModel):
-    pix_size: float
-    ctf_values: dict
     micrographs_file: str = Field(..., min_length=1)
     coord_list_file: str = Field(..., min_length=1)
     output_file: str = Field(..., min_length=1)
+    pix_size: float
+    ctf_values: dict
     extract_boxsize: int = 256
     norm: bool = True
     bg_radius: int = -1

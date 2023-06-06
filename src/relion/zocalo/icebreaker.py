@@ -13,16 +13,17 @@ from workflows.services.common_service import CommonService
 
 
 class IceBreakerParameters(BaseModel):
-    icebreaker_type: str = Literal[
-        "micrographs", "enhancecontrast", "summary", "particles"
-    ]
     input_micrographs: str = Field(..., min_length=1)
     input_particles: Optional[str] = None
     output_path: str = Field(..., min_length=1)
-    mc_uuid: int
+    icebreaker_type: str = Literal[
+        "micrographs", "enhancecontrast", "summary", "particles"
+    ]
+
     cpus: int = 1
-    relion_it_options: Optional[dict] = None
     total_motion: float = 0
+    mc_uuid: int
+    relion_it_options: Optional[dict] = None
 
 
 class IceBreaker(CommonService):
