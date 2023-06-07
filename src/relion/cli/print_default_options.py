@@ -25,10 +25,16 @@ def run():
         type=int,
         default=0,
     )
+    parser.add_argument(
+        "--offline",
+        help="Run the pipeline from a personal workstation",
+        dest="offline",
+        action="store_true",
+    )
     args = parser.parse_args()
     opts = RelionItOptions()
     opts.update_from(vars(dls_options))
-    if os.getenv("RELION_CLUSTER_CONFIG"):
+    if os.getenv("RELION_CLUSTER_CONFIG") and not args.offline:
         with open(os.getenv("RELION_CLUSTER_CONFIG"), "r") as config:
             cluster_config = yaml.safe_load(config)
         opts.update_from(cluster_config)

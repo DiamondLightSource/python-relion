@@ -42,10 +42,21 @@ gctf_exe = "Gctf"
 # Executable for Alexis Rohou's CTFFIND4
 ctffind4_exe = "ctffind"
 
-queue_submission_template = "/dls_sw/apps/EM/relion/qsub_template_hamilton"
-queue_submission_template_cpu = "/dls_sw/apps/EM/relion/qsub_template_hamilton_cpu"
+queue_submission_template = (
+    "/dls_sw/apps/EM/relion/4.0-slurm/slurm_scripts/relion_json/"
+    "relion_slurm_pipeliner_gpu.json"
+)
+queue_submission_template_smp = (
+    "/dls_sw/apps/EM/relion/4.0-slurm/slurm_scripts/relion_json/"
+    "relion_slurm_pipeliner_gpu_smp.json"
+)
+queue_submission_template_cpu = (
+    "/dls_sw/apps/EM/relion/4.0-slurm/slurm_scripts/relion_json/"
+    "relion_slurm_pipeliner_cpu.json"
+)
 queue_submission_template_cpu_smp = (
-    "/dls_sw/apps/EM/relion/qsub_template_hamilton_cpu_smp"
+    "/dls_sw/apps/EM/relion/4.0-slurm/slurm_scripts/relion_json/"
+    "relion_slurm_pipeliner_cpu_smp.json"
 )
 
 motioncor_gpu = ""
