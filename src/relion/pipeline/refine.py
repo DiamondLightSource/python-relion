@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
+import yaml
 from pipeliner.api.api_utils import (
     edit_jobstar,
     job_parameters_dict,
@@ -9,9 +11,15 @@ from pipeliner.api.api_utils import (
 )
 from pipeliner.api.manage_project import PipelinerProject
 
+cluster_config = {}
+if os.getenv("RELION_CLUSTER_CONFIG"):
+    with open(os.getenv("RELION_CLUSTER_CONFIG"), "r") as config:
+        cluster_config = yaml.safe_load(config)
+
 cluster_options = {
     "do_queue": "Yes",
-    "qsubscript": "/dls_sw/apps/EM/relion/qsub_templates/qsub_template_hamilton_pipeliner",
+    "qsubscript": cluster_config.get("queue_submission_template")
+    or "/dls_sw/apps/EM/relion/qsub_templates/qsub_template_hamilton_pipeliner",
     "use_gpu": "Yes",
     "gpu_ids": "0:1:2:3",
     "nr_mpi": 5,
