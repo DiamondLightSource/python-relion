@@ -21,6 +21,7 @@ job_type = "relion.class2d.em"
 class Class2DParameters(BaseModel):
     particles_file: str = Field(..., min_length=1)
     class2d_dir: str = Field(..., min_length=1)
+    batch_is_complete: bool
     particle_diameter: int
     dont_combine_weights_via_disc: bool = True
     preread_images: bool = True
@@ -67,7 +68,7 @@ class Class2DWrapper(zocalo.wrapper.BaseWrapper):
 
         if line.startswith("CurrentResolution="):
             line_split = line.split()
-            self.resolution -= int(line_split[1])
+            self.resolution = int(line_split[1])
 
     def run(self):
         """
@@ -158,7 +159,7 @@ class Class2DWrapper(zocalo.wrapper.BaseWrapper):
             )
             return False
 
-        # Register the job with the node creator
+        # Register the Class2D job with the node creator
         self.log.info("Sending to node creator")
         node_creator_parameters = {
             "job_type": "relion.class2d.em",
@@ -168,7 +169,18 @@ class Class2DWrapper(zocalo.wrapper.BaseWrapper):
         }
         self.recwrap.send_to("spa.node_creator", node_creator_parameters)
 
+        # Send results to ispyb
         ispyb_insert = {"command": "classification"}
         self.recwrap.send_to("ispyb", {"ispyb_command_list": ispyb_insert})
+
+        if class2d_params.batch_is_complete:
+            # Create a 2D autoselection job
+            self.log.info("Sending to class selection")
+            autoselect_parameters = {
+                "input_file": f"{class2d_params.class2d_dir}/run_it{class2d_params.nr_iter:03}_optimiser.star",
+                "mc_uuid": class2d_params.mc_uuid,
+                "relion_it_options": class2d_params.relion_it_options,
+            }
+            self.recwrap.send_to("select.classes", autoselect_parameters)
 
         return True

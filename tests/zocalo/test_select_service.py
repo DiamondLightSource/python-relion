@@ -8,7 +8,7 @@ import zocalo.configuration
 from gemmi import cif
 from workflows.transport.offline_transport import OfflineTransport
 
-from relion.zocalo import select
+from relion.zocalo import select_particles
 
 
 @pytest.fixture
@@ -79,10 +79,10 @@ def test_select_service(mock_environment, offline_transport, tmp_path):
     }
 
     # Set up the mock service and send the message to it
-    service = select.SelectParticles(environment=mock_environment)
+    service = select_particles.SelectParticles(environment=mock_environment)
     service.transport = offline_transport
     service.start()
-    service.select(None, header=header, message=select_test_message)
+    service.select_particles(None, header=header, message=select_test_message)
 
     # Check that the correct messages were sent
     offline_transport.send.assert_any_call(

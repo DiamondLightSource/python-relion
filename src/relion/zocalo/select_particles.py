@@ -38,13 +38,13 @@ class SelectParticles(CommonService):
         workflows.recipe.wrap_subscribe(
             self._transport,
             "select.particles",
-            self.select,
+            self.select_particles,
             acknowledgement=True,
             log_extender=self.extend_log,
             allow_non_recipe_messages=True,
         )
 
-    def select(self, rw, header: dict, message: dict):
+    def select_particles(self, rw, header: dict, message: dict):
         class MockRW:
             def dummy(self, *args, **kwargs):
                 pass

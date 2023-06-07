@@ -333,7 +333,7 @@ def _select_output_files(
     return split_files
 
 
-def _class2d_output_files(
+def _relion_no_output_files(
     job_dir: Path,
     input_file: Path,
     output_file: Path,
@@ -354,7 +354,8 @@ _output_files: Dict[str, Callable] = {
     "relion.extract": _extract_output_files,
     "relion.select.split": _select_output_files,
     "icebreaker.micrograph_analysis.particles": _icebreaker_output_files,
-    "relion.class2d.em": _class2d_output_files,
+    "relion.class2d.em": _relion_no_output_files,
+    "relion.select.class2dauto": _relion_no_output_files,
 }
 
 
