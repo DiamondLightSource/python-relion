@@ -25,6 +25,8 @@ def combine_star_files(files_to_process: List[Path], output_dir: Path):
         data_optics = star_dictionary["optics"]
         data_particles = star_dictionary["particles"]
 
+        print(f"Adding {split_file} with {len(data_particles)} particles")
+
         try:
             # check that the files have the same optics tables
             if final_star_file["optics"].ne(data_optics).any().any():

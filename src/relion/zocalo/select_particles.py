@@ -206,13 +206,30 @@ class SelectParticles(CommonService):
         else:
             rw.send_to("spa.node_creator", node_creator_params)
 
-        # Create icebreaker particle jobs for all complete split files
-        ib_job_num = 8
+        if select_output_file == f"{select_dir}/particles_split1.star":
+            # If still on the first file then register it with murfey
+            clas2d_params = {
+                "particles_file": f"{select_dir}/particles_split1.star",
+                "class2d_dir": f"{project_dir}/Class2D/job",
+                "batch_is_complete": "True",
+                "particle_diameter": str(select_params.image_size),
+                "mc_uuid": select_params.mc_uuid,
+                "relion_it_options": select_params.relion_it_options,
+            }
+
+            murfey_params = {
+                "register": "incomplete_particles_file",
+                "class2d": clas2d_params,
+            }
+            if isinstance(rw, MockRW):
+                rw.transport.send("murfey_feedback", murfey_params)
+            else:
+                rw.send_to("murfey_feedback", murfey_params)
+
         if new_finished_files:
             for new_split in new_finished_files:
-                ib_job_num += 2
+                # Set up icebreaker job parameters
                 if select_params.relion_it_options["do_icebreaker_group"]:
-                    self.log.info(f"Sending file {new_split} to IceBreaker particles")
                     icebreaker_params = {
                         "icebreaker_type": "particles",
                         "input_micrographs": (
@@ -221,19 +238,33 @@ class SelectParticles(CommonService):
                         "input_particles": (
                             f"{select_dir}/particles_split{new_split}.star"
                         ),
-                        "output_path": f"{project_dir}/IceBreaker/job{ib_job_num:03}",
+                        "output_path": f"{project_dir}/IceBreaker/job",
                         "mc_uuid": select_params.mc_uuid,
                         "relion_it_options": select_params.relion_it_options,
                     }
-                    if isinstance(rw, MockRW):
-                        rw.transport.send(
-                            destination="icebreaker",
-                            message={
-                                "parameters": icebreaker_params,
-                                "content": "dummy",
-                            },
-                        )
-                    else:
-                        rw.send_to("icebreaker", icebreaker_params)
+                else:
+                    icebreaker_params = {}
+
+                # Set up Class2D job parameters
+                class2d_params = {
+                    "particles_file": f"{select_dir}/particles_split{new_split}.star",
+                    "class2d_dir": f"{project_dir}/Class2D/job",
+                    "batch_is_complete": "True",
+                    "particle_diameter": select_params.image_size,
+                    "mc_uuid": select_params.mc_uuid,
+                    "relion_it_options": select_params.relion_it_options,
+                }
+
+                # Send all newly completed file to murfey
+                self.log.info(f"Sending batch {select_output_file} to Murfey")
+                murfey_params = {
+                    "register": "complete_particles_file",
+                    "class2d": class2d_params,
+                    "icebreaker": icebreaker_params,
+                }
+                if isinstance(rw, MockRW):
+                    rw.transport.send("murfey_feedback", murfey_params)
+                else:
+                    rw.send_to("murfey_feedback", murfey_params)
 
         rw.transport.ack(header)

@@ -189,6 +189,11 @@ def generate_pipeline_options(
         "other_args": "--select_min_nr_particles 500",
     }
 
+    job_options["combine_star_files_job"] = {
+        "do_split": True,
+        "split_size": relion_it_options.batch_size,
+    }
+
     job_options["relion.initialmodel"] = {
         "nr_classes": relion_it_options.inimodel_nr_classes,
         "sym_name": relion_it_options.symmetry,

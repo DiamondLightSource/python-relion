@@ -356,6 +356,7 @@ _output_files: Dict[str, Callable] = {
     "icebreaker.micrograph_analysis.particles": _icebreaker_output_files,
     "relion.class2d.em": _relion_no_output_files,
     "relion.select.class2dauto": _relion_no_output_files,
+    "combine_star_files_job": _select_output_files,
 }
 
 

@@ -4,8 +4,10 @@ import re
 from pathlib import Path
 from typing import Optional
 
+import numpy as np
 import procrunner
 import workflows.recipe
+from gemmi import cif
 from pydantic import BaseModel, Field
 from pydantic.error_wrappers import ValidationError
 from workflows.services.common_service import CommonService
@@ -13,11 +15,14 @@ from workflows.services.common_service import CommonService
 
 class SelectClassesParameters(BaseModel):
     input_file: str = Field(..., min_length=1)
+    combine_star_job_number: int
     particles_file: str = "particles.star"
     classes_file: str = "class_averages.star"
     python_exe: str = "/dls_sw/apps/EM/relion/4.0/conda/bin/python"
     min_score: float = 0
     min_particles: int = 500
+    class3d_batch_size: int = 50000
+    class3d_max_size: int = 200000
     mc_uuid: int
     relion_it_options: Optional[dict] = None
 
@@ -34,7 +39,8 @@ class SelectClasses(CommonService):
     _logger_name = "relion.zocalo.select.classes"
 
     # Values to extract for ISPyB
-    particle_count = 0
+    previous_total_count = 0
+    total_count = 0
 
     def initializing(self):
         """Subscribe to a queue. Received messages must be acknowledged."""
@@ -55,9 +61,20 @@ class SelectClasses(CommonService):
         if not line:
             return
 
-        if "selected particles to" in line:
+    def parse_combiner_output(self, line: str):
+        """
+        Read the output logs of the star file combination
+        """
+        if not line:
+            return
+
+        if line.startswith("Adding") and "particles_all.star" in line:
             line_split = line.split()
-            self.particle_count = int(line_split[1])
+            self.previous_total_count = int(line_split[3])
+
+        if line.startswith("Split"):
+            line_split = line.split()
+            self.total_count = int(line_split[1])
 
     def select_classes(self, rw, header: dict, message: dict):
         class MockRW:
@@ -122,7 +139,6 @@ class SelectClasses(CommonService):
             "particles_file": "--fn_sel_parts",
             "classes_file": "--fn_sel_classavgs",
             "python_exe": "--python",
-            "min_score": "--min_score",
             "min_particles": "--select_min_nr_particles",
         }
         # Create the class selection command
@@ -149,6 +165,11 @@ class SelectClasses(CommonService):
             ("--pipeline_control", f"{select_dir.relative_to(project_dir)}/")
         )
 
+        if not autoselect_params.min_score:
+            autoselect_command.extend(("--min_score", "0.0"))
+        else:
+            autoselect_command.extend(("--min_score", str(autoselect_params.min_score)))
+
         result = procrunner.run(
             command=autoselect_command,
             callback_stdout=self.parse_autoselect_output,
@@ -162,8 +183,39 @@ class SelectClasses(CommonService):
             rw.transport.nack(header)
             return
 
+        if not autoselect_params.min_score:
+            # If a minimum score isn't given, then work it out and rerun the job
+            star_doc = cif.read_file(str(select_dir / "rank_model.star"))
+            star_block = star_doc["model_classes"]
+            class_scores = np.array(star_block.find_loop("_rlnClassScore"), dtype=float)
+            quantile_threshold = np.quantile(
+                class_scores,
+                float(
+                    autoselect_params.relion_it_options[
+                        "class2d_fraction_of_classes_to_remove"
+                    ]
+                ),
+            )
+
+            self.log.info(
+                f"Re-running class selection with new threshold {quantile_threshold}"
+            )
+            autoselect_command[-1] = str(quantile_threshold)
+            result = procrunner.run(
+                command=autoselect_command,
+                callback_stdout=self.parse_autoselect_output,
+                working_directory=str(project_dir),
+            )
+            if result.returncode:
+                self.log.error(
+                    f"2D autoselection failed with exitcode {result.returncode}:\n"
+                    + result.stderr.decode("utf8", "replace")
+                )
+                rw.transport.nack(header)
+                return
+
         # Send to node creator
-        node_creator_params = {
+        autoselect_node_creator_params = {
             "job_type": "relion.select.class2dauto",
             "input_file": autoselect_params.input_file,
             "output_file": str(select_dir / autoselect_params.particles_file),
@@ -172,9 +224,82 @@ class SelectClasses(CommonService):
         if isinstance(rw, MockRW):
             rw.transport.send(
                 destination="spa.node_creator",
-                message={"parameters": node_creator_params, "content": "dummy"},
+                message={
+                    "parameters": autoselect_node_creator_params,
+                    "content": "dummy",
+                },
             )
         else:
-            rw.send_to("spa.node_creator", node_creator_params)
+            rw.send_to("spa.node_creator", autoselect_node_creator_params)
+
+        # Run the combine star files job
+        combine_star_command = [
+            "combine_star_files.py",
+            str(select_dir / autoselect_params.particles_file),
+        ]
+
+        combine_star_dir = Path(
+            project_dir / f"Select/job{autoselect_params.combine_star_job_number:03}"
+        )
+        if (combine_star_dir / "particles_all.star").exists():
+            combine_star_command.append(str(combine_star_dir / "particles_all.star"))
+        else:
+            combine_star_dir.mkdir(parents=True, exist_ok=True)
+            self.previous_total_count = 0
+        combine_star_command.extend(
+            (
+                "--output_dir",
+                str(combine_star_dir),
+                "--split",
+                "--split_size",
+                str(autoselect_params.class3d_batch_size),
+            )
+        )
+
+        result = procrunner.run(
+            command=combine_star_command,
+            callback_stdout=self.parse_combiner_output,
+            working_directory=str(project_dir),
+        )
+        if result.returncode:
+            self.log.error(
+                f"Star file combination failed with exitcode {result.returncode}:\n"
+                + result.stderr.decode("utf8", "replace")
+            )
+            rw.transport.nack(header)
+            return
+
+        # Send to node creator
+        combine_node_creator_params = {
+            "job_type": "combine_star_files_job",
+            "input_file": str(select_dir / autoselect_params.particles_file),
+            "output_file": str(combine_star_dir / "particles_all.star"),
+            "relion_it_options": autoselect_params.relion_it_options,
+        }
+        if isinstance(rw, MockRW):
+            rw.transport.send(
+                destination="spa.node_creator",
+                message={"parameters": combine_node_creator_params, "content": "dummy"},
+            )
+        else:
+            rw.send_to("spa.node_creator", combine_node_creator_params)
+
+        # Create 3D classification jobs
+        if (
+            self.total_count // autoselect_params.class3d_batch_size
+            > self.previous_total_count // autoselect_params.class3d_batch_size
+        ) and (self.total_count <= autoselect_params.class3d_max_size):
+            # Only send to 3D if a new multiple of the batch threshold is crossed
+            # and the count does not exceed the maximum
+            self.log.info("Sending to murfey for Class3D")
+            class3d_params = {}
+            murfey_params = {
+                "register": "run_class3d",
+                "class3d": class3d_params,
+            }
+            if isinstance(rw, MockRW):
+                rw.transport.send("murfey_feedback", murfey_params)
+            else:
+                rw.send_to("murfey_feedback", murfey_params)
 
         rw.transport.ack(header)

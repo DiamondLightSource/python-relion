@@ -49,6 +49,8 @@ class Class2DParameters(BaseModel):
     gpus: str = "0"
     mc_uuid: int
     relion_it_options: Optional[dict] = None
+    combine_star_job_number: int
+    autoselect_min_score: int = 0
 
 
 class Class2DWrapper(zocalo.wrapper.BaseWrapper):
@@ -178,6 +180,8 @@ class Class2DWrapper(zocalo.wrapper.BaseWrapper):
             self.log.info("Sending to class selection")
             autoselect_parameters = {
                 "input_file": f"{class2d_params.class2d_dir}/run_it{class2d_params.nr_iter:03}_optimiser.star",
+                "combine_star_job_number": class2d_params.combine_star_job_number,
+                "min_score": class2d_params.autoselect_min_score,
                 "mc_uuid": class2d_params.mc_uuid,
                 "relion_it_options": class2d_params.relion_it_options,
             }

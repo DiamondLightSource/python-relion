@@ -75,6 +75,10 @@ pipeline_spa_jobs = {
         "folder": "Select",
         "input_stars": {"fn_model": "run_it020_optimiser.star"},
     },
+    "combine_star_files_job": {
+        "folder": "Select",
+        "input_stars": {"files_to_process": "particles_all.star"},
+    },
     "relion.class2d.vdam": {"folder": "Class2D"},
     "relion.initialmodel": {"folder": "InitialModel"},
     "relion.class3d": {"folder": "Class3D"},
