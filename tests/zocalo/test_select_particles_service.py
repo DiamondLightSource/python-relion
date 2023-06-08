@@ -33,11 +33,11 @@ def offline_transport(mocker):
 
 
 @pytest.mark.skipif(sys.platform == "win32", reason="does not run on windows")
-def test_select_service(mock_environment, offline_transport, tmp_path):
+def test_select_particles_service(mock_environment, offline_transport, tmp_path):
     """
-    Send a test message to the extract service
+    Send a test message to the select particles service
     This should call the mock file reader then send a message on to
-    the node_creator service, as well as creating icebreaker jobs
+    the node_creator service and murfey
     """
     header = {
         "message-id": mock.sentinel,
