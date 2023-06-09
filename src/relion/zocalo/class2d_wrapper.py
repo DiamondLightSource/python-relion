@@ -28,6 +28,7 @@ class Class2DParameters(BaseModel):
     scratch_dir: str = None
     nr_pool: int = 10
     pad: int = 2
+    skip_gridding: bool = False
     do_ctf: bool = True
     ctf_intact_first_peak: bool = False
     nr_iter: int = 20
@@ -103,6 +104,7 @@ class Class2DWrapper(zocalo.wrapper.BaseWrapper):
             "scratch_dir": "--scratch_dir",
             "nr_pool": "--pool",
             "pad": "--pad",
+            "skip_gridding": "--skip_gridding",
             "do_ctf": "--ctf",
             "ctf_intact_first_peak": "--ctf_intact_first_peak",
             "nr_iter": "--iter",

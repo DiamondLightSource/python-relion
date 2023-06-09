@@ -357,6 +357,8 @@ _output_files: Dict[str, Callable] = {
     "relion.class2d.em": _relion_no_output_files,
     "relion.select.class2dauto": _relion_no_output_files,
     "combine_star_files_job": _select_output_files,
+    "relion.initialmodel": _relion_no_output_files,
+    "relion.class3d": _relion_no_output_files,
 }
 
 

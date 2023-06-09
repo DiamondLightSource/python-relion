@@ -79,9 +79,17 @@ pipeline_spa_jobs = {
         "folder": "Select",
         "input_stars": {"files_to_process": "particles_all.star"},
     },
-    "relion.class2d.vdam": {"folder": "Class2D"},
-    "relion.initialmodel": {"folder": "InitialModel"},
-    "relion.class3d": {"folder": "Class3D"},
+    "relion.initialmodel": {
+        "folder": "InitialModel",
+        "input_stars": {"fn_img": "particles_split1.star"},
+    },
+    "relion.class3d": {
+        "folder": "Class3D",
+        "input_stars": {
+            "fn_img": "particles_split1.star",
+            "fn_ref": "initial_model.mrc",
+        },
+    },
 }
 
 
