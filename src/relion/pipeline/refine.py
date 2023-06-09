@@ -55,13 +55,16 @@ class RefinePipelineRunner:
         self._mask = mask
         self._extract_size = extract_size
 
-    def _run_job(self, job: str, params: dict, cluster=True) -> str:
+    def _run_job(self, job: str, params: dict, cluster=True, gpu: bool = True) -> str:
         write_default_jobstar(job)
         _params = job_default_parameters_dict(job)
         _params.update(params)
         _params.update(self._default_params.get(job, {}))
         if cluster:
             _params.update(cluster_options)
+        if not gpu:
+            _params.pop("use_gpu")
+            _params.pop("gpu_ids")
         edit_jobstar(
             f"{job.replace('.', '_')}_job.star",
             _params,
@@ -117,7 +120,7 @@ class RefinePipelineRunner:
             "fndata_reextract": particles_star,
             "extract_size": self._extract_size,
         }
-        return self._run_job(job, params)
+        return self._run_job(job, params, gpu=False)
 
     def __call__(self, micrographs_star: str = "CtfFind/job003/micrographs_ctf.star"):
         if "/job" in str(self._particles_star):
