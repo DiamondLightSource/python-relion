@@ -44,7 +44,7 @@ def run():
         dest="version",
         type=float,
         choices=[3.1, 4],
-        default=3.1,
+        default=4,
     )
     parser.add_argument(
         "--timeout",
@@ -102,6 +102,7 @@ def run():
             opts.print_options(optfile)
 
         if args.movies_dir is not None:
+            (pathlib.Path(args.working_directory) / "Movies").unlink(missing_ok=True)
             (pathlib.Path(args.working_directory) / "Movies").symlink_to(
                 args.movies_dir
             )
