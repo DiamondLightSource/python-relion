@@ -6,7 +6,7 @@ from pathlib import Path
 import yaml
 from pipeliner.api.api_utils import (
     edit_jobstar,
-    job_parameters_dict,
+    job_default_parameters_dict,
     write_default_jobstar,
 )
 from pipeliner.api.manage_project import PipelinerProject
@@ -57,7 +57,7 @@ class RefinePipelineRunner:
 
     def _run_job(self, job: str, params: dict, cluster=True) -> str:
         write_default_jobstar(job)
-        _params = job_parameters_dict(job)
+        _params = job_default_parameters_dict(job)
         _params.update(params)
         _params.update(self._default_params.get(job, {}))
         if cluster:
