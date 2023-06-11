@@ -65,6 +65,7 @@ class RefinePipelineRunner:
         if not gpu:
             _params.pop("use_gpu")
             _params.pop("gpu_ids")
+            _params.pop("nr_threads")
         edit_jobstar(
             f"{job.replace('.', '_')}_job.star",
             _params,
