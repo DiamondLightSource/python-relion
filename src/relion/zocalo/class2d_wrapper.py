@@ -42,7 +42,7 @@ class Class2DParameters(BaseModel):
     skip_align: bool = False
     psi_step: float = 12.0
     offset_range: float = 5
-    offset_step: float = 2
+    offset_step: float = 1
     allow_coarser: bool = False
     do_norm: bool = True
     do_scale: bool = True

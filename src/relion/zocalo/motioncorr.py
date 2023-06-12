@@ -52,7 +52,7 @@ class MotionCorrParameters(BaseModel):
     movie_id: int
     mc_uuid: int
     relion_it_options: Optional[dict] = None
-    ctf: dict
+    ctf: dict = {}
 
     class Config:
         ignore_extra = True

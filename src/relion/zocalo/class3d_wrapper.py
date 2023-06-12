@@ -3,6 +3,7 @@ from __future__ import annotations
 import enum
 import logging
 import os
+import re
 from pathlib import Path
 from typing import Optional
 
@@ -24,6 +25,10 @@ class Class3DParameters(BaseModel):
     particle_diameter: float
     do_initial_model: bool = False
     initial_model_file: str = None
+    initial_model_iterations: int = 200
+    initial_model_offset_range: float = 6
+    initial_model_offset_step: float = 2
+    do_initial_model_C1: bool = True
     dont_combine_weights_via_disc: bool = True
     preread_images: bool = True
     scratch_dir: str = None
@@ -45,7 +50,7 @@ class Class3DParameters(BaseModel):
     skip_align: bool = False
     healpix_order: float = 2
     offset_range: float = 5
-    offset_step: float = 2
+    offset_step: float = 1
     allow_coarser: bool = False
     symmetry: str = "C1"
     do_norm: bool = True
@@ -77,6 +82,8 @@ class Class3DWrapper(zocalo.wrapper.BaseWrapper):
         "nr_classes": "--K",
         "flatten_solvent": "--flatten_solvent",
         "do_zero_mask": "--zero_mask",
+        "oversampling": "--oversampling",
+        "healpix_order": "--healpix_order",
         "threads": "--j",
         "gpus": "--gpu",
     }
@@ -92,16 +99,21 @@ class Class3DWrapper(zocalo.wrapper.BaseWrapper):
             line_split = line.split()
             self.resolution = int(line_split[1])
 
-    def run_initial_model(self, initial_model_params, project_dir):
+    def run_initial_model(self, initial_model_params, project_dir, job_num):
         """
         Run the initial model for 3D classification and register results
         """
-        job_dir = "InitialModel"
+        job_dir = project_dir / f"InitialModel/job{job_num:03}/"
+        job_dir.mkdir(parents=True, exist_ok=True)
         particles_file = str(
             Path(initial_model_params.particles_file).relative_to(project_dir)
         )
 
-        initial_model_flags = {}
+        initial_model_flags = {
+            "initial_model_iterations": "--iter",
+            "initial_model_offset_range": "--offset_range",
+            "initial_model_offset_step": "--offset_step",
+        }
         initial_model_flags.update(self.common_flags)
 
         initial_model_command = [
@@ -113,6 +125,10 @@ class Class3DWrapper(zocalo.wrapper.BaseWrapper):
             "--o",
             f"{job_dir.relative_to(project_dir)}/run",
         ]
+        if initial_model_params.do_initial_model_C1:
+            initial_model_command.extend(("--sym", "C1"))
+        else:
+            initial_model_command.extend(("--sym", initial_model_params.symmetry))
         for k, v in initial_model_params.dict().items():
             if v and (k in initial_model_flags):
                 if type(v) is tuple:
@@ -126,9 +142,9 @@ class Class3DWrapper(zocalo.wrapper.BaseWrapper):
         initial_model_command.extend(
             ("--pipeline_control", f"{job_dir.relative_to(project_dir)}/")
         )
-        self.log.info(f"Running {initial_model_command}")
 
         # Run initial model and confirm it ran successfully
+        self.log.info(f"Running {initial_model_command}")
         result = procrunner.run(
             command=initial_model_command,
             callback_stdout=self.parse_class3d_output,
@@ -143,11 +159,44 @@ class Class3DWrapper(zocalo.wrapper.BaseWrapper):
 
         ini_model_file = job_dir / "initial_model.mrc"
 
-        "relion_refine"
-        "--iter 1 --sym C1 --oversampling 1 --healpix_order 1 --offset_range 6 --offset_step 4.0"
+        align_symmetry_command = [
+            "relion_align_symmetry",
+            "--i",
+            job_dir.relative_to(project_dir)
+            / f"run_it{initial_model_params.initial_model_iterations:03}_model.star",
+            "--o",
+            ini_model_file.relative_to(project_dir),
+            "--sym",
+            initial_model_params.symmetry,
+            "--apply_sym",
+            "--select_largest_class",
+            "--pipeline_control",
+            job_dir.relative_to(project_dir),
+        ]
+        # Run symmetry alignment and confirm it ran successfully
+        self.log.info(f"Running {align_symmetry_command}")
+        result = procrunner.run(
+            command=align_symmetry_command,
+            callback_stdout=self.parse_class3d_output,
+            working_directory=str(project_dir),
+        )
+        if result.returncode:
+            self.log.error(
+                f"Relion initial model symmetry alignment "
+                f"failed with exitcode {result.returncode}:\n"
+                + result.stderr.decode("utf8", "replace")
+            )
+            return False
 
-        "relion_align_symmetry --i InitialModel/job013/run_it001_model.star --o InitialModel/job013/initial_model.mrc"
-        "--sym C1 --apply_sym --select_largest_class --pipeline_control InitialModel/job013/"
+        # Register the initial model job with the node creator
+        self.log.info("Sending to node creator")
+        node_creator_parameters = {
+            "job_type": "relion.initialmodel",
+            "input_file": f"{project_dir}/{particles_file}",
+            "output_file": f"{job_dir}/initial_model.mrc",
+            "relion_it_options": initial_model_params.relion_it_options,
+        }
+        self.recwrap.send_to("spa.node_creator", node_creator_parameters)
 
         return ini_model_file
 
@@ -178,7 +227,12 @@ class Class3DWrapper(zocalo.wrapper.BaseWrapper):
 
         # Run the initial model if requested, otherwise look for a pre-existing file
         if class3d_params.do_initial_model:
-            initial_model_file = self.run_initial_model(class3d_params, project_dir)
+            job_num_3d = int(
+                re.search("/job[0-9]{3}", class3d_params.class3d_dir)[0][4:7]
+            )
+            initial_model_file = self.run_initial_model(
+                class3d_params, project_dir, job_num_3d - 1
+            )
         else:
             initial_model_file = str(
                 Path(class3d_params.initial_model_file).relative_to(project_dir)
@@ -194,9 +248,7 @@ class Class3DWrapper(zocalo.wrapper.BaseWrapper):
             "tau_fudge": "--tau2_fudge",
             "highres_limit": "--strict_highres_exp",
             "fn_mask": "--solvent_mask",
-            "oversampling": "--oversampling",
             "skip_align": "--skip_align",
-            "healpix_order": "--healpix_order",
             "offset_range": "--offset_range",
             "offset_step": "--offset_step",
             "allow_coarser": "--allow_coarser_sampling",
@@ -248,7 +300,7 @@ class Class3DWrapper(zocalo.wrapper.BaseWrapper):
         self.log.info("Sending to node creator")
         node_creator_parameters = {
             "job_type": "relion.class3d",
-            "input_file": class3d_params.particles_file + ":" + initial_model_file,
+            "input_file": class3d_params.particles_file + f":{initial_model_file}",
             "output_file": class3d_params.class3d_dir,
             "relion_it_options": class3d_params.relion_it_options,
         }
