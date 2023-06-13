@@ -113,18 +113,6 @@ def test_select_particles_service(mock_environment, offline_transport, tmp_path)
                     "relion_it_options"
                 ],
             },
-            "icebreaker": {
-                "icebreaker_type": "particles",
-                "input_micrographs": (
-                    f"{tmp_path}/IceBreaker/job003/grouped_micrographs.star"
-                ),
-                "input_particles": f"{tmp_path}/Select/job009/particles_split1.star",
-                "output_path": f"{tmp_path}/IceBreaker/job",
-                "mc_uuid": 0,
-                "relion_it_options": select_test_message["parameters"][
-                    "relion_it_options"
-                ],
-            },
         },
     )
     offline_transport.send.assert_any_call(
@@ -136,18 +124,6 @@ def test_select_particles_service(mock_environment, offline_transport, tmp_path)
                 "class2d_dir": f"{tmp_path}/Class2D/job",
                 "batch_is_complete": "True",
                 "particle_diameter": 64,
-                "mc_uuid": 0,
-                "relion_it_options": select_test_message["parameters"][
-                    "relion_it_options"
-                ],
-            },
-            "icebreaker": {
-                "icebreaker_type": "particles",
-                "input_micrographs": (
-                    f"{tmp_path}/IceBreaker/job003/grouped_micrographs.star"
-                ),
-                "input_particles": f"{tmp_path}/Select/job009/particles_split2.star",
-                "output_path": f"{tmp_path}/IceBreaker/job",
                 "mc_uuid": 0,
                 "relion_it_options": select_test_message["parameters"][
                     "relion_it_options"

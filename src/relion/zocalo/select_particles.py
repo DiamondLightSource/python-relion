@@ -228,23 +228,6 @@ class SelectParticles(CommonService):
 
         if new_finished_files:
             for new_split in new_finished_files:
-                # Set up icebreaker job parameters
-                if select_params.relion_it_options["do_icebreaker_group"]:
-                    icebreaker_params = {
-                        "icebreaker_type": "particles",
-                        "input_micrographs": (
-                            f"{project_dir}/IceBreaker/job003/grouped_micrographs.star"
-                        ),
-                        "input_particles": (
-                            f"{select_dir}/particles_split{new_split}.star"
-                        ),
-                        "output_path": f"{project_dir}/IceBreaker/job",
-                        "mc_uuid": select_params.mc_uuid,
-                        "relion_it_options": select_params.relion_it_options,
-                    }
-                else:
-                    icebreaker_params = {}
-
                 # Set up Class2D job parameters
                 class2d_params = {
                     "particles_file": f"{select_dir}/particles_split{new_split}.star",
@@ -255,12 +238,11 @@ class SelectParticles(CommonService):
                     "relion_it_options": select_params.relion_it_options,
                 }
 
-                # Send all newly completed file to murfey
+                # Send all newly completed files to murfey
                 self.log.info(f"Sending batch {select_output_file} to Murfey")
                 murfey_params = {
                     "register": "complete_particles_file",
                     "class2d": class2d_params,
-                    "icebreaker": icebreaker_params,
                 }
                 if isinstance(rw, MockRW):
                     rw.transport.send("murfey_feedback", murfey_params)

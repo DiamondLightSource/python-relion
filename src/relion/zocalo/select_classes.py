@@ -130,7 +130,7 @@ class SelectClasses(CommonService):
         project_dir = class2d_job_dir.parent.parent
 
         select_job_num = (
-            int(re.search("/job[0-9]{3}", str(class2d_job_dir))[0][4:7]) + 1
+            int(re.search("/job[0-9]{3}", str(class2d_job_dir))[0][4:7]) + 2
         )
         select_dir = project_dir / f"Select/job{select_job_num:03}"
         select_dir.mkdir(parents=True, exist_ok=True)

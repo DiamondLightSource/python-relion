@@ -3,6 +3,7 @@ from __future__ import annotations
 import enum
 import logging
 import os
+import re
 from pathlib import Path
 from typing import Optional
 
@@ -92,6 +93,9 @@ class Class2DWrapper(zocalo.wrapper.BaseWrapper):
         job_dir.mkdir(parents=True, exist_ok=True)
         project_dir = job_dir.parent.parent
         os.chdir(project_dir)
+        job_num = int(
+            re.search("/job[0-9]{3}", str(class2d_params.class2d_dir))[0][4:7]
+        )
 
         particles_file = str(
             Path(class2d_params.particles_file).relative_to(project_dir)
@@ -178,6 +182,21 @@ class Class2DWrapper(zocalo.wrapper.BaseWrapper):
         self.recwrap.send_to("ispyb", {"ispyb_command_list": ispyb_insert})
 
         if class2d_params.batch_is_complete:
+            # Create an icebreaker job
+            if class2d_params.relion_it_options["do_icebreaker_group"]:
+                self.log.info("Sending to icebreaker")
+                icebreaker_params = {
+                    "icebreaker_type": "particles",
+                    "input_micrographs": (
+                        f"{project_dir}/IceBreaker/job003/grouped_micrographs.star"
+                    ),
+                    "input_particles": class2d_params.particles_file,
+                    "output_path": f"{project_dir}/IceBreaker/job{job_num + 1:03}/",
+                    "mc_uuid": class2d_params.mc_uuid,
+                    "relion_it_options": class2d_params.relion_it_options,
+                }
+                self.recwrap.send_to("icebreaker", icebreaker_params)
+
             # Create a 2D autoselection job
             self.log.info("Sending to class selection")
             autoselect_parameters = {

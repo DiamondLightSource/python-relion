@@ -71,8 +71,8 @@ def test_select_classes_service(
 
     select_test_message = {
         "parameters": {
-            "input_file": f"{tmp_path}/Class2D/job011/run_it020_optimiser.star",
-            "combine_star_job_number": 10,
+            "input_file": f"{tmp_path}/Class2D/job010/run_it020_optimiser.star",
+            "combine_star_job_number": 13,
             "particles_file": "particles.star",
             "classes_file": "class_averages.star",
             "python_exe": "/dls_sw/apps/EM/relion/4.0/conda/bin/python",
@@ -126,7 +126,7 @@ def test_select_classes_service(
             "combine_star_files.py",
             f"{tmp_path}/Select/job012/particles.star",
             "--output_dir",
-            f"{tmp_path}/Select/job010",
+            f"{tmp_path}/Select/job013",
             "--split",
             "--split_size",
             "50000",
@@ -156,7 +156,7 @@ def test_select_classes_service(
             "parameters": {
                 "job_type": "combine_star_files_job",
                 "input_file": f"{tmp_path}/Select/job012/particles.star",
-                "output_file": f"{tmp_path}/Select/job010/particles_all.star",
+                "output_file": f"{tmp_path}/Select/job013/particles_all.star",
                 "relion_it_options": select_test_message["parameters"][
                     "relion_it_options"
                 ],
