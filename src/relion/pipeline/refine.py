@@ -71,10 +71,10 @@ class RefinePipelineRunner:
             _params,
             f"{job.replace('.', '_')}_job.star",
         )
-        job_path = self._proj.run_job(
+        job_obj = self._proj.run_job(
             f"{job.replace('.', '_')}_job.star", wait_for_queued=True
         )
-        return job_path
+        return job_obj.output_dir
 
     def _run_import(
         self, fn_in: str = "", node_type: str = "Particles STAR file (.star)"
