@@ -23,7 +23,7 @@ class ExtractParameters(BaseModel):
     extract_boxsize: int = 256
     norm: bool = True
     bg_radius: int = -1
-    downscale: bool = True
+    downscale: bool = False
     downscale_boxsize: int = 64
     invert_contrast: bool = True
     mc_uuid: int

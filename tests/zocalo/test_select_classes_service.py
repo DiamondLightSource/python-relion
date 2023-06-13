@@ -73,6 +73,7 @@ def test_select_classes_service(
         "parameters": {
             "input_file": f"{tmp_path}/Class2D/job010/run_it020_optimiser.star",
             "combine_star_job_number": 13,
+            "particle_diameter": 64,
             "particles_file": "particles.star",
             "classes_file": "class_averages.star",
             "python_exe": "/dls_sw/apps/EM/relion/4.0/conda/bin/python",
@@ -168,7 +169,15 @@ def test_select_classes_service(
         destination="murfey_feedback",
         message={
             "register": "run_class3d",
-            "class3d": {},
+            "class3d": {
+                "particles_file": f"{tmp_path}/Select/job013/particles_split1.star",
+                "class3d_dir": f"{tmp_path}/Class3D/job",
+                "particle_diameter": 64,
+                "mc_uuid": 0,
+                "relion_it_options": select_test_message["parameters"][
+                    "relion_it_options"
+                ],
+            },
         },
     )
 

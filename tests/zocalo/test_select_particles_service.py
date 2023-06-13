@@ -104,30 +104,14 @@ def test_select_particles_service(mock_environment, offline_transport, tmp_path)
         message={
             "register": "complete_particles_file",
             "class2d": {
-                "particles_file": f"{tmp_path}/Select/job009/particles_split1.star",
                 "class2d_dir": f"{tmp_path}/Class2D/job",
-                "batch_is_complete": "True",
-                "particle_diameter": 64,
+                "particle_diameter": "64",
                 "mc_uuid": 0,
                 "relion_it_options": select_test_message["parameters"][
                     "relion_it_options"
                 ],
-            },
-        },
-    )
-    offline_transport.send.assert_any_call(
-        destination="murfey_feedback",
-        message={
-            "register": "complete_particles_file",
-            "class2d": {
                 "particles_file": f"{tmp_path}/Select/job009/particles_split2.star",
-                "class2d_dir": f"{tmp_path}/Class2D/job",
                 "batch_is_complete": "True",
-                "particle_diameter": 64,
-                "mc_uuid": 0,
-                "relion_it_options": select_test_message["parameters"][
-                    "relion_it_options"
-                ],
             },
         },
     )

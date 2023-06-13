@@ -23,7 +23,7 @@ class Class2DParameters(BaseModel):
     particles_file: str = Field(..., min_length=1)
     class2d_dir: str = Field(..., min_length=1)
     batch_is_complete: bool
-    particle_diameter: int
+    particle_diameter: float
     dont_combine_weights_via_disc: bool = True
     preread_images: bool = True
     scratch_dir: str = None
@@ -203,6 +203,7 @@ class Class2DWrapper(zocalo.wrapper.BaseWrapper):
                 "input_file": f"{class2d_params.class2d_dir}/run_it{class2d_params.nr_iter:03}_optimiser.star",
                 "combine_star_job_number": class2d_params.combine_star_job_number,
                 "min_score": class2d_params.autoselect_min_score,
+                "particle_diameter": class2d_params.particle_diameter,
                 "mc_uuid": class2d_params.mc_uuid,
                 "relion_it_options": class2d_params.relion_it_options,
             }

@@ -16,6 +16,7 @@ from workflows.services.common_service import CommonService
 class SelectClassesParameters(BaseModel):
     input_file: str = Field(..., min_length=1)
     combine_star_job_number: int
+    particle_diameter: float
     particles_file: str = "particles.star"
     classes_file: str = "class_averages.star"
     python_exe: str = "/dls_sw/apps/EM/relion/4.0/conda/bin/python"
@@ -272,8 +273,8 @@ class SelectClasses(CommonService):
         # Send to node creator
         combine_node_creator_params = {
             "job_type": "combine_star_files_job",
-            "input_file": str(select_dir / autoselect_params.particles_file),
-            "output_file": str(combine_star_dir / "particles_all.star"),
+            "input_file": f"{select_dir}/{autoselect_params.particles_file}",
+            "output_file": f"{combine_star_dir}/particles_all.star",
             "relion_it_options": autoselect_params.relion_it_options,
         }
         if isinstance(rw, MockRW):
@@ -292,7 +293,13 @@ class SelectClasses(CommonService):
             # Only send to 3D if a new multiple of the batch threshold is crossed
             # and the count does not exceed the maximum
             self.log.info("Sending to murfey for Class3D")
-            class3d_params = {}
+            class3d_params = {
+                "particles_file": f"{combine_star_dir}/particles_split1.star",
+                "class3d_dir": f"{project_dir}/Class3D/job",
+                "particle_diameter": autoselect_params.particle_diameter,
+                "mc_uuid": autoselect_params.mc_uuid,
+                "relion_it_options": autoselect_params.relion_it_options,
+            }
             murfey_params = {
                 "register": "run_class3d",
                 "class3d": class3d_params,
