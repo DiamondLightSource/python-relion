@@ -39,6 +39,9 @@ class SelectClasses(CommonService):
     # Logger name
     _logger_name = "relion.zocalo.select.classes"
 
+    # Job name
+    job_type = "relion.select.class2dauto"
+
     # Values to extract for ISPyB
     previous_total_count = 0
     total_count = 0
@@ -171,6 +174,10 @@ class SelectClasses(CommonService):
         else:
             autoselect_command.extend(("--min_score", str(autoselect_params.min_score)))
 
+        with open(select_dir / "note.txt", "w") as f:
+            f.write(" ".join(autoselect_command))
+
+        # Run the class selection
         result = procrunner.run(
             command=autoselect_command,
             callback_stdout=self.parse_autoselect_output,
@@ -202,6 +209,10 @@ class SelectClasses(CommonService):
                 f"Re-running class selection with new threshold {quantile_threshold}"
             )
             autoselect_command[-1] = str(quantile_threshold)
+            with open(select_dir / "note.txt", "a") as f:
+                f.write(" ".join(autoselect_command))
+
+            # Re-run the class selection
             result = procrunner.run(
                 command=autoselect_command,
                 callback_stdout=self.parse_autoselect_output,
@@ -216,8 +227,9 @@ class SelectClasses(CommonService):
                 return
 
         # Send to node creator
+        self.log.info(f"Sending {self.job_type} to node creator")
         autoselect_node_creator_params = {
-            "job_type": "relion.select.class2dauto",
+            "job_type": self.job_type,
             "input_file": autoselect_params.input_file,
             "output_file": str(select_dir / autoselect_params.particles_file),
             "relion_it_options": autoselect_params.relion_it_options,
@@ -234,6 +246,7 @@ class SelectClasses(CommonService):
             rw.send_to("spa.node_creator", autoselect_node_creator_params)
 
         # Run the combine star files job
+        self.log.info("Running star file combination and splitting")
         combine_star_command = [
             "combine_star_files.py",
             str(select_dir / autoselect_params.particles_file),
@@ -256,7 +269,10 @@ class SelectClasses(CommonService):
                 str(autoselect_params.class3d_batch_size),
             )
         )
+        with open(combine_star_dir / "note.txt", "a") as f:
+            f.write(" ".join(combine_star_command))
 
+        # Run the star file manipulations
         result = procrunner.run(
             command=combine_star_command,
             callback_stdout=self.parse_combiner_output,
@@ -271,6 +287,7 @@ class SelectClasses(CommonService):
             return
 
         # Send to node creator
+        self.log.info("Sending combine_star_files_job to node creator")
         combine_node_creator_params = {
             "job_type": "combine_star_files_job",
             "input_file": f"{select_dir}/{autoselect_params.particles_file}",
@@ -292,7 +309,7 @@ class SelectClasses(CommonService):
         ) and (self.total_count <= autoselect_params.class3d_max_size):
             # Only send to 3D if a new multiple of the batch threshold is crossed
             # and the count does not exceed the maximum
-            self.log.info("Sending to murfey for Class3D")
+            self.log.info("Sending to Murfey for Class3D")
             class3d_params = {
                 "particles_file": f"{combine_star_dir}/particles_split1.star",
                 "class3d_dir": f"{project_dir}/Class3D/job",
@@ -309,4 +326,5 @@ class SelectClasses(CommonService):
             else:
                 rw.send_to("murfey_feedback", murfey_params)
 
+        self.log.info(f"Done {self.job_type} for {autoselect_params.input_file}.")
         rw.transport.ack(header)

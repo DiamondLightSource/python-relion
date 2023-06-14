@@ -32,6 +32,9 @@ class SelectParticles(CommonService):
     # Logger name
     _logger_name = "relion.zocalo.select.particles"
 
+    # Job name
+    job_type = "relion.select.split"
+
     def initializing(self):
         """Subscribe to a queue. Received messages must be acknowledged."""
         self.log.info("Select particles service starting")
@@ -192,8 +195,9 @@ class SelectParticles(CommonService):
             new_particles_cif.write_file(select_output_file)
 
         # Send to node creator
+        self.log.info(f"Sending {self.job_type} to node creator")
         node_creator_params = {
-            "job_type": "relion.select.split",
+            "job_type": self.job_type,
             "input_file": select_params.input_file,
             "output_file": select_output_file,
             "relion_it_options": select_params.relion_it_options,
@@ -217,6 +221,7 @@ class SelectParticles(CommonService):
             class2d_params["particles_file"] = f"{select_dir}/particles_split1.star"
             class2d_params["batch_is_complete"] = "False"
 
+            self.log.info(f"Sending incomplete batch {select_output_file} to Murfey")
             murfey_params = {
                 "register": "incomplete_particles_file",
                 "class2d": class2d_params,
@@ -235,7 +240,7 @@ class SelectParticles(CommonService):
                 class2d_params["batch_is_complete"] = "True"
 
                 # Send all newly completed files to murfey
-                self.log.info(f"Sending batch {select_output_file} to Murfey")
+                self.log.info(f"Sending complete batch {select_output_file} to Murfey")
                 murfey_params = {
                     "register": "complete_particles_file",
                     "class2d": class2d_params,
@@ -247,4 +252,5 @@ class SelectParticles(CommonService):
                 else:
                     rw.send_to("murfey_feedback", murfey_params)
 
+        self.log.info(f"Done {self.job_type} for {select_params.input_file}.")
         rw.transport.ack(header)

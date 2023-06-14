@@ -81,7 +81,7 @@ class TomoAlign(CommonService):
     """
 
     # Human readable service name
-    _service_name = "DLS TomoAlign"
+    _service_name = "TomoAlign"
     # Logger name
     _logger_name = "relion.zocalo.tomo_align"
 

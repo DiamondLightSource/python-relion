@@ -37,6 +37,9 @@ class IceBreaker(CommonService):
     # Logger name
     _logger_name = "relion.zocalo.icebreaker"
 
+    # Job name
+    job_type = "icebreaker.micrograph_analysis"
+
     # Values to extract for ISPyB
     number_of_particles: int
 
@@ -118,6 +121,7 @@ class IceBreaker(CommonService):
             f"Input: {icebreaker_params.input_micrographs} "
             f"Output: {icebreaker_params.output_path}"
         )
+        this_job_type = f"{self.job_type}.{icebreaker_params.icebreaker_type}"
 
         # Create commands depending on the icebreaker types
         if icebreaker_params.icebreaker_type == "micrographs":
@@ -162,7 +166,10 @@ class IceBreaker(CommonService):
                 "--o",
                 icebreaker_params.output_path,
             ]
+        with open(Path(icebreaker_params.output_path).parent / "note.txt", "w") as f:
+            f.write(" ".join(command))
 
+        # Run the icebreaker command
         result = procrunner.run(
             command=command, callback_stdout=self.parse_icebreaker_output
         )
@@ -210,8 +217,9 @@ class IceBreaker(CommonService):
                 rw.send_to("icebreaker", next_icebreaker_params)
 
         # Register the icebreaker job with the node creator
+        self.log.info(f"Sending {this_job_type} to node creator")
         node_creator_parameters = {
-            "job_type": f"icebreaker.micrograph_analysis.{icebreaker_params.icebreaker_type}",
+            "job_type": this_job_type,
             "input_file": icebreaker_params.input_micrographs,
             "output_file": icebreaker_params.output_path,
             "relion_it_options": icebreaker_params.relion_it_options,
@@ -232,4 +240,7 @@ class IceBreaker(CommonService):
         else:
             rw.send_to("spa.node_creator", node_creator_parameters)
 
+        self.log.info(
+            f"Done {this_job_type} for {icebreaker_params.input_micrographs}."
+        )
         rw.transport.ack(header)

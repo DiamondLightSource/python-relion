@@ -343,6 +343,7 @@ class PipelineRunner:
         all_split_files = list(select_job.glob("*particles_split*.star"))
         if len(all_split_files) == 1:
             return [str(all_split_files[0])]
+
         # drop the most recent batch if there is more than one as it probably isn't complete
         def batch(fname: str) -> int:
             spfname = fname.split("particles_split")

@@ -68,9 +68,10 @@ def _import_output_files(
     relion_it_options: dict,
     results: dict,
 ):
+    """Import jobs save a list of all micrographs"""
     star_file = job_dir / "movies.star"
 
-    # Read the existing output file, or otherwise create one
+    # Read and append to the existing output file, or otherwise create one
     if not star_file.exists():
         output_cif = get_optics_table(relion_it_options)
 
@@ -94,9 +95,10 @@ def _motioncorr_output_files(
     relion_it_options: dict,
     results: dict,
 ):
+    """Motion correction saves a list of micrographs and their motion"""
     star_file = job_dir / "corrected_micrographs.star"
 
-    # Read the existing output file, or otherwise create one
+    # Read and append to the existing output file, or otherwise create one
     if not star_file.exists():
         output_cif = get_optics_table(relion_it_options)
 
@@ -140,9 +142,10 @@ def _ctffind_output_files(
     relion_it_options: dict,
     results: dict,
 ):
+    """Ctf estimation saves a list of micrographs and their ctf parameters"""
     star_file = job_dir / "micrographs_ctf.star"
 
-    # Read the existing output file, or otherwise create one
+    # Read and append to the existing output file, or otherwise create one
     if not star_file.exists():
         output_cif = get_optics_table(relion_it_options)
 
@@ -197,6 +200,7 @@ def _icebreaker_output_files(
     results: dict,
 ):
     if results["icebreaker_type"] == "micrographs":
+        # Micrograph jobs save a list of micrographs and their motion
         star_file = job_dir / "grouped_micrographs.star"
         file_to_add = (
             str(
@@ -206,6 +210,7 @@ def _icebreaker_output_files(
             + "_grouped.mrc"
         )
     elif results["icebreaker_type"] == "enhancecontrast":
+        # Contrast enhancement jobs save a list of micrographs and their motion
         star_file = job_dir / "flattened_micrographs.star"
         file_to_add = (
             str(
@@ -218,7 +223,7 @@ def _icebreaker_output_files(
         # Nothing to do for summary and particles jobs
         return
 
-    # Read the existing output file, or otherwise create one
+    # Read and append to the existing output file, or otherwise create one
     if not star_file.exists():
         output_cif = cif.Document()
 
@@ -259,9 +264,10 @@ def _cryolo_output_files(
     relion_it_options: dict,
     results: dict,
 ):
+    """Cryolo jobs save a list of micrographs and files with particle coordinates"""
     star_file = job_dir / "autopick.star"
 
-    # Read the existing output file, or otherwise create one
+    # Read and append to the existing output file, or otherwise create one
     if not star_file.exists():
         output_cif = cif.Document()
 
@@ -289,9 +295,10 @@ def _extract_output_files(
     relion_it_options: dict,
     results: dict,
 ):
+    """Extract jobs save a list of particle coordinates"""
     star_file = job_dir / "particles.star"
 
-    # Read the existing output file, or otherwise create one
+    # Read and append to the existing output file, or otherwise create one
     if not star_file.exists():
         output_cif = get_optics_table(
             relion_it_options, particle=True, im_size=results["box_size"]
@@ -326,20 +333,22 @@ def _select_output_files(
     relion_it_options: dict,
     results: dict,
 ):
-    # Find and add all the output files
+    """Select jobs need no further files, but have extra nodes to add"""
+    # Find and add all the output files to the node list
     split_files = {}
     for node in job_dir.glob("particles_split*.star"):
         split_files[node.name] = [NODE_PARTICLESDATA, ["relion"]]
     return split_files
 
 
-def _relion_no_output_files(
+def _relion_no_extra_files(
     job_dir: Path,
     input_file: Path,
     output_file: Path,
     relion_it_options: dict,
     results: dict,
 ):
+    """Jobs run through relion do not need any extra files written"""
     return
 
 
@@ -354,11 +363,11 @@ _output_files: Dict[str, Callable] = {
     "relion.extract": _extract_output_files,
     "relion.select.split": _select_output_files,
     "icebreaker.micrograph_analysis.particles": _icebreaker_output_files,
-    "relion.class2d.em": _relion_no_output_files,
-    "relion.select.class2dauto": _relion_no_output_files,
-    "combine_star_files_job": _select_output_files,
-    "relion.initialmodel": _relion_no_output_files,
-    "relion.class3d": _relion_no_output_files,
+    "relion.class2d.em": _relion_no_extra_files,
+    "relion.select.class2dauto": _relion_no_extra_files,
+    "combine_star_files_job": _relion_no_extra_files,
+    "relion.initialmodel": _relion_no_extra_files,
+    "relion.class3d": _relion_no_extra_files,
 }
 
 

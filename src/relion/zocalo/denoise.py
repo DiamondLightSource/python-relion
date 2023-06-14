@@ -97,7 +97,7 @@ class Denoise(CommonService):
         )
 
     def denoise(self, rw, header: dict, message: dict):
-        class RW_mock:
+        class MockRW:
             def dummy(self, *args, **kwargs):
                 pass
 
@@ -113,7 +113,7 @@ class Denoise(CommonService):
 
             # Create a wrapper-like object that can be passed to functions
             # as if a recipe wrapper was present.
-            rw = RW_mock()
+            rw = MockRW()
             rw.transport = self._transport
             rw.recipe_step = {"parameters": message["parameters"], "output": None}
             rw.environment = {"has_recipe_wrapper": False}
@@ -273,7 +273,7 @@ class Denoise(CommonService):
 
         # Forward results to images service
         self.log.info(f"Sending to images service {d_params.volume}")
-        if isinstance(rw, RW_mock):
+        if isinstance(rw, MockRW):
             rw.transport.send(
                 destination="images",
                 message={

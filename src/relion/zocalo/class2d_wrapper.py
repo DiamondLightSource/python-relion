@@ -16,14 +16,13 @@ logger = logging.getLogger("relion.class2d.wrapper")
 
 RelionStatus = enum.Enum("RelionStatus", "RUNNING SUCCESS FAILURE")
 
-job_type = "relion.class2d.em"
-
 
 class Class2DParameters(BaseModel):
     particles_file: str = Field(..., min_length=1)
     class2d_dir: str = Field(..., min_length=1)
     batch_is_complete: bool
     particle_diameter: float
+    do_vdam = False
     dont_combine_weights_via_disc: bool = True
     preread_images: bool = True
     scratch_dir: str = None
@@ -87,6 +86,11 @@ class Class2DWrapper(zocalo.wrapper.BaseWrapper):
                 f"Class2D parameter validation failed for parameters: {params_dict}."
             )
             return False
+
+        if class2d_params.do_vdam:
+            job_type = "relion.class2d.vdam"
+        else:
+            job_type = "relion.class2d.em"
 
         # Make the job directory and move to the project directory
         job_dir = Path(class2d_params.class2d_dir)
@@ -152,7 +156,8 @@ class Class2DWrapper(zocalo.wrapper.BaseWrapper):
         class2d_command.extend(
             ("--pipeline_control", f"{job_dir.relative_to(project_dir)}/")
         )
-        self.log.info(f"Running {class2d_command}")
+        with open(Path(class2d_params.class2d_dir) / "note.txt", "w") as f:
+            f.write(" ".join(class2d_command))
 
         # Run Class2D and confirm it ran successfully
         result = procrunner.run(
@@ -168,9 +173,9 @@ class Class2DWrapper(zocalo.wrapper.BaseWrapper):
             return False
 
         # Register the Class2D job with the node creator
-        self.log.info("Sending to node creator")
+        self.log.info(f"Sending {job_type} to node creator")
         node_creator_parameters = {
-            "job_type": "relion.class2d.em",
+            "job_type": job_type,
             "input_file": class2d_params.particles_file,
             "output_file": class2d_params.class2d_dir,
             "relion_it_options": class2d_params.relion_it_options,
@@ -184,7 +189,7 @@ class Class2DWrapper(zocalo.wrapper.BaseWrapper):
         if class2d_params.batch_is_complete:
             # Create an icebreaker job
             if class2d_params.relion_it_options["do_icebreaker_group"]:
-                self.log.info("Sending to icebreaker")
+                self.log.info("Sending to icebreaker particle analysis")
                 icebreaker_params = {
                     "icebreaker_type": "particles",
                     "input_micrographs": (
@@ -209,4 +214,5 @@ class Class2DWrapper(zocalo.wrapper.BaseWrapper):
             }
             self.recwrap.send_to("select.classes", autoselect_parameters)
 
+        self.log.info(f"Done {job_type} for {class2d_params.particles_file}.")
         return True

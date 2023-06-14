@@ -41,6 +41,9 @@ class CrYOLO(CommonService):
     # Logger name
     _logger_name = "relion.zocalo.cryolo"
 
+    # Job name
+    job_type = "cryolo.autopick"
+
     # Values to extract for ISPyB
     number_of_particles: int
 
@@ -151,6 +154,8 @@ class CrYOLO(CommonService):
             f"Input: {cryolo_params.input_path} "
             + f"Output: {cryolo_params.output_path}"
         )
+        with open(job_dir / "note.txt", "w") as f:
+            f.write(" ".join(command))
 
         # Run cryolo and confirm it ran successfully
         result = procrunner.run(
@@ -271,7 +276,7 @@ class CrYOLO(CommonService):
             )
 
         # Forward results to murfey
-        self.log.info("Sending to Murfey")
+        self.log.info("Sending to Murfey for particle extraction")
         if isinstance(rw, MockRW):
             rw.transport.send(
                 destination="murfey_feedback",
@@ -296,8 +301,9 @@ class CrYOLO(CommonService):
             )
 
         # Register the cryolo job with the node creator
+        self.log.info(f"Sending {self.job_type} to node creator")
         node_creator_parameters = {
-            "job_type": "cryolo.autopick",
+            "job_type": self.job_type,
             "input_file": cryolo_params.input_path,
             "output_file": cryolo_params.output_path,
             "relion_it_options": cryolo_params.relion_it_options,
@@ -310,4 +316,5 @@ class CrYOLO(CommonService):
         else:
             rw.send_to("spa.node_creator", node_creator_parameters)
 
+        self.log.info(f"Done {self.job_type} for {cryolo_params.input_path}.")
         rw.transport.ack(header)

@@ -82,6 +82,9 @@ class MotionCorr(CommonService):
     # Logger name
     _logger_name = "relion.zocalo.motioncorr"
 
+    # Job name
+    job_type = "relion.motioncorr.motioncor2"
+
     # Values to extract for ISPyB
     x_shift_list = []
     y_shift_list = []
@@ -214,6 +217,8 @@ class MotionCorr(CommonService):
                     command.extend((mc_flags[k], str(v)))
 
         self.log.info(f"Input: {mc_params.movie} Output: {mc_params.mrc_out}")
+        with open(Path(mc_params.mrc_out).parent / "note.txt", "w") as f:
+            f.write(" ".join(command))
 
         # Run motion correction
         result = procrunner.run(command=command, callback_stdout=self.parse_mc_output)
@@ -424,6 +429,7 @@ class MotionCorr(CommonService):
         # If this is SPA, send the results to be processed by the node creator
         if mc_params.collection_type == "spa":
             # As this is the entry point we need to import the file to the project
+            self.log.info("Sending relion.import.movies to node creator")
             project_dir = Path(
                 re.search(".+/job[0-9]{3}/", mc_params.mrc_out)[0]
             ).parent.parent
@@ -451,8 +457,9 @@ class MotionCorr(CommonService):
                 rw.send_to("spa.node_creator", import_parameters)
 
             # Then register the motion correction job with the node creator
+            self.log.info(f"Sending {self.job_type} to node creator")
             node_creator_parameters = {
-                "job_type": "relion.motioncorr.motioncor2",
+                "job_type": self.job_type,
                 "input_file": str(import_movie),
                 "output_file": mc_params.mrc_out,
                 "relion_it_options": mc_params.relion_it_options,
@@ -470,6 +477,7 @@ class MotionCorr(CommonService):
             else:
                 rw.send_to("spa.node_creator", node_creator_parameters)
 
+        self.log.info(f"Done {self.job_type} for {mc_params.movie}.")
         rw.transport.ack(header)
         self.x_shift_list = []
         self.y_shift_list = []

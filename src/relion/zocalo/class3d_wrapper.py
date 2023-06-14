@@ -142,9 +142,11 @@ class Class3DWrapper(zocalo.wrapper.BaseWrapper):
         initial_model_command.extend(
             ("--pipeline_control", f"{job_dir.relative_to(project_dir)}/")
         )
+        with open(job_dir / "note.txt", "w") as f:
+            f.write(" ".join(initial_model_command))
 
         # Run initial model and confirm it ran successfully
-        self.log.info(f"Running {initial_model_command}")
+        self.log.info("Running initial model")
         result = procrunner.run(
             command=initial_model_command,
             callback_stdout=self.parse_class3d_output,
@@ -158,7 +160,6 @@ class Class3DWrapper(zocalo.wrapper.BaseWrapper):
             return False
 
         ini_model_file = job_dir / "initial_model.mrc"
-
         align_symmetry_command = [
             "relion_align_symmetry",
             "--i",
@@ -173,8 +174,11 @@ class Class3DWrapper(zocalo.wrapper.BaseWrapper):
             "--pipeline_control",
             job_dir.relative_to(project_dir),
         ]
+        with open(job_dir / "note.txt", "a") as f:
+            f.write("\n" + "".join(align_symmetry_command))
+
         # Run symmetry alignment and confirm it ran successfully
-        self.log.info(f"Running {align_symmetry_command}")
+        self.log.info("Running symmetry alignment")
         result = procrunner.run(
             command=align_symmetry_command,
             callback_stdout=self.parse_class3d_output,
@@ -189,7 +193,7 @@ class Class3DWrapper(zocalo.wrapper.BaseWrapper):
             return False
 
         # Register the initial model job with the node creator
-        self.log.info("Sending to node creator")
+        self.log.info("Sending relion.initialmodel to node creator")
         node_creator_parameters = {
             "job_type": "relion.initialmodel",
             "input_file": f"{project_dir}/{particles_file}",
@@ -281,7 +285,8 @@ class Class3DWrapper(zocalo.wrapper.BaseWrapper):
         class3d_command.extend(
             ("--pipeline_control", f"{job_dir.relative_to(project_dir)}/")
         )
-        self.log.info(f"Running {class3d_command}")
+        with open(Path(class3d_params.class3d_dir) / "note.txt", "w") as f:
+            f.write(" ".join(class3d_command))
 
         # Run Class3D and confirm it ran successfully
         result = procrunner.run(
@@ -297,9 +302,9 @@ class Class3DWrapper(zocalo.wrapper.BaseWrapper):
             return False
 
         # Register the Class3D job with the node creator
-        self.log.info("Sending to node creator")
+        self.log.info(f"Sending {job_type} to node creator")
         node_creator_parameters = {
-            "job_type": "relion.class3d",
+            "job_type": job_type,
             "input_file": class3d_params.particles_file + f":{initial_model_file}",
             "output_file": class3d_params.class3d_dir,
             "relion_it_options": class3d_params.relion_it_options,
@@ -310,4 +315,5 @@ class Class3DWrapper(zocalo.wrapper.BaseWrapper):
         ispyb_insert = {"command": "classification"}
         self.recwrap.send_to("ispyb", {"ispyb_command_list": ispyb_insert})
 
+        self.log.info(f"Done {job_type} for {class3d_params.particles_file}.")
         return True

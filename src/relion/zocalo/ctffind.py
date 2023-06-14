@@ -46,6 +46,9 @@ class CTFFind(CommonService):
     # Logger name
     _logger_name = "relion.zocalo.ctffind"
 
+    # Job name
+    job_type = "relion.ctffind.ctffind4"
+
     # Values to extract for ISPyB
     astigmatism_angle: float
     cc_value: float
@@ -160,6 +163,8 @@ class CTFFind(CommonService):
         self.log.info(
             f"Input: {ctf_params.input_image} Output: {ctf_params.output_image}"
         )
+        with open(Path(ctf_params.output_image).parent / "note.txt", "w") as f:
+            f.write("".join(command) + " ".join(parameters_list))
 
         result = procrunner.run(
             command=command,
@@ -245,8 +250,9 @@ class CTFFind(CommonService):
         # If this is SPA, send the results to be processed by the node creator
         if ctf_params.collection_type.lower() == "spa":
             # Register the ctf job with the node creator
+            self.log.info(f"Sending {self.job_type} to node creator")
             node_creator_parameters = {
-                "job_type": "relion.ctffind.ctffind4",
+                "job_type": self.job_type,
                 "input_file": ctf_params.input_image,
                 "output_file": ctf_params.output_image,
                 "relion_it_options": ctf_params.relion_it_options,
@@ -299,4 +305,5 @@ class CTFFind(CommonService):
             else:
                 rw.send_to("cryolo", ctf_params.autopick)
 
+        self.log.info(f"Done {self.job_type} for {ctf_params.input_image}.")
         rw.transport.ack(header)

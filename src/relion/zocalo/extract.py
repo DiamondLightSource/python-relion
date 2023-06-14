@@ -41,6 +41,9 @@ class Extract(CommonService):
     # Logger name
     _logger_name = "relion.zocalo.extract"
 
+    # Job name
+    job_type = "relion.extract"
+
     def initializing(self):
         """Subscribe to a queue. Received messages must be acknowledged."""
         self.log.info("Extract service starting")
@@ -277,6 +280,7 @@ class Extract(CommonService):
             mrc.header.cella.z = 1
 
         # Register the extract job with the node creator
+        self.log.info(f"Sending {self.job_type} to node creator")
         node_creator_parameters = {
             "job_type": "relion.extract",
             "input_file": extract_params.coord_list_file
@@ -295,6 +299,7 @@ class Extract(CommonService):
             rw.send_to("spa.node_creator", node_creator_parameters)
 
         # Register the files needed for selection and batching
+        self.log.info("Sending to particle selection")
         select_params = {
             "input_file": extract_params.output_file,
             "relion_it_options": extract_params.relion_it_options,
@@ -310,4 +315,5 @@ class Extract(CommonService):
         else:
             rw.send_to("select.particles", select_params)
 
+        self.log.info(f"Done {self.job_type} for {extract_params.coord_list_file}.")
         rw.transport.ack(header)

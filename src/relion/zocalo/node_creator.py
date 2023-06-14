@@ -23,6 +23,8 @@ from relion.cryolo_relion_it.cryolo_relion_it import RelionItOptions
 from relion.pipeline.options import generate_pipeline_options
 from relion.zocalo.spa_output_files import create_output_files
 
+# A dictionary of all the available jobs,
+# the folder name they run in, and the names of their inputs in the job star
 pipeline_spa_jobs = {
     "relion.import.movies": {"folder": "Import"},
     "relion.motioncorr.motioncor2": {
@@ -68,6 +70,10 @@ pipeline_spa_jobs = {
         },
     },
     "relion.class2d.em": {
+        "folder": "Class2D",
+        "input_stars": {"fn_img": "particles_split1.star"},
+    },
+    "relion.class2d.vdam": {
         "folder": "Class2D",
         "input_stars": {"fn_img": "particles_split1.star"},
     },
