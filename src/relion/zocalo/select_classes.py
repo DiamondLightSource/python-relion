@@ -210,7 +210,7 @@ class SelectClasses(CommonService):
             )
             autoselect_command[-1] = str(quantile_threshold)
             with open(select_dir / "note.txt", "a") as f:
-                f.write(" ".join(autoselect_command))
+                f.write("\n\n" + " ".join(autoselect_command))
 
             # Re-run the class selection
             result = procrunner.run(
@@ -270,7 +270,7 @@ class SelectClasses(CommonService):
             )
         )
         with open(combine_star_dir / "note.txt", "a") as f:
-            f.write(" ".join(combine_star_command))
+            f.write(" ".join(combine_star_command) + "\n\n")
 
         # Run the star file manipulations
         result = procrunner.run(

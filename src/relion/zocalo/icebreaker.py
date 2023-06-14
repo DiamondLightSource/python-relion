@@ -166,7 +166,7 @@ class IceBreaker(CommonService):
                 "--o",
                 icebreaker_params.output_path,
             ]
-        with open(Path(icebreaker_params.output_path).parent / "note.txt", "w") as f:
+        with open(Path(icebreaker_params.output_path) / "note.txt", "w") as f:
             f.write(" ".join(command))
 
         # Run the icebreaker command

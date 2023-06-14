@@ -217,7 +217,8 @@ class MotionCorr(CommonService):
                     command.extend((mc_flags[k], str(v)))
 
         self.log.info(f"Input: {mc_params.movie} Output: {mc_params.mrc_out}")
-        with open(Path(mc_params.mrc_out).parent / "note.txt", "w") as f:
+        job_dir = Path(re.search(".+/job[0-9]{3}/", mc_params.mrc_out)[0])
+        with open(job_dir / "note.txt", "w") as f:
             f.write(" ".join(command))
 
         # Run motion correction

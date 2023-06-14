@@ -142,7 +142,7 @@ class Class3DWrapper(zocalo.wrapper.BaseWrapper):
         initial_model_command.extend(
             ("--pipeline_control", f"{job_dir.relative_to(project_dir)}/")
         )
-        with open(job_dir / "note.txt", "w") as f:
+        with open(job_dir / "note.txt", "a") as f:
             f.write(" ".join(initial_model_command))
 
         # Run initial model and confirm it ran successfully
@@ -163,16 +163,18 @@ class Class3DWrapper(zocalo.wrapper.BaseWrapper):
         align_symmetry_command = [
             "relion_align_symmetry",
             "--i",
-            job_dir.relative_to(project_dir)
-            / f"run_it{initial_model_params.initial_model_iterations:03}_model.star",
+            str(
+                job_dir.relative_to(project_dir)
+                / f"run_it{initial_model_params.initial_model_iterations:03}_model.star"
+            ),
             "--o",
-            ini_model_file.relative_to(project_dir),
+            f"{ini_model_file.relative_to(project_dir)}",
             "--sym",
             initial_model_params.symmetry,
             "--apply_sym",
             "--select_largest_class",
             "--pipeline_control",
-            job_dir.relative_to(project_dir),
+            f"{job_dir.relative_to(project_dir)}/",
         ]
         with open(job_dir / "note.txt", "a") as f:
             f.write("\n" + "".join(align_symmetry_command))
@@ -202,7 +204,7 @@ class Class3DWrapper(zocalo.wrapper.BaseWrapper):
         }
         self.recwrap.send_to("spa.node_creator", node_creator_parameters)
 
-        return ini_model_file
+        return f"{ini_model_file}"
 
     def run(self):
         """

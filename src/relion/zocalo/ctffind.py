@@ -136,6 +136,7 @@ class CTFFind(CommonService):
             return
 
         # Make sure the output directory exists
+        job_dir = Path(re.search(".+/job[0-9]{3}/", ctf_params.output_image)[0])
         if not Path(ctf_params.output_image).parent.exists():
             Path(ctf_params.output_image).parent.mkdir(parents=True)
 
@@ -163,8 +164,12 @@ class CTFFind(CommonService):
         self.log.info(
             f"Input: {ctf_params.input_image} Output: {ctf_params.output_image}"
         )
-        with open(Path(ctf_params.output_image).parent / "note.txt", "w") as f:
-            f.write("".join(command) + " ".join(parameters_list))
+        with open(job_dir / "note.txt", "w") as f:
+            f.write(
+                "".join(command)
+                + "\n"
+                + " ".join(str(param) for param in parameters_list)
+            )
 
         result = procrunner.run(
             command=command,
