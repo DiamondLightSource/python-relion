@@ -71,7 +71,6 @@ def test_select_particles_service(mock_environment, offline_transport, tmp_path)
         "parameters": {
             "input_file": str(extract_file),
             "batch_size": 2,
-            "mc_uuid": 0,
             "image_size": 64,
             "relion_it_options": relion_it_options,
         },
@@ -106,7 +105,6 @@ def test_select_particles_service(mock_environment, offline_transport, tmp_path)
             "class2d": {
                 "class2d_dir": f"{tmp_path}/Class2D/job",
                 "particle_diameter": "64",
-                "mc_uuid": 0,
                 "relion_it_options": select_test_message["parameters"][
                     "relion_it_options"
                 ],

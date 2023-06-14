@@ -73,7 +73,6 @@ def test_extract_service(mock_mrcfile, mock_environment, offline_transport, tmp_
             "downscale": True,
             "downscale_boxsize": 64,
             "invert_contrast": True,
-            "mc_uuid": 0,
             "relion_it_options": {"batch_size": 50000},
         },
         "content": "dummy",
@@ -100,7 +99,6 @@ def test_extract_service(mock_mrcfile, mock_environment, offline_transport, tmp_
                     "batch_size"
                 ],
                 "image_size": 64,
-                "mc_uuid": extract_test_message["parameters"]["mc_uuid"],
             },
             "content": "dummy",
         },

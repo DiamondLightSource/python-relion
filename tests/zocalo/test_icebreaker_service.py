@@ -54,7 +54,6 @@ def test_icebreaker_micrographs_service(
             "input_micrographs": f"{tmp_path}/MotionCorr/job002/sample.mrc",
             "input_particles": None,
             "output_path": f"{tmp_path}/IceBreaker/job003/",
-            "mc_uuid": 0,
             "cpus": 1,
             "relion_it_options": {"options": "options"},
             "total_motion": 0.5,
@@ -91,7 +90,6 @@ def test_icebreaker_micrographs_service(
             "parameters": {
                 "icebreaker_type": "summary",
                 "input_micrographs": f"{tmp_path}/IceBreaker/job003/sample_grouped.mrc",
-                "mc_uuid": icebreaker_test_message["parameters"]["mc_uuid"],
                 "relion_it_options": icebreaker_test_message["parameters"][
                     "relion_it_options"
                 ],
@@ -146,7 +144,6 @@ def test_icebreaker_enhancecontrast_service(
             "input_micrographs": f"{tmp_path}/MotionCorr/job002/sample.mrc",
             "input_particles": None,
             "output_path": f"{tmp_path}/IceBreaker/job004/",
-            "mc_uuid": 0,
             "cpus": 1,
             "relion_it_options": {"options": "options"},
             "total_motion": 0.5,
@@ -223,7 +220,6 @@ def test_icebreaker_summary_service(
             "input_micrographs": f"{tmp_path}/IceBreaker/job003/sample_grouped.star",
             "input_particles": None,
             "output_path": f"{tmp_path}/IceBreaker/job005/",
-            "mc_uuid": 0,
             "cpus": 1,
             "relion_it_options": {"options": "options"},
             "total_motion": 0.5,
@@ -296,7 +292,6 @@ def test_icebreaker_particles_service(
             "input_micrographs": f"{tmp_path}/IceBreaker/job003/sample_grouped.star",
             "input_particles": f"{tmp_path}/Select/job009/particles_split1.star",
             "output_path": f"{tmp_path}/IceBreaker/job010/",
-            "mc_uuid": 0,
             "cpus": 1,
             "relion_it_options": {"options": "options"},
             "total_motion": 0.5,

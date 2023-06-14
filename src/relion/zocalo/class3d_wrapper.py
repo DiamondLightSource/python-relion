@@ -57,7 +57,6 @@ class Class3DParameters(BaseModel):
     do_scale: bool = True
     threads: int = 4
     gpus: str = "0"
-    mc_uuid: int
     relion_it_options: Optional[dict] = None
 
 
@@ -314,8 +313,20 @@ class Class3DWrapper(zocalo.wrapper.BaseWrapper):
         self.recwrap.send_to("spa.node_creator", node_creator_parameters)
 
         # Send results to ispyb
-        ispyb_insert = {"command": "classification"}
-        self.recwrap.send_to("ispyb", {"ispyb_command_list": ispyb_insert})
+        # Send results to ispyb
+        ispyb_parameters = {
+            "type": "3D",
+        }
+        ispyb_parameters.update(
+            {
+                "ispyb_command": "buffer",
+                "buffer_command": {
+                    "ispyb_command": "insert_particle_classification_group"
+                },
+            }
+        )
+        self.log.info(f"Sending to ispyb {ispyb_parameters}")
+        self.recwrap.send_to("ispyb", {"ispyb_command_list": ispyb_parameters})
 
         self.log.info(f"Done {job_type} for {class3d_params.particles_file}.")
         return True

@@ -24,7 +24,6 @@ class SelectClassesParameters(BaseModel):
     min_particles: int = 500
     class3d_batch_size: int = 50000
     class3d_max_size: int = 200000
-    mc_uuid: int
     relion_it_options: Optional[dict] = None
 
 
@@ -314,7 +313,6 @@ class SelectClasses(CommonService):
                 "particles_file": f"{combine_star_dir}/particles_split1.star",
                 "class3d_dir": f"{project_dir}/Class3D/job",
                 "particle_diameter": autoselect_params.particle_diameter,
-                "mc_uuid": autoselect_params.mc_uuid,
                 "relion_it_options": autoselect_params.relion_it_options,
             }
             murfey_params = {

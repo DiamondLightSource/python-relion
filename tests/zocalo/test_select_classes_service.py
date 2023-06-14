@@ -81,7 +81,6 @@ def test_select_classes_service(
             "min_particles": 500,
             "class3d_batch_size": 50000,
             "class3d_max_size": 200000,
-            "mc_uuid": 0,
             "relion_it_options": relion_it_options,
         },
         "content": "dummy",
@@ -173,7 +172,6 @@ def test_select_classes_service(
                 "particles_file": f"{tmp_path}/Select/job013/particles_split1.star",
                 "class3d_dir": f"{tmp_path}/Class3D/job",
                 "particle_diameter": 64,
-                "mc_uuid": 0,
                 "relion_it_options": select_test_message["parameters"][
                     "relion_it_options"
                 ],

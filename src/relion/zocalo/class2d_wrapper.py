@@ -48,7 +48,6 @@ class Class2DParameters(BaseModel):
     do_scale: bool = True
     threads: int = 4
     gpus: str = "0"
-    mc_uuid: int
     relion_it_options: Optional[dict] = None
     combine_star_job_number: int
     autoselect_min_score: int = 0
@@ -183,8 +182,19 @@ class Class2DWrapper(zocalo.wrapper.BaseWrapper):
         self.recwrap.send_to("spa.node_creator", node_creator_parameters)
 
         # Send results to ispyb
-        ispyb_insert = {"command": "classification"}
-        self.recwrap.send_to("ispyb", {"ispyb_command_list": ispyb_insert})
+        ispyb_parameters = {
+            "type": "2D",
+        }
+        ispyb_parameters.update(
+            {
+                "ispyb_command": "buffer",
+                "buffer_command": {
+                    "ispyb_command": "insert_particle_classification_group"
+                },
+            }
+        )
+        self.log.info(f"Sending to ispyb {ispyb_parameters}")
+        self.recwrap.send_to("ispyb", {"ispyb_command_list": ispyb_parameters})
 
         if class2d_params.batch_is_complete:
             # Create an icebreaker job
@@ -197,7 +207,6 @@ class Class2DWrapper(zocalo.wrapper.BaseWrapper):
                     ),
                     "input_particles": class2d_params.particles_file,
                     "output_path": f"{project_dir}/IceBreaker/job{job_num + 1:03}/",
-                    "mc_uuid": class2d_params.mc_uuid,
                     "relion_it_options": class2d_params.relion_it_options,
                 }
                 self.recwrap.send_to("icebreaker", icebreaker_params)
@@ -209,7 +218,6 @@ class Class2DWrapper(zocalo.wrapper.BaseWrapper):
                 "combine_star_job_number": class2d_params.combine_star_job_number,
                 "min_score": class2d_params.autoselect_min_score,
                 "particle_diameter": class2d_params.particle_diameter,
-                "mc_uuid": class2d_params.mc_uuid,
                 "relion_it_options": class2d_params.relion_it_options,
             }
             self.recwrap.send_to("select.classes", autoselect_parameters)

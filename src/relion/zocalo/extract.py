@@ -26,7 +26,6 @@ class ExtractParameters(BaseModel):
     downscale: bool = False
     downscale_boxsize: int = 64
     invert_contrast: bool = True
-    mc_uuid: int
     relion_it_options: Optional[dict] = None
 
 
@@ -302,10 +301,9 @@ class Extract(CommonService):
         self.log.info("Sending to particle selection")
         select_params = {
             "input_file": extract_params.output_file,
-            "relion_it_options": extract_params.relion_it_options,
             "batch_size": extract_params.relion_it_options["batch_size"],
             "image_size": box_len,
-            "mc_uuid": extract_params.mc_uuid,
+            "relion_it_options": extract_params.relion_it_options,
         }
         if isinstance(rw, MockRW):
             rw.transport.send(

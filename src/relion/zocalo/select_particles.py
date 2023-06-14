@@ -17,7 +17,6 @@ class SelectParticlesParameters(BaseModel):
     input_file: str = Field(..., min_length=1)
     batch_size: int
     image_size: int
-    mc_uuid: int
     relion_it_options: Optional[dict] = None
 
 
@@ -213,7 +212,6 @@ class SelectParticles(CommonService):
         class2d_params = {
             "class2d_dir": f"{project_dir}/Class2D/job",
             "particle_diameter": str(select_params.image_size),
-            "mc_uuid": select_params.mc_uuid,
             "relion_it_options": select_params.relion_it_options,
         }
         if select_output_file == f"{select_dir}/particles_split1.star":

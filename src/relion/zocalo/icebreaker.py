@@ -22,7 +22,6 @@ class IceBreakerParameters(BaseModel):
 
     cpus: int = 1
     total_motion: float = 0
-    mc_uuid: int
     relion_it_options: Optional[dict] = None
 
 
@@ -197,7 +196,6 @@ class IceBreaker(CommonService):
                     / mic_from_project.stem
                 )
                 + "_grouped.mrc",
-                "mc_uuid": icebreaker_params.mc_uuid,
                 "relion_it_options": icebreaker_params.relion_it_options,
             }
             job_number = int(
