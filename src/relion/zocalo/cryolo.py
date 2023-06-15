@@ -219,8 +219,7 @@ class CrYOLO(CommonService):
         ispyb_parameters = {
             "particle_picking_template": cryolo_params.weights,
             "number_of_particles": self.number_of_particles,
-            "summary_image_full_path": cryolo_params.output_path
-            + "/picked_particles.mrc",
+            "summary_image_full_path": f"{cryolo_params.output_path}/picked_particles.jpeg",
         }
 
         # Forward results to ISPyB
@@ -259,7 +258,7 @@ class CrYOLO(CommonService):
                     "coordinates": coords,
                     "angpix": cryolo_params.pix_size,
                     "diameter": cryolo_params.pix_size * 160,
-                    "outfile": cryolo_params.output_path + "/picked_particles.jpeg",
+                    "outfile": f"{cryolo_params.output_path}/picked_particles.jpeg",
                 },
             )
         else:
@@ -271,7 +270,7 @@ class CrYOLO(CommonService):
                     "coordinates": coords,
                     "angpix": cryolo_params.pix_size,
                     "diameter": cryolo_params.pix_size * 160,
-                    "outfile": cryolo_params.output_path + "/picked_particles.jpeg",
+                    "outfile": f"{cryolo_params.output_path}/picked_particles.jpeg",
                 },
             )
 

@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import enum
 import logging
 import os
 import re
@@ -14,14 +13,13 @@ from pydantic.error_wrappers import ValidationError
 
 logger = logging.getLogger("relion.class2d.wrapper")
 
-RelionStatus = enum.Enum("RelionStatus", "RUNNING SUCCESS FAILURE")
-
 
 class Class2DParameters(BaseModel):
     particles_file: str = Field(..., min_length=1)
     class2d_dir: str = Field(..., min_length=1)
     batch_is_complete: bool
     particle_diameter: float
+    batch_size: int
     do_vdam = False
     dont_combine_weights_via_disc: bool = True
     preread_images: bool = True
@@ -50,6 +48,7 @@ class Class2DParameters(BaseModel):
     gpus: str = "0"
     relion_it_options: Optional[dict] = None
     combine_star_job_number: int
+    particle_picker_id: int
     autoselect_min_score: int = 0
 
 
@@ -184,10 +183,19 @@ class Class2DWrapper(zocalo.wrapper.BaseWrapper):
         # Send results to ispyb
         ispyb_parameters = {
             "type": "2D",
+            "batch_number": int(
+                class2d_params.particles_file.split("particles_split")[1].split(".")[0]
+            ),
+            "number_of_particles_per_batch": class2d_params.batch_size,
+            "number_of_classes_per_batch": class2d_params.nr_classes,
+            "symmetry": "C1",
         }
         ispyb_parameters.update(
             {
                 "ispyb_command": "buffer",
+                "buffer_lookup": {
+                    "particle_picker_id": class2d_params.particle_picker_id,
+                },
                 "buffer_command": {
                     "ispyb_command": "insert_particle_classification_group"
                 },

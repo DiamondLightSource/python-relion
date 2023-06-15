@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import enum
 import logging
 import os
 import re
@@ -14,8 +13,6 @@ from pydantic.error_wrappers import ValidationError
 
 logger = logging.getLogger("relion.class3d.wrapper")
 
-RelionStatus = enum.Enum("RelionStatus", "RUNNING SUCCESS FAILURE")
-
 job_type = "relion.class3d"
 
 
@@ -23,6 +20,7 @@ class Class3DParameters(BaseModel):
     particles_file: str = Field(..., min_length=1)
     class3d_dir: str = Field(..., min_length=1)
     particle_diameter: float
+    batch_size: int
     do_initial_model: bool = False
     initial_model_file: str = None
     initial_model_iterations: int = 200
@@ -57,6 +55,7 @@ class Class3DParameters(BaseModel):
     do_scale: bool = True
     threads: int = 4
     gpus: str = "0"
+    particle_picker_id: int
     relion_it_options: Optional[dict] = None
 
 
@@ -313,13 +312,21 @@ class Class3DWrapper(zocalo.wrapper.BaseWrapper):
         self.recwrap.send_to("spa.node_creator", node_creator_parameters)
 
         # Send results to ispyb
-        # Send results to ispyb
         ispyb_parameters = {
             "type": "3D",
+            "batch_number": int(
+                class3d_params.particles_file.split("particles_split")[1].split(".")[0]
+            ),
+            "number_of_particles_per_batch": class3d_params.batch_size,
+            "number_of_classes_per_batch": class3d_params.nr_classes,
+            "symmetry": class3d_params.symmetry,
         }
         ispyb_parameters.update(
             {
                 "ispyb_command": "buffer",
+                "buffer_lookup": {
+                    "particle_picker_id": class3d_params.particle_picker_id,
+                },
                 "buffer_command": {
                     "ispyb_command": "insert_particle_classification_group"
                 },
