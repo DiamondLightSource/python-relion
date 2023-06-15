@@ -8,6 +8,7 @@ from typing import Optional
 
 import procrunner
 import zocalo.wrapper
+from gemmi import cif
 from pydantic import BaseModel, Field
 from pydantic.error_wrappers import ValidationError
 
@@ -180,7 +181,7 @@ class Class2DWrapper(zocalo.wrapper.BaseWrapper):
         }
         self.recwrap.send_to("spa.node_creator", node_creator_parameters)
 
-        # Send results to ispyb
+        # Send classification job information to ispyb
         ispyb_parameters = {
             "type": "2D",
             "batch_number": int(
@@ -203,6 +204,46 @@ class Class2DWrapper(zocalo.wrapper.BaseWrapper):
         )
         self.log.info(f"Sending to ispyb {ispyb_parameters}")
         self.recwrap.send_to("ispyb", {"ispyb_command_list": ispyb_parameters})
+
+        # Somehow get this
+        particle_classification_group_id = 0
+
+        # Send individual classes to ispyb
+        class_star_file = cif.read_file(
+            f"{class2d_params.class2d_dir}/run_it{class2d_params.nr_iter:03}_model.star"
+        )
+        classes_block = class_star_file.find_block("model_classes")
+        classes_loop = classes_block.find_loop("_rlnReferenceImage").get_loop()
+
+        for class_id in range(class2d_params.nr_classes):
+            ispyb_parameters = {
+                "class_number": class_id + 1,
+                "class_image_full_path": (
+                    f"{class2d_params.class2d_dir}/Class_images"
+                    f"/run_it{class2d_params.nr_iter:03}_classes_{class_id+1}.jpeg"
+                ),
+                "particles_per_class": (
+                    classes_loop[1, class_id] * class2d_params.batch_size
+                ),
+                "class_distribution": classes_loop[1, class_id],
+                "rotation_accuracy": classes_loop[2, class_id],
+                "translation_accuracy": classes_loop[3, class_id],
+                "estimated_resolution": classes_loop[4, class_id],
+                "overall_fourier_completeness": classes_loop[5, class_id],
+            }
+            ispyb_parameters.update(
+                {
+                    "ispyb_command": "buffer",
+                    "buffer_lookup": {
+                        "particle_classification_group_id": particle_classification_group_id
+                    },
+                    "buffer_command": {
+                        "ispyb_command": "insert_particle_classification"
+                    },
+                }
+            )
+            self.log.info(f"Sending to ispyb {ispyb_parameters}")
+            self.recwrap.send_to("ispyb", {"ispyb_command_list": ispyb_parameters})
 
         if class2d_params.batch_is_complete:
             # Create an icebreaker job

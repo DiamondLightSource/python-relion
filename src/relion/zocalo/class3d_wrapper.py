@@ -8,6 +8,7 @@ from typing import Optional
 
 import procrunner
 import zocalo.wrapper
+from gemmi import cif
 from pydantic import BaseModel, Field
 from pydantic.error_wrappers import ValidationError
 
@@ -220,7 +221,12 @@ class Class3DWrapper(zocalo.wrapper.BaseWrapper):
 
         # Make the job directory and move to the project directory
         job_dir = Path(class3d_params.class3d_dir)
-        job_dir.mkdir(parents=True, exist_ok=True)
+        if (job_dir / "run_it000_model.star").exists():
+            # This job over-writes a previous one
+            job_is_rerun = True
+        else:
+            job_is_rerun = False
+            job_dir.mkdir(parents=True, exist_ok=True)
         project_dir = job_dir.parent.parent
         os.chdir(project_dir)
 
@@ -311,7 +317,17 @@ class Class3DWrapper(zocalo.wrapper.BaseWrapper):
         }
         self.recwrap.send_to("spa.node_creator", node_creator_parameters)
 
-        # Send results to ispyb
+        # Somehow get this
+        particle_classification_group_id = 0
+
+        # Send classification job information to ispyb
+        if job_is_rerun:
+            buffer_lookup = {
+                "particle_picker_id": class3d_params.particle_picker_id,
+                "particle_classification_group_id": particle_classification_group_id,
+            }
+        else:
+            buffer_lookup = {"particle_picker_id": class3d_params.particle_picker_id}
         ispyb_parameters = {
             "type": "3D",
             "batch_number": int(
@@ -324,9 +340,7 @@ class Class3DWrapper(zocalo.wrapper.BaseWrapper):
         ispyb_parameters.update(
             {
                 "ispyb_command": "buffer",
-                "buffer_lookup": {
-                    "particle_picker_id": class3d_params.particle_picker_id,
-                },
+                "buffer_lookup": buffer_lookup,
                 "buffer_command": {
                     "ispyb_command": "insert_particle_classification_group"
                 },
@@ -334,6 +348,40 @@ class Class3DWrapper(zocalo.wrapper.BaseWrapper):
         )
         self.log.info(f"Sending to ispyb {ispyb_parameters}")
         self.recwrap.send_to("ispyb", {"ispyb_command_list": ispyb_parameters})
+
+        # Send individual classes to ispyb
+        class_star_file = cif.read_file(
+            f"{class3d_params.class3d_dir}/run_it{class3d_params.nr_iter:03}_model.star"
+        )
+        classes_block = class_star_file.find_block("model_classes")
+        classes_loop = classes_block.find_loop("_rlnReferenceImage").get_loop()
+
+        for class_id in range(class3d_params.nr_classes):
+            ispyb_parameters = {
+                "class_number": class_id + 1,
+                "class_image_full_path": None,
+                "particles_per_class": (
+                    classes_loop[1, class_id] * class3d_params.batch_size
+                ),
+                "class_distribution": classes_loop[1, class_id],
+                "rotation_accuracy": classes_loop[2, class_id],
+                "translation_accuracy": classes_loop[3, class_id],
+                "estimated_resolution": classes_loop[4, class_id],
+                "overall_fourier_completeness": classes_loop[5, class_id],
+            }
+            ispyb_parameters.update(
+                {
+                    "ispyb_command": "buffer",
+                    "buffer_lookup": {
+                        "particle_classification_group_id": particle_classification_group_id,
+                    },
+                    "buffer_command": {
+                        "ispyb_command": "insert_particle_classification"
+                    },
+                }
+            )
+            self.log.info(f"Sending to ispyb {ispyb_parameters}")
+            self.recwrap.send_to("ispyb", {"ispyb_command_list": ispyb_parameters})
 
         self.log.info(f"Done {job_type} for {class3d_params.particles_file}.")
         return True
