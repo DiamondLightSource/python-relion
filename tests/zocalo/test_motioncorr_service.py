@@ -32,18 +32,19 @@ def offline_transport(mocker):
 
 
 @pytest.mark.skipif(sys.platform == "win32", reason="does not run on windows")
-@mock.patch("relion.zocalo.motioncorr.procrunner.run")
+@mock.patch("relion.zocalo.motioncorr.subprocess.run")
 def test_motioncorr_service(
-    mock_procrunner, mock_environment, offline_transport, tmp_path
+    mock_subprocess, mock_environment, offline_transport, tmp_path
 ):
     """
     Send a test message to MotionCorr
-    This should call the mock procrunner then send messages on to
+    This should call the mock subprocess then send messages on to
     the murfey_feedback, ispyb_connector and images services.
     It also creates the next jobs (ctffind and two icebreaker jobs)
     and the node_creator is called for both import and motion correction.
     """
-    mock_procrunner().returncode = 0
+    mock_subprocess().returncode = 0
+    mock_subprocess().stdout = "".encode("ascii")
 
     header = {
         "message-id": mock.sentinel,
@@ -106,14 +107,16 @@ def test_motioncorr_service(
     service.y_shift_list = [4.0, -4.0]
     service.each_total_motion = [5.0, 5.0]
     total_motion = 10.0
+    early_motion = 10.0
+    late_motion = 0.0
     average_motion_per_frame = 5
 
     # Send a message to the service
     service.motion_correction(None, header=header, message=motioncorr_test_message)
 
-    assert mock_procrunner.call_count == 2
-    mock_procrunner.assert_called_with(
-        command=[
+    assert mock_subprocess.call_count == 3
+    mock_subprocess.assert_called_with(
+        [
             "MotionCor2",
             "-InTiff",
             motioncorr_test_message["parameters"]["movie"],
@@ -128,7 +131,7 @@ def test_motioncorr_service(
             "-FmRef",
             "1",
         ],
-        callback_stdout=mock.ANY,
+        capture_output=True,
     )
 
     # Check that the correct messages were sent
@@ -144,6 +147,8 @@ def test_motioncorr_service(
                     "relion_it_options"
                 ],
                 "total_motion": total_motion,
+                "early_motion": early_motion,
+                "late_motion": late_motion,
             },
             "content": "dummy",
         },
@@ -160,6 +165,8 @@ def test_motioncorr_service(
                     "relion_it_options"
                 ],
                 "total_motion": total_motion,
+                "early_motion": early_motion,
+                "late_motion": late_motion,
             },
             "content": "dummy",
         },
@@ -248,9 +255,9 @@ def test_motioncorr_service(
                     "relion_it_options"
                 ],
                 "results": {
-                    "total_motion": str(total_motion),
-                    "early_motion": str(total_motion),
-                    "late_motion": str(0),
+                    "total_motion": total_motion,
+                    "early_motion": early_motion,
+                    "late_motion": late_motion,
                 },
             },
             "content": "dummy",

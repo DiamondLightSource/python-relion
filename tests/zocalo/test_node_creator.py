@@ -230,7 +230,12 @@ def test_node_creator_icebreaker_micrographs(
         "icebreaker.micrograph_analysis.micrographs",
         input_file,
         output_file,
-        results={"icebreaker_type": "micrographs", "total_motion": "10"},
+        results={
+            "icebreaker_type": "micrographs",
+            "total_motion": 10,
+            "early_motion": 2,
+            "late_motion": 8,
+        },
     )
 
     # Check the output file structure
@@ -248,8 +253,8 @@ def test_node_creator_icebreaker_micrographs(
     ]
     assert list(micrographs_data.find_loop("_rlnOpticsGroup")) == ["1"]
     assert list(micrographs_data.find_loop("_rlnAccumMotionTotal")) == ["10"]
-    assert list(micrographs_data.find_loop("_rlnAccumMotionEarly")) == ["0.0"]
-    assert list(micrographs_data.find_loop("_rlnAccumMotionLate")) == ["10"]
+    assert list(micrographs_data.find_loop("_rlnAccumMotionEarly")) == ["2"]
+    assert list(micrographs_data.find_loop("_rlnAccumMotionLate")) == ["8"]
 
 
 def test_node_creator_icebreaker_enhancecontrast(
@@ -272,7 +277,12 @@ def test_node_creator_icebreaker_enhancecontrast(
         "icebreaker.micrograph_analysis.enhancecontrast",
         input_file,
         output_file,
-        results={"icebreaker_type": "enhancecontrast", "total_motion": "10"},
+        results={
+            "icebreaker_type": "enhancecontrast",
+            "total_motion": 10,
+            "early_motion": 2,
+            "late_motion": 8,
+        },
     )
 
     # Check the output file structure
@@ -290,8 +300,8 @@ def test_node_creator_icebreaker_enhancecontrast(
     ]
     assert list(micrographs_data.find_loop("_rlnOpticsGroup")) == ["1"]
     assert list(micrographs_data.find_loop("_rlnAccumMotionTotal")) == ["10"]
-    assert list(micrographs_data.find_loop("_rlnAccumMotionEarly")) == ["0.0"]
-    assert list(micrographs_data.find_loop("_rlnAccumMotionLate")) == ["10"]
+    assert list(micrographs_data.find_loop("_rlnAccumMotionEarly")) == ["2"]
+    assert list(micrographs_data.find_loop("_rlnAccumMotionLate")) == ["8"]
 
 
 def test_node_creator_icebreaker_summary(mock_environment, offline_transport, tmp_path):

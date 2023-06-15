@@ -5,6 +5,5 @@ opencv-python==4.7.0.72
 pandas==1.4.2
 pillow==9.3.0
 plotly==5.7.0
-procrunner==2.3.3
 pydantic==1.10.7
 starfile==0.4.11

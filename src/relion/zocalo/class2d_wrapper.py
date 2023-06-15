@@ -3,10 +3,10 @@ from __future__ import annotations
 import logging
 import os
 import re
+import subprocess
 from pathlib import Path
 from typing import Optional
 
-import procrunner
 import zocalo.wrapper
 from gemmi import cif
 from pydantic import BaseModel, Field
@@ -57,20 +57,6 @@ class Class2DWrapper(zocalo.wrapper.BaseWrapper):
     """
     A wrapper for the Relion 2D classification job.
     """
-
-    # Values to extract for ISPyB
-    resolution = -1
-
-    def parse_class2d_output(self, line: str):
-        """
-        Read the output logs of relion 2D classification
-        """
-        if not line:
-            return
-
-        if line.startswith("CurrentResolution="):
-            line_split = line.split()
-            self.resolution = int(line_split[1])
 
     def run(self):
         """
@@ -159,10 +145,8 @@ class Class2DWrapper(zocalo.wrapper.BaseWrapper):
             f.write(" ".join(class2d_command))
 
         # Run Class2D and confirm it ran successfully
-        result = procrunner.run(
-            command=class2d_command,
-            callback_stdout=self.parse_class2d_output,
-            working_directory=str(project_dir),
+        result = subprocess.run(
+            class2d_command, cwd=str(project_dir), capture_output=True
         )
         if result.returncode:
             self.log.error(
@@ -225,11 +209,11 @@ class Class2DWrapper(zocalo.wrapper.BaseWrapper):
                 "particles_per_class": (
                     classes_loop[1, class_id] * class2d_params.batch_size
                 ),
-                "class_distribution": classes_loop[1, class_id],
-                "rotation_accuracy": classes_loop[2, class_id],
-                "translation_accuracy": classes_loop[3, class_id],
-                "estimated_resolution": classes_loop[4, class_id],
-                "overall_fourier_completeness": classes_loop[5, class_id],
+                "class_distribution": classes_loop.val(1, class_id),
+                "rotation_accuracy": classes_loop.val(2, class_id),
+                "translation_accuracy": classes_loop.val(3, class_id),
+                "estimated_resolution": classes_loop.val(4, class_id),
+                "overall_fourier_completeness": classes_loop.val(5, class_id),
             }
             ispyb_parameters.update(
                 {

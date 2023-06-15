@@ -1,13 +1,12 @@
 from __future__ import annotations
 
-import os
 import re
 import shutil
+import subprocess
 from pathlib import Path
 from typing import Optional
 
 import numpy as np
-import procrunner
 import workflows.recipe
 from gemmi import cif
 from pydantic import BaseModel, Field
@@ -129,7 +128,7 @@ class CrYOLO(CommonService):
         # CrYOLO requires running in the project directory
         job_dir = Path(re.search(".+/job[0-9]{3}/", cryolo_params.output_path)[0])
         project_dir = job_dir.parent.parent
-        os.chdir(project_dir)
+        job_dir.mkdir(parents=True, exist_ok=True)
 
         # Construct a command to run cryolo with the given parameters
         command = cryolo_params.cryolo_command.split()
@@ -158,9 +157,9 @@ class CrYOLO(CommonService):
             f.write(" ".join(command))
 
         # Run cryolo and confirm it ran successfully
-        result = procrunner.run(
-            command=command, callback_stdout=self.parse_cryolo_output
-        )
+        result = subprocess.run(command, cwd=project_dir, capture_output=True)
+        for line in result.stdout.decode("utf8", "replace").split("\n"):
+            self.parse_cryolo_output(line)
         if result.returncode:
             self.log.error(
                 f"crYOLO failed with exitcode {result.returncode}:\n"
@@ -172,27 +171,6 @@ class CrYOLO(CommonService):
         # Remove the temporary directories made by cryolo
         shutil.rmtree(project_dir / "logs")
         shutil.rmtree(project_dir / "filtered")
-
-        # Gather results needed for particle extraction
-        extraction_params = {
-            "pix_size": cryolo_params.pix_size,
-            "ctf_values": cryolo_params.ctf_values,
-            "micrographs_file": cryolo_params.input_path,
-            "coord_list_file": cryolo_params.output_path,
-            "mc_uuid": cryolo_params.mc_uuid,
-            "relion_it_options": cryolo_params.relion_it_options,
-        }
-        job_number = int(re.search("/job[0-9]{3}/", cryolo_params.output_path)[0][4:7])
-        extraction_params["output_file"] = str(
-            Path(
-                re.sub(
-                    "MotionCorr/job002/.+",
-                    f"Extract/job{job_number + 1:03}/Movies/",
-                    cryolo_params.input_path,
-                )
-            )
-            / (Path(cryolo_params.input_path).stem + "_extract.star")
-        )
 
         # Find the diameters of the particles
         cryolo_particle_sizes = np.array([])
@@ -273,6 +251,26 @@ class CrYOLO(CommonService):
                     "outfile": f"{cryolo_params.output_path}/picked_particles.jpeg",
                 },
             )
+
+        # Gather results needed for particle extraction
+        extraction_params = {
+            "pix_size": cryolo_params.pix_size,
+            "ctf_values": cryolo_params.ctf_values,
+            "micrographs_file": cryolo_params.input_path,
+            "coord_list_file": cryolo_params.output_path,
+            "relion_it_options": cryolo_params.relion_it_options,
+        }
+        job_number = int(re.search("/job[0-9]{3}/", cryolo_params.output_path)[0][4:7])
+        extraction_params["output_file"] = str(
+            Path(
+                re.sub(
+                    "MotionCorr/job002/.+",
+                    f"Extract/job{job_number + 1:03}/Movies/",
+                    cryolo_params.input_path,
+                )
+            )
+            / (Path(cryolo_params.input_path).stem + "_extract.star")
+        )
 
         # Forward results to murfey
         self.log.info("Sending to Murfey for particle extraction")

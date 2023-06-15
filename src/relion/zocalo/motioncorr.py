@@ -2,13 +2,13 @@ from __future__ import annotations
 
 import re
 import string
+import subprocess
 from collections import ChainMap
 from math import hypot
 from pathlib import Path
 from typing import Literal, Optional
 
 import plotly.express as px
-import procrunner
 import workflows.recipe
 from pydantic import BaseModel, Field
 from pydantic.error_wrappers import ValidationError
@@ -222,7 +222,9 @@ class MotionCorr(CommonService):
             f.write(" ".join(command))
 
         # Run motion correction
-        result = procrunner.run(command=command, callback_stdout=self.parse_mc_output)
+        result = subprocess.run(command, capture_output=True)
+        for line in result.stdout.decode("utf8", "replace").split("\n"):
+            self.parse_mc_output(line)
         if result.returncode:
             self.log.error(
                 f"Motion correction of {mc_params.movie} "
@@ -276,6 +278,8 @@ class MotionCorr(CommonService):
                     "mc_uuid": mc_params.mc_uuid,
                     "relion_it_options": mc_params.relion_it_options,
                     "total_motion": total_motion,
+                    "early_motion": early_motion,
+                    "late_motion": late_motion,
                 }
                 if isinstance(rw, MockRW):
                     rw.transport.send(
@@ -302,6 +306,8 @@ class MotionCorr(CommonService):
                     "mc_uuid": mc_params.mc_uuid,
                     "relion_it_options": mc_params.relion_it_options,
                     "total_motion": total_motion,
+                    "early_motion": early_motion,
+                    "late_motion": late_motion,
                 }
                 if isinstance(rw, MockRW):
                     rw.transport.send(
@@ -465,9 +471,9 @@ class MotionCorr(CommonService):
                 "output_file": mc_params.mrc_out,
                 "relion_it_options": mc_params.relion_it_options,
                 "results": {
-                    "total_motion": str(total_motion),
-                    "early_motion": str(early_motion),
-                    "late_motion": str(late_motion),
+                    "total_motion": total_motion,
+                    "early_motion": early_motion,
+                    "late_motion": late_motion,
                 },
             }
             if isinstance(rw, MockRW):

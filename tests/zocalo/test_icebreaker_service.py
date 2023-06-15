@@ -32,17 +32,17 @@ def offline_transport(mocker):
 
 
 @pytest.mark.skipif(sys.platform == "win32", reason="does not run on windows")
-@mock.patch("relion.zocalo.icebreaker.procrunner.run")
+@mock.patch("relion.zocalo.icebreaker.subprocess.run")
 def test_icebreaker_micrographs_service(
-    mock_procrunner, mock_environment, offline_transport, tmp_path
+    mock_subprocess, mock_environment, offline_transport, tmp_path
 ):
     """
     Send a test message to IceBreaker for running the micrographs job
-    This should call the mock procrunner
+    This should call the mock subprocess
     then send a message on to the node_creator service.
     It also creates the icebreaker summary jobs.
     """
-    mock_procrunner().returncode = 0
+    mock_subprocess().returncode = 0
 
     header = {
         "message-id": mock.sentinel,
@@ -57,6 +57,8 @@ def test_icebreaker_micrographs_service(
             "cpus": 1,
             "relion_it_options": {"options": "options"},
             "total_motion": 0.5,
+            "early_motion": 0.2,
+            "late_motion": 0.3,
         },
         "content": "dummy",
     }
@@ -67,9 +69,9 @@ def test_icebreaker_micrographs_service(
     service.start()
     service.icebreaker(None, header=header, message=icebreaker_test_message)
 
-    assert mock_procrunner.call_count == 2
-    mock_procrunner.assert_called_with(
-        command=[
+    assert mock_subprocess.call_count == 2
+    mock_subprocess.assert_called_with(
+        [
             "ib_job",
             "--j",
             str(icebreaker_test_message["parameters"]["cpus"]),
@@ -80,7 +82,7 @@ def test_icebreaker_micrographs_service(
             "--o",
             icebreaker_test_message["parameters"]["output_path"],
         ],
-        callback_stdout=mock.ANY,
+        capture_output=True,
     )
 
     # Check that the correct messages were sent
@@ -112,9 +114,9 @@ def test_icebreaker_micrographs_service(
                 ],
                 "results": {
                     "icebreaker_type": "micrographs",
-                    "total_motion": str(
-                        icebreaker_test_message["parameters"]["total_motion"]
-                    ),
+                    "total_motion": 0.5,
+                    "early_motion": 0.2,
+                    "late_motion": 0.3,
                 },
             },
             "content": "dummy",
@@ -123,16 +125,16 @@ def test_icebreaker_micrographs_service(
 
 
 @pytest.mark.skipif(sys.platform == "win32", reason="does not run on windows")
-@mock.patch("relion.zocalo.icebreaker.procrunner.run")
+@mock.patch("relion.zocalo.icebreaker.subprocess.run")
 def test_icebreaker_enhancecontrast_service(
-    mock_procrunner, mock_environment, offline_transport, tmp_path
+    mock_subprocess, mock_environment, offline_transport, tmp_path
 ):
     """
     Send a test message to IceBreaker for running the enhance contrast job
-    This should call the mock procrunner
+    This should call the mock subprocess
     then send a message on to the node_creator service
     """
-    mock_procrunner().returncode = 0
+    mock_subprocess().returncode = 0
 
     header = {
         "message-id": mock.sentinel,
@@ -147,6 +149,8 @@ def test_icebreaker_enhancecontrast_service(
             "cpus": 1,
             "relion_it_options": {"options": "options"},
             "total_motion": 0.5,
+            "early_motion": 0.2,
+            "late_motion": 0.3,
         },
         "content": "dummy",
     }
@@ -157,9 +161,9 @@ def test_icebreaker_enhancecontrast_service(
     service.start()
     service.icebreaker(None, header=header, message=icebreaker_test_message)
 
-    assert mock_procrunner.call_count == 2
-    mock_procrunner.assert_called_with(
-        command=[
+    assert mock_subprocess.call_count == 2
+    mock_subprocess.assert_called_with(
+        [
             "ib_job",
             "--j",
             str(icebreaker_test_message["parameters"]["cpus"]),
@@ -170,7 +174,7 @@ def test_icebreaker_enhancecontrast_service(
             "--o",
             icebreaker_test_message["parameters"]["output_path"],
         ],
-        callback_stdout=mock.ANY,
+        capture_output=True,
     )
 
     # Check that the correct messages were sent
@@ -188,9 +192,9 @@ def test_icebreaker_enhancecontrast_service(
                 ],
                 "results": {
                     "icebreaker_type": "enhancecontrast",
-                    "total_motion": str(
-                        icebreaker_test_message["parameters"]["total_motion"]
-                    ),
+                    "total_motion": 0.5,
+                    "early_motion": 0.2,
+                    "late_motion": 0.3,
                 },
             },
             "content": "dummy",
@@ -199,16 +203,16 @@ def test_icebreaker_enhancecontrast_service(
 
 
 @pytest.mark.skipif(sys.platform == "win32", reason="does not run on windows")
-@mock.patch("relion.zocalo.icebreaker.procrunner.run")
+@mock.patch("relion.zocalo.icebreaker.subprocess.run")
 def test_icebreaker_summary_service(
-    mock_procrunner, mock_environment, offline_transport, tmp_path
+    mock_subprocess, mock_environment, offline_transport, tmp_path
 ):
     """
     Send a test message to IceBreaker for running the summary job
-    This should call the mock procrunner
+    This should call the mock subprocess
     then send a message on to the node_creator service
     """
-    mock_procrunner().returncode = 0
+    mock_subprocess().returncode = 0
 
     header = {
         "message-id": mock.sentinel,
@@ -223,6 +227,8 @@ def test_icebreaker_summary_service(
             "cpus": 1,
             "relion_it_options": {"options": "options"},
             "total_motion": 0.5,
+            "early_motion": 0.2,
+            "late_motion": 0.3,
         },
         "content": "dummy",
     }
@@ -233,16 +239,16 @@ def test_icebreaker_summary_service(
     service.start()
     service.icebreaker(None, header=header, message=icebreaker_test_message)
 
-    assert mock_procrunner.call_count == 2
-    mock_procrunner.assert_called_with(
-        command=[
+    assert mock_subprocess.call_count == 2
+    mock_subprocess.assert_called_with(
+        [
             "ib_5fig",
             "--single_mic",
             "IceBreaker/job003/sample_grouped.star",
             "--o",
             icebreaker_test_message["parameters"]["output_path"],
         ],
-        callback_stdout=mock.ANY,
+        capture_output=True,
     )
 
     # Check that the correct messages were sent
@@ -260,9 +266,9 @@ def test_icebreaker_summary_service(
                 ],
                 "results": {
                     "icebreaker_type": "summary",
-                    "total_motion": str(
-                        icebreaker_test_message["parameters"]["total_motion"]
-                    ),
+                    "total_motion": 0.5,
+                    "early_motion": 0.2,
+                    "late_motion": 0.3,
                 },
             },
             "content": "dummy",
@@ -271,16 +277,16 @@ def test_icebreaker_summary_service(
 
 
 @pytest.mark.skipif(sys.platform == "win32", reason="does not run on windows")
-@mock.patch("relion.zocalo.icebreaker.procrunner.run")
+@mock.patch("relion.zocalo.icebreaker.subprocess.run")
 def test_icebreaker_particles_service(
-    mock_procrunner, mock_environment, offline_transport, tmp_path
+    mock_subprocess, mock_environment, offline_transport, tmp_path
 ):
     """
     Send a test message to IceBreaker for running the particle analysis job
-    This should call the mock procrunner
+    This should call the mock subprocess
     then send a message on to the node_creator service
     """
-    mock_procrunner().returncode = 0
+    mock_subprocess().returncode = 0
 
     header = {
         "message-id": mock.sentinel,
@@ -295,6 +301,8 @@ def test_icebreaker_particles_service(
             "cpus": 1,
             "relion_it_options": {"options": "options"},
             "total_motion": 0.5,
+            "early_motion": 0.2,
+            "late_motion": 0.3,
         },
         "content": "dummy",
     }
@@ -305,9 +313,9 @@ def test_icebreaker_particles_service(
     service.start()
     service.icebreaker(None, header=header, message=icebreaker_test_message)
 
-    assert mock_procrunner.call_count == 2
-    mock_procrunner.assert_called_with(
-        command=[
+    assert mock_subprocess.call_count == 2
+    mock_subprocess.assert_called_with(
+        [
             "ib_group",
             "--in_mics",
             "IceBreaker/job003/sample_grouped.star",
@@ -316,7 +324,7 @@ def test_icebreaker_particles_service(
             "--o",
             icebreaker_test_message["parameters"]["output_path"],
         ],
-        callback_stdout=mock.ANY,
+        capture_output=True,
     )
 
     # Check that the correct messages were sent
@@ -334,9 +342,9 @@ def test_icebreaker_particles_service(
                 ],
                 "results": {
                     "icebreaker_type": "particles",
-                    "total_motion": str(
-                        icebreaker_test_message["parameters"]["total_motion"]
-                    ),
+                    "total_motion": 0.5,
+                    "early_motion": 0.2,
+                    "late_motion": 0.3,
                 },
             },
             "content": "dummy",

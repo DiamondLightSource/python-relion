@@ -2,12 +2,12 @@ from __future__ import annotations
 
 import ast
 import os.path
+import subprocess
 import time
 from pathlib import Path
 from typing import List, Optional, Union
 
 import plotly.express as px
-import procrunner
 import workflows.recipe
 import workflows.transport
 from pydantic import BaseModel, Field, validator
@@ -538,7 +538,7 @@ class TomoAlign(CommonService):
             "-quiet",
         ]
         self.log.info("Running Newstack")
-        result = procrunner.run(newstack_cmd)
+        result = subprocess.run(newstack_cmd)
         return result
 
     def aretomo(self, tomo_parameters):
@@ -599,9 +599,8 @@ class TomoAlign(CommonService):
         self.log.info(
             f"Input stack: {tomo_parameters.stack_file} \nOutput file: {self.aretomo_output_path}"
         )
+        result = subprocess.run(command, capture_output=True)
         if tomo_parameters.tilt_cor:
-            callback = self.parse_tomo_output
-        else:
-            callback = None
-        result = procrunner.run(command=command, callback_stdout=callback)
+            for line in result.stdout.decode("utf8", "replace").split("\n"):
+                self.parse_tomo_output(line)
         return result

@@ -32,14 +32,15 @@ def offline_transport(mocker):
 
 
 @pytest.mark.skipif(sys.platform == "win32", reason="does not run on windows")
-@mock.patch("relion.zocalo.cryolo.procrunner.run")
-def test_cryolo_service(mock_procrunner, mock_environment, offline_transport, tmp_path):
+@mock.patch("relion.zocalo.cryolo.subprocess.run")
+def test_cryolo_service(mock_subprocess, mock_environment, offline_transport, tmp_path):
     """
     Send a test message to CrYOLO
-    This should call the mock procrunner then send messages on to the
+    This should call the mock subprocess then send messages on to the
     node_creator, murfey_feedback, ispyb_connector and images services
     """
-    mock_procrunner().returncode = 0
+    mock_subprocess().returncode = 0
+    mock_subprocess().stdout = "".encode("ascii")
 
     header = {
         "message-id": mock.sentinel,
@@ -90,9 +91,9 @@ def test_cryolo_service(mock_procrunner, mock_environment, offline_transport, tm
     service.start()
     service.cryolo(None, header=header, message=cryolo_test_message)
 
-    assert mock_procrunner.call_count == 2
-    mock_procrunner.assert_called_with(
-        command=[
+    assert mock_subprocess.call_count == 3
+    mock_subprocess.assert_called_with(
+        [
             "cryolo_predict.py",
             "--conf",
             str(tmp_path / "config.json"),
@@ -105,7 +106,8 @@ def test_cryolo_service(mock_procrunner, mock_environment, offline_transport, tm
             "--threshold",
             "0.3",
         ],
-        callback_stdout=mock.ANY,
+        cwd=tmp_path,
+        capture_output=True,
     )
 
     # Check that the correct messages were sent
@@ -114,7 +116,6 @@ def test_cryolo_service(mock_procrunner, mock_environment, offline_transport, tm
         "ctf_values": cryolo_test_message["parameters"]["ctf_values"],
         "micrographs_file": cryolo_test_message["parameters"]["input_path"],
         "coord_list_file": cryolo_test_message["parameters"]["output_path"],
-        "mc_uuid": cryolo_test_message["parameters"]["mc_uuid"],
         "relion_it_options": cryolo_test_message["parameters"]["relion_it_options"],
         "output_file": "Extract/job008/Movies/sample_extract.star",
     }

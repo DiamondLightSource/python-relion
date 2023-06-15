@@ -14,7 +14,7 @@ RUN source "/conda/etc/profile.d/conda.sh" && source "/conda/etc/profile.d/mamba
 # Install Relion
 RUN mkdir /install/relion
 COPY . /install/relion
-RUN source "/conda/etc/profile.d/conda.sh" && conda activate /install/pythonenv && pip install zocalo procrunner
+RUN source "/conda/etc/profile.d/conda.sh" && conda activate /install/pythonenv && pip install zocalo
 RUN source "/conda/etc/profile.d/conda.sh" && conda activate /install/pythonenv && pip install -e /install/relion
 
 RUN chown -R "${userid}":"${groupid}" install

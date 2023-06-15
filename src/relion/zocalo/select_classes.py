@@ -1,11 +1,11 @@
 from __future__ import annotations
 
 import re
+import subprocess
 from pathlib import Path
 from typing import Optional
 
 import numpy as np
-import procrunner
 import workflows.recipe
 from gemmi import cif
 from pydantic import BaseModel, Field
@@ -56,13 +56,6 @@ class SelectClasses(CommonService):
             log_extender=self.extend_log,
             allow_non_recipe_messages=True,
         )
-
-    def parse_autoselect_output(self, line: str):
-        """
-        Read the output logs of relion class selection
-        """
-        if not line:
-            return
 
     def parse_combiner_output(self, line: str):
         """
@@ -177,10 +170,8 @@ class SelectClasses(CommonService):
             f.write(" ".join(autoselect_command))
 
         # Run the class selection
-        result = procrunner.run(
-            command=autoselect_command,
-            callback_stdout=self.parse_autoselect_output,
-            working_directory=str(project_dir),
+        result = subprocess.run(
+            autoselect_command, cwd=str(project_dir), capture_output=True
         )
         if result.returncode:
             self.log.error(
@@ -212,10 +203,8 @@ class SelectClasses(CommonService):
                 f.write("\n\n" + " ".join(autoselect_command))
 
             # Re-run the class selection
-            result = procrunner.run(
-                command=autoselect_command,
-                callback_stdout=self.parse_autoselect_output,
-                working_directory=str(project_dir),
+            result = subprocess.run(
+                autoselect_command, cwd=str(project_dir), capture_output=True
             )
             if result.returncode:
                 self.log.error(
@@ -263,11 +252,11 @@ class SelectClasses(CommonService):
         with open(combine_star_dir / "note.txt", "a") as f:
             f.write(" ".join(combine_star_command) + "\n")
 
-        result = procrunner.run(
-            command=combine_star_command,
-            callback_stdout=self.parse_combiner_output,
-            working_directory=str(project_dir),
+        result = subprocess.run(
+            combine_star_command, cwd=str(project_dir), capture_output=True
         )
+        for line in result.stdout.decode("utf8", "replace").split("\n"):
+            self.parse_combiner_output(line)
         if result.returncode:
             self.log.error(
                 f"Star file combination failed with exitcode {result.returncode}:\n"
@@ -323,11 +312,11 @@ class SelectClasses(CommonService):
         with open(combine_star_dir / "note.txt", "a") as f:
             f.write(" ".join(split_star_command) + "\n\n")
 
-        result = procrunner.run(
-            command=split_star_command,
-            callback_stdout=self.parse_combiner_output,
-            working_directory=str(project_dir),
+        result = subprocess.run(
+            split_star_command, cwd=str(project_dir), capture_output=True
         )
+        for line in result.stdout.decode("utf8", "replace").split("\n"):
+            self.parse_combiner_output(line)
         if result.returncode:
             self.log.error(
                 f"Star file splitting failed with exitcode {result.returncode}:\n"

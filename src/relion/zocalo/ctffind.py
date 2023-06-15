@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 import re
+import subprocess
 from pathlib import Path
 from typing import Literal, Optional
 
-import procrunner
 import workflows.recipe
 from pydantic import BaseModel, Field
 from pydantic.error_wrappers import ValidationError
@@ -171,11 +171,11 @@ class CTFFind(CommonService):
                 + " ".join(str(param) for param in parameters_list)
             )
 
-        result = procrunner.run(
-            command=command,
-            stdin=parameters_string.encode("ascii"),
-            callback_stdout=self.parse_ctf_output,
+        result = subprocess.run(
+            command, input=parameters_string.encode("ascii"), capture_output=True
         )
+        for line in result.stdout.decode("utf8", "replace").split("\n"):
+            self.parse_ctf_output(line)
         if result.returncode:
             self.log.error(
                 f"CTFFind failed with exitcode {result.returncode}:\n"

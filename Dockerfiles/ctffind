@@ -9,7 +9,7 @@ ARG groupname
 
 # Install Relion
 COPY --chown="${userid}":"${groupid}" python-relion ./relion
-RUN python -m pip install zocalo procrunner
+RUN python -m pip install zocalo
 # Will eventually just include 'relion' in the above step
 RUN python -m pip install -e ./relion
 

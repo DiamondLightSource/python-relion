@@ -2,10 +2,10 @@ from __future__ import annotations
 
 import os
 import re
+import subprocess
 from pathlib import Path
 from typing import Literal, Optional
 
-import procrunner
 import workflows.recipe
 from pydantic import BaseModel, Field
 from pydantic.error_wrappers import ValidationError
@@ -22,6 +22,8 @@ class IceBreakerParameters(BaseModel):
 
     cpus: int = 1
     total_motion: float = 0
+    early_motion: float = 0
+    late_motion: float = 0
     relion_it_options: Optional[dict] = None
 
 
@@ -53,10 +55,6 @@ class IceBreaker(CommonService):
             log_extender=self.extend_log,
             allow_non_recipe_messages=True,
         )
-
-    def parse_icebreaker_output(self, line: str):
-        if not line:
-            return
 
     def icebreaker(self, rw, header: dict, message: dict):
         """
@@ -169,9 +167,7 @@ class IceBreaker(CommonService):
             f.write(" ".join(command))
 
         # Run the icebreaker command
-        result = procrunner.run(
-            command=command, callback_stdout=self.parse_icebreaker_output
-        )
+        result = subprocess.run(command, capture_output=True)
         if result.returncode:
             self.log.error(
                 f"IceBreaker failed with exitcode {result.returncode}:\n"
@@ -223,7 +219,9 @@ class IceBreaker(CommonService):
             "relion_it_options": icebreaker_params.relion_it_options,
             "results": {
                 "icebreaker_type": icebreaker_params.icebreaker_type,
-                "total_motion": str(icebreaker_params.total_motion),
+                "total_motion": icebreaker_params.total_motion,
+                "early_motion": icebreaker_params.early_motion,
+                "late_motion": icebreaker_params.late_motion,
             },
         }
         if icebreaker_params.icebreaker_type == "particles":

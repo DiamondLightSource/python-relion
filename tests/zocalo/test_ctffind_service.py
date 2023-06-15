@@ -32,17 +32,17 @@ def offline_transport(mocker):
 
 
 @pytest.mark.skipif(sys.platform == "win32", reason="does not run on windows")
-@mock.patch("relion.zocalo.ctffind.procrunner.run")
+@mock.patch("relion.zocalo.ctffind.subprocess.run")
 def test_ctffind_service(
-    mock_procrunner, mock_environment, offline_transport, tmp_path
+    mock_subprocess, mock_environment, offline_transport, tmp_path
 ):
     """
     Send a test message to CTFFind
-    This should call the mock procrunner then send messages on to the
+    This should call the mock subprocess then send messages on to the
     cryolo, node_creator, ispyb_connector and images services
     """
-    mock_procrunner().returncode = 0
-    mock_procrunner().stdout = "test output".encode("utf8")
+    mock_subprocess().returncode = 0
+    mock_subprocess().stdout = "test output".encode("utf8")
 
     header = {
         "message-id": mock.sentinel,
@@ -108,11 +108,11 @@ def test_ctffind_service(
     ]
     parameters_string = "\n".join(map(str, parameters_list))
 
-    assert mock_procrunner.call_count == 3
-    mock_procrunner.assert_called_with(
-        command=["ctffind"],
-        stdin=parameters_string.encode("ascii"),
-        callback_stdout=mock.ANY,
+    assert mock_subprocess.call_count == 3
+    mock_subprocess.assert_called_with(
+        ["ctffind"],
+        input=parameters_string.encode("ascii"),
+        capture_output=True,
     )
 
     # Check that the correct messages were sent

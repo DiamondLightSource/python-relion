@@ -3,10 +3,10 @@ from __future__ import annotations
 import logging
 import os
 import re
+import subprocess
 from pathlib import Path
 from typing import Optional
 
-import procrunner
 import zocalo.wrapper
 from gemmi import cif
 from pydantic import BaseModel, Field
@@ -65,9 +65,6 @@ class Class3DWrapper(zocalo.wrapper.BaseWrapper):
     A wrapper for the Relion 3D classification job.
     """
 
-    # Values to extract for ISPyB
-    resolution = -1
-
     common_flags = {
         "dont_combine_weights_via_disc": "--dont_combine_weights_via_disc",
         "preread_images": "--preread_images",
@@ -86,17 +83,6 @@ class Class3DWrapper(zocalo.wrapper.BaseWrapper):
         "threads": "--j",
         "gpus": "--gpu",
     }
-
-    def parse_class3d_output(self, line: str):
-        """
-        Read the output logs of relion 3D classification
-        """
-        if not line:
-            return
-
-        if line.startswith("CurrentResolution="):
-            line_split = line.split()
-            self.resolution = int(line_split[1])
 
     def run_initial_model(self, initial_model_params, project_dir, job_num):
         """
@@ -146,10 +132,8 @@ class Class3DWrapper(zocalo.wrapper.BaseWrapper):
 
         # Run initial model and confirm it ran successfully
         self.log.info("Running initial model")
-        result = procrunner.run(
-            command=initial_model_command,
-            callback_stdout=self.parse_class3d_output,
-            working_directory=str(project_dir),
+        result = subprocess.run(
+            initial_model_command, cwd=str(project_dir), capture_output=True
         )
         if result.returncode:
             self.log.error(
@@ -180,10 +164,8 @@ class Class3DWrapper(zocalo.wrapper.BaseWrapper):
 
         # Run symmetry alignment and confirm it ran successfully
         self.log.info("Running symmetry alignment")
-        result = procrunner.run(
-            command=align_symmetry_command,
-            callback_stdout=self.parse_class3d_output,
-            working_directory=str(project_dir),
+        result = subprocess.run(
+            align_symmetry_command, cwd=str(project_dir), capture_output=True
         )
         if result.returncode:
             self.log.error(
@@ -295,10 +277,8 @@ class Class3DWrapper(zocalo.wrapper.BaseWrapper):
             f.write(" ".join(class3d_command))
 
         # Run Class3D and confirm it ran successfully
-        result = procrunner.run(
-            command=class3d_command,
-            callback_stdout=self.parse_class3d_output,
-            working_directory=str(project_dir),
+        result = subprocess.run(
+            class3d_command, cwd=str(project_dir), capture_output=True
         )
         if result.returncode:
             self.log.error(
