@@ -124,7 +124,7 @@ def test_cryolo_service(mock_procrunner, mock_environment, offline_transport, tm
             "parameters": {
                 "particle_picking_template": "sample_weights",
                 "number_of_particles": 0,
-                "summary_image_full_path": str(output_path) + "/picked_particles.mrc",
+                "summary_image_full_path": str(output_path) + "/picked_particles.jpeg",
                 "ispyb_command": "buffer",
                 "buffer_lookup": {"motion_correction_id": 0},
                 "buffer_command": {"ispyb_command": "insert_particle_picker"},

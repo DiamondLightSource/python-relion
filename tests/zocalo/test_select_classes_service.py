@@ -31,22 +31,8 @@ def offline_transport(mocker):
     return transport
 
 
-@pytest.mark.skipif(sys.platform == "win32", reason="does not run on windows")
-@mock.patch("relion.zocalo.ctffind.procrunner.run")
-def test_select_classes_service(
-    mock_procrunner, mock_environment, offline_transport, tmp_path
-):
-    """
-    Send a test message to the select classes service
-    This should
-    """
-    mock_procrunner().returncode = 0
-
-    header = {
-        "message-id": mock.sentinel,
-        "subscription": mock.sentinel,
-    }
-
+def select_classes_common_setup(tmp_path):
+    """Setup for the tests below: create the message for and output of autoselection"""
     autoselect_file = tmp_path / "Select/job012/rank_model.star"
     autoselect_file.parent.mkdir(parents=True)
     with open(autoselect_file, "w") as f:
@@ -85,6 +71,26 @@ def test_select_classes_service(
         },
         "content": "dummy",
     }
+    return select_test_message
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="does not run on windows")
+@mock.patch("relion.zocalo.ctffind.procrunner.run")
+def test_select_classes_service_first_batch(
+    mock_procrunner, mock_environment, offline_transport, tmp_path
+):
+    """
+    Send a test message to the select classes service when it is a new job.
+    This should call the 2D auto-selection and star file combiner,
+    then send messages to the node creator and ask Murfey to do 3D classification.
+    """
+    mock_procrunner().returncode = 0
+
+    header = {
+        "message-id": mock.sentinel,
+        "subscription": mock.sentinel,
+    }
+    select_test_message = select_classes_common_setup(tmp_path)
 
     # Set up the mock service and send the message to it
     service = select_classes.SelectClasses(environment=mock_environment)
@@ -93,7 +99,7 @@ def test_select_classes_service(
     service.total_count = 60000
     service.select_classes(None, header=header, message=select_test_message)
 
-    assert mock_procrunner.call_count == 4
+    assert mock_procrunner.call_count == 5
     mock_procrunner.assert_any_call(
         command=[
             "relion_class_ranker",
@@ -125,6 +131,16 @@ def test_select_classes_service(
         command=[
             "combine_star_files.py",
             f"{tmp_path}/Select/job012/particles.star",
+            "--output_dir",
+            f"{tmp_path}/Select/job013",
+        ],
+        callback_stdout=mock.ANY,
+        working_directory=str(tmp_path),
+    )
+    mock_procrunner.assert_any_call(
+        command=[
+            "combine_star_files.py",
+            f"{tmp_path}/Select/job013/particles_all.star",
             "--output_dir",
             f"{tmp_path}/Select/job013",
             "--split",
@@ -172,11 +188,313 @@ def test_select_classes_service(
                 "particles_file": f"{tmp_path}/Select/job013/particles_split1.star",
                 "class3d_dir": f"{tmp_path}/Class3D/job",
                 "particle_diameter": 64,
+                "batch_size": 50000,
                 "relion_it_options": select_test_message["parameters"][
                     "relion_it_options"
                 ],
             },
         },
+    )
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="does not run on windows")
+@mock.patch("relion.zocalo.ctffind.procrunner.run")
+def test_select_classes_service_batch_threshold(
+    mock_procrunner, mock_environment, offline_transport, tmp_path
+):
+    """
+    Test the service for the case where the particle count crosses a batch threshold.
+    In this case particles_all.star already exists so should be appended to,
+    and 3D classification should be requested.
+    For this test the particle count is increased from 90000 to 110000,
+    crossing the threshold of 100000.
+    """
+    mock_procrunner().returncode = 0
+
+    header = {
+        "message-id": mock.sentinel,
+        "subscription": mock.sentinel,
+    }
+    select_test_message = select_classes_common_setup(tmp_path)
+
+    # Set up the mock service and send the message to it
+    service = select_classes.SelectClasses(environment=mock_environment)
+    service.transport = offline_transport
+    service.start()
+
+    (tmp_path / "Select/job013/").mkdir(parents=True)
+    (tmp_path / "Select/job013/particles_all.star").touch()
+    service.previous_total_count = 90000
+    service.total_count = 110000
+    service.select_classes(None, header=header, message=select_test_message)
+
+    # Don't bother to check the auto-selection calls here, they are checked above
+    # Do check the combiner calls for the batch threshold and check the Murfey 3D calls
+    mock_procrunner.assert_any_call(
+        command=[
+            "combine_star_files.py",
+            f"{tmp_path}/Select/job012/particles.star",
+            f"{tmp_path}/Select/job013/particles_all.star",
+            "--output_dir",
+            f"{tmp_path}/Select/job013",
+        ],
+        callback_stdout=mock.ANY,
+        working_directory=str(tmp_path),
+    )
+    mock_procrunner.assert_any_call(
+        command=[
+            "combine_star_files.py",
+            f"{tmp_path}/Select/job013/particles_all.star",
+            "--output_dir",
+            f"{tmp_path}/Select/job013",
+            "--split",
+            "--split_size",
+            "100000",
+        ],
+        callback_stdout=mock.ANY,
+        working_directory=str(tmp_path),
+    )
+    offline_transport.send.assert_any_call(
+        destination="murfey_feedback",
+        message={
+            "register": "run_class3d",
+            "class3d": {
+                "particles_file": f"{tmp_path}/Select/job013/particles_split1.star",
+                "class3d_dir": f"{tmp_path}/Class3D/job",
+                "particle_diameter": 64,
+                "batch_size": 100000,
+                "relion_it_options": select_test_message["parameters"][
+                    "relion_it_options"
+                ],
+            },
+        },
+    )
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="does not run on windows")
+@mock.patch("relion.zocalo.ctffind.procrunner.run")
+def test_select_classes_service_two_thresholds(
+    mock_procrunner, mock_environment, offline_transport, tmp_path
+):
+    """
+    Test the service for the case where the particle count crosses two thresholds.
+    In this case particles_all.star already exists so should be appended to,
+    and 3D classification should be requested.
+    For this test the particle count is increased from 10000 to 110000,
+    crossing the thresholds of 50000 and 100000.
+    """
+    mock_procrunner().returncode = 0
+
+    header = {
+        "message-id": mock.sentinel,
+        "subscription": mock.sentinel,
+    }
+    select_test_message = select_classes_common_setup(tmp_path)
+
+    # Set up the mock service and send the message to it
+    service = select_classes.SelectClasses(environment=mock_environment)
+    service.transport = offline_transport
+    service.start()
+
+    (tmp_path / "Select/job013/").mkdir(parents=True)
+    (tmp_path / "Select/job013/particles_all.star").touch()
+    service.previous_total_count = 10000
+    service.total_count = 110000
+    service.select_classes(None, header=header, message=select_test_message)
+
+    # Don't bother to check the auto-selection calls here, they are checked above
+    # Do check the combiner calls for the batch threshold and check the Murfey 3D calls
+    mock_procrunner.assert_any_call(
+        command=[
+            "combine_star_files.py",
+            f"{tmp_path}/Select/job013/particles_all.star",
+            "--output_dir",
+            f"{tmp_path}/Select/job013",
+            "--split",
+            "--split_size",
+            "100000",
+        ],
+        callback_stdout=mock.ANY,
+        working_directory=str(tmp_path),
+    )
+    offline_transport.send.assert_any_call(
+        destination="murfey_feedback",
+        message={
+            "register": "run_class3d",
+            "class3d": {
+                "particles_file": f"{tmp_path}/Select/job013/particles_split1.star",
+                "class3d_dir": f"{tmp_path}/Class3D/job",
+                "particle_diameter": 64,
+                "batch_size": 100000,
+                "relion_it_options": select_test_message["parameters"][
+                    "relion_it_options"
+                ],
+            },
+        },
+    )
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="does not run on windows")
+@mock.patch("relion.zocalo.ctffind.procrunner.run")
+def test_select_classes_service_last_threshold(
+    mock_procrunner, mock_environment, offline_transport, tmp_path
+):
+    """
+    Test the service for the case where the particle count crosses the maximum.
+    In this case particles_all.star already exists so should be appended to,
+    and 3D classification should be requested.
+    For this test the particle count is increased from 190000 to 260000,
+    crossing the thresholds of 200000 and 250000,
+    but the maximum of 200000 should be used.
+    """
+    mock_procrunner().returncode = 0
+
+    header = {
+        "message-id": mock.sentinel,
+        "subscription": mock.sentinel,
+    }
+    select_test_message = select_classes_common_setup(tmp_path)
+
+    # Set up the mock service and send the message to it
+    service = select_classes.SelectClasses(environment=mock_environment)
+    service.transport = offline_transport
+    service.start()
+
+    (tmp_path / "Select/job013/").mkdir(parents=True)
+    (tmp_path / "Select/job013/particles_all.star").touch()
+    service.previous_total_count = 190000
+    service.total_count = 260000
+    service.select_classes(None, header=header, message=select_test_message)
+
+    # Don't bother to check the auto-selection calls here, they are checked above
+    # Do check the combiner calls for the batch threshold and check the Murfey 3D calls
+    mock_procrunner.assert_any_call(
+        command=[
+            "combine_star_files.py",
+            f"{tmp_path}/Select/job013/particles_all.star",
+            "--output_dir",
+            f"{tmp_path}/Select/job013",
+            "--split",
+            "--split_size",
+            "200000",
+        ],
+        callback_stdout=mock.ANY,
+        working_directory=str(tmp_path),
+    )
+    offline_transport.send.assert_any_call(
+        destination="murfey_feedback",
+        message={
+            "register": "run_class3d",
+            "class3d": {
+                "particles_file": f"{tmp_path}/Select/job013/particles_split1.star",
+                "class3d_dir": f"{tmp_path}/Class3D/job",
+                "particle_diameter": 64,
+                "batch_size": 200000,
+                "relion_it_options": select_test_message["parameters"][
+                    "relion_it_options"
+                ],
+            },
+        },
+    )
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="does not run on windows")
+@mock.patch("relion.zocalo.ctffind.procrunner.run")
+def test_select_classes_service_not_threshold(
+    mock_procrunner, mock_environment, offline_transport, tmp_path
+):
+    """
+    Test the service for the case where the particle count doesn't cross a threshold.
+    In this case particles_all.star already exists so should be appended to,
+    but 3D classification should not be requested.
+    """
+    mock_procrunner().returncode = 0
+
+    header = {
+        "message-id": mock.sentinel,
+        "subscription": mock.sentinel,
+    }
+    select_test_message = select_classes_common_setup(tmp_path)
+
+    # Set up the mock service and send the message to it
+    service = select_classes.SelectClasses(environment=mock_environment)
+    service.transport = offline_transport
+    service.start()
+
+    (tmp_path / "Select/job013/").mkdir(parents=True)
+    (tmp_path / "Select/job013/particles_all.star").touch()
+    service.previous_total_count = 110000
+    service.total_count = 130000
+    service.select_classes(None, header=header, message=select_test_message)
+
+    # Don't bother to check the auto-selection calls here, they are checked above
+    # Do check the combiner calls for the batch threshold and check the Murfey 3D calls
+    mock_procrunner.assert_any_call(
+        command=[
+            "combine_star_files.py",
+            f"{tmp_path}/Select/job013/particles_all.star",
+            "--output_dir",
+            f"{tmp_path}/Select/job013",
+            "--split",
+            "--split_size",
+            "150000",
+        ],
+        callback_stdout=mock.ANY,
+        working_directory=str(tmp_path),
+    )
+    assert (
+        mock.call(destination="murfey_feedback", message=mock.ANY)
+        not in offline_transport.send.mock_calls
+    )
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="does not run on windows")
+@mock.patch("relion.zocalo.ctffind.procrunner.run")
+def test_select_classes_service_past_maximum(
+    mock_procrunner, mock_environment, offline_transport, tmp_path
+):
+    """
+    Test the service for the case where the existing particle count exceeds the maximum.
+    In this case particles_all.star already exists so should be appended to,
+    but 3D classification should not be requested.
+    """
+    mock_procrunner().returncode = 0
+
+    header = {
+        "message-id": mock.sentinel,
+        "subscription": mock.sentinel,
+    }
+    select_test_message = select_classes_common_setup(tmp_path)
+
+    # Set up the mock service and send the message to it
+    service = select_classes.SelectClasses(environment=mock_environment)
+    service.transport = offline_transport
+    service.start()
+
+    (tmp_path / "Select/job013/").mkdir(parents=True)
+    (tmp_path / "Select/job013/particles_all.star").touch()
+    service.previous_total_count = 290000
+    service.total_count = 310000
+    service.select_classes(None, header=header, message=select_test_message)
+
+    # Don't bother to check the auto-selection calls here, they are checked above
+    # Do check the combiner calls for the batch threshold and check the Murfey 3D calls
+    mock_procrunner.assert_any_call(
+        command=[
+            "combine_star_files.py",
+            f"{tmp_path}/Select/job013/particles_all.star",
+            "--output_dir",
+            f"{tmp_path}/Select/job013",
+            "--split",
+            "--split_size",
+            "200000",
+        ],
+        callback_stdout=mock.ANY,
+        working_directory=str(tmp_path),
+    )
+    assert (
+        mock.call(destination="murfey_feedback", message=mock.ANY)
+        not in offline_transport.send.mock_calls
     )
 
 
@@ -192,6 +510,8 @@ def test_parse_combiner_output(mock_environment, offline_transport):
     select_classes.SelectClasses.parse_combiner_output(
         service, "Adding Select/job/particles_all.star with 10 particles"
     )
-    select_classes.SelectClasses.parse_combiner_output(service, "Split 20 particles")
+    select_classes.SelectClasses.parse_combiner_output(
+        service, "Combined 2 files into particles_all.star with 20 particles"
+    )
     assert service.previous_total_count == 10
     assert service.total_count == 20

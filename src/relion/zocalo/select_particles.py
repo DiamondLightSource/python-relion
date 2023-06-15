@@ -211,7 +211,7 @@ class SelectParticles(CommonService):
 
         class2d_params = {
             "class2d_dir": f"{project_dir}/Class2D/job",
-            "particle_diameter": str(select_params.image_size),
+            "particle_diameter": select_params.image_size,
             "batch_size": select_params.batch_size,
             "relion_it_options": select_params.relion_it_options,
         }

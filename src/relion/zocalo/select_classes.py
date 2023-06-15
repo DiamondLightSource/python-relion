@@ -75,9 +75,9 @@ class SelectClasses(CommonService):
             line_split = line.split()
             self.previous_total_count = int(line_split[3])
 
-        if line.startswith("Split"):
+        if line.startswith("Combined"):
             line_split = line.split()
-            self.total_count = int(line_split[1])
+            self.total_count = int(line_split[6])
 
     def select_classes(self, rw, header: dict, message: dict):
         class MockRW:
@@ -244,7 +244,7 @@ class SelectClasses(CommonService):
         else:
             rw.send_to("spa.node_creator", autoselect_node_creator_params)
 
-        # Run the combine star files job
+        # Run the combine star files job to combine the files into particles_all.star
         self.log.info("Running star file combination and splitting")
         combine_star_command = [
             "combine_star_files.py",
@@ -259,19 +259,10 @@ class SelectClasses(CommonService):
         else:
             combine_star_dir.mkdir(parents=True, exist_ok=True)
             self.previous_total_count = 0
-        combine_star_command.extend(
-            (
-                "--output_dir",
-                str(combine_star_dir),
-                "--split",
-                "--split_size",
-                str(autoselect_params.class3d_batch_size),
-            )
-        )
+        combine_star_command.extend(("--output_dir", str(combine_star_dir)))
         with open(combine_star_dir / "note.txt", "a") as f:
-            f.write(" ".join(combine_star_command) + "\n\n")
+            f.write(" ".join(combine_star_command) + "\n")
 
-        # Run the star file manipulations
         result = procrunner.run(
             command=combine_star_command,
             callback_stdout=self.parse_combiner_output,
@@ -280,6 +271,66 @@ class SelectClasses(CommonService):
         if result.returncode:
             self.log.error(
                 f"Star file combination failed with exitcode {result.returncode}:\n"
+                + result.stderr.decode("utf8", "replace")
+            )
+            rw.transport.nack(header)
+            return
+
+        # Determine the next split size to use and whether to run 3D classification
+        send_to_3d_classification = False
+        if self.previous_total_count == 0:
+            # First run of this job, use class3d_max_size
+            next_batch_size = autoselect_params.class3d_batch_size
+            if self.total_count > autoselect_params.class3d_batch_size:
+                # Do 3D classification if there are more particles than the batch size
+                send_to_3d_classification = True
+        elif self.previous_total_count >= autoselect_params.class3d_max_size:
+            # Iterations beyond those where 3D classification is run
+            next_batch_size = autoselect_params.class3d_max_size
+        else:
+            # Re-runs with fewer particles than the maximum
+            previous_batch_multiple = (
+                self.previous_total_count // autoselect_params.class3d_batch_size
+            )
+            new_batch_multiple = (
+                self.total_count // autoselect_params.class3d_batch_size
+            )
+            if new_batch_multiple > previous_batch_multiple:
+                # Do 3D classification if a batch threshold has been crossed
+                send_to_3d_classification = True
+                # Set the batch size from the total count, but do not exceed the maximum
+                next_batch_size = (
+                    new_batch_multiple * autoselect_params.class3d_batch_size
+                )
+                if next_batch_size > autoselect_params.class3d_max_size:
+                    next_batch_size = autoselect_params.class3d_max_size
+            else:
+                # Otherwise just get the next threshold
+                next_batch_size = (
+                    previous_batch_multiple + 1
+                ) * autoselect_params.class3d_batch_size
+
+        # Run the combine star files job to split particles_all.star into batches
+        split_star_command = [
+            "combine_star_files.py",
+            str(combine_star_dir / "particles_all.star"),
+            "--output_dir",
+            str(combine_star_dir),
+            "--split",
+            "--split_size",
+            str(next_batch_size),
+        ]
+        with open(combine_star_dir / "note.txt", "a") as f:
+            f.write(" ".join(split_star_command) + "\n\n")
+
+        result = procrunner.run(
+            command=split_star_command,
+            callback_stdout=self.parse_combiner_output,
+            working_directory=str(project_dir),
+        )
+        if result.returncode:
+            self.log.error(
+                f"Star file splitting failed with exitcode {result.returncode}:\n"
                 + result.stderr.decode("utf8", "replace")
             )
             rw.transport.nack(header)
@@ -302,17 +353,15 @@ class SelectClasses(CommonService):
             rw.send_to("spa.node_creator", combine_node_creator_params)
 
         # Create 3D classification jobs
-        if (
-            self.total_count // autoselect_params.class3d_batch_size
-            > self.previous_total_count // autoselect_params.class3d_batch_size
-        ) and (self.total_count <= autoselect_params.class3d_max_size):
+        if send_to_3d_classification:
             # Only send to 3D if a new multiple of the batch threshold is crossed
-            # and the count does not exceed the maximum
+            # and the count has not passed the maximum
             self.log.info("Sending to Murfey for Class3D")
             class3d_params = {
                 "particles_file": f"{combine_star_dir}/particles_split1.star",
                 "class3d_dir": f"{project_dir}/Class3D/job",
                 "particle_diameter": autoselect_params.particle_diameter,
+                "batch_size": next_batch_size,
                 "relion_it_options": autoselect_params.relion_it_options,
             }
             murfey_params = {

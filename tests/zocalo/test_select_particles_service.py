@@ -104,7 +104,8 @@ def test_select_particles_service(mock_environment, offline_transport, tmp_path)
             "register": "complete_particles_file",
             "class2d": {
                 "class2d_dir": f"{tmp_path}/Class2D/job",
-                "particle_diameter": "64",
+                "particle_diameter": 64,
+                "batch_size": 2,
                 "relion_it_options": select_test_message["parameters"][
                     "relion_it_options"
                 ],

@@ -48,7 +48,10 @@ def combine_star_files(files_to_process: List[Path], output_dir: Path):
 
     starfile.write(final_star_file, output_dir / "particles_all.star", overwrite=True)
 
-    print(f"Combined {number_of_star_files} files into particles_all.star")
+    print(
+        f"Combined {number_of_star_files} files into particles_all.star "
+        f"with {len(final_star_file['particles'])} particles"
+    )
 
 
 def split_star_file(
