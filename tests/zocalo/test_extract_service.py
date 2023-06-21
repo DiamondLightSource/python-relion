@@ -116,6 +116,9 @@ def test_extract_service(mock_mrcfile, mock_environment, offline_transport, tmp_
                 "relion_it_options": extract_test_message["parameters"][
                     "relion_it_options"
                 ],
+                "command": "",
+                "stdout": "",
+                "stderr": "",
                 "results": {"box_size": 64},
             },
             "content": "dummy",

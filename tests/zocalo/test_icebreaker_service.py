@@ -43,6 +43,8 @@ def test_icebreaker_micrographs_service(
     It also creates the icebreaker summary jobs.
     """
     mock_subprocess().returncode = 0
+    mock_subprocess().stdout = "stdout".encode("ascii")
+    mock_subprocess().stderr = "stderr".encode("ascii")
 
     header = {
         "message-id": mock.sentinel,
@@ -69,7 +71,7 @@ def test_icebreaker_micrographs_service(
     service.start()
     service.icebreaker(None, header=header, message=icebreaker_test_message)
 
-    assert mock_subprocess.call_count == 2
+    assert mock_subprocess.call_count == 4
     mock_subprocess.assert_called_with(
         [
             "ib_job",
@@ -112,6 +114,12 @@ def test_icebreaker_micrographs_service(
                 "relion_it_options": icebreaker_test_message["parameters"][
                     "relion_it_options"
                 ],
+                "command": (
+                    "ib_job --j 1 --mode group --single_mic "
+                    f"MotionCorr/job002/sample.mrc --o {tmp_path}/IceBreaker/job003/"
+                ),
+                "stdout": "stdout",
+                "stderr": "stderr",
                 "results": {
                     "icebreaker_type": "micrographs",
                     "total_motion": 0.5,
@@ -135,6 +143,8 @@ def test_icebreaker_enhancecontrast_service(
     then send a message on to the node_creator service
     """
     mock_subprocess().returncode = 0
+    mock_subprocess().stdout = "stdout".encode("ascii")
+    mock_subprocess().stderr = "stderr".encode("ascii")
 
     header = {
         "message-id": mock.sentinel,
@@ -161,7 +171,7 @@ def test_icebreaker_enhancecontrast_service(
     service.start()
     service.icebreaker(None, header=header, message=icebreaker_test_message)
 
-    assert mock_subprocess.call_count == 2
+    assert mock_subprocess.call_count == 4
     mock_subprocess.assert_called_with(
         [
             "ib_job",
@@ -190,6 +200,12 @@ def test_icebreaker_enhancecontrast_service(
                 "relion_it_options": icebreaker_test_message["parameters"][
                     "relion_it_options"
                 ],
+                "command": (
+                    "ib_job --j 1 --mode flatten --single_mic "
+                    f"MotionCorr/job002/sample.mrc --o {tmp_path}/IceBreaker/job004/"
+                ),
+                "stdout": "stdout",
+                "stderr": "stderr",
                 "results": {
                     "icebreaker_type": "enhancecontrast",
                     "total_motion": 0.5,
@@ -213,6 +229,8 @@ def test_icebreaker_summary_service(
     then send a message on to the node_creator service
     """
     mock_subprocess().returncode = 0
+    mock_subprocess().stdout = "stdout".encode("ascii")
+    mock_subprocess().stderr = "stderr".encode("ascii")
 
     header = {
         "message-id": mock.sentinel,
@@ -239,7 +257,7 @@ def test_icebreaker_summary_service(
     service.start()
     service.icebreaker(None, header=header, message=icebreaker_test_message)
 
-    assert mock_subprocess.call_count == 2
+    assert mock_subprocess.call_count == 4
     mock_subprocess.assert_called_with(
         [
             "ib_5fig",
@@ -264,6 +282,12 @@ def test_icebreaker_summary_service(
                 "relion_it_options": icebreaker_test_message["parameters"][
                     "relion_it_options"
                 ],
+                "command": (
+                    "ib_5fig --single_mic IceBreaker/job003/sample_grouped.star "
+                    f"--o {tmp_path}/IceBreaker/job005/"
+                ),
+                "stdout": "stdout",
+                "stderr": "stderr",
                 "results": {
                     "icebreaker_type": "summary",
                     "total_motion": 0.5,
@@ -287,6 +311,8 @@ def test_icebreaker_particles_service(
     then send a message on to the node_creator service
     """
     mock_subprocess().returncode = 0
+    mock_subprocess().stdout = "stdout".encode("ascii")
+    mock_subprocess().stderr = "stderr".encode("ascii")
 
     header = {
         "message-id": mock.sentinel,
@@ -313,7 +339,7 @@ def test_icebreaker_particles_service(
     service.start()
     service.icebreaker(None, header=header, message=icebreaker_test_message)
 
-    assert mock_subprocess.call_count == 2
+    assert mock_subprocess.call_count == 4
     mock_subprocess.assert_called_with(
         [
             "ib_group",
@@ -340,6 +366,13 @@ def test_icebreaker_particles_service(
                 "relion_it_options": icebreaker_test_message["parameters"][
                     "relion_it_options"
                 ],
+                "command": (
+                    "ib_group --in_mics IceBreaker/job003/sample_grouped.star "
+                    "--in_parts Select/job009/particles_split1.star "
+                    f"--o {tmp_path}/IceBreaker/job010/"
+                ),
+                "stdout": "stdout",
+                "stderr": "stderr",
                 "results": {
                     "icebreaker_type": "particles",
                     "total_motion": 0.5,

@@ -335,9 +335,11 @@ def _select_output_files(
 ):
     """Select jobs need no further files, but have extra nodes to add"""
     # Find and add all the output files to the node list
+    split_count = int(str(output_file).split("split")[1].split(".")[0])
     split_files = {}
-    for node in job_dir.glob("particles_split*.star"):
-        split_files[node.name] = [NODE_PARTICLESDATA, ["relion"]]
+    for split_file in range(split_count, 0, -1):
+        split_name = f"particles_split{split_file}.star"
+        split_files[split_name] = [NODE_PARTICLESDATA, ["relion"]]
     return split_files
 
 

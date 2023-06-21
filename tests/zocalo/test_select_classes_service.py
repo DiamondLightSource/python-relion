@@ -62,7 +62,7 @@ def select_classes_common_setup(tmp_path):
             "particle_diameter": 64,
             "particles_file": "particles.star",
             "classes_file": "class_averages.star",
-            "python_exe": "/dls_sw/apps/EM/relion/4.0/conda/bin/python",
+            "python_exe": "python",
             "min_score": 0,
             "min_particles": 500,
             "class3d_batch_size": 50000,
@@ -85,7 +85,8 @@ def test_select_classes_service_first_batch(
     then send messages to the node creator and ask Murfey to do 3D classification.
     """
     mock_subprocess().returncode = 0
-    mock_subprocess().stdout = "".encode("ascii")
+    mock_subprocess().stdout = "stdout".encode("ascii")
+    mock_subprocess().stderr = "stderr".encode("ascii")
 
     header = {
         "message-id": mock.sentinel,
@@ -100,7 +101,7 @@ def test_select_classes_service_first_batch(
     service.total_count = 60000
     service.select_classes(None, header=header, message=select_test_message)
 
-    assert mock_subprocess.call_count == 6
+    assert mock_subprocess.call_count == 7
     mock_subprocess.assert_any_call(
         [
             "relion_class_ranker",
@@ -163,6 +164,17 @@ def test_select_classes_service_first_batch(
                 "relion_it_options": select_test_message["parameters"][
                     "relion_it_options"
                 ],
+                "command": (
+                    "relion_class_ranker --opt "
+                    f"{tmp_path}/Class2D/job010/run_it020_optimiser.star "
+                    "--o Select/job012/ --auto_select --fn_root rank "
+                    "--do_granularity_features --fn_sel_parts particles.star "
+                    "--fn_sel_classavgs class_averages.star --python python "
+                    "--select_min_nr_particles 500 "
+                    "--pipeline_control Select/job012/ --min_score 0.006"
+                ),
+                "stdout": "stdout",
+                "stderr": "stderr",
             },
             "content": "dummy",
         },
@@ -177,6 +189,14 @@ def test_select_classes_service_first_batch(
                 "relion_it_options": select_test_message["parameters"][
                     "relion_it_options"
                 ],
+                "command": (
+                    f"combine_star_files.py {tmp_path}/Select/job012/particles.star "
+                    f"--output_dir {tmp_path}/Select/job013\n"
+                    f"combine_star_files.py {tmp_path}/Select/job013/particles_all.star "
+                    f"--output_dir {tmp_path}/Select/job013 --split --split_size 50000"
+                ),
+                "stdout": "stdout",
+                "stderr": "stderr",
             },
             "content": "dummy",
         },
@@ -211,7 +231,8 @@ def test_select_classes_service_batch_threshold(
     crossing the threshold of 100000.
     """
     mock_subprocess().returncode = 0
-    mock_subprocess().stdout = "".encode("ascii")
+    mock_subprocess().stdout = "stdout".encode("ascii")
+    mock_subprocess().stderr = "stderr".encode("ascii")
 
     header = {
         "message-id": mock.sentinel,
@@ -286,7 +307,8 @@ def test_select_classes_service_two_thresholds(
     crossing the thresholds of 50000 and 100000.
     """
     mock_subprocess().returncode = 0
-    mock_subprocess().stdout = "".encode("ascii")
+    mock_subprocess().stdout = "stdout".encode("ascii")
+    mock_subprocess().stderr = "stderr".encode("ascii")
 
     header = {
         "message-id": mock.sentinel,
@@ -351,7 +373,8 @@ def test_select_classes_service_last_threshold(
     but the maximum of 200000 should be used.
     """
     mock_subprocess().returncode = 0
-    mock_subprocess().stdout = "".encode("ascii")
+    mock_subprocess().stdout = "stdout".encode("ascii")
+    mock_subprocess().stderr = "stderr".encode("ascii")
 
     header = {
         "message-id": mock.sentinel,
@@ -413,7 +436,8 @@ def test_select_classes_service_not_threshold(
     but 3D classification should not be requested.
     """
     mock_subprocess().returncode = 0
-    mock_subprocess().stdout = "".encode("ascii")
+    mock_subprocess().stdout = "stdout".encode("ascii")
+    mock_subprocess().stderr = "stderr".encode("ascii")
 
     header = {
         "message-id": mock.sentinel,
@@ -464,7 +488,8 @@ def test_select_classes_service_past_maximum(
     but 3D classification should not be requested.
     """
     mock_subprocess().returncode = 0
-    mock_subprocess().stdout = "".encode("ascii")
+    mock_subprocess().stdout = "stdout".encode("ascii")
+    mock_subprocess().stderr = "stderr".encode("ascii")
 
     header = {
         "message-id": mock.sentinel,

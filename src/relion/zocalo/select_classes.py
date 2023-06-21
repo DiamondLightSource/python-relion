@@ -166,9 +166,6 @@ class SelectClasses(CommonService):
         else:
             autoselect_command.extend(("--min_score", str(autoselect_params.min_score)))
 
-        with open(select_dir / "note.txt", "w") as f:
-            f.write(" ".join(autoselect_command))
-
         # Run the class selection
         result = subprocess.run(
             autoselect_command, cwd=str(project_dir), capture_output=True
@@ -199,8 +196,6 @@ class SelectClasses(CommonService):
                 f"Re-running class selection with new threshold {quantile_threshold}"
             )
             autoselect_command[-1] = str(quantile_threshold)
-            with open(select_dir / "note.txt", "a") as f:
-                f.write("\n\n" + " ".join(autoselect_command))
 
             # Re-run the class selection
             result = subprocess.run(
@@ -221,6 +216,9 @@ class SelectClasses(CommonService):
             "input_file": autoselect_params.input_file,
             "output_file": str(select_dir / autoselect_params.particles_file),
             "relion_it_options": autoselect_params.relion_it_options,
+            "command": " ".join(autoselect_command),
+            "stdout": result.stdout.decode("utf8", "replace"),
+            "stderr": result.stderr.decode("utf8", "replace"),
         }
         if isinstance(rw, MockRW):
             rw.transport.send(
@@ -249,8 +247,6 @@ class SelectClasses(CommonService):
             combine_star_dir.mkdir(parents=True, exist_ok=True)
             self.previous_total_count = 0
         combine_star_command.extend(("--output_dir", str(combine_star_dir)))
-        with open(combine_star_dir / "note.txt", "a") as f:
-            f.write(" ".join(combine_star_command) + "\n")
 
         result = subprocess.run(
             combine_star_command, cwd=str(project_dir), capture_output=True
@@ -309,8 +305,6 @@ class SelectClasses(CommonService):
             "--split_size",
             str(next_batch_size),
         ]
-        with open(combine_star_dir / "note.txt", "a") as f:
-            f.write(" ".join(split_star_command) + "\n\n")
 
         result = subprocess.run(
             split_star_command, cwd=str(project_dir), capture_output=True
@@ -332,6 +326,11 @@ class SelectClasses(CommonService):
             "input_file": f"{select_dir}/{autoselect_params.particles_file}",
             "output_file": f"{combine_star_dir}/particles_all.star",
             "relion_it_options": autoselect_params.relion_it_options,
+            "command": (
+                " ".join(combine_star_command) + "\n" + " ".join(split_star_command)
+            ),
+            "stdout": result.stdout.decode("utf8", "replace"),
+            "stderr": result.stderr.decode("utf8", "replace"),
         }
         if isinstance(rw, MockRW):
             rw.transport.send(

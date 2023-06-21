@@ -73,6 +73,9 @@ def setup_and_run_node_creation(
             "input_file": str(input_file),
             "output_file": str(output_file),
             "relion_it_options": relion_it_options,
+            "command": "command",
+            "stdout": "stdout",
+            "stderr": "stderr",
             "results": results,
         },
         "content": "dummy",
@@ -90,6 +93,7 @@ def setup_and_run_node_creation(
     assert (project_dir / ".Nodes").is_dir()
 
     assert (project_dir / job_dir / "job.star").exists()
+    assert (project_dir / job_dir / "note.txt").exists()
     assert (project_dir / job_dir / "run.out").exists()
     assert (project_dir / job_dir / "run.err").exists()
     assert (project_dir / job_dir / "run.job").exists()

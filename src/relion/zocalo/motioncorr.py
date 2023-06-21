@@ -217,9 +217,6 @@ class MotionCorr(CommonService):
                     command.extend((mc_flags[k], str(v)))
 
         self.log.info(f"Input: {mc_params.movie} Output: {mc_params.mrc_out}")
-        job_dir = Path(re.search(".+/job[0-9]{3}/", mc_params.mrc_out)[0])
-        with open(job_dir / "note.txt", "w") as f:
-            f.write(" ".join(command))
 
         # Run motion correction
         result = subprocess.run(command, capture_output=True)
@@ -454,6 +451,9 @@ class MotionCorr(CommonService):
                 "input_file": str(mc_params.movie),
                 "output_file": str(import_movie),
                 "relion_it_options": mc_params.relion_it_options,
+                "command": "",
+                "stdout": "",
+                "stderr": "",
             }
             if isinstance(rw, MockRW):
                 rw.transport.send(
@@ -470,6 +470,9 @@ class MotionCorr(CommonService):
                 "input_file": str(import_movie),
                 "output_file": mc_params.mrc_out,
                 "relion_it_options": mc_params.relion_it_options,
+                "command": " ".join(command),
+                "stdout": result.stdout.decode("utf8", "replace"),
+                "stderr": result.stderr.decode("utf8", "replace"),
                 "results": {
                     "total_motion": total_motion,
                     "early_motion": early_motion,

@@ -40,7 +40,8 @@ def test_cryolo_service(mock_subprocess, mock_environment, offline_transport, tm
     node_creator, murfey_feedback, ispyb_connector and images services
     """
     mock_subprocess().returncode = 0
-    mock_subprocess().stdout = "".encode("ascii")
+    mock_subprocess().stdout = "stdout".encode("ascii")
+    mock_subprocess().stderr = "stderr".encode("ascii")
 
     header = {
         "message-id": mock.sentinel,
@@ -91,7 +92,7 @@ def test_cryolo_service(mock_subprocess, mock_environment, offline_transport, tm
     service.start()
     service.cryolo(None, header=header, message=cryolo_test_message)
 
-    assert mock_subprocess.call_count == 3
+    assert mock_subprocess.call_count == 4
     mock_subprocess.assert_called_with(
         [
             "cryolo_predict.py",
@@ -164,6 +165,14 @@ def test_cryolo_service(mock_subprocess, mock_environment, offline_transport, tm
                 "relion_it_options": cryolo_test_message["parameters"][
                     "relion_it_options"
                 ],
+                "command": (
+                    f"cryolo_predict.py --conf {tmp_path}/config.json "
+                    f"-o {tmp_path}/AutoPick/job007 "
+                    f"-i MotionCorr/job002/sample.mrc "
+                    f"--weights sample_weights --threshold 0.3"
+                ),
+                "stdout": "stdout",
+                "stderr": "stderr",
             },
             "content": "dummy",
         },

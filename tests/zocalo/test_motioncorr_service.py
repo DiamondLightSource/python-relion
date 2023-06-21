@@ -44,7 +44,8 @@ def test_motioncorr_service(
     and the node_creator is called for both import and motion correction.
     """
     mock_subprocess().returncode = 0
-    mock_subprocess().stdout = "".encode("ascii")
+    mock_subprocess().stdout = "stdout".encode("ascii")
+    mock_subprocess().stderr = "stderr".encode("ascii")
 
     header = {
         "message-id": mock.sentinel,
@@ -56,8 +57,8 @@ def test_motioncorr_service(
             "pix_size": 0.1,
             "autopick": {"autopick": "autopick"},
             "ctf": {"ctf": "ctf"},
-            "movie": "Movies/sample.tiff",
-            "mrc_out": "MotionCorr/job002/Movies/sample.mrc",
+            "movie": f"{tmp_path}/Movies/sample.tiff",
+            "mrc_out": f"{tmp_path}/MotionCorr/job002/Movies/sample.mrc",
             "patch_size": 5,
             "gpu": 0,
             "gain_ref": "gain.mrc",
@@ -114,7 +115,7 @@ def test_motioncorr_service(
     # Send a message to the service
     service.motion_correction(None, header=header, message=motioncorr_test_message)
 
-    assert mock_subprocess.call_count == 3
+    assert mock_subprocess.call_count == 4
     mock_subprocess.assert_called_with(
         [
             "MotionCor2",
@@ -141,7 +142,7 @@ def test_motioncorr_service(
             "parameters": {
                 "icebreaker_type": "micrographs",
                 "input_micrographs": motioncorr_test_message["parameters"]["mrc_out"],
-                "output_path": "IceBreaker/job003/",
+                "output_path": f"{tmp_path}/IceBreaker/job003/",
                 "mc_uuid": motioncorr_test_message["parameters"]["mc_uuid"],
                 "relion_it_options": motioncorr_test_message["parameters"][
                     "relion_it_options"
@@ -159,7 +160,7 @@ def test_motioncorr_service(
             "parameters": {
                 "icebreaker_type": "enhancecontrast",
                 "input_micrographs": motioncorr_test_message["parameters"]["mrc_out"],
-                "output_path": "IceBreaker/job004/",
+                "output_path": f"{tmp_path}/IceBreaker/job004/",
                 "mc_uuid": motioncorr_test_message["parameters"]["mc_uuid"],
                 "relion_it_options": motioncorr_test_message["parameters"][
                     "relion_it_options"
@@ -185,7 +186,7 @@ def test_motioncorr_service(
                     "relion_it_options"
                 ]["ampl_contrast"],
                 "collection_type": "spa",
-                "output_image": "CtfFind/job006/Movies/sample.ctf",
+                "output_image": f"{tmp_path}/CtfFind/job006/Movies/sample.ctf",
                 "pix_size": motioncorr_test_message["parameters"]["pix_size"],
             },
             "content": "dummy",
@@ -199,8 +200,8 @@ def test_motioncorr_service(
                 "last_frame": 2,
                 "total_motion": total_motion,
                 "average_motion_per_frame": average_motion_per_frame,
-                "drift_plot_full_path": "MotionCorr/job002/Movies/sample_drift_plot.json",
-                "micrograph_snapshot_full_path": "MotionCorr/job002/Movies/sample.jpeg",
+                "drift_plot_full_path": f"{tmp_path}/MotionCorr/job002/Movies/sample_drift_plot.json",
+                "micrograph_snapshot_full_path": f"{tmp_path}/MotionCorr/job002/Movies/sample.jpeg",
                 "micrograph_full_path": motioncorr_test_message["parameters"][
                     "mrc_out"
                 ],
@@ -236,10 +237,13 @@ def test_motioncorr_service(
             "parameters": {
                 "job_type": "relion.import.movies",
                 "input_file": motioncorr_test_message["parameters"]["movie"],
-                "output_file": "Import/job001/Movies/sample.tiff",
+                "output_file": f"{tmp_path}/Import/job001/Movies/sample.tiff",
                 "relion_it_options": motioncorr_test_message["parameters"][
                     "relion_it_options"
                 ],
+                "command": "",
+                "stdout": "",
+                "stderr": "",
             },
             "content": "dummy",
         },
@@ -249,11 +253,18 @@ def test_motioncorr_service(
         message={
             "parameters": {
                 "job_type": "relion.motioncorr.motioncor2",
-                "input_file": "Import/job001/Movies/sample.tiff",
+                "input_file": f"{tmp_path}/Import/job001/Movies/sample.tiff",
                 "output_file": motioncorr_test_message["parameters"]["mrc_out"],
                 "relion_it_options": motioncorr_test_message["parameters"][
                     "relion_it_options"
                 ],
+                "command": (
+                    f"MotionCor2 -InTiff {tmp_path}/Movies/sample.tiff "
+                    f"-OutMrc {tmp_path}/MotionCorr/job002/Movies/sample.mrc "
+                    "-PixSize 0.1 -FmDose 1.0 -Gain gain.mrc -FmRef 1"
+                ),
+                "stdout": "stdout",
+                "stderr": "stderr",
                 "results": {
                     "total_motion": total_motion,
                     "early_motion": early_motion,

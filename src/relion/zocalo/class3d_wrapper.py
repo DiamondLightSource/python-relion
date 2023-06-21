@@ -127,8 +127,6 @@ class Class3DWrapper(zocalo.wrapper.BaseWrapper):
         initial_model_command.extend(
             ("--pipeline_control", f"{job_dir.relative_to(project_dir)}/")
         )
-        with open(job_dir / "note.txt", "a") as f:
-            f.write(" ".join(initial_model_command))
 
         # Run initial model and confirm it ran successfully
         self.log.info("Running initial model")
@@ -159,8 +157,6 @@ class Class3DWrapper(zocalo.wrapper.BaseWrapper):
             "--pipeline_control",
             f"{job_dir.relative_to(project_dir)}/",
         ]
-        with open(job_dir / "note.txt", "a") as f:
-            f.write("\n" + "".join(align_symmetry_command))
 
         # Run symmetry alignment and confirm it ran successfully
         self.log.info("Running symmetry alignment")
@@ -182,9 +178,15 @@ class Class3DWrapper(zocalo.wrapper.BaseWrapper):
             "input_file": f"{project_dir}/{particles_file}",
             "output_file": f"{job_dir}/initial_model.mrc",
             "relion_it_options": initial_model_params.relion_it_options,
+            "command": (
+                " ".join(initial_model_command) + "\n" + "".join(align_symmetry_command)
+            ),
+            "stdout": result.stdout.decode("utf8", "replace"),
+            "stderr": result.stderr.decode("utf8", "replace"),
         }
         self.recwrap.send_to("spa.node_creator", node_creator_parameters)
 
+        self.log.info("Running 3D classification using new initial model")
         return f"{ini_model_file}"
 
     def run(self):
@@ -273,8 +275,6 @@ class Class3DWrapper(zocalo.wrapper.BaseWrapper):
         class3d_command.extend(
             ("--pipeline_control", f"{job_dir.relative_to(project_dir)}/")
         )
-        with open(Path(class3d_params.class3d_dir) / "note.txt", "w") as f:
-            f.write(" ".join(class3d_command))
 
         # Run Class3D and confirm it ran successfully
         result = subprocess.run(
@@ -294,6 +294,9 @@ class Class3DWrapper(zocalo.wrapper.BaseWrapper):
             "input_file": class3d_params.particles_file + f":{initial_model_file}",
             "output_file": class3d_params.class3d_dir,
             "relion_it_options": class3d_params.relion_it_options,
+            "command": " ".join(class3d_command),
+            "stdout": result.stdout.decode("utf8", "replace"),
+            "stderr": result.stderr.decode("utf8", "replace"),
         }
         self.recwrap.send_to("spa.node_creator", node_creator_parameters)
 
@@ -341,13 +344,13 @@ class Class3DWrapper(zocalo.wrapper.BaseWrapper):
                 "class_number": class_id + 1,
                 "class_image_full_path": None,
                 "particles_per_class": (
-                    classes_loop[1, class_id] * class3d_params.batch_size
+                    float(classes_loop.val(class_id, 1)) * class3d_params.batch_size
                 ),
-                "class_distribution": classes_loop[1, class_id],
-                "rotation_accuracy": classes_loop[2, class_id],
-                "translation_accuracy": classes_loop[3, class_id],
-                "estimated_resolution": classes_loop[4, class_id],
-                "overall_fourier_completeness": classes_loop[5, class_id],
+                "class_distribution": classes_loop.val(class_id, 1),
+                "rotation_accuracy": classes_loop.val(class_id, 2),
+                "translation_accuracy": classes_loop.val(class_id, 3),
+                "estimated_resolution": classes_loop.val(class_id, 4),
+                "overall_fourier_completeness": classes_loop.val(class_id, 5),
             }
             ispyb_parameters.update(
                 {
@@ -360,7 +363,6 @@ class Class3DWrapper(zocalo.wrapper.BaseWrapper):
                     },
                 }
             )
-            self.log.info(f"Sending to ispyb {ispyb_parameters}")
             self.recwrap.send_to("ispyb", {"ispyb_command_list": ispyb_parameters})
 
         self.log.info(f"Done {job_type} for {class3d_params.particles_file}.")

@@ -94,6 +94,9 @@ def test_select_particles_service(mock_environment, offline_transport, tmp_path)
                 "relion_it_options": select_test_message["parameters"][
                     "relion_it_options"
                 ],
+                "command": "",
+                "stdout": "",
+                "stderr": "",
             },
             "content": "dummy",
         },

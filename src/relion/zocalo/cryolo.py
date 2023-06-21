@@ -153,8 +153,6 @@ class CrYOLO(CommonService):
             f"Input: {cryolo_params.input_path} "
             + f"Output: {cryolo_params.output_path}"
         )
-        with open(job_dir / "note.txt", "w") as f:
-            f.write(" ".join(command))
 
         # Run cryolo and confirm it ran successfully
         result = subprocess.run(command, cwd=project_dir, capture_output=True)
@@ -304,6 +302,9 @@ class CrYOLO(CommonService):
             "input_file": cryolo_params.input_path,
             "output_file": cryolo_params.output_path,
             "relion_it_options": cryolo_params.relion_it_options,
+            "command": " ".join(command),
+            "stdout": result.stdout.decode("utf8", "replace"),
+            "stderr": result.stderr.decode("utf8", "replace"),
         }
         if isinstance(rw, MockRW):
             rw.transport.send(

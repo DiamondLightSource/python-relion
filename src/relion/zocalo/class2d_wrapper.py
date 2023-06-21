@@ -141,8 +141,6 @@ class Class2DWrapper(zocalo.wrapper.BaseWrapper):
         class2d_command.extend(
             ("--pipeline_control", f"{job_dir.relative_to(project_dir)}/")
         )
-        with open(Path(class2d_params.class2d_dir) / "note.txt", "w") as f:
-            f.write(" ".join(class2d_command))
 
         # Run Class2D and confirm it ran successfully
         result = subprocess.run(
@@ -162,6 +160,9 @@ class Class2DWrapper(zocalo.wrapper.BaseWrapper):
             "input_file": class2d_params.particles_file,
             "output_file": class2d_params.class2d_dir,
             "relion_it_options": class2d_params.relion_it_options,
+            "command": " ".join(class2d_command),
+            "stdout": result.stdout.decode("utf8", "replace"),
+            "stderr": result.stderr.decode("utf8", "replace"),
         }
         self.recwrap.send_to("spa.node_creator", node_creator_parameters)
 
@@ -207,13 +208,13 @@ class Class2DWrapper(zocalo.wrapper.BaseWrapper):
                     f"/run_it{class2d_params.nr_iter:03}_classes_{class_id+1}.jpeg"
                 ),
                 "particles_per_class": (
-                    classes_loop[1, class_id] * class2d_params.batch_size
+                    float(classes_loop.val(class_id, 1)) * class2d_params.batch_size
                 ),
-                "class_distribution": classes_loop.val(1, class_id),
-                "rotation_accuracy": classes_loop.val(2, class_id),
-                "translation_accuracy": classes_loop.val(3, class_id),
-                "estimated_resolution": classes_loop.val(4, class_id),
-                "overall_fourier_completeness": classes_loop.val(5, class_id),
+                "class_distribution": classes_loop.val(class_id, 1),
+                "rotation_accuracy": classes_loop.val(class_id, 2),
+                "translation_accuracy": classes_loop.val(class_id, 3),
+                "estimated_resolution": classes_loop.val(class_id, 4),
+                "overall_fourier_completeness": classes_loop.val(class_id, 5),
             }
             ispyb_parameters.update(
                 {
@@ -226,7 +227,6 @@ class Class2DWrapper(zocalo.wrapper.BaseWrapper):
                     },
                 }
             )
-            self.log.info(f"Sending to ispyb {ispyb_parameters}")
             self.recwrap.send_to("ispyb", {"ispyb_command_list": ispyb_parameters})
 
         if class2d_params.batch_is_complete:

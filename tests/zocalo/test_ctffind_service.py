@@ -42,7 +42,8 @@ def test_ctffind_service(
     cryolo, node_creator, ispyb_connector and images services
     """
     mock_subprocess().returncode = 0
-    mock_subprocess().stdout = "test output".encode("utf8")
+    mock_subprocess().stdout = "stdout".encode("utf8")
+    mock_subprocess().stderr = "stderr".encode("utf8")
 
     header = {
         "message-id": mock.sentinel,
@@ -108,7 +109,7 @@ def test_ctffind_service(
     ]
     parameters_string = "\n".join(map(str, parameters_list))
 
-    assert mock_subprocess.call_count == 3
+    assert mock_subprocess.call_count == 4
     mock_subprocess.assert_called_with(
         ["ctffind"],
         input=parameters_string.encode("ascii"),
@@ -188,6 +189,9 @@ def test_ctffind_service(
                 "relion_it_options": ctffind_test_message["parameters"][
                     "relion_it_options"
                 ],
+                "command": f"ctffind\n{' '.join(map(str, parameters_list))}",
+                "stdout": "stdout",
+                "stderr": "stderr",
             },
             "content": "dummy",
         },

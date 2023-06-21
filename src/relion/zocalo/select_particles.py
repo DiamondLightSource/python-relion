@@ -200,6 +200,9 @@ class SelectParticles(CommonService):
             "input_file": select_params.input_file,
             "output_file": select_output_file,
             "relion_it_options": select_params.relion_it_options,
+            "command": "",
+            "stdout": "",
+            "stderr": "",
         }
         if isinstance(rw, MockRW):
             rw.transport.send(

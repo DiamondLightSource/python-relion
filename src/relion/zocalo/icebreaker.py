@@ -163,8 +163,6 @@ class IceBreaker(CommonService):
                 "--o",
                 icebreaker_params.output_path,
             ]
-        with open(Path(icebreaker_params.output_path) / "note.txt", "w") as f:
-            f.write(" ".join(command))
 
         # Run the icebreaker command
         result = subprocess.run(command, capture_output=True)
@@ -217,6 +215,9 @@ class IceBreaker(CommonService):
             "input_file": icebreaker_params.input_micrographs,
             "output_file": icebreaker_params.output_path,
             "relion_it_options": icebreaker_params.relion_it_options,
+            "command": " ".join(command),
+            "stdout": result.stdout.decode("utf8", "replace"),
+            "stderr": result.stderr.decode("utf8", "replace"),
             "results": {
                 "icebreaker_type": icebreaker_params.icebreaker_type,
                 "total_motion": icebreaker_params.total_motion,

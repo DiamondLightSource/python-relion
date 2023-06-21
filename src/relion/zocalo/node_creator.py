@@ -104,6 +104,9 @@ class NodeCreatorParameters(BaseModel):
     input_file: str = Field(..., min_length=1)
     output_file: str = Field(..., min_length=1)
     relion_it_options: RelionItOptions
+    command: str
+    stdout: str
+    stderr: str
     results: Optional[dict] = None
 
 
@@ -254,6 +257,14 @@ class NodeCreator(CommonService):
         pipeliner_job.output_dir = str(job_dir.relative_to(project_dir)) + "/"
         relion_commands = [[], pipeliner_job.get_final_commands()]
         pipeliner_job.prepare_to_run()
+
+        # Write the log files
+        with open(job_dir / "run.out", "w") as f:
+            f.write(job_info.stdout)
+        with open(job_dir / "run.err", "w") as f:
+            f.write(job_info.stderr)
+        with open(job_dir / "note.txt", "w") as f:
+            f.write(job_info.command)
 
         # Write the output files which Relion produces
         extra_output_nodes = create_output_files(

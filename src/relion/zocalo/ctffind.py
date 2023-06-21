@@ -136,7 +136,6 @@ class CTFFind(CommonService):
             return
 
         # Make sure the output directory exists
-        job_dir = Path(re.search(".+/job[0-9]{3}/", ctf_params.output_image)[0])
         if not Path(ctf_params.output_image).parent.exists():
             Path(ctf_params.output_image).parent.mkdir(parents=True)
 
@@ -164,12 +163,6 @@ class CTFFind(CommonService):
         self.log.info(
             f"Input: {ctf_params.input_image} Output: {ctf_params.output_image}"
         )
-        with open(job_dir / "note.txt", "w") as f:
-            f.write(
-                "".join(command)
-                + "\n"
-                + " ".join(str(param) for param in parameters_list)
-            )
 
         result = subprocess.run(
             command, input=parameters_string.encode("ascii"), capture_output=True
@@ -261,6 +254,12 @@ class CTFFind(CommonService):
                 "input_file": ctf_params.input_image,
                 "output_file": ctf_params.output_image,
                 "relion_it_options": ctf_params.relion_it_options,
+                "command": (
+                    "".join(command) + "\n"
+                    " ".join(str(param) for param in parameters_list)
+                ),
+                "stdout": result.stdout.decode("utf8", "replace"),
+                "stderr": result.stderr.decode("utf8", "replace"),
             }
             if isinstance(rw, MockRW):
                 rw.transport.send(

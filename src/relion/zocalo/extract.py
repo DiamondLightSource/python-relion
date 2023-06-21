@@ -287,6 +287,9 @@ class Extract(CommonService):
             + extract_params.ctf_values["file"],
             "output_file": extract_params.output_file,
             "relion_it_options": extract_params.relion_it_options,
+            "command": "",
+            "stdout": "",
+            "stderr": "",
             "results": {"box_size": box_len},
         }
         if isinstance(rw, MockRW):
