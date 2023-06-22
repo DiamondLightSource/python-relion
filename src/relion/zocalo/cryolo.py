@@ -58,21 +58,19 @@ class CrYOLO(CommonService):
             allow_non_recipe_messages=True,
         )
 
-    def parse_cryolo_output(self, line: str):
+    def parse_cryolo_output(self, cryolo_stdout: str):
         """
         Read the output logs of cryolo to determine
         the number of particles that are picked
         """
-        if not line:
-            return
+        for line in cryolo_stdout.split("\n"):
+            if "particles in total has been found" in line:
+                line_split = line.split()
+                self.number_of_particles += int(line_split[0])
 
-        if "particles in total has been found" in line:
-            line_split = line.split()
-            self.number_of_particles += int(line_split[0])
-
-        if line.startswith("Deleted"):
-            line_split = line.split()
-            self.number_of_particles -= int(line_split[1])
+            if line.startswith("Deleted"):
+                line_split = line.split()
+                self.number_of_particles -= int(line_split[1])
 
     def cryolo(self, rw, header: dict, message: dict):
         """
@@ -156,8 +154,7 @@ class CrYOLO(CommonService):
 
         # Run cryolo and confirm it ran successfully
         result = subprocess.run(command, cwd=project_dir, capture_output=True)
-        for line in result.stdout.decode("utf8", "replace").split("\n"):
-            self.parse_cryolo_output(line)
+        self.parse_cryolo_output(result.stdout.decode("utf8", "replace"))
         if result.returncode:
             self.log.error(
                 f"crYOLO failed with exitcode {result.returncode}:\n"

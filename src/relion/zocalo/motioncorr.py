@@ -102,17 +102,34 @@ class MotionCorr(CommonService):
             allow_non_recipe_messages=True,
         )
 
-    def parse_mc_output(self, line: str):
-        if not line:
-            return
+    def parse_mc_output(self, mc_stdout: str):
+        """
+        Read the output logs of MotionCorr to determine
+        the movement of each frame
+        """
+        frames_line = False
+        for line in mc_stdout.split("\n"):
+            # Frame reading in MotionCorr 1.4.0
+            if line.startswith("...... Frame"):
+                line_split = line.split()
+                self.x_shift_list.append(float(line_split[-2]))
+                self.y_shift_list.append(float(line_split[-1]))
+                self.each_total_motion.append(
+                    hypot(float(line_split[-2]), float(line_split[-1]))
+                )
 
-        if line.startswith("...... Frame"):
-            line_split = line.split()
-            self.x_shift_list.append(float(line_split[-2]))
-            self.y_shift_list.append(float(line_split[-1]))
-            self.each_total_motion.append(
-                hypot(float(line_split[-2]), float(line_split[-1]))
-            )
+            # Alternative frame reading for MotionCorr 1.6.3
+            if not line:
+                frames_line = False
+            if frames_line:
+                line_split = line.split()
+                self.x_shift_list.append(float(line_split[1]))
+                self.y_shift_list.append(float(line_split[2]))
+                self.each_total_motion.append(
+                    hypot(float(line_split[1]), float(line_split[2]))
+                )
+            if "x Shift" in line:
+                frames_line = True
 
     def motion_correction(self, rw, header: dict, message: dict):
         class MockRW:
@@ -220,8 +237,7 @@ class MotionCorr(CommonService):
 
         # Run motion correction
         result = subprocess.run(command, capture_output=True)
-        for line in result.stdout.decode("utf8", "replace").split("\n"):
-            self.parse_mc_output(line)
+        self.parse_mc_output(result.stdout.decode("utf8", "replace"))
         if result.returncode:
             self.log.error(
                 f"Motion correction of {mc_params.movie} "

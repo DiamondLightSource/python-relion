@@ -68,26 +68,28 @@ class CTFFind(CommonService):
             allow_non_recipe_messages=True,
         )
 
-    def parse_ctf_output(self, line: str):
-        if not line:
-            return
-
-        try:
-            if line.startswith("Estimated defocus values"):
-                line_split = line.split()
-                self.defocus1 = float(line_split[4])
-                self.defocus2 = float(line_split[6])
-            if line.startswith("Estimated azimuth"):
-                line_split = line.split()
-                self.astigmatism_angle = float(line_split[4])
-            if line.startswith("Score"):
-                line_split = line.split()
-                self.cc_value = float(line_split[2])
-            if line.startswith("Thon rings"):
-                line_split = line.split()
-                self.estimated_resolution = float(line_split[8])
-        except Exception as e:
-            self.log.warning(f"{e}")
+    def parse_ctf_output(self, ctf_stdout: str):
+        """
+        Read the output logs of CtfFind to determine
+        the parameters of the fit
+        """
+        for line in ctf_stdout.split("\n"):
+            try:
+                if line.startswith("Estimated defocus values"):
+                    line_split = line.split()
+                    self.defocus1 = float(line_split[4])
+                    self.defocus2 = float(line_split[6])
+                if line.startswith("Estimated azimuth"):
+                    line_split = line.split()
+                    self.astigmatism_angle = float(line_split[4])
+                if line.startswith("Score"):
+                    line_split = line.split()
+                    self.cc_value = float(line_split[2])
+                if line.startswith("Thon rings"):
+                    line_split = line.split()
+                    self.estimated_resolution = float(line_split[8])
+            except Exception as e:
+                self.log.warning(f"{e}")
 
     def ctf_find(self, rw, header: dict, message: dict):
         class MockRW:
@@ -167,8 +169,7 @@ class CTFFind(CommonService):
         result = subprocess.run(
             command, input=parameters_string.encode("ascii"), capture_output=True
         )
-        for line in result.stdout.decode("utf8", "replace").split("\n"):
-            self.parse_ctf_output(line)
+        self.parse_ctf_output(result.stdout.decode("utf8", "replace"))
         if result.returncode:
             self.log.error(
                 f"CTFFind failed with exitcode {result.returncode}:\n"

@@ -116,11 +116,12 @@ class TomoAlign(CommonService):
             allow_non_recipe_messages=True,
         )
 
-    def parse_tomo_output(self, line):
-        if line.startswith("Rot center Z"):
-            self.rot_centre_z_list.append(line.split()[5])
-        if line.startswith("Tilt offset"):
-            self.tilt_offset = float(line.split()[2].strip(","))
+    def parse_tomo_output(self, tomo_stdout: str):
+        for line in tomo_stdout.split("\n"):
+            if line.startswith("Rot center Z"):
+                self.rot_centre_z_list.append(line.split()[5])
+            if line.startswith("Tilt offset"):
+                self.tilt_offset = float(line.split()[2].strip(","))
 
     def extract_from_aln(self, tomo_parameters):
         tomo_aln_file = None
@@ -601,6 +602,5 @@ class TomoAlign(CommonService):
         )
         result = subprocess.run(command, capture_output=True)
         if tomo_parameters.tilt_cor:
-            for line in result.stdout.decode("utf8", "replace").split("\n"):
-                self.parse_tomo_output(line)
+            self.parse_tomo_output(result.stdout.decode("utf8", "replace"))
         return result

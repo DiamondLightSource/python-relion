@@ -57,20 +57,18 @@ class SelectClasses(CommonService):
             allow_non_recipe_messages=True,
         )
 
-    def parse_combiner_output(self, line: str):
+    def parse_combiner_output(self, combiner_stdout: str):
         """
         Read the output logs of the star file combination
         """
-        if not line:
-            return
+        for line in combiner_stdout.split("\n"):
+            if line.startswith("Adding") and "particles_all.star" in line:
+                line_split = line.split()
+                self.previous_total_count = int(line_split[3])
 
-        if line.startswith("Adding") and "particles_all.star" in line:
-            line_split = line.split()
-            self.previous_total_count = int(line_split[3])
-
-        if line.startswith("Combined"):
-            line_split = line.split()
-            self.total_count = int(line_split[6])
+            if line.startswith("Combined"):
+                line_split = line.split()
+                self.total_count = int(line_split[6])
 
     def select_classes(self, rw, header: dict, message: dict):
         class MockRW:
@@ -251,8 +249,7 @@ class SelectClasses(CommonService):
         result = subprocess.run(
             combine_star_command, cwd=str(project_dir), capture_output=True
         )
-        for line in result.stdout.decode("utf8", "replace").split("\n"):
-            self.parse_combiner_output(line)
+        self.parse_combiner_output(result.stdout.decode("utf8", "replace"))
         if result.returncode:
             self.log.error(
                 f"Star file combination failed with exitcode {result.returncode}:\n"
@@ -309,8 +306,7 @@ class SelectClasses(CommonService):
         result = subprocess.run(
             split_star_command, cwd=str(project_dir), capture_output=True
         )
-        for line in result.stdout.decode("utf8", "replace").split("\n"):
-            self.parse_combiner_output(line)
+        self.parse_combiner_output(result.stdout.decode("utf8", "replace"))
         if result.returncode:
             self.log.error(
                 f"Star file splitting failed with exitcode {result.returncode}:\n"
