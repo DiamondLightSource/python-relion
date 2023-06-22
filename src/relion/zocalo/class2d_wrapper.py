@@ -50,6 +50,7 @@ class Class2DParameters(BaseModel):
     relion_it_options: Optional[dict] = None
     combine_star_job_number: int
     particle_picker_id: int
+    class2d_grp_id: int
     autoselect_min_score: int = 0
 
 
@@ -179,6 +180,7 @@ class Class2DWrapper(zocalo.wrapper.BaseWrapper):
         ispyb_parameters.update(
             {
                 "ispyb_command": "buffer",
+                "buffer_store": class2d_params.class2d_grp_id,
                 "buffer_lookup": {
                     "particle_picker_id": class2d_params.particle_picker_id,
                 },
@@ -189,9 +191,6 @@ class Class2DWrapper(zocalo.wrapper.BaseWrapper):
         )
         self.log.info(f"Sending to ispyb {ispyb_parameters}")
         self.recwrap.send_to("ispyb", {"ispyb_command_list": ispyb_parameters})
-
-        # Somehow get this
-        particle_classification_group_id = 0
 
         # Send individual classes to ispyb
         class_star_file = cif.read_file(
@@ -220,7 +219,7 @@ class Class2DWrapper(zocalo.wrapper.BaseWrapper):
                 {
                     "ispyb_command": "buffer",
                     "buffer_lookup": {
-                        "particle_classification_group_id": particle_classification_group_id
+                        "particle_classification_group_id": class2d_params.class2d_grp_id
                     },
                     "buffer_command": {
                         "ispyb_command": "insert_particle_classification"

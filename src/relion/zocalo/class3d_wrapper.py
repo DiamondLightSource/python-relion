@@ -57,6 +57,7 @@ class Class3DParameters(BaseModel):
     threads: int = 4
     gpus: str = "0"
     particle_picker_id: int
+    class3d_grp_id: int
     relion_it_options: Optional[dict] = None
 
 
@@ -300,14 +301,11 @@ class Class3DWrapper(zocalo.wrapper.BaseWrapper):
         }
         self.recwrap.send_to("spa.node_creator", node_creator_parameters)
 
-        # Somehow get this
-        particle_classification_group_id = 0
-
         # Send classification job information to ispyb
         if job_is_rerun:
             buffer_lookup = {
                 "particle_picker_id": class3d_params.particle_picker_id,
-                "particle_classification_group_id": particle_classification_group_id,
+                "particle_classification_group_id": class3d_params.class3d_grp_id,
             }
         else:
             buffer_lookup = {"particle_picker_id": class3d_params.particle_picker_id}
@@ -323,6 +321,7 @@ class Class3DWrapper(zocalo.wrapper.BaseWrapper):
         ispyb_parameters.update(
             {
                 "ispyb_command": "buffer",
+                "buffer_store": class3d_params.class3d_grp_id,
                 "buffer_lookup": buffer_lookup,
                 "buffer_command": {
                     "ispyb_command": "insert_particle_classification_group"
@@ -356,7 +355,7 @@ class Class3DWrapper(zocalo.wrapper.BaseWrapper):
                 {
                     "ispyb_command": "buffer",
                     "buffer_lookup": {
-                        "particle_classification_group_id": particle_classification_group_id,
+                        "particle_classification_group_id": class3d_params.class3d_grp_id,
                     },
                     "buffer_command": {
                         "ispyb_command": "insert_particle_classification"
