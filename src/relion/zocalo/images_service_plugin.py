@@ -249,6 +249,13 @@ def mrc_to_apng(plugin_params):
     if len(data.shape) == 3:
         images_to_append = []
         for frame in data:
+            mean = np.mean(frame)
+            sdev = np.std(frame)
+            sigma_min = mean - 3 * sdev
+            sigma_max = mean + 3 * sdev
+            frame = np.ndarray.copy(frame)
+            frame[frame < sigma_min] = sigma_min
+            frame[frame > sigma_max] = sigma_max
             frame = frame - frame.min()
             frame = frame * 255 / frame.max()
             frame = frame.astype("uint8")
