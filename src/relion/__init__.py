@@ -276,6 +276,10 @@ class Project(RelionPipeline):
                         jobnode,
                         jobnode.environment.get("alias"),
                     )
+                elif jobnode.name == "Class2D":
+                    self._update_pipeline(
+                        jobnode, jobnode.name, prop=("job_string", "class2d_job_string")
+                    )
                 else:
                     self._update_pipeline(jobnode, jobnode.name)
             else:
