@@ -255,8 +255,9 @@ class CTFFind(CommonService):
                 "output_file": ctf_params.output_image,
                 "relion_it_options": ctf_params.relion_it_options,
                 "command": (
-                    "".join(command) + "\n"
-                    " ".join(str(param) for param in parameters_list)
+                    "".join(command)
+                    + "\n"
+                    + " ".join(str(param) for param in parameters_list)
                 ),
                 "stdout": result.stdout.decode("utf8", "replace"),
                 "stderr": result.stderr.decode("utf8", "replace"),

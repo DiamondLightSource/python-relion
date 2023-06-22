@@ -83,7 +83,7 @@ pipeline_spa_jobs = {
     },
     "combine_star_files_job": {
         "folder": "Select",
-        "input_stars": {"files_to_process": "particles_all.star"},
+        "input_stars": {"files_to_process": "particles.star"},
     },
     "relion.initialmodel": {
         "folder": "InitialModel",
@@ -276,10 +276,15 @@ class NodeCreator(CommonService):
             results=job_info.results,
         )
         if extra_output_nodes:
+            # Add any extra nodes if they are not already present
+            existing_nodes = []
+            for node in pipeliner_job.output_nodes:
+                existing_nodes.append(node.name)
             for node in extra_output_nodes.keys():
-                pipeliner_job.add_output_node(
-                    node, extra_output_nodes[node][0], extra_output_nodes[node][1]
-                )
+                if f"{job_dir.relative_to(project_dir)}/{node}" not in existing_nodes:
+                    pipeliner_job.add_output_node(
+                        node, extra_output_nodes[node][0], extra_output_nodes[node][1]
+                    )
 
         # Save the metadata file
         metadata_dict = pipeliner_job.gather_metadata()

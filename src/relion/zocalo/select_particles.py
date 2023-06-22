@@ -137,7 +137,8 @@ class SelectParticles(CommonService):
                 num_prev_parts += 1
                 num_remaining_parts -= 1
 
-            particles_cif.write_file(select_output_file)
+            particles_cif.write_file(f"{select_output_file}.tmp")
+            Path(f"{select_output_file}.tmp").rename(select_output_file)
         else:
             # If this is the first time we ran the job create a new particle split
             # Set this to be split zero so the while loop starts from one
@@ -191,7 +192,8 @@ class SelectParticles(CommonService):
                 num_prev_parts += 1
                 num_remaining_parts -= 1
 
-            new_particles_cif.write_file(select_output_file)
+            new_particles_cif.write_file(f"{select_output_file}.tmp")
+            Path(f"{select_output_file}.tmp").rename(select_output_file)
 
         # Send to node creator
         self.log.info(f"Sending {self.job_type} to node creator")

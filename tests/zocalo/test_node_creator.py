@@ -493,7 +493,7 @@ def test_node_creator_extract(mock_environment, offline_transport, tmp_path):
     assert list(micrographs_data.find_loop("_rlnCoordinateY")) == ["2.0"]
 
 
-def test_node_creator_select(mock_environment, offline_transport, tmp_path):
+def test_node_creator_select_particles(mock_environment, offline_transport, tmp_path):
     """
     Send a test message to the node creator for
     relion.select.split
@@ -501,6 +501,10 @@ def test_node_creator_select(mock_environment, offline_transport, tmp_path):
     job_dir = "Select/job009"
     input_file = tmp_path / "Extract/job007/Movies/sample.star"
     output_file = tmp_path / job_dir / "particles_split2.star"
+
+    (tmp_path / job_dir).mkdir(parents=True)
+    (tmp_path / job_dir / "particles_split1.star").touch()
+    (tmp_path / job_dir / "particles_split2.star").touch()
 
     setup_and_run_node_creation(
         mock_environment,
@@ -513,6 +517,9 @@ def test_node_creator_select(mock_environment, offline_transport, tmp_path):
     )
 
     # Check the output file structure
+    assert (
+        tmp_path / ".Nodes/ParticlesData/Select/job009/particles_split1.star"
+    ).exists()
     assert (
         tmp_path / ".Nodes/ParticlesData/Select/job009/particles_split2.star"
     ).exists()
