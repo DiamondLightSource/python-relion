@@ -46,7 +46,7 @@ spec:
       volumes:
       - name: config-file
         configMap:
-          name: zocalo-conf
+          name: {{ .Values.configMap }}
       - name: secrets
         projected:
           defaultMode: 0444
