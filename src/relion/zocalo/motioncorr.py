@@ -14,6 +14,8 @@ from pydantic import BaseModel, Field
 from pydantic.error_wrappers import ValidationError
 from workflows.services.common_service import CommonService
 
+from relion.zocalo.spa_relion_service_options import RelionServiceOptions
+
 
 class MotionCorrParameters(BaseModel):
     movie: str = Field(..., min_length=1)
@@ -51,7 +53,7 @@ class MotionCorrParameters(BaseModel):
     dose_motionstats_cutoff: float = 4.0
     movie_id: int
     mc_uuid: int
-    relion_options: Optional[dict] = None
+    relion_options: Optional[RelionServiceOptions] = None
     ctf: dict = {}
 
     class Config:
@@ -272,7 +274,7 @@ class MotionCorr(CommonService):
         # If this is SPA, determine and set up the next jobs
         if mc_params.experiment_type.lower() == "spa":
             # Set up icebreaker if requested, then ctffind
-            if mc_params.relion_options["do_icebreaker_jobs"]:
+            if mc_params.relion_options.do_icebreaker_jobs:
                 # Three IceBreaker jobs: CtfFind job is MC+4
                 ctf_job_number = 6
 
@@ -289,7 +291,7 @@ class MotionCorr(CommonService):
                         mc_params.mrc_out,
                     ),
                     "mc_uuid": mc_params.mc_uuid,
-                    "relion_options": mc_params.relion_options,
+                    "relion_options": dict(mc_params.relion_options),
                     "total_motion": total_motion,
                     "early_motion": early_motion,
                     "late_motion": late_motion,
@@ -317,7 +319,7 @@ class MotionCorr(CommonService):
                         mc_params.mrc_out,
                     ),
                     "mc_uuid": mc_params.mc_uuid,
-                    "relion_options": mc_params.relion_options,
+                    "relion_options": dict(mc_params.relion_options),
                     "total_motion": total_motion,
                     "early_motion": early_motion,
                     "late_motion": late_motion,
@@ -343,10 +345,8 @@ class MotionCorr(CommonService):
                     )
                 ).with_suffix(".ctf")
             )
-            mc_params.ctf["relion_options"] = mc_params.relion_options
-            mc_params.ctf["amplitude_contrast"] = mc_params.relion_options[
-                "ampl_contrast"
-            ]
+            mc_params.ctf["relion_options"] = dict(mc_params.relion_options)
+            mc_params.ctf["amplitude_contrast"] = mc_params.relion_options.ampl_contrast
 
         # Forward results to ctffind (in both SPA and tomography)
         self.log.info(f"Sending to ctf: {mc_params.mrc_out}")
@@ -467,7 +467,7 @@ class MotionCorr(CommonService):
                 "job_type": "relion.import.movies",
                 "input_file": str(mc_params.movie),
                 "output_file": str(import_movie),
-                "relion_options": mc_params.relion_options,
+                "relion_options": dict(mc_params.relion_options),
                 "command": "",
                 "stdout": "",
                 "stderr": "",
@@ -486,7 +486,7 @@ class MotionCorr(CommonService):
                 "job_type": self.job_type,
                 "input_file": str(import_movie),
                 "output_file": mc_params.mrc_out,
-                "relion_options": mc_params.relion_options,
+                "relion_options": dict(mc_params.relion_options),
                 "command": " ".join(command),
                 "stdout": result.stdout.decode("utf8", "replace"),
                 "stderr": result.stderr.decode("utf8", "replace"),

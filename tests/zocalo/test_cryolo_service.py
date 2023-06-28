@@ -8,6 +8,7 @@ import zocalo.configuration
 from workflows.transport.offline_transport import OfflineTransport
 
 from relion.zocalo import cryolo
+from relion.zocalo.spa_relion_service_options import RelionServiceOptions
 
 
 @pytest.fixture
@@ -62,10 +63,12 @@ def test_cryolo_service(mock_subprocess, mock_environment, offline_transport, tm
             "mc_uuid": 0,
             "ctf_values": {"dummy": "dummy"},
             "cryolo_command": "cryolo_predict.py",
-            "relion_options": {"batch_size": 50000},
+            "relion_options": {"batch_size": 20000},
         },
         "content": "dummy",
     }
+    output_relion_options = dict(RelionServiceOptions())
+    output_relion_options.update(cryolo_test_message["parameters"]["relion_options"])
 
     # Write a dummy config file expected by cryolo
     with open(tmp_path / "config.json", "w") as f:
@@ -117,7 +120,7 @@ def test_cryolo_service(mock_subprocess, mock_environment, offline_transport, tm
         "ctf_values": cryolo_test_message["parameters"]["ctf_values"],
         "micrographs_file": cryolo_test_message["parameters"]["input_path"],
         "coord_list_file": cryolo_test_message["parameters"]["output_path"],
-        "relion_options": cryolo_test_message["parameters"]["relion_options"],
+        "relion_options": output_relion_options,
         "output_file": "Extract/job008/Movies/sample_extract.star",
     }
     offline_transport.send.assert_any_call(
@@ -162,7 +165,7 @@ def test_cryolo_service(mock_subprocess, mock_environment, offline_transport, tm
                 "job_type": "cryolo.autopick",
                 "input_file": cryolo_test_message["parameters"]["input_path"],
                 "output_file": str(output_path),
-                "relion_options": cryolo_test_message["parameters"]["relion_options"],
+                "relion_options": output_relion_options,
                 "command": (
                     f"cryolo_predict.py --conf {tmp_path}/config.json "
                     f"-o {tmp_path}/AutoPick/job007 "

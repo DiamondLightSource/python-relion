@@ -68,7 +68,12 @@ class RelionServiceOptions(BaseModel):
     eer_grouping: int = 20
     # Symmetry group
     symmetry: str = "C1"
+    # Diameter of particles picked by cryolo
+    particle_diameter: float = 0
 
+    """Parameters used in internal calculations"""
+    pixel_size_downscaled: float = 0
+    do_icebreaker_jobs = True
     # Box size of particles in the averaged micrographs (in pixels)
     boxsize: int = 256
     # Down-scale the particles upon extraction?
@@ -77,11 +82,6 @@ class RelionServiceOptions(BaseModel):
     small_boxsize: int = 64
     # Diameter of the mask used for 2D/3D classification (in Angstrom)
     mask_diameter: float = 190
-
-    """Parameters used in internal calculations"""
-    particle_diameter: float = 0
-    pixel_size_downscaled: float = 0
-    do_icebreaker_jobs = True
 
     """Parameters we set differently from pipeliner defaults"""
     # Spherical aberration
@@ -121,11 +121,11 @@ class RelionServiceOptions(BaseModel):
     def if_particle_diameter_compute_box_sizes(cls, values):
         if values.get("particle_diameter"):
             values["mask_diameter"] = 1.1 * values["particle_diameter"]
-            values["extract_boxsize"] = calculate_box_size(
+            values["boxsize"] = calculate_box_size(
                 values["particle_diameter"] / values["pixel_size_on_image"]
             )
-            values["extract_small_boxsize"] = calculate_downscaled_box_size(
-                values["extract_boxsize"], values["pixel_size_on_image"]
+            values["small_boxsize"] = calculate_downscaled_box_size(
+                values["boxsize"], values["pixel_size_on_image"]
             )
         return values
 
@@ -245,7 +245,7 @@ def generate_service_options(
         "nr_threads": 8,
     }
 
-    if submission_type != "relion.import.movies":
+    if submission_type not in ["relion.import.movies", "combine_star_files_job"]:
         job_options[submission_type].update(queue_options)
     return job_options[submission_type]
 

@@ -8,6 +8,7 @@ import zocalo.configuration
 from workflows.transport.offline_transport import OfflineTransport
 
 from relion.zocalo import select_classes
+from relion.zocalo.spa_relion_service_options import RelionServiceOptions
 
 
 @pytest.fixture
@@ -50,10 +51,12 @@ def select_classes_common_setup(tmp_path):
             "0.008 0.035 3.100 1.416 16.183 1.000 -0.133 -0.001"
         )
 
-    relion_options = {
-        "do_icebreaker_group": True,
+    input_relion_options = {
+        "do_icebreaker_jobs": True,
         "class2d_fraction_of_classes_to_remove": 0.5,
     }
+    output_relion_options = dict(RelionServiceOptions())
+    output_relion_options.update(input_relion_options)
 
     select_test_message = {
         "parameters": {
@@ -67,11 +70,11 @@ def select_classes_common_setup(tmp_path):
             "min_particles": 500,
             "class3d_batch_size": 50000,
             "class3d_max_size": 200000,
-            "relion_options": relion_options,
+            "relion_options": input_relion_options,
         },
         "content": "dummy",
     }
-    return select_test_message
+    return select_test_message, output_relion_options
 
 
 @pytest.mark.skipif(sys.platform == "win32", reason="does not run on windows")
@@ -92,7 +95,7 @@ def test_select_classes_service_first_batch(
         "message-id": mock.sentinel,
         "subscription": mock.sentinel,
     }
-    select_test_message = select_classes_common_setup(tmp_path)
+    select_test_message, relion_options = select_classes_common_setup(tmp_path)
 
     # Set up the mock service and send the message to it
     service = select_classes.SelectClasses(environment=mock_environment)
@@ -161,7 +164,7 @@ def test_select_classes_service_first_batch(
                 "job_type": "relion.select.class2dauto",
                 "input_file": select_test_message["parameters"]["input_file"],
                 "output_file": f"{tmp_path}/Select/job012/particles.star",
-                "relion_options": select_test_message["parameters"]["relion_options"],
+                "relion_options": relion_options,
                 "command": (
                     "relion_class_ranker --opt "
                     f"{tmp_path}/Class2D/job010/run_it020_optimiser.star "
@@ -184,7 +187,7 @@ def test_select_classes_service_first_batch(
                 "job_type": "combine_star_files_job",
                 "input_file": f"{tmp_path}/Select/job012/particles.star",
                 "output_file": f"{tmp_path}/Select/job013/particles_all.star",
-                "relion_options": select_test_message["parameters"]["relion_options"],
+                "relion_options": relion_options,
                 "command": (
                     f"combine_star_files.py {tmp_path}/Select/job012/particles.star "
                     f"--output_dir {tmp_path}/Select/job013\n"
@@ -206,7 +209,7 @@ def test_select_classes_service_first_batch(
                 "class3d_dir": f"{tmp_path}/Class3D/job",
                 "particle_diameter": 64,
                 "batch_size": 50000,
-                "relion_options": select_test_message["parameters"]["relion_options"],
+                "relion_options": relion_options,
             },
         },
     )
@@ -232,7 +235,7 @@ def test_select_classes_service_batch_threshold(
         "message-id": mock.sentinel,
         "subscription": mock.sentinel,
     }
-    select_test_message = select_classes_common_setup(tmp_path)
+    select_test_message, relion_options = select_classes_common_setup(tmp_path)
 
     # Set up the mock service and send the message to it
     service = select_classes.SelectClasses(environment=mock_environment)
@@ -280,7 +283,7 @@ def test_select_classes_service_batch_threshold(
                 "class3d_dir": f"{tmp_path}/Class3D/job",
                 "particle_diameter": 64,
                 "batch_size": 100000,
-                "relion_options": select_test_message["parameters"]["relion_options"],
+                "relion_options": relion_options,
             },
         },
     )
@@ -306,7 +309,7 @@ def test_select_classes_service_two_thresholds(
         "message-id": mock.sentinel,
         "subscription": mock.sentinel,
     }
-    select_test_message = select_classes_common_setup(tmp_path)
+    select_test_message, relion_options = select_classes_common_setup(tmp_path)
 
     # Set up the mock service and send the message to it
     service = select_classes.SelectClasses(environment=mock_environment)
@@ -343,7 +346,7 @@ def test_select_classes_service_two_thresholds(
                 "class3d_dir": f"{tmp_path}/Class3D/job",
                 "particle_diameter": 64,
                 "batch_size": 100000,
-                "relion_options": select_test_message["parameters"]["relion_options"],
+                "relion_options": relion_options,
             },
         },
     )
@@ -370,7 +373,7 @@ def test_select_classes_service_last_threshold(
         "message-id": mock.sentinel,
         "subscription": mock.sentinel,
     }
-    select_test_message = select_classes_common_setup(tmp_path)
+    select_test_message, relion_options = select_classes_common_setup(tmp_path)
 
     # Set up the mock service and send the message to it
     service = select_classes.SelectClasses(environment=mock_environment)
@@ -407,7 +410,7 @@ def test_select_classes_service_last_threshold(
                 "class3d_dir": f"{tmp_path}/Class3D/job",
                 "particle_diameter": 64,
                 "batch_size": 200000,
-                "relion_options": select_test_message["parameters"]["relion_options"],
+                "relion_options": relion_options,
             },
         },
     )
@@ -431,7 +434,7 @@ def test_select_classes_service_not_threshold(
         "message-id": mock.sentinel,
         "subscription": mock.sentinel,
     }
-    select_test_message = select_classes_common_setup(tmp_path)
+    select_test_message, relion_options = select_classes_common_setup(tmp_path)
 
     # Set up the mock service and send the message to it
     service = select_classes.SelectClasses(environment=mock_environment)
@@ -483,7 +486,7 @@ def test_select_classes_service_past_maximum(
         "message-id": mock.sentinel,
         "subscription": mock.sentinel,
     }
-    select_test_message = select_classes_common_setup(tmp_path)
+    select_test_message, relion_options = select_classes_common_setup(tmp_path)
 
     # Set up the mock service and send the message to it
     service = select_classes.SelectClasses(environment=mock_environment)

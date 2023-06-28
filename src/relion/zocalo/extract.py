@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import re
 from pathlib import Path
-from typing import Optional
 
 import cv2
 import mrcfile
@@ -13,6 +12,8 @@ from pydantic import BaseModel, Field
 from pydantic.error_wrappers import ValidationError
 from workflows.services.common_service import CommonService
 
+from relion.zocalo.spa_relion_service_options import RelionServiceOptions
+
 
 class ExtractParameters(BaseModel):
     micrographs_file: str = Field(..., min_length=1)
@@ -20,13 +21,12 @@ class ExtractParameters(BaseModel):
     output_file: str = Field(..., min_length=1)
     pix_size: float
     ctf_values: dict
-    extract_boxsize: int = 256
+    particle_diameter: float
     norm: bool = True
     bg_radius: int = -1
     downscale: bool = False
-    downscale_boxsize: int = 64
     invert_contrast: bool = True
-    relion_options: Optional[dict] = None
+    relion_options: RelionServiceOptions
 
 
 class Extract(CommonService):
@@ -107,6 +107,12 @@ class Extract(CommonService):
             f"Output: {extract_params.output_file}"
         )
 
+        # Update the relion options to get out the box sizes
+        extract_params.relion_options.particle_diameter = (
+            extract_params.particle_diameter
+        )
+        extract_params.relion_options.downscale = extract_params.downscale
+
         # Make sure the output directory exists
         job_dir = Path(re.search(".+/job[0-9]{3}/", extract_params.output_file)[0])
         project_dir = job_dir.parent.parent
@@ -119,7 +125,9 @@ class Extract(CommonService):
 
         # If no background radius set diameter as 75% of box
         if extract_params.bg_radius == -1:
-            extract_params.bg_radius = round(0.375 * extract_params.extract_boxsize)
+            extract_params.bg_radius = round(
+                0.375 * extract_params.relion_options.boxsize
+            )
 
         # Find the locations of the particles
         coords_file = cif.read(extract_params.coord_list_file)
@@ -171,7 +179,7 @@ class Extract(CommonService):
         )
 
         # Extraction
-        extract_width = round(extract_params.extract_boxsize / 2)
+        extract_width = round(extract_params.relion_options.boxsize / 2)
         input_micrograph = mrcfile.open(extract_params.micrographs_file)
         input_micrograph_image = np.array(input_micrograph.data, dtype=np.float32)
         image_size = np.shape(input_micrograph_image)
@@ -239,16 +247,16 @@ class Extract(CommonService):
 
             # Downscale the image size
             if extract_params.downscale:
-                extract_params.relion_options["pixel_size_downscaled"] = (
+                extract_params.relion_options.pixel_size_downscaled = (
                     extract_params.pix_size
-                    * extract_params.extract_boxsize
-                    / extract_params.downscale_boxsize
+                    * extract_params.relion_options.boxsize
+                    / extract_params.relion_options.small_boxsize
                 )
                 particle_subimage = cv2.resize(
                     particle_subimage,
                     dsize=(
-                        extract_params.downscale_boxsize,
-                        extract_params.downscale_boxsize,
+                        extract_params.relion_options.small_boxsize,
+                        extract_params.relion_options.small_boxsize,
                     ),
                     interpolation=cv2.INTER_CUBIC,
                 )
@@ -261,12 +269,13 @@ class Extract(CommonService):
             else:
                 output_mrc_stack = np.array([particle_subimage], dtype=np.float32)
 
+        # Produce the mrc file of the extracted particles
         if extract_params.downscale:
-            box_len = extract_params.downscale_boxsize
-            pix_size = extract_params.relion_options["pixel_size_downscaled"]
+            box_len = extract_params.relion_options.small_boxsize
+            pix_size = extract_params.relion_options.pixel_size_downscaled
         else:
-            box_len = extract_params.extract_boxsize
-            pix_size = extract_params.relion_options["pixel_size_on_image"]
+            box_len = extract_params.relion_options.boxsize
+            pix_size = extract_params.relion_options.pixel_size_on_image
 
         self.log.info(f"Extracted {np.shape(output_mrc_stack)[0]} particles")
         with mrcfile.new(str(output_mrc_file), overwrite=True) as mrc:
@@ -286,7 +295,7 @@ class Extract(CommonService):
             + ":"
             + extract_params.ctf_values["file"],
             "output_file": extract_params.output_file,
-            "relion_options": extract_params.relion_options,
+            "relion_options": dict(extract_params.relion_options),
             "command": "",
             "stdout": "",
             "stderr": "",
@@ -304,9 +313,9 @@ class Extract(CommonService):
         self.log.info("Sending to particle selection")
         select_params = {
             "input_file": extract_params.output_file,
-            "batch_size": extract_params.relion_options["batch_size"],
+            "batch_size": extract_params.relion_options.batch_size,
             "image_size": box_len,
-            "relion_options": extract_params.relion_options,
+            "relion_options": dict(extract_params.relion_options),
         }
         if isinstance(rw, MockRW):
             rw.transport.send(

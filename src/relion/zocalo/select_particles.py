@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import re
 from pathlib import Path
-from typing import Optional
 
 import workflows.recipe
 from gemmi import cif
@@ -11,13 +10,14 @@ from pydantic.error_wrappers import ValidationError
 from workflows.services.common_service import CommonService
 
 from relion.zocalo.spa_output_files import get_optics_table
+from relion.zocalo.spa_relion_service_options import RelionServiceOptions
 
 
 class SelectParticlesParameters(BaseModel):
     input_file: str = Field(..., min_length=1)
     batch_size: int
     image_size: int
-    relion_options: Optional[dict] = None
+    relion_options: RelionServiceOptions
 
 
 class SelectParticles(CommonService):
@@ -201,7 +201,7 @@ class SelectParticles(CommonService):
             "job_type": self.job_type,
             "input_file": select_params.input_file,
             "output_file": select_output_file,
-            "relion_options": select_params.relion_options,
+            "relion_options": dict(select_params.relion_options),
             "command": "",
             "stdout": "",
             "stderr": "",
@@ -218,7 +218,7 @@ class SelectParticles(CommonService):
             "class2d_dir": f"{project_dir}/Class2D/job",
             "particle_diameter": select_params.image_size,
             "batch_size": select_params.batch_size,
-            "relion_options": select_params.relion_options,
+            "relion_options": dict(select_params.relion_options),
         }
         if select_output_file == f"{select_dir}/particles_split1.star":
             # If still on the first file then register it with murfey

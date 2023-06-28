@@ -5,12 +5,13 @@ import os
 import re
 import subprocess
 from pathlib import Path
-from typing import Optional
 
 import zocalo.wrapper
 from gemmi import cif
 from pydantic import BaseModel, Field
 from pydantic.error_wrappers import ValidationError
+
+from relion.zocalo.spa_relion_service_options import RelionServiceOptions
 
 logger = logging.getLogger("relion.class3d.wrapper")
 
@@ -58,7 +59,7 @@ class Class3DParameters(BaseModel):
     gpus: str = "0"
     particle_picker_id: int
     class3d_grp_id: int
-    relion_options: Optional[dict] = None
+    relion_options: RelionServiceOptions
 
 
 class Class3DWrapper(zocalo.wrapper.BaseWrapper):
@@ -178,7 +179,7 @@ class Class3DWrapper(zocalo.wrapper.BaseWrapper):
             "job_type": "relion.initialmodel",
             "input_file": f"{project_dir}/{particles_file}",
             "output_file": f"{job_dir}/initial_model.mrc",
-            "relion_options": initial_model_params.relion_options,
+            "relion_options": dict(initial_model_params.relion_options),
             "command": (
                 " ".join(initial_model_command) + "\n" + "".join(align_symmetry_command)
             ),
@@ -294,7 +295,7 @@ class Class3DWrapper(zocalo.wrapper.BaseWrapper):
             "job_type": job_type,
             "input_file": class3d_params.particles_file + f":{initial_model_file}",
             "output_file": class3d_params.class3d_dir,
-            "relion_options": class3d_params.relion_options,
+            "relion_options": dict(class3d_params.relion_options),
             "command": " ".join(class3d_command),
             "stdout": result.stdout.decode("utf8", "replace"),
             "stderr": result.stderr.decode("utf8", "replace"),

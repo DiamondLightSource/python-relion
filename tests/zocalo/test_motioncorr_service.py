@@ -8,6 +8,7 @@ import zocalo.configuration
 from workflows.transport.offline_transport import OfflineTransport
 
 from relion.zocalo import motioncorr
+from relion.zocalo.spa_relion_service_options import RelionServiceOptions
 
 
 @pytest.fixture
@@ -97,6 +98,10 @@ def test_motioncorr_service_spa(
         },
         "content": "dummy",
     }
+    output_relion_options = dict(RelionServiceOptions())
+    output_relion_options.update(
+        motioncorr_test_message["parameters"]["relion_options"]
+    )
 
     # Set up the mock service
     service = motioncorr.MotionCorr(environment=mock_environment)
@@ -144,9 +149,7 @@ def test_motioncorr_service_spa(
                 "input_micrographs": motioncorr_test_message["parameters"]["mrc_out"],
                 "output_path": f"{tmp_path}/IceBreaker/job003/",
                 "mc_uuid": motioncorr_test_message["parameters"]["mc_uuid"],
-                "relion_options": motioncorr_test_message["parameters"][
-                    "relion_options"
-                ],
+                "relion_options": output_relion_options,
                 "total_motion": total_motion,
                 "early_motion": early_motion,
                 "late_motion": late_motion,
@@ -162,9 +165,7 @@ def test_motioncorr_service_spa(
                 "input_micrographs": motioncorr_test_message["parameters"]["mrc_out"],
                 "output_path": f"{tmp_path}/IceBreaker/job004/",
                 "mc_uuid": motioncorr_test_message["parameters"]["mc_uuid"],
-                "relion_options": motioncorr_test_message["parameters"][
-                    "relion_options"
-                ],
+                "relion_options": output_relion_options,
                 "total_motion": total_motion,
                 "early_motion": early_motion,
                 "late_motion": late_motion,
@@ -179,12 +180,8 @@ def test_motioncorr_service_spa(
                 "ctf": "ctf",
                 "input_image": motioncorr_test_message["parameters"]["mrc_out"],
                 "mc_uuid": motioncorr_test_message["parameters"]["mc_uuid"],
-                "relion_options": motioncorr_test_message["parameters"][
-                    "relion_options"
-                ],
-                "amplitude_contrast": motioncorr_test_message["parameters"][
-                    "relion_options"
-                ]["ampl_contrast"],
+                "relion_options": output_relion_options,
+                "amplitude_contrast": output_relion_options["ampl_contrast"],
                 "experiment_type": "spa",
                 "output_image": f"{tmp_path}/CtfFind/job006/Movies/sample.ctf",
                 "pix_size": motioncorr_test_message["parameters"]["pix_size"],
@@ -229,9 +226,7 @@ def test_motioncorr_service_spa(
                 "job_type": "relion.import.movies",
                 "input_file": motioncorr_test_message["parameters"]["movie"],
                 "output_file": f"{tmp_path}/Import/job001/Movies/sample.tiff",
-                "relion_options": motioncorr_test_message["parameters"][
-                    "relion_options"
-                ],
+                "relion_options": output_relion_options,
                 "command": "",
                 "stdout": "",
                 "stderr": "",
@@ -246,9 +241,7 @@ def test_motioncorr_service_spa(
                 "job_type": "relion.motioncorr.motioncor2",
                 "input_file": f"{tmp_path}/Import/job001/Movies/sample.tiff",
                 "output_file": motioncorr_test_message["parameters"]["mrc_out"],
-                "relion_options": motioncorr_test_message["parameters"][
-                    "relion_options"
-                ],
+                "relion_options": output_relion_options,
                 "command": (
                     f"MotionCor2 -InTiff {tmp_path}/Movies/sample.tiff "
                     f"-OutMrc {tmp_path}/MotionCorr/job002/Movies/sample.mrc "
@@ -325,11 +318,6 @@ def test_motioncorr_service_tomo(
             "in_fm_motion": None,
             "split_sum": None,
             "movie_id": 1,
-            "relion_options": {
-                "do_icebreaker_jobs": True,
-                "cryolo_threshold": 0.3,
-                "ampl_contrast": 0.2,
-            },
         },
         "content": "dummy",
     }

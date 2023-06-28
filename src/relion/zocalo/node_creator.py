@@ -274,7 +274,7 @@ class NodeCreator(CommonService):
             job_dir=job_dir.relative_to(project_dir),
             input_file=Path(job_info.input_file).relative_to(project_dir),
             output_file=Path(job_info.output_file).relative_to(project_dir),
-            relion_options=dict(job_info.relion_options),
+            relion_options=job_info.relion_options,
             results=job_info.results,
         )
         if extra_output_nodes:

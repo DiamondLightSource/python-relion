@@ -9,6 +9,7 @@ from gemmi import cif
 from workflows.transport.offline_transport import OfflineTransport
 
 from relion.zocalo import select_particles
+from relion.zocalo.spa_relion_service_options import RelionServiceOptions
 
 
 @pytest.fixture
@@ -59,20 +60,22 @@ def test_select_particles_service(mock_environment, offline_transport, tmp_path)
             )
     output_dir = tmp_path / "Select/job009/"
 
-    relion_options = {
+    input_relion_options = {
         "pixel_size_on_image": 1.0,
         "voltage": 200,
         "spher_aber": 2.7,
         "ampl_contrast": 0.1,
-        "do_icebreaker_group": True,
+        "do_icebreaker_jobs": True,
     }
+    output_relion_options = dict(RelionServiceOptions())
+    output_relion_options.update(input_relion_options)
 
     select_test_message = {
         "parameters": {
             "input_file": str(extract_file),
             "batch_size": 2,
             "image_size": 64,
-            "relion_options": relion_options,
+            "relion_options": input_relion_options,
         },
         "content": "dummy",
     }
@@ -91,7 +94,7 @@ def test_select_particles_service(mock_environment, offline_transport, tmp_path)
                 "job_type": "relion.select.split",
                 "input_file": str(extract_file),
                 "output_file": f"{output_dir}/particles_split3.star",
-                "relion_options": select_test_message["parameters"]["relion_options"],
+                "relion_options": output_relion_options,
                 "command": "",
                 "stdout": "",
                 "stderr": "",
@@ -107,7 +110,7 @@ def test_select_particles_service(mock_environment, offline_transport, tmp_path)
                 "class2d_dir": f"{tmp_path}/Class2D/job",
                 "particle_diameter": 64,
                 "batch_size": 2,
-                "relion_options": select_test_message["parameters"]["relion_options"],
+                "relion_options": output_relion_options,
                 "particles_file": f"{tmp_path}/Select/job009/particles_split2.star",
                 "batch_is_complete": "True",
             },
@@ -128,19 +131,19 @@ def test_select_particles_service(mock_environment, offline_transport, tmp_path)
     assert list(micrographs_optics.find_loop("_rlnOpticsGroupName")) == ["opticsGroup1"]
     assert list(micrographs_optics.find_loop("_rlnOpticsGroup")) == ["1"]
     assert list(micrographs_optics.find_loop("_rlnMicrographOriginalPixelSize")) == [
-        str(relion_options["pixel_size_on_image"])
+        str(input_relion_options["pixel_size_on_image"])
     ]
     assert list(micrographs_optics.find_loop("_rlnVoltage")) == [
-        str(relion_options["voltage"])
+        str(input_relion_options["voltage"])
     ]
     assert list(micrographs_optics.find_loop("_rlnSphericalAberration")) == [
-        str(relion_options["spher_aber"])
+        str(input_relion_options["spher_aber"])
     ]
     assert list(micrographs_optics.find_loop("_rlnAmplitudeContrast")) == [
-        str(relion_options["ampl_contrast"])
+        str(input_relion_options["ampl_contrast"])
     ]
     assert list(micrographs_optics.find_loop("_rlnImagePixelSize")) == [
-        str(relion_options["pixel_size_on_image"])
+        str(input_relion_options["pixel_size_on_image"])
     ]
     assert list(micrographs_optics.find_loop("_rlnImageSize")) == ["64"]
     assert list(micrographs_optics.find_loop("_rlnImageDimensionality")) == ["2"]

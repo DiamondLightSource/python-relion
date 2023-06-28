@@ -4,7 +4,6 @@ import re
 import shutil
 import subprocess
 from pathlib import Path
-from typing import Optional
 
 import numpy as np
 import workflows.recipe
@@ -12,6 +11,8 @@ from gemmi import cif
 from pydantic import BaseModel, Field
 from pydantic.error_wrappers import ValidationError
 from workflows.services.common_service import CommonService
+
+from relion.zocalo.spa_relion_service_options import RelionServiceOptions
 
 
 class CryoloParameters(BaseModel):
@@ -25,7 +26,7 @@ class CryoloParameters(BaseModel):
     threshold: float = 0.3
     cryolo_command: str = "cryolo_predict.py"
     mc_uuid: int
-    relion_options: Optional[dict] = None
+    relion_options: RelionServiceOptions
     ctf_values: dict = {}
 
 
@@ -253,7 +254,7 @@ class CrYOLO(CommonService):
             "ctf_values": cryolo_params.ctf_values,
             "micrographs_file": cryolo_params.input_path,
             "coord_list_file": cryolo_params.output_path,
-            "relion_options": cryolo_params.relion_options,
+            "relion_options": dict(cryolo_params.relion_options),
         }
         job_number = int(re.search("/job[0-9]{3}/", cryolo_params.output_path)[0][4:7])
         extraction_params["output_file"] = str(
@@ -298,7 +299,7 @@ class CrYOLO(CommonService):
             "job_type": self.job_type,
             "input_file": cryolo_params.input_path,
             "output_file": cryolo_params.output_path,
-            "relion_options": cryolo_params.relion_options,
+            "relion_options": dict(cryolo_params.relion_options),
             "command": " ".join(command),
             "stdout": result.stdout.decode("utf8", "replace"),
             "stderr": result.stderr.decode("utf8", "replace"),

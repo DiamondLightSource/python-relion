@@ -8,6 +8,7 @@ import zocalo.configuration
 from workflows.transport.offline_transport import OfflineTransport
 
 from relion.zocalo import ctffind
+from relion.zocalo.spa_relion_service_options import RelionServiceOptions
 
 
 @pytest.fixture
@@ -74,6 +75,8 @@ def test_ctffind_service(
         },
         "content": "dummy",
     }
+    output_relion_options = dict(RelionServiceOptions())
+    output_relion_options.update(ctffind_test_message["parameters"]["relion_options"])
 
     # Set up the mock service
     service = ctffind.CTFFind(environment=mock_environment)
@@ -132,12 +135,10 @@ def test_ctffind_service(
                     "DefocusV": service.defocus2,
                     "DefocusAngle": service.astigmatism_angle,
                 },
-                "relion_options": ctffind_test_message["parameters"]["relion_options"],
+                "relion_options": output_relion_options,
                 "mc_uuid": ctffind_test_message["parameters"]["mc_uuid"],
                 "pix_size": ctffind_test_message["parameters"]["pix_size"],
-                "threshold": ctffind_test_message["parameters"]["relion_options"][
-                    "cryolo_threshold"
-                ],
+                "threshold": output_relion_options["cryolo_threshold"],
             },
         },
     )
@@ -184,7 +185,7 @@ def test_ctffind_service(
                 "job_type": "relion.ctffind.ctffind4",
                 "input_file": f"{tmp_path}/MotionCorr/job002/sample.mrc",
                 "output_file": f"{tmp_path}/CtfFind/job006/sample.ctf",
-                "relion_options": ctffind_test_message["parameters"]["relion_options"],
+                "relion_options": output_relion_options,
                 "command": f"ctffind\n{' '.join(map(str, parameters_list))}",
                 "stdout": "stdout",
                 "stderr": "stderr",

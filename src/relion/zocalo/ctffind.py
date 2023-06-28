@@ -10,6 +10,8 @@ from pydantic import BaseModel, Field
 from pydantic.error_wrappers import ValidationError
 from workflows.services.common_service import CommonService
 
+from relion.zocalo.spa_relion_service_options import RelionServiceOptions
+
 
 class CTFParameters(BaseModel):
     input_image: str = Field(..., min_length=1)
@@ -31,7 +33,7 @@ class CTFParameters(BaseModel):
     additional_phase_shift: str = "no"
     expert_options: str = "no"
     mc_uuid: int
-    relion_options: Optional[dict] = None
+    relion_options: Optional[RelionServiceOptions] = None
     autopick: dict = {}
 
 
@@ -254,7 +256,7 @@ class CTFFind(CommonService):
                 "job_type": self.job_type,
                 "input_file": ctf_params.input_image,
                 "output_file": ctf_params.output_image,
-                "relion_options": ctf_params.relion_options,
+                "relion_options": dict(ctf_params.relion_options),
                 "command": (
                     "".join(command)
                     + "\n"
@@ -297,12 +299,12 @@ class CTFFind(CommonService):
                 "DefocusV": self.defocus2,
                 "DefocusAngle": self.astigmatism_angle,
             }
-            ctf_params.autopick["relion_options"] = ctf_params.relion_options
+            ctf_params.autopick["relion_options"] = dict(ctf_params.relion_options)
             ctf_params.autopick["mc_uuid"] = ctf_params.mc_uuid
             ctf_params.autopick["pix_size"] = ctf_params.pix_size
-            ctf_params.autopick["threshold"] = ctf_params.relion_options[
-                "cryolo_threshold"
-            ]
+            ctf_params.autopick[
+                "threshold"
+            ] = ctf_params.relion_options.cryolo_threshold
             if isinstance(rw, MockRW):
                 rw.transport.send(
                     destination="cryolo",

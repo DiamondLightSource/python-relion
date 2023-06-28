@@ -8,6 +8,9 @@ import zocalo.configuration
 from workflows.transport.offline_transport import OfflineTransport
 
 from relion.zocalo import icebreaker
+from relion.zocalo.spa_relion_service_options import RelionServiceOptions
+
+output_relion_options = dict(RelionServiceOptions())
 
 
 @pytest.fixture
@@ -57,7 +60,7 @@ def test_icebreaker_micrographs_service(
             "input_particles": None,
             "output_path": f"{tmp_path}/IceBreaker/job003/",
             "cpus": 1,
-            "relion_options": {"options": "options"},
+            "relion_options": {"do_icebreaker_jobs": "True"},
             "total_motion": 0.5,
             "early_motion": 0.2,
             "late_motion": 0.3,
@@ -94,9 +97,7 @@ def test_icebreaker_micrographs_service(
             "parameters": {
                 "icebreaker_type": "summary",
                 "input_micrographs": f"{tmp_path}/IceBreaker/job003/sample_grouped.mrc",
-                "relion_options": icebreaker_test_message["parameters"][
-                    "relion_options"
-                ],
+                "relion_options": output_relion_options,
                 "output_path": f"{tmp_path}/IceBreaker/job005/",
             },
             "content": "dummy",
@@ -111,9 +112,7 @@ def test_icebreaker_micrographs_service(
                     "input_micrographs"
                 ],
                 "output_file": icebreaker_test_message["parameters"]["output_path"],
-                "relion_options": icebreaker_test_message["parameters"][
-                    "relion_options"
-                ],
+                "relion_options": output_relion_options,
                 "command": (
                     "ib_job --j 1 --mode group --single_mic "
                     f"MotionCorr/job002/sample.mrc --o {tmp_path}/IceBreaker/job003/"
@@ -197,9 +196,7 @@ def test_icebreaker_enhancecontrast_service(
                     "input_micrographs"
                 ],
                 "output_file": icebreaker_test_message["parameters"]["output_path"],
-                "relion_options": icebreaker_test_message["parameters"][
-                    "relion_options"
-                ],
+                "relion_options": output_relion_options,
                 "command": (
                     "ib_job --j 1 --mode flatten --single_mic "
                     f"MotionCorr/job002/sample.mrc --o {tmp_path}/IceBreaker/job004/"
@@ -279,9 +276,7 @@ def test_icebreaker_summary_service(
                     "input_micrographs"
                 ],
                 "output_file": icebreaker_test_message["parameters"]["output_path"],
-                "relion_options": icebreaker_test_message["parameters"][
-                    "relion_options"
-                ],
+                "relion_options": output_relion_options,
                 "command": (
                     "ib_5fig --single_mic IceBreaker/job003/sample_grouped.star "
                     f"--o {tmp_path}/IceBreaker/job005/"
@@ -363,9 +358,7 @@ def test_icebreaker_particles_service(
                 + ":"
                 + icebreaker_test_message["parameters"]["input_particles"],
                 "output_file": icebreaker_test_message["parameters"]["output_path"],
-                "relion_options": icebreaker_test_message["parameters"][
-                    "relion_options"
-                ],
+                "relion_options": output_relion_options,
                 "command": (
                     "ib_group --in_mics IceBreaker/job003/sample_grouped.star "
                     "--in_parts Select/job009/particles_split1.star "

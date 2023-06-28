@@ -9,6 +9,7 @@ from gemmi import cif
 from workflows.transport.offline_transport import OfflineTransport
 
 from relion.zocalo import extract
+from relion.zocalo.spa_relion_service_options import RelionServiceOptions
 
 
 @pytest.fixture
@@ -67,16 +68,27 @@ def test_extract_service(mock_mrcfile, mock_environment, offline_transport, tmp_
             "micrographs_file": f"{tmp_path}/MotionCorr/job002/sample.mrc",
             "coord_list_file": str(cryolo_file),
             "output_file": str(output_path),
-            "extract_boxsize": 256,
+            "particle_diameter": 200,
             "norm": True,
             "bg_radius": -1,
             "downscale": True,
-            "downscale_boxsize": 64,
             "invert_contrast": True,
-            "relion_options": {"batch_size": 50000},
+            "relion_options": {"batch_size": 20000},
         },
         "content": "dummy",
     }
+    output_relion_options = RelionServiceOptions()
+    output_relion_options.particle_diameter = extract_test_message["parameters"][
+        "particle_diameter"
+    ]
+    output_relion_options.downscale = extract_test_message["parameters"]["downscale"]
+    output_relion_options.pixel_size_downscaled = (
+        extract_test_message["parameters"]["pix_size"]
+        * output_relion_options.boxsize
+        / output_relion_options.small_boxsize
+    )
+    output_relion_options = dict(output_relion_options)
+    output_relion_options.update(extract_test_message["parameters"]["relion_options"])
 
     # Set up the mock service and send the message to it
     service = extract.Extract(environment=mock_environment)
@@ -92,10 +104,8 @@ def test_extract_service(mock_mrcfile, mock_environment, offline_transport, tmp_
         message={
             "parameters": {
                 "input_file": extract_test_message["parameters"]["output_file"],
-                "relion_options": extract_test_message["parameters"]["relion_options"],
-                "batch_size": extract_test_message["parameters"]["relion_options"][
-                    "batch_size"
-                ],
+                "relion_options": output_relion_options,
+                "batch_size": output_relion_options["batch_size"],
                 "image_size": 64,
             },
             "content": "dummy",
@@ -111,7 +121,7 @@ def test_extract_service(mock_mrcfile, mock_environment, offline_transport, tmp_
                     + extract_test_message["parameters"]["ctf_values"]["file"]
                 ),
                 "output_file": str(output_path),
-                "relion_options": extract_test_message["parameters"]["relion_options"],
+                "relion_options": output_relion_options,
                 "command": "",
                 "stdout": "",
                 "stderr": "",

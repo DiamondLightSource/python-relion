@@ -6,10 +6,14 @@ from typing import Callable, Dict
 
 from gemmi import cif
 
+from relion.zocalo.spa_relion_service_options import RelionServiceOptions
+
 NODE_PARTICLESDATA = "ParticlesData"
 
 
-def get_optics_table(relion_options: dict, particle: bool = False, im_size: int = 0):
+def get_optics_table(
+    relion_options: RelionServiceOptions, particle: bool = False, im_size: int = 0
+):
     """
     Create the optics table for micrograph or particle star files.
     Particle files contain additional rows describing the extracted images.
@@ -18,9 +22,9 @@ def get_optics_table(relion_options: dict, particle: bool = False, im_size: int 
     data_optics = output_cif.add_new_block("optics")
 
     new_angpix = (
-        str(relion_options["pixel_size_downscaled"])
-        if relion_options.get("pixel_size_downscaled")
-        else str(relion_options["pixel_size_on_image"])
+        str(relion_options.pixel_size_downscaled)
+        if relion_options.pixel_size_downscaled
+        else str(relion_options.pixel_size_on_image)
     )
 
     optics_columns = [
@@ -46,10 +50,10 @@ def get_optics_table(relion_options: dict, particle: bool = False, im_size: int 
     optics_values = [
         "opticsGroup1",
         "1",
-        str(relion_options["pixel_size_on_image"]),
-        str(relion_options["voltage"]),
-        str(relion_options["spher_aber"]),
-        str(relion_options["ampl_contrast"]),
+        str(relion_options.pixel_size_on_image),
+        str(relion_options.voltage),
+        str(relion_options.spher_aber),
+        str(relion_options.ampl_contrast),
     ]
     if particle:
         optics_values.extend([new_angpix, str(im_size), "2", "0"])
@@ -65,7 +69,7 @@ def _import_output_files(
     job_dir: Path,
     input_file: Path,
     output_file: Path,
-    relion_options: dict,
+    relion_options: RelionServiceOptions,
     results: dict,
 ):
     """Import jobs save a list of all micrographs"""
@@ -92,7 +96,7 @@ def _motioncorr_output_files(
     job_dir: Path,
     input_file: Path,
     output_file: Path,
-    relion_options: dict,
+    relion_options: RelionServiceOptions,
     results: dict,
 ):
     """Motion correction saves a list of micrographs and their motion"""
@@ -139,7 +143,7 @@ def _ctffind_output_files(
     job_dir: Path,
     input_file: Path,
     output_file: Path,
-    relion_options: dict,
+    relion_options: RelionServiceOptions,
     results: dict,
 ):
     """Ctf estimation saves a list of micrographs and their ctf parameters"""
@@ -196,7 +200,7 @@ def _icebreaker_output_files(
     job_dir: Path,
     input_file: Path,
     output_file: Path,
-    relion_options: dict,
+    relion_options: RelionServiceOptions,
     results: dict,
 ):
     if results["icebreaker_type"] == "micrographs":
@@ -261,7 +265,7 @@ def _cryolo_output_files(
     job_dir: Path,
     input_file: Path,
     output_file: Path,
-    relion_options: dict,
+    relion_options: RelionServiceOptions,
     results: dict,
 ):
     """Cryolo jobs save a list of micrographs and files with particle coordinates"""
@@ -292,7 +296,7 @@ def _extract_output_files(
     job_dir: Path,
     input_file: Path,
     output_file: Path,
-    relion_options: dict,
+    relion_options: RelionServiceOptions,
     results: dict,
 ):
     """Extract jobs save a list of particle coordinates"""
@@ -330,7 +334,7 @@ def _select_output_files(
     job_dir: Path,
     input_file: Path,
     output_file: Path,
-    relion_options: dict,
+    relion_options: RelionServiceOptions,
     results: dict,
 ):
     """Select jobs need no further files, but have extra nodes to add"""
@@ -347,7 +351,7 @@ def _relion_no_extra_files(
     job_dir: Path,
     input_file: Path,
     output_file: Path,
-    relion_options: dict,
+    relion_options: RelionServiceOptions,
     results: dict,
 ):
     """Jobs run through relion do not need any extra files written"""
@@ -378,7 +382,7 @@ def create_output_files(
     job_dir: Path,
     input_file: Path,
     output_file: Path,
-    relion_options: dict,
+    relion_options: RelionServiceOptions,
     results: dict,
 ):
     return _output_files[job_type](
