@@ -51,7 +51,7 @@ def test_ctffind_service(
     }
     ctffind_test_message = {
         "parameters": {
-            "collection_type": "spa",
+            "experiment_type": "spa",
             "pix_size": 0.1,
             "voltage": 300.0,
             "spher_aber": 2.7,
@@ -70,7 +70,7 @@ def test_ctffind_service(
             "input_image": f"{tmp_path}/MotionCorr/job002/sample.mrc",
             "output_image": f"{tmp_path}/CtfFind/job006/sample.ctf",
             "mc_uuid": 0,
-            "relion_it_options": {"cryolo_threshold": 0.3},
+            "relion_options": {"cryolo_threshold": 0.3},
         },
         "content": "dummy",
     }
@@ -132,12 +132,10 @@ def test_ctffind_service(
                     "DefocusV": service.defocus2,
                     "DefocusAngle": service.astigmatism_angle,
                 },
-                "relion_it_options": ctffind_test_message["parameters"][
-                    "relion_it_options"
-                ],
+                "relion_options": ctffind_test_message["parameters"]["relion_options"],
                 "mc_uuid": ctffind_test_message["parameters"]["mc_uuid"],
                 "pix_size": ctffind_test_message["parameters"]["pix_size"],
-                "threshold": ctffind_test_message["parameters"]["relion_it_options"][
+                "threshold": ctffind_test_message["parameters"]["relion_options"][
                     "cryolo_threshold"
                 ],
             },
@@ -186,9 +184,7 @@ def test_ctffind_service(
                 "job_type": "relion.ctffind.ctffind4",
                 "input_file": f"{tmp_path}/MotionCorr/job002/sample.mrc",
                 "output_file": f"{tmp_path}/CtfFind/job006/sample.ctf",
-                "relion_it_options": ctffind_test_message["parameters"][
-                    "relion_it_options"
-                ],
+                "relion_options": ctffind_test_message["parameters"]["relion_options"],
                 "command": f"ctffind\n{' '.join(map(str, parameters_list))}",
                 "stdout": "stdout",
                 "stderr": "stderr",

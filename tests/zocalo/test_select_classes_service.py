@@ -50,7 +50,7 @@ def select_classes_common_setup(tmp_path):
             "0.008 0.035 3.100 1.416 16.183 1.000 -0.133 -0.001"
         )
 
-    relion_it_options = {
+    relion_options = {
         "do_icebreaker_group": True,
         "class2d_fraction_of_classes_to_remove": 0.5,
     }
@@ -67,7 +67,7 @@ def select_classes_common_setup(tmp_path):
             "min_particles": 500,
             "class3d_batch_size": 50000,
             "class3d_max_size": 200000,
-            "relion_it_options": relion_it_options,
+            "relion_options": relion_options,
         },
         "content": "dummy",
     }
@@ -161,9 +161,7 @@ def test_select_classes_service_first_batch(
                 "job_type": "relion.select.class2dauto",
                 "input_file": select_test_message["parameters"]["input_file"],
                 "output_file": f"{tmp_path}/Select/job012/particles.star",
-                "relion_it_options": select_test_message["parameters"][
-                    "relion_it_options"
-                ],
+                "relion_options": select_test_message["parameters"]["relion_options"],
                 "command": (
                     "relion_class_ranker --opt "
                     f"{tmp_path}/Class2D/job010/run_it020_optimiser.star "
@@ -186,9 +184,7 @@ def test_select_classes_service_first_batch(
                 "job_type": "combine_star_files_job",
                 "input_file": f"{tmp_path}/Select/job012/particles.star",
                 "output_file": f"{tmp_path}/Select/job013/particles_all.star",
-                "relion_it_options": select_test_message["parameters"][
-                    "relion_it_options"
-                ],
+                "relion_options": select_test_message["parameters"]["relion_options"],
                 "command": (
                     f"combine_star_files.py {tmp_path}/Select/job012/particles.star "
                     f"--output_dir {tmp_path}/Select/job013\n"
@@ -210,9 +206,7 @@ def test_select_classes_service_first_batch(
                 "class3d_dir": f"{tmp_path}/Class3D/job",
                 "particle_diameter": 64,
                 "batch_size": 50000,
-                "relion_it_options": select_test_message["parameters"][
-                    "relion_it_options"
-                ],
+                "relion_options": select_test_message["parameters"]["relion_options"],
             },
         },
     )
@@ -286,9 +280,7 @@ def test_select_classes_service_batch_threshold(
                 "class3d_dir": f"{tmp_path}/Class3D/job",
                 "particle_diameter": 64,
                 "batch_size": 100000,
-                "relion_it_options": select_test_message["parameters"][
-                    "relion_it_options"
-                ],
+                "relion_options": select_test_message["parameters"]["relion_options"],
             },
         },
     )
@@ -351,9 +343,7 @@ def test_select_classes_service_two_thresholds(
                 "class3d_dir": f"{tmp_path}/Class3D/job",
                 "particle_diameter": 64,
                 "batch_size": 100000,
-                "relion_it_options": select_test_message["parameters"][
-                    "relion_it_options"
-                ],
+                "relion_options": select_test_message["parameters"]["relion_options"],
             },
         },
     )
@@ -417,9 +407,7 @@ def test_select_classes_service_last_threshold(
                 "class3d_dir": f"{tmp_path}/Class3D/job",
                 "particle_diameter": 64,
                 "batch_size": 200000,
-                "relion_it_options": select_test_message["parameters"][
-                    "relion_it_options"
-                ],
+                "relion_options": select_test_message["parameters"]["relion_options"],
             },
         },
     )

@@ -73,7 +73,7 @@ def test_extract_service(mock_mrcfile, mock_environment, offline_transport, tmp_
             "downscale": True,
             "downscale_boxsize": 64,
             "invert_contrast": True,
-            "relion_it_options": {"batch_size": 50000},
+            "relion_options": {"batch_size": 50000},
         },
         "content": "dummy",
     }
@@ -92,10 +92,8 @@ def test_extract_service(mock_mrcfile, mock_environment, offline_transport, tmp_
         message={
             "parameters": {
                 "input_file": extract_test_message["parameters"]["output_file"],
-                "relion_it_options": extract_test_message["parameters"][
-                    "relion_it_options"
-                ],
-                "batch_size": extract_test_message["parameters"]["relion_it_options"][
+                "relion_options": extract_test_message["parameters"]["relion_options"],
+                "batch_size": extract_test_message["parameters"]["relion_options"][
                     "batch_size"
                 ],
                 "image_size": 64,
@@ -113,9 +111,7 @@ def test_extract_service(mock_mrcfile, mock_environment, offline_transport, tmp_
                     + extract_test_message["parameters"]["ctf_values"]["file"]
                 ),
                 "output_file": str(output_path),
-                "relion_it_options": extract_test_message["parameters"][
-                    "relion_it_options"
-                ],
+                "relion_options": extract_test_message["parameters"]["relion_options"],
                 "command": "",
                 "stdout": "",
                 "stderr": "",

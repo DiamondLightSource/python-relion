@@ -24,7 +24,7 @@ class SelectClassesParameters(BaseModel):
     min_particles: int = 500
     class3d_batch_size: int = 50000
     class3d_max_size: int = 200000
-    relion_it_options: Optional[dict] = None
+    relion_options: Optional[dict] = None
 
 
 class SelectClasses(CommonService):
@@ -184,7 +184,7 @@ class SelectClasses(CommonService):
             quantile_threshold = np.quantile(
                 class_scores,
                 float(
-                    autoselect_params.relion_it_options[
+                    autoselect_params.relion_options[
                         "class2d_fraction_of_classes_to_remove"
                     ]
                 ),
@@ -213,7 +213,7 @@ class SelectClasses(CommonService):
             "job_type": self.job_type,
             "input_file": autoselect_params.input_file,
             "output_file": str(select_dir / autoselect_params.particles_file),
-            "relion_it_options": autoselect_params.relion_it_options,
+            "relion_options": autoselect_params.relion_options,
             "command": " ".join(autoselect_command),
             "stdout": result.stdout.decode("utf8", "replace"),
             "stderr": result.stderr.decode("utf8", "replace"),
@@ -321,7 +321,7 @@ class SelectClasses(CommonService):
             "job_type": "combine_star_files_job",
             "input_file": f"{select_dir}/{autoselect_params.particles_file}",
             "output_file": f"{combine_star_dir}/particles_all.star",
-            "relion_it_options": autoselect_params.relion_it_options,
+            "relion_options": autoselect_params.relion_options,
             "command": (
                 " ".join(combine_star_command) + "\n" + " ".join(split_star_command)
             ),
@@ -346,7 +346,7 @@ class SelectClasses(CommonService):
                 "class3d_dir": f"{project_dir}/Class3D/job",
                 "particle_diameter": autoselect_params.particle_diameter,
                 "batch_size": next_batch_size,
-                "relion_it_options": autoselect_params.relion_it_options,
+                "relion_options": autoselect_params.relion_options,
             }
             murfey_params = {
                 "register": "run_class3d",

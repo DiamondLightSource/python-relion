@@ -24,7 +24,7 @@ class IceBreakerParameters(BaseModel):
     total_motion: float = 0
     early_motion: float = 0
     late_motion: float = 0
-    relion_it_options: Optional[dict] = None
+    relion_options: Optional[dict] = None
 
 
 class IceBreaker(CommonService):
@@ -190,7 +190,7 @@ class IceBreaker(CommonService):
                     / mic_from_project.stem
                 )
                 + "_grouped.mrc",
-                "relion_it_options": icebreaker_params.relion_it_options,
+                "relion_options": icebreaker_params.relion_options,
             }
             job_number = int(
                 re.search("/job[0-9]{3}/", icebreaker_params.output_path)[0][4:7]
@@ -214,7 +214,7 @@ class IceBreaker(CommonService):
             "job_type": this_job_type,
             "input_file": icebreaker_params.input_micrographs,
             "output_file": icebreaker_params.output_path,
-            "relion_it_options": icebreaker_params.relion_it_options,
+            "relion_options": icebreaker_params.relion_options,
             "command": " ".join(command),
             "stdout": result.stdout.decode("utf8", "replace"),
             "stderr": result.stderr.decode("utf8", "replace"),

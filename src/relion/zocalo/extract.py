@@ -26,7 +26,7 @@ class ExtractParameters(BaseModel):
     downscale: bool = False
     downscale_boxsize: int = 64
     invert_contrast: bool = True
-    relion_it_options: Optional[dict] = None
+    relion_options: Optional[dict] = None
 
 
 class Extract(CommonService):
@@ -239,7 +239,7 @@ class Extract(CommonService):
 
             # Downscale the image size
             if extract_params.downscale:
-                extract_params.relion_it_options["angpix_downscale"] = (
+                extract_params.relion_options["pixel_size_downscaled"] = (
                     extract_params.pix_size
                     * extract_params.extract_boxsize
                     / extract_params.downscale_boxsize
@@ -263,10 +263,10 @@ class Extract(CommonService):
 
         if extract_params.downscale:
             box_len = extract_params.downscale_boxsize
-            pix_size = extract_params.relion_it_options["angpix_downscale"]
+            pix_size = extract_params.relion_options["pixel_size_downscaled"]
         else:
             box_len = extract_params.extract_boxsize
-            pix_size = extract_params.relion_it_options["angpix"]
+            pix_size = extract_params.relion_options["pixel_size_on_image"]
 
         self.log.info(f"Extracted {np.shape(output_mrc_stack)[0]} particles")
         with mrcfile.new(str(output_mrc_file), overwrite=True) as mrc:
@@ -286,7 +286,7 @@ class Extract(CommonService):
             + ":"
             + extract_params.ctf_values["file"],
             "output_file": extract_params.output_file,
-            "relion_it_options": extract_params.relion_it_options,
+            "relion_options": extract_params.relion_options,
             "command": "",
             "stdout": "",
             "stderr": "",
@@ -304,9 +304,9 @@ class Extract(CommonService):
         self.log.info("Sending to particle selection")
         select_params = {
             "input_file": extract_params.output_file,
-            "batch_size": extract_params.relion_it_options["batch_size"],
+            "batch_size": extract_params.relion_options["batch_size"],
             "image_size": box_len,
-            "relion_it_options": extract_params.relion_it_options,
+            "relion_options": extract_params.relion_options,
         }
         if isinstance(rw, MockRW):
             rw.transport.send(

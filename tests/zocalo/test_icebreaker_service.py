@@ -57,7 +57,7 @@ def test_icebreaker_micrographs_service(
             "input_particles": None,
             "output_path": f"{tmp_path}/IceBreaker/job003/",
             "cpus": 1,
-            "relion_it_options": {"options": "options"},
+            "relion_options": {"options": "options"},
             "total_motion": 0.5,
             "early_motion": 0.2,
             "late_motion": 0.3,
@@ -94,8 +94,8 @@ def test_icebreaker_micrographs_service(
             "parameters": {
                 "icebreaker_type": "summary",
                 "input_micrographs": f"{tmp_path}/IceBreaker/job003/sample_grouped.mrc",
-                "relion_it_options": icebreaker_test_message["parameters"][
-                    "relion_it_options"
+                "relion_options": icebreaker_test_message["parameters"][
+                    "relion_options"
                 ],
                 "output_path": f"{tmp_path}/IceBreaker/job005/",
             },
@@ -111,8 +111,8 @@ def test_icebreaker_micrographs_service(
                     "input_micrographs"
                 ],
                 "output_file": icebreaker_test_message["parameters"]["output_path"],
-                "relion_it_options": icebreaker_test_message["parameters"][
-                    "relion_it_options"
+                "relion_options": icebreaker_test_message["parameters"][
+                    "relion_options"
                 ],
                 "command": (
                     "ib_job --j 1 --mode group --single_mic "
@@ -157,7 +157,7 @@ def test_icebreaker_enhancecontrast_service(
             "input_particles": None,
             "output_path": f"{tmp_path}/IceBreaker/job004/",
             "cpus": 1,
-            "relion_it_options": {"options": "options"},
+            "relion_options": {"options": "options"},
             "total_motion": 0.5,
             "early_motion": 0.2,
             "late_motion": 0.3,
@@ -197,8 +197,8 @@ def test_icebreaker_enhancecontrast_service(
                     "input_micrographs"
                 ],
                 "output_file": icebreaker_test_message["parameters"]["output_path"],
-                "relion_it_options": icebreaker_test_message["parameters"][
-                    "relion_it_options"
+                "relion_options": icebreaker_test_message["parameters"][
+                    "relion_options"
                 ],
                 "command": (
                     "ib_job --j 1 --mode flatten --single_mic "
@@ -243,7 +243,7 @@ def test_icebreaker_summary_service(
             "input_particles": None,
             "output_path": f"{tmp_path}/IceBreaker/job005/",
             "cpus": 1,
-            "relion_it_options": {"options": "options"},
+            "relion_options": {"options": "options"},
             "total_motion": 0.5,
             "early_motion": 0.2,
             "late_motion": 0.3,
@@ -279,8 +279,8 @@ def test_icebreaker_summary_service(
                     "input_micrographs"
                 ],
                 "output_file": icebreaker_test_message["parameters"]["output_path"],
-                "relion_it_options": icebreaker_test_message["parameters"][
-                    "relion_it_options"
+                "relion_options": icebreaker_test_message["parameters"][
+                    "relion_options"
                 ],
                 "command": (
                     "ib_5fig --single_mic IceBreaker/job003/sample_grouped.star "
@@ -325,7 +325,7 @@ def test_icebreaker_particles_service(
             "input_particles": f"{tmp_path}/Select/job009/particles_split1.star",
             "output_path": f"{tmp_path}/IceBreaker/job010/",
             "cpus": 1,
-            "relion_it_options": {"options": "options"},
+            "relion_options": {"options": "options"},
             "total_motion": 0.5,
             "early_motion": 0.2,
             "late_motion": 0.3,
@@ -363,8 +363,8 @@ def test_icebreaker_particles_service(
                 + ":"
                 + icebreaker_test_message["parameters"]["input_particles"],
                 "output_file": icebreaker_test_message["parameters"]["output_path"],
-                "relion_it_options": icebreaker_test_message["parameters"][
-                    "relion_it_options"
+                "relion_options": icebreaker_test_message["parameters"][
+                    "relion_options"
                 ],
                 "command": (
                     "ib_group --in_mics IceBreaker/job003/sample_grouped.star "

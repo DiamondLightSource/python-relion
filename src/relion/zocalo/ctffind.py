@@ -14,7 +14,7 @@ from workflows.services.common_service import CommonService
 class CTFParameters(BaseModel):
     input_image: str = Field(..., min_length=1)
     output_image: str = Field(..., min_length=1)
-    collection_type: str = Literal["spa", "tomography"]
+    experiment_type: str = Literal["spa", "tomography"]
     pix_size: float
     voltage: float = 300.0
     spher_aber: float = 2.7
@@ -31,7 +31,7 @@ class CTFParameters(BaseModel):
     additional_phase_shift: str = "no"
     expert_options: str = "no"
     mc_uuid: int
-    relion_it_options: Optional[dict] = None
+    relion_options: Optional[dict] = None
     autopick: dict = {}
 
 
@@ -247,14 +247,14 @@ class CTFFind(CommonService):
             )
 
         # If this is SPA, send the results to be processed by the node creator
-        if ctf_params.collection_type.lower() == "spa":
+        if ctf_params.experiment_type.lower() == "spa":
             # Register the ctf job with the node creator
             self.log.info(f"Sending {self.job_type} to node creator")
             node_creator_parameters = {
                 "job_type": self.job_type,
                 "input_file": ctf_params.input_image,
                 "output_file": ctf_params.output_image,
-                "relion_it_options": ctf_params.relion_it_options,
+                "relion_options": ctf_params.relion_options,
                 "command": (
                     "".join(command)
                     + "\n"
@@ -272,7 +272,7 @@ class CTFFind(CommonService):
                 rw.send_to("spa.node_creator", node_creator_parameters)
 
         # If this is SPA, also set up a cryolo job
-        if ctf_params.collection_type.lower() == "spa":
+        if ctf_params.experiment_type.lower() == "spa":
             # Forward results to particle picking
             self.log.info(f"Sending to autopicking: {ctf_params.input_image}")
             ctf_params.autopick["input_path"] = ctf_params.input_image
@@ -297,10 +297,10 @@ class CTFFind(CommonService):
                 "DefocusV": self.defocus2,
                 "DefocusAngle": self.astigmatism_angle,
             }
-            ctf_params.autopick["relion_it_options"] = ctf_params.relion_it_options
+            ctf_params.autopick["relion_options"] = ctf_params.relion_options
             ctf_params.autopick["mc_uuid"] = ctf_params.mc_uuid
             ctf_params.autopick["pix_size"] = ctf_params.pix_size
-            ctf_params.autopick["threshold"] = ctf_params.relion_it_options[
+            ctf_params.autopick["threshold"] = ctf_params.relion_options[
                 "cryolo_threshold"
             ]
             if isinstance(rw, MockRW):

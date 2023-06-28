@@ -18,7 +18,7 @@ from workflows.services.common_service import CommonService
 class MotionCorrParameters(BaseModel):
     movie: str = Field(..., min_length=1)
     mrc_out: str = Field(..., min_length=1)
-    collection_type: str = Literal["spa", "tomography"]
+    experiment_type: str = Literal["spa", "tomography"]
     pix_size: float
     fm_dose: float
     patch_size: int = 5
@@ -51,7 +51,7 @@ class MotionCorrParameters(BaseModel):
     dose_motionstats_cutoff: float = 4.0
     movie_id: int
     mc_uuid: int
-    relion_it_options: Optional[dict] = None
+    relion_options: Optional[dict] = None
     ctf: dict = {}
 
     class Config:
@@ -270,9 +270,9 @@ class MotionCorr(CommonService):
         average_motion_per_frame = total_motion / len(self.x_shift_list)
 
         # If this is SPA, determine and set up the next jobs
-        if mc_params.collection_type.lower() == "spa":
+        if mc_params.experiment_type.lower() == "spa":
             # Set up icebreaker if requested, then ctffind
-            if mc_params.relion_it_options["do_icebreaker_job_group"]:
+            if mc_params.relion_options["do_icebreaker_jobs"]:
                 # Three IceBreaker jobs: CtfFind job is MC+4
                 ctf_job_number = 6
 
@@ -289,7 +289,7 @@ class MotionCorr(CommonService):
                         mc_params.mrc_out,
                     ),
                     "mc_uuid": mc_params.mc_uuid,
-                    "relion_it_options": mc_params.relion_it_options,
+                    "relion_options": mc_params.relion_options,
                     "total_motion": total_motion,
                     "early_motion": early_motion,
                     "late_motion": late_motion,
@@ -317,7 +317,7 @@ class MotionCorr(CommonService):
                         mc_params.mrc_out,
                     ),
                     "mc_uuid": mc_params.mc_uuid,
-                    "relion_it_options": mc_params.relion_it_options,
+                    "relion_options": mc_params.relion_options,
                     "total_motion": total_motion,
                     "early_motion": early_motion,
                     "late_motion": late_motion,
@@ -336,7 +336,6 @@ class MotionCorr(CommonService):
             else:
                 # No IceBreaker jobs: CtfFind job is MC+1
                 ctf_job_number = 3
-            mc_params.ctf["collection_type"] = "spa"
             mc_params.ctf["output_image"] = str(
                 Path(
                     mc_params.mrc_out.replace(
@@ -344,13 +343,14 @@ class MotionCorr(CommonService):
                     )
                 ).with_suffix(".ctf")
             )
-            mc_params.ctf["relion_it_options"] = mc_params.relion_it_options
-            mc_params.ctf["amplitude_contrast"] = mc_params.relion_it_options[
+            mc_params.ctf["relion_options"] = mc_params.relion_options
+            mc_params.ctf["amplitude_contrast"] = mc_params.relion_options[
                 "ampl_contrast"
             ]
 
         # Forward results to ctffind (in both SPA and tomography)
         self.log.info(f"Sending to ctf: {mc_params.mrc_out}")
+        mc_params.ctf["experiment_type"] = mc_params.experiment_type
         mc_params.ctf["input_image"] = mc_params.mrc_out
         mc_params.ctf["mc_uuid"] = mc_params.mc_uuid
         mc_params.ctf["pix_size"] = mc_params.pix_size
@@ -404,28 +404,29 @@ class MotionCorr(CommonService):
         else:
             rw.send_to("ispyb", ispyb_parameters)
 
-        # Forward results to murfey
-        self.log.info("Sending to Murfey")
-        if isinstance(rw, MockRW):
-            rw.transport.send(
-                "murfey_feedback",
-                {
-                    "register": "motion_corrected",
-                    "movie": mc_params.movie,
-                    "mrc_out": mc_params.mrc_out,
-                    "movie_id": mc_params.movie_id,
-                },
-            )
-        else:
-            rw.send_to(
-                "murfey_feedback",
-                {
-                    "register": "motion_corrected",
-                    "movie": mc_params.movie,
-                    "mrc_out": mc_params.mrc_out,
-                    "movie_id": mc_params.movie_id,
-                },
-            )
+        if mc_params.experiment_type.lower() == "tomography":
+            # Forward results to murfey
+            self.log.info("Sending to Murfey")
+            if isinstance(rw, MockRW):
+                rw.transport.send(
+                    "murfey_feedback",
+                    {
+                        "register": "motion_corrected",
+                        "movie": mc_params.movie,
+                        "mrc_out": mc_params.mrc_out,
+                        "movie_id": mc_params.movie_id,
+                    },
+                )
+            else:
+                rw.send_to(
+                    "murfey_feedback",
+                    {
+                        "register": "motion_corrected",
+                        "movie": mc_params.movie,
+                        "mrc_out": mc_params.mrc_out,
+                        "movie_id": mc_params.movie_id,
+                    },
+                )
 
         # Forward results to images service
         self.log.info(f"Sending to images service {mc_params.mrc_out}")
@@ -447,7 +448,7 @@ class MotionCorr(CommonService):
             )
 
         # If this is SPA, send the results to be processed by the node creator
-        if mc_params.collection_type == "spa":
+        if mc_params.experiment_type.lower() == "spa":
             # As this is the entry point we need to import the file to the project
             self.log.info("Sending relion.import.movies to node creator")
             project_dir = Path(
@@ -466,7 +467,7 @@ class MotionCorr(CommonService):
                 "job_type": "relion.import.movies",
                 "input_file": str(mc_params.movie),
                 "output_file": str(import_movie),
-                "relion_it_options": mc_params.relion_it_options,
+                "relion_options": mc_params.relion_options,
                 "command": "",
                 "stdout": "",
                 "stderr": "",
@@ -485,7 +486,7 @@ class MotionCorr(CommonService):
                 "job_type": self.job_type,
                 "input_file": str(import_movie),
                 "output_file": mc_params.mrc_out,
-                "relion_it_options": mc_params.relion_it_options,
+                "relion_options": mc_params.relion_options,
                 "command": " ".join(command),
                 "stdout": result.stdout.decode("utf8", "replace"),
                 "stderr": result.stderr.decode("utf8", "replace"),

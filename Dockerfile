@@ -9,7 +9,7 @@ RUN groupadd -r -g "${groupid}" "${groupname}" && useradd -r -M "${groupname}" -
 RUN curl -L -O "https://github.com/conda-forge/miniforge/releases/latest/download/Mambaforge-$(uname)-$(uname -m).sh"
 RUN bash Mambaforge-$(uname)-$(uname -m).sh -b -p "conda"
 
-RUN source "/conda/etc/profile.d/conda.sh" && source "/conda/etc/profile.d/mamba.sh" && mamba create -c conda-forge -p /install/pythonenv python=3.9 pip libtiff htcondor --override-channels -y
+RUN source "/conda/etc/profile.d/conda.sh" && source "/conda/etc/profile.d/mamba.sh" && mamba create -c conda-forge -p /install/pythonenv python=3.9 pip libtiff=4.4.0 htcondor --override-channels -y
 
 # Install Relion
 RUN mkdir /install/relion

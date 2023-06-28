@@ -19,9 +19,11 @@ from pydantic import BaseModel, Field
 from pydantic.error_wrappers import ValidationError
 from workflows.services.common_service import CommonService
 
-from relion.cryolo_relion_it.cryolo_relion_it import RelionItOptions
-from relion.pipeline.options import generate_pipeline_options
 from relion.zocalo.spa_output_files import create_output_files
+from relion.zocalo.spa_relion_service_options import (
+    RelionServiceOptions,
+    generate_service_options,
+)
 
 # A dictionary of all the available jobs,
 # the folder name they run in, and the names of their inputs in the job star
@@ -103,7 +105,7 @@ class NodeCreatorParameters(BaseModel):
     job_type: str
     input_file: str = Field(..., min_length=1)
     output_file: str = Field(..., min_length=1)
-    relion_it_options: RelionItOptions
+    relion_options: RelionServiceOptions
     command: str
     stdout: str
     stderr: str
@@ -190,10 +192,10 @@ class NodeCreator(CommonService):
         os.chdir(project_dir)
 
         try:
-            # Get the options for this job out of the RelionItOptions
-            pipeline_options = generate_pipeline_options(
-                job_info.relion_it_options,
-                {job_info.job_type: ""},
+            # Get the options for this job out of the RelionServiceOptions
+            pipeline_options = generate_service_options(
+                job_info.relion_options,
+                job_info.job_type,
             )
             # Work out the name of the input star file and add this to the job.star
             if job_dir.parent.name != "Import":
@@ -206,21 +208,21 @@ class NodeCreator(CommonService):
                             ".+/job[0-9]{3}/", job_info.input_file.split(":")[ii]
                         )[0]
                     )
-                    pipeline_options[job_info.job_type][label] = (
+                    pipeline_options[label] = (
                         input_job_dir.relative_to(project_dir) / star
                     )
                     ii += 1
             else:
-                pipeline_options[job_info.job_type]["fn_in_raw"] = Path(
-                    job_info.input_file
-                ).relative_to(project_dir)
+                pipeline_options["fn_in_raw"] = Path(job_info.input_file).relative_to(
+                    project_dir
+                )
 
             # If this is a new job we need a job.star
             if not Path(f"{job_info.job_type.replace('.', '_')}_job.star").is_file():
                 self.log.info(f"Generating options for new job: {job_info.job_type}")
                 write_default_jobstar(job_info.job_type)
                 params = job_default_parameters_dict(job_info.job_type)
-                params.update(pipeline_options.get(job_info.job_type, {}))
+                params.update(pipeline_options)
                 _params = {
                     k: str(v) for k, v in params.items() if not isinstance(v, bool)
                 }
@@ -272,7 +274,7 @@ class NodeCreator(CommonService):
             job_dir=job_dir.relative_to(project_dir),
             input_file=Path(job_info.input_file).relative_to(project_dir),
             output_file=Path(job_info.output_file).relative_to(project_dir),
-            relion_it_options=dict(job_info.relion_it_options),
+            relion_options=dict(job_info.relion_options),
             results=job_info.results,
         )
         if extra_output_nodes:

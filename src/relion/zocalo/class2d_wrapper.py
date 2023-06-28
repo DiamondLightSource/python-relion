@@ -47,7 +47,7 @@ class Class2DParameters(BaseModel):
     do_scale: bool = True
     threads: int = 4
     gpus: str = "0"
-    relion_it_options: Optional[dict] = None
+    relion_options: Optional[dict] = None
     combine_star_job_number: int
     particle_picker_id: int
     class2d_grp_id: int
@@ -160,7 +160,7 @@ class Class2DWrapper(zocalo.wrapper.BaseWrapper):
             "job_type": job_type,
             "input_file": class2d_params.particles_file,
             "output_file": class2d_params.class2d_dir,
-            "relion_it_options": class2d_params.relion_it_options,
+            "relion_options": class2d_params.relion_options,
             "command": " ".join(class2d_command),
             "stdout": result.stdout.decode("utf8", "replace"),
             "stderr": result.stderr.decode("utf8", "replace"),
@@ -230,7 +230,7 @@ class Class2DWrapper(zocalo.wrapper.BaseWrapper):
 
         if class2d_params.batch_is_complete:
             # Create an icebreaker job
-            if class2d_params.relion_it_options["do_icebreaker_group"]:
+            if class2d_params.relion_options["do_icebreaker_jobs"]:
                 self.log.info("Sending to icebreaker particle analysis")
                 icebreaker_params = {
                     "icebreaker_type": "particles",
@@ -239,7 +239,7 @@ class Class2DWrapper(zocalo.wrapper.BaseWrapper):
                     ),
                     "input_particles": class2d_params.particles_file,
                     "output_path": f"{project_dir}/IceBreaker/job{job_num + 1:03}/",
-                    "relion_it_options": class2d_params.relion_it_options,
+                    "relion_options": class2d_params.relion_options,
                 }
                 self.recwrap.send_to("icebreaker", icebreaker_params)
 
@@ -250,7 +250,7 @@ class Class2DWrapper(zocalo.wrapper.BaseWrapper):
                 "combine_star_job_number": class2d_params.combine_star_job_number,
                 "min_score": class2d_params.autoselect_min_score,
                 "particle_diameter": class2d_params.particle_diameter,
-                "relion_it_options": class2d_params.relion_it_options,
+                "relion_options": class2d_params.relion_options,
             }
             self.recwrap.send_to("select.classes", autoselect_parameters)
 

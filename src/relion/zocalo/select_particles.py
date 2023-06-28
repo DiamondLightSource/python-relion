@@ -17,7 +17,7 @@ class SelectParticlesParameters(BaseModel):
     input_file: str = Field(..., min_length=1)
     batch_size: int
     image_size: int
-    relion_it_options: Optional[dict] = None
+    relion_options: Optional[dict] = None
 
 
 class SelectParticles(CommonService):
@@ -152,7 +152,7 @@ class SelectParticles(CommonService):
                 new_finished_files.append(new_split - 1)
             select_output_file = f"{select_dir}/particles_split{new_split}.star"
             new_particles_cif = get_optics_table(
-                select_params.relion_it_options,
+                select_params.relion_options,
                 particle=True,
                 im_size=select_params.image_size,
             )
@@ -201,7 +201,7 @@ class SelectParticles(CommonService):
             "job_type": self.job_type,
             "input_file": select_params.input_file,
             "output_file": select_output_file,
-            "relion_it_options": select_params.relion_it_options,
+            "relion_options": select_params.relion_options,
             "command": "",
             "stdout": "",
             "stderr": "",
@@ -218,7 +218,7 @@ class SelectParticles(CommonService):
             "class2d_dir": f"{project_dir}/Class2D/job",
             "particle_diameter": select_params.image_size,
             "batch_size": select_params.batch_size,
-            "relion_it_options": select_params.relion_it_options,
+            "relion_options": select_params.relion_options,
         }
         if select_output_file == f"{select_dir}/particles_split1.star":
             # If still on the first file then register it with murfey

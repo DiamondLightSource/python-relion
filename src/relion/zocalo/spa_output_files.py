@@ -9,7 +9,7 @@ from gemmi import cif
 NODE_PARTICLESDATA = "ParticlesData"
 
 
-def get_optics_table(relion_it_options: dict, particle: bool = False, im_size: int = 0):
+def get_optics_table(relion_options: dict, particle: bool = False, im_size: int = 0):
     """
     Create the optics table for micrograph or particle star files.
     Particle files contain additional rows describing the extracted images.
@@ -18,9 +18,9 @@ def get_optics_table(relion_it_options: dict, particle: bool = False, im_size: i
     data_optics = output_cif.add_new_block("optics")
 
     new_angpix = (
-        str(relion_it_options["angpix_downscale"])
-        if relion_it_options.get("angpix_downscale")
-        else str(relion_it_options["angpix"])
+        str(relion_options["pixel_size_downscaled"])
+        if relion_options.get("pixel_size_downscaled")
+        else str(relion_options["pixel_size_on_image"])
     )
 
     optics_columns = [
@@ -46,10 +46,10 @@ def get_optics_table(relion_it_options: dict, particle: bool = False, im_size: i
     optics_values = [
         "opticsGroup1",
         "1",
-        str(relion_it_options["angpix"]),
-        str(relion_it_options["voltage"]),
-        str(relion_it_options["Cs"]),
-        str(relion_it_options["ampl_contrast"]),
+        str(relion_options["pixel_size_on_image"]),
+        str(relion_options["voltage"]),
+        str(relion_options["spher_aber"]),
+        str(relion_options["ampl_contrast"]),
     ]
     if particle:
         optics_values.extend([new_angpix, str(im_size), "2", "0"])
@@ -65,7 +65,7 @@ def _import_output_files(
     job_dir: Path,
     input_file: Path,
     output_file: Path,
-    relion_it_options: dict,
+    relion_options: dict,
     results: dict,
 ):
     """Import jobs save a list of all micrographs"""
@@ -73,7 +73,7 @@ def _import_output_files(
 
     # Read and append to the existing output file, or otherwise create one
     if not star_file.exists():
-        output_cif = get_optics_table(relion_it_options)
+        output_cif = get_optics_table(relion_options)
 
         data_movies = output_cif.add_new_block("movies")
         movies_loop = data_movies.init_loop(
@@ -92,7 +92,7 @@ def _motioncorr_output_files(
     job_dir: Path,
     input_file: Path,
     output_file: Path,
-    relion_it_options: dict,
+    relion_options: dict,
     results: dict,
 ):
     """Motion correction saves a list of micrographs and their motion"""
@@ -100,7 +100,7 @@ def _motioncorr_output_files(
 
     # Read and append to the existing output file, or otherwise create one
     if not star_file.exists():
-        output_cif = get_optics_table(relion_it_options)
+        output_cif = get_optics_table(relion_options)
 
         data_movies = output_cif.add_new_block("micrographs")
         movies_loop = data_movies.init_loop(
@@ -139,7 +139,7 @@ def _ctffind_output_files(
     job_dir: Path,
     input_file: Path,
     output_file: Path,
-    relion_it_options: dict,
+    relion_options: dict,
     results: dict,
 ):
     """Ctf estimation saves a list of micrographs and their ctf parameters"""
@@ -147,7 +147,7 @@ def _ctffind_output_files(
 
     # Read and append to the existing output file, or otherwise create one
     if not star_file.exists():
-        output_cif = get_optics_table(relion_it_options)
+        output_cif = get_optics_table(relion_options)
 
         data_movies = output_cif.add_new_block("micrographs")
         movies_loop = data_movies.init_loop(
@@ -196,7 +196,7 @@ def _icebreaker_output_files(
     job_dir: Path,
     input_file: Path,
     output_file: Path,
-    relion_it_options: dict,
+    relion_options: dict,
     results: dict,
 ):
     if results["icebreaker_type"] == "micrographs":
@@ -261,7 +261,7 @@ def _cryolo_output_files(
     job_dir: Path,
     input_file: Path,
     output_file: Path,
-    relion_it_options: dict,
+    relion_options: dict,
     results: dict,
 ):
     """Cryolo jobs save a list of micrographs and files with particle coordinates"""
@@ -292,7 +292,7 @@ def _extract_output_files(
     job_dir: Path,
     input_file: Path,
     output_file: Path,
-    relion_it_options: dict,
+    relion_options: dict,
     results: dict,
 ):
     """Extract jobs save a list of particle coordinates"""
@@ -301,7 +301,7 @@ def _extract_output_files(
     # Read and append to the existing output file, or otherwise create one
     if not star_file.exists():
         output_cif = get_optics_table(
-            relion_it_options, particle=True, im_size=results["box_size"]
+            relion_options, particle=True, im_size=results["box_size"]
         )
 
         particles_cif = cif.read_file(str(output_file))
@@ -330,7 +330,7 @@ def _select_output_files(
     job_dir: Path,
     input_file: Path,
     output_file: Path,
-    relion_it_options: dict,
+    relion_options: dict,
     results: dict,
 ):
     """Select jobs need no further files, but have extra nodes to add"""
@@ -347,7 +347,7 @@ def _relion_no_extra_files(
     job_dir: Path,
     input_file: Path,
     output_file: Path,
-    relion_it_options: dict,
+    relion_options: dict,
     results: dict,
 ):
     """Jobs run through relion do not need any extra files written"""
@@ -378,9 +378,9 @@ def create_output_files(
     job_dir: Path,
     input_file: Path,
     output_file: Path,
-    relion_it_options: dict,
+    relion_options: dict,
     results: dict,
 ):
     return _output_files[job_type](
-        job_dir, input_file, output_file, relion_it_options, results
+        job_dir, input_file, output_file, relion_options, results
     )

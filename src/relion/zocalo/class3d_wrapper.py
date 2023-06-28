@@ -27,7 +27,7 @@ class Class3DParameters(BaseModel):
     initial_model_iterations: int = 200
     initial_model_offset_range: float = 6
     initial_model_offset_step: float = 2
-    do_initial_model_C1: bool = True
+    start_initial_model_C1: bool = True
     dont_combine_weights_via_disc: bool = True
     preread_images: bool = True
     scratch_dir: str = None
@@ -58,7 +58,7 @@ class Class3DParameters(BaseModel):
     gpus: str = "0"
     particle_picker_id: int
     class3d_grp_id: int
-    relion_it_options: Optional[dict] = None
+    relion_options: Optional[dict] = None
 
 
 class Class3DWrapper(zocalo.wrapper.BaseWrapper):
@@ -111,7 +111,7 @@ class Class3DWrapper(zocalo.wrapper.BaseWrapper):
             "--o",
             f"{job_dir.relative_to(project_dir)}/run",
         ]
-        if initial_model_params.do_initial_model_C1:
+        if initial_model_params.start_initial_model_C1:
             initial_model_command.extend(("--sym", "C1"))
         else:
             initial_model_command.extend(("--sym", initial_model_params.symmetry))
@@ -178,7 +178,7 @@ class Class3DWrapper(zocalo.wrapper.BaseWrapper):
             "job_type": "relion.initialmodel",
             "input_file": f"{project_dir}/{particles_file}",
             "output_file": f"{job_dir}/initial_model.mrc",
-            "relion_it_options": initial_model_params.relion_it_options,
+            "relion_options": initial_model_params.relion_options,
             "command": (
                 " ".join(initial_model_command) + "\n" + "".join(align_symmetry_command)
             ),
@@ -294,7 +294,7 @@ class Class3DWrapper(zocalo.wrapper.BaseWrapper):
             "job_type": job_type,
             "input_file": class3d_params.particles_file + f":{initial_model_file}",
             "output_file": class3d_params.class3d_dir,
-            "relion_it_options": class3d_params.relion_it_options,
+            "relion_options": class3d_params.relion_options,
             "command": " ".join(class3d_command),
             "stdout": result.stdout.decode("utf8", "replace"),
             "stderr": result.stderr.decode("utf8", "replace"),
