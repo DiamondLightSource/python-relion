@@ -194,8 +194,15 @@ def mrc_central_slice(plugin_params):
     central_slice_data = data[central_slice_index, :, :]
 
     # Write as jpeg
-    central_slice_data = central_slice_data - central_slice_data[0].min()
-    central_slice_data = central_slice_data * 255 / central_slice_data[0].max()
+    mean = np.mean(central_slice_data)
+    sdev = np.std(central_slice_data)
+    sigma_min = mean - 3 * sdev
+    sigma_max = mean + 3 * sdev
+    central_slice_data = np.ndarray.copy(central_slice_data)
+    central_slice_data[central_slice_data < sigma_min] = sigma_min
+    central_slice_data[central_slice_data > sigma_max] = sigma_max
+    central_slice_data = central_slice_data - central_slice_data.min()
+    central_slice_data = central_slice_data * 255 / central_slice_data.max()
     central_slice_data = central_slice_data.astype("uint8")
     im = PIL.Image.fromarray(central_slice_data, mode="L")
     im.thumbnail((512, 512))
@@ -241,7 +248,14 @@ def mrc_to_apng(plugin_params):
 
     if len(data.shape) == 3:
         images_to_append = []
-        for i, frame in enumerate(data):
+        for frame in data:
+            mean = np.mean(frame)
+            sdev = np.std(frame)
+            sigma_min = mean - 3 * sdev
+            sigma_max = mean + 3 * sdev
+            frame = np.ndarray.copy(frame)
+            frame[frame < sigma_min] = sigma_min
+            frame[frame > sigma_max] = sigma_max
             frame = frame - frame.min()
             frame = frame * 255 / frame.max()
             frame = frame.astype("uint8")
