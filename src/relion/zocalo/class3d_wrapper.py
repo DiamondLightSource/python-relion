@@ -188,6 +188,13 @@ class Class3DWrapper(zocalo.wrapper.BaseWrapper):
         }
         self.recwrap.send_to("spa.node_creator", node_creator_parameters)
 
+        # Send Murfey the location of the initial model
+        murfey_params = {
+            "register": "save_initial_model",
+            "initial_model": f"{job_dir}/initial_model.mrc",
+        }
+        self.recwrap.send_to("murfey_feedback", murfey_params)
+
         self.log.info("Running 3D classification using new initial model")
         return f"{ini_model_file}"
 

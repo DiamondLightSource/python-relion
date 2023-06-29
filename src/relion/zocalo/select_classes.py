@@ -189,6 +189,16 @@ class SelectClasses(CommonService):
                 ),
             )
 
+            self.log.info(f"Sending new threshold {quantile_threshold} to Murfey")
+            murfey_params = {
+                "register": "save_class_selection_score",
+                "class_selection_score": quantile_threshold,
+            }
+            if isinstance(rw, MockRW):
+                rw.transport.send("murfey_feedback", murfey_params)
+            else:
+                rw.send_to("murfey_feedback", murfey_params)
+
             self.log.info(
                 f"Re-running class selection with new threshold {quantile_threshold}"
             )
@@ -349,7 +359,7 @@ class SelectClasses(CommonService):
             }
             murfey_params = {
                 "register": "run_class3d",
-                "class3d": class3d_params,
+                "class3d_message": class3d_params,
             }
             if isinstance(rw, MockRW):
                 rw.transport.send("murfey_feedback", murfey_params)

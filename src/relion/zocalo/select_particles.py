@@ -228,7 +228,7 @@ class SelectParticles(CommonService):
             self.log.info(f"Sending incomplete batch {select_output_file} to Murfey")
             murfey_params = {
                 "register": "incomplete_particles_file",
-                "class2d": class2d_params,
+                "class2d_message": class2d_params,
             }
             if isinstance(rw, MockRW):
                 rw.transport.send("murfey_feedback", murfey_params)
@@ -247,7 +247,7 @@ class SelectParticles(CommonService):
                 self.log.info(f"Sending complete batch {select_output_file} to Murfey")
                 murfey_params = {
                     "register": "complete_particles_file",
-                    "class2d": class2d_params,
+                    "class2d_message": class2d_params,
                 }
                 if isinstance(rw, MockRW):
                     rw.transport.send(

@@ -63,7 +63,7 @@ def test_cryolo_service(mock_subprocess, mock_environment, offline_transport, tm
             "mc_uuid": 0,
             "ctf_values": {"dummy": "dummy"},
             "cryolo_command": "cryolo_predict.py",
-            "relion_options": {"batch_size": 20000},
+            "relion_options": {"batch_size": 20000, "downscale": True},
         },
         "content": "dummy",
     }
@@ -120,6 +120,7 @@ def test_cryolo_service(mock_subprocess, mock_environment, offline_transport, tm
         "ctf_values": cryolo_test_message["parameters"]["ctf_values"],
         "micrographs_file": cryolo_test_message["parameters"]["input_path"],
         "coord_list_file": cryolo_test_message["parameters"]["output_path"],
+        "downscale": True,
         "relion_options": output_relion_options,
         "output_file": "Extract/job008/Movies/sample_extract.star",
     }

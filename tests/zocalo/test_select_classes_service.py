@@ -203,8 +203,15 @@ def test_select_classes_service_first_batch(
     offline_transport.send.assert_any_call(
         destination="murfey_feedback",
         message={
+            "register": "save_class_selection_score",
+            "class_selection_score": 0.006,
+        },
+    )
+    offline_transport.send.assert_any_call(
+        destination="murfey_feedback",
+        message={
             "register": "run_class3d",
-            "class3d": {
+            "class3d_message": {
                 "particles_file": f"{tmp_path}/Select/job013/particles_split1.star",
                 "class3d_dir": f"{tmp_path}/Class3D/job",
                 "particle_diameter": 64,
@@ -278,7 +285,7 @@ def test_select_classes_service_batch_threshold(
         destination="murfey_feedback",
         message={
             "register": "run_class3d",
-            "class3d": {
+            "class3d_message": {
                 "particles_file": f"{tmp_path}/Select/job013/particles_split1.star",
                 "class3d_dir": f"{tmp_path}/Class3D/job",
                 "particle_diameter": 64,
@@ -341,7 +348,7 @@ def test_select_classes_service_two_thresholds(
         destination="murfey_feedback",
         message={
             "register": "run_class3d",
-            "class3d": {
+            "class3d_message": {
                 "particles_file": f"{tmp_path}/Select/job013/particles_split1.star",
                 "class3d_dir": f"{tmp_path}/Class3D/job",
                 "particle_diameter": 64,
@@ -405,7 +412,7 @@ def test_select_classes_service_last_threshold(
         destination="murfey_feedback",
         message={
             "register": "run_class3d",
-            "class3d": {
+            "class3d_message": {
                 "particles_file": f"{tmp_path}/Select/job013/particles_split1.star",
                 "class3d_dir": f"{tmp_path}/Class3D/job",
                 "particle_diameter": 64,
