@@ -240,6 +240,7 @@ class Class2DWrapper(zocalo.wrapper.BaseWrapper):
                     ),
                     "input_particles": class2d_params.particles_file,
                     "output_path": f"{project_dir}/IceBreaker/job{job_num + 1:03}/",
+                    "mc_uuid": -1,
                     "relion_options": dict(class2d_params.relion_options),
                 }
                 self.recwrap.send_to("icebreaker", icebreaker_params)

@@ -26,6 +26,7 @@ class IceBreakerParameters(BaseModel):
     total_motion: float = 0
     early_motion: float = 0
     late_motion: float = 0
+    mc_uuid: int
     relion_options: RelionServiceOptions
 
 
@@ -44,7 +45,11 @@ class IceBreaker(CommonService):
     job_type = "icebreaker.micrograph_analysis"
 
     # Values to extract for ISPyB
-    number_of_particles: int
+    ice_minimum: float
+    ice_q1: float
+    ice_median: float
+    ice_q2: float
+    ice_maximum: float
 
     def initializing(self):
         """Subscribe to a queue. Received messages must be acknowledged."""
@@ -57,6 +62,19 @@ class IceBreaker(CommonService):
             log_extender=self.extend_log,
             allow_non_recipe_messages=True,
         )
+
+    def parse_icebreaker_output(self, icebreaker_stdout: str):
+        """
+        Read the output logs of IceBreaker summary jobs to extract values for ispyb
+        """
+        for line in icebreaker_stdout.split("\n"):
+            if line.startswith("Results:"):
+                line_split = line.split()
+                self.ice_minimum = float(line_split[2])
+                self.ice_q1 = float(line_split[3])
+                self.ice_median = float(line_split[4])
+                self.ice_q2 = float(line_split[5])
+                self.ice_maximum = float(line_split[6])
 
     def icebreaker(self, rw, header: dict, message: dict):
         """
@@ -193,6 +211,7 @@ class IceBreaker(CommonService):
                 )
                 + "_grouped.mrc",
                 "relion_options": dict(icebreaker_params.relion_options),
+                "mc_uuid": icebreaker_params.mc_uuid,
             }
             job_number = int(
                 re.search("/job[0-9]{3}/", icebreaker_params.output_path)[0][4:7]
@@ -209,6 +228,36 @@ class IceBreaker(CommonService):
                 )
             else:
                 rw.send_to("icebreaker", next_icebreaker_params)
+
+        # Send results to ispyb
+        if icebreaker_params.icebreaker_type == "summary":
+            self.parse_icebreaker_output(result.stdout.decode("utf8", "replace"))
+            ispyb_parameters = {
+                "minimum": self.ice_minimum,
+                "q1": self.ice_q1,
+                "median": self.ice_median,
+                "q2": self.ice_q2,
+                "maximum": self.ice_maximum,
+            }
+            self.log.info(f"Sending to ispyb: {ispyb_parameters}")
+            ispyb_parameters.update(
+                {
+                    "ispyb_command": "buffer",
+                    "buffer_lookup": {
+                        "motion_correction_id": icebreaker_params.mc_uuid
+                    },
+                    "buffer_command": {
+                        "ispyb_command": "insert_relative_ice_thickness"
+                    },
+                }
+            )
+            if isinstance(rw, MockRW):
+                rw.transport.send(
+                    destination="ispyb",
+                    message={"parameters": ispyb_parameters, "content": "dummy"},
+                )
+            else:
+                rw.send_to("ispyb", ispyb_parameters)
 
         # Register the icebreaker job with the node creator
         self.log.info(f"Sending {this_job_type} to node creator")
