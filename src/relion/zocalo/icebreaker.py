@@ -253,7 +253,7 @@ class IceBreaker(CommonService):
             )
             if isinstance(rw, MockRW):
                 rw.transport.send(
-                    destination="ispyb",
+                    destination="ispyb_connector",
                     message={"parameters": ispyb_parameters, "content": "dummy"},
                 )
             else:
