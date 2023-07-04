@@ -250,15 +250,12 @@ class CrYOLO(CommonService):
 
         # Gather results needed for particle extraction
         extraction_params = {
-            "pix_size": cryolo_params.pix_size,
             "ctf_values": cryolo_params.ctf_values,
             "micrographs_file": cryolo_params.input_path,
             "coord_list_file": cryolo_params.output_path,
-            "downscale": cryolo_params.relion_options.downscale,
-            "relion_options": dict(cryolo_params.relion_options),
         }
         job_number = int(re.search("/job[0-9]{3}/", cryolo_params.output_path)[0][4:7])
-        extraction_params["output_file"] = str(
+        extraction_params["extract_file"] = str(
             Path(
                 re.sub(
                     "MotionCorr/job002/.+",

@@ -292,7 +292,7 @@ class CTFFind(CommonService):
                 / Path(ctf_params.input_image).with_suffix(".star").name
             )
             ctf_params.autopick["ctf_values"] = {
-                "file": ctf_params.output_image,
+                "CtfImage": ctf_params.output_image,
                 "CtfMaxResolution": self.estimated_resolution,
                 "CtfFigureOfMerit": self.cc_value,
                 "DefocusU": self.defocus1,

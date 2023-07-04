@@ -108,11 +108,8 @@ def test_select_particles_service(mock_environment, offline_transport, tmp_path)
             "register": "complete_particles_file",
             "class2d_message": {
                 "class2d_dir": f"{tmp_path}/Class2D/job",
-                "particle_diameter": 64,
                 "batch_size": 2,
-                "relion_options": output_relion_options,
                 "particles_file": f"{tmp_path}/Select/job009/particles_split2.star",
-                "batch_is_complete": "True",
             },
         },
     )

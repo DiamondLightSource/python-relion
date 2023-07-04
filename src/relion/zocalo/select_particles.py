@@ -17,6 +17,7 @@ class SelectParticlesParameters(BaseModel):
     input_file: str = Field(..., min_length=1)
     batch_size: int
     image_size: int
+    incomplete_batch_size: int = 5000
     relion_options: RelionServiceOptions
 
 
@@ -122,6 +123,7 @@ class SelectParticles(CommonService):
             prev_parts_block = particles_cif.find_block("particles")
             prev_parts_loop = prev_parts_block.find_loop("_rlnCoordinateX").get_loop()
 
+            previous_batch_count = prev_parts_loop.length()
             num_prev_parts = prev_parts_loop.length()
             # While we have particles to add and the file is not full
             while num_prev_parts < select_params.batch_size and num_remaining_parts > 0:
@@ -142,6 +144,7 @@ class SelectParticles(CommonService):
         else:
             # If this is the first time we ran the job create a new particle split
             # Set this to be split zero so the while loop starts from one
+            previous_batch_count = 0
             select_output_file = str(select_dir / "particles_split0.star")
 
         new_finished_files = []
@@ -216,24 +219,38 @@ class SelectParticles(CommonService):
 
         class2d_params = {
             "class2d_dir": f"{project_dir}/Class2D/job",
-            "particle_diameter": select_params.image_size,
             "batch_size": select_params.batch_size,
-            "relion_options": dict(select_params.relion_options),
         }
         if select_output_file == f"{select_dir}/particles_split1.star":
             # If still on the first file then register it with murfey
-            class2d_params["particles_file"] = f"{select_dir}/particles_split1.star"
-            class2d_params["batch_is_complete"] = "False"
-
-            self.log.info(f"Sending incomplete batch {select_output_file} to Murfey")
-            murfey_params = {
-                "register": "incomplete_particles_file",
-                "class2d_message": class2d_params,
-            }
-            if isinstance(rw, MockRW):
-                rw.transport.send("murfey_feedback", murfey_params)
+            send_to_2d_classification = False
+            if previous_batch_count == 0:
+                # First run of this job, do it with any number of particles
+                send_to_2d_classification = True
             else:
-                rw.send_to("murfey_feedback", murfey_params)
+                # Re-run only if a multiple of the run size is passed
+                previous_batch_multiple = (
+                    previous_batch_count // select_params.incomplete_batch_size
+                )
+                new_batch_multiple = (
+                    previous_batch_count + num_new_parts
+                ) // select_params.incomplete_batch_size
+                if new_batch_multiple > previous_batch_multiple:
+                    send_to_2d_classification = True
+
+            if send_to_2d_classification:
+                self.log.info(
+                    f"Sending incomplete batch {select_output_file} to Murfey"
+                )
+                class2d_params["particles_file"] = f"{select_dir}/particles_split1.star"
+                murfey_params = {
+                    "register": "incomplete_particles_file",
+                    "class2d_message": class2d_params,
+                }
+                if isinstance(rw, MockRW):
+                    rw.transport.send("murfey_feedback", murfey_params)
+                else:
+                    rw.send_to("murfey_feedback", murfey_params)
 
         if new_finished_files:
             for new_split in new_finished_files:
@@ -241,7 +258,6 @@ class SelectParticles(CommonService):
                 class2d_params[
                     "particles_file"
                 ] = f"{select_dir}/particles_split{new_split}.star"
-                class2d_params["batch_is_complete"] = "True"
 
                 # Send all newly completed files to murfey
                 self.log.info(f"Sending complete batch {select_output_file} to Murfey")

@@ -251,7 +251,6 @@ class Class2DWrapper(zocalo.wrapper.BaseWrapper):
                 "input_file": f"{class2d_params.class2d_dir}/run_it{class2d_params.nr_iter:03}_optimiser.star",
                 "combine_star_job_number": class2d_params.combine_star_job_number,
                 "min_score": class2d_params.autoselect_min_score,
-                "particle_diameter": class2d_params.particle_diameter,
                 "relion_options": dict(class2d_params.relion_options),
             }
             self.recwrap.send_to("select.classes", autoselect_parameters)

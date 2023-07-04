@@ -128,7 +128,7 @@ def test_ctffind_service(
                 "input_path": ctffind_test_message["parameters"]["input_image"],
                 "output_path": f"{tmp_path}/AutoPick/job007/STAR/sample.star",
                 "ctf_values": {
-                    "file": ctffind_test_message["parameters"]["output_image"],
+                    "CtfImage": ctffind_test_message["parameters"]["output_image"],
                     "CtfMaxResolution": service.estimated_resolution,
                     "CtfFigureOfMerit": service.cc_value,
                     "DefocusU": service.defocus1,

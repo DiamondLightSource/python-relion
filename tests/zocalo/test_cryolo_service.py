@@ -116,13 +116,10 @@ def test_cryolo_service(mock_subprocess, mock_environment, offline_transport, tm
 
     # Check that the correct messages were sent
     extraction_params = {
-        "pix_size": cryolo_test_message["parameters"]["pix_size"],
         "ctf_values": cryolo_test_message["parameters"]["ctf_values"],
         "micrographs_file": cryolo_test_message["parameters"]["input_path"],
         "coord_list_file": cryolo_test_message["parameters"]["output_path"],
-        "downscale": True,
-        "relion_options": output_relion_options,
-        "output_file": "Extract/job008/Movies/sample_extract.star",
+        "extract_file": "Extract/job008/Movies/sample_extract.star",
     }
     offline_transport.send.assert_any_call(
         destination="ispyb_connector",

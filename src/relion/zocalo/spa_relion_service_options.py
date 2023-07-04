@@ -53,7 +53,6 @@ class RelionServiceOptions(BaseModel):
     """The parameters used by the Relion services"""
 
     """Parameters that Murfey will set"""
-    experiment_type: str = "spa"
     # Pixel size in Angstroms in the input movies
     pixel_size_on_image: float = 0.885
     # Dose in electrons per squared Angstrom per frame
@@ -70,14 +69,15 @@ class RelionServiceOptions(BaseModel):
     symmetry: str = "C1"
     # Diameter of particles picked by cryolo
     particle_diameter: float = 0
+    # Down-scale the particles upon extraction?
+    downscale: bool = False
+    # Run icebreaker?
+    do_icebreaker_jobs = True
 
     """Parameters used in internal calculations"""
     pixel_size_downscaled: float = 0
-    do_icebreaker_jobs = True
     # Box size of particles in the averaged micrographs (in pixels)
     boxsize: int = 256
-    # Down-scale the particles upon extraction?
-    downscale: bool = False
     # Box size of the down-scaled particles (in pixels)
     small_boxsize: int = 64
     # Diameter of the mask used for 2D/3D classification (in Angstrom)

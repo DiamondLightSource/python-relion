@@ -20,7 +20,12 @@ class ExtractParameters(BaseModel):
     coord_list_file: str = Field(..., min_length=1)
     output_file: str = Field(..., min_length=1)
     pix_size: float
-    ctf_values: dict
+    ctf_image: str
+    ctf_max_resolution: float
+    ctf_figure_of_merit: float
+    defocus_u: float
+    defocus_v: float
+    defocus_angle: float
     particle_diameter: float
     norm: bool = True
     bg_radius: int = -1
@@ -103,7 +108,8 @@ class Extract(CommonService):
 
         self.log.info(
             f"Inputs: {extract_params.micrographs_file}, "
-            f"{extract_params.ctf_values['file']}, {extract_params.coord_list_file} "
+            f"{extract_params.ctf_image}, "
+            f"{extract_params.coord_list_file} "
             f"Output: {extract_params.output_file}"
         )
 
@@ -164,11 +170,11 @@ class Extract(CommonService):
                     f"{particle:06}@{output_mrc_file.relative_to(project_dir)}",
                     str(Path(extract_params.micrographs_file).relative_to(project_dir)),
                     "1",
-                    str(extract_params.ctf_values["CtfMaxResolution"]),
-                    str(extract_params.ctf_values["CtfFigureOfMerit"]),
-                    str(extract_params.ctf_values["DefocusU"]),
-                    str(extract_params.ctf_values["DefocusV"]),
-                    str(extract_params.ctf_values["DefocusAngle"]),
+                    str(extract_params.ctf_max_resolution),
+                    str(extract_params.ctf_figure_of_merit),
+                    str(extract_params.defocus_u),
+                    str(extract_params.defocus_v),
+                    str(extract_params.defocus_angle),
                     "0.0",
                     "1.0",
                     "0.0",
@@ -293,7 +299,7 @@ class Extract(CommonService):
             "job_type": "relion.extract",
             "input_file": extract_params.coord_list_file
             + ":"
-            + extract_params.ctf_values["file"],
+            + extract_params.ctf_image,
             "output_file": extract_params.output_file,
             "relion_options": dict(extract_params.relion_options),
             "command": "",

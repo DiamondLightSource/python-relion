@@ -62,7 +62,6 @@ def select_classes_common_setup(tmp_path):
         "parameters": {
             "input_file": f"{tmp_path}/Class2D/job010/run_it020_optimiser.star",
             "combine_star_job_number": 13,
-            "particle_diameter": 64,
             "particles_file": "particles.star",
             "classes_file": "class_averages.star",
             "python_exe": "python",
@@ -214,9 +213,7 @@ def test_select_classes_service_first_batch(
             "class3d_message": {
                 "particles_file": f"{tmp_path}/Select/job013/particles_split1.star",
                 "class3d_dir": f"{tmp_path}/Class3D/job",
-                "particle_diameter": 64,
                 "batch_size": 50000,
-                "relion_options": relion_options,
             },
         },
     )
@@ -288,9 +285,7 @@ def test_select_classes_service_batch_threshold(
             "class3d_message": {
                 "particles_file": f"{tmp_path}/Select/job013/particles_split1.star",
                 "class3d_dir": f"{tmp_path}/Class3D/job",
-                "particle_diameter": 64,
                 "batch_size": 100000,
-                "relion_options": relion_options,
             },
         },
     )
@@ -351,9 +346,7 @@ def test_select_classes_service_two_thresholds(
             "class3d_message": {
                 "particles_file": f"{tmp_path}/Select/job013/particles_split1.star",
                 "class3d_dir": f"{tmp_path}/Class3D/job",
-                "particle_diameter": 64,
                 "batch_size": 100000,
-                "relion_options": relion_options,
             },
         },
     )
@@ -415,9 +408,7 @@ def test_select_classes_service_last_threshold(
             "class3d_message": {
                 "particles_file": f"{tmp_path}/Select/job013/particles_split1.star",
                 "class3d_dir": f"{tmp_path}/Class3D/job",
-                "particle_diameter": 64,
                 "batch_size": 200000,
-                "relion_options": relion_options,
             },
         },
     )

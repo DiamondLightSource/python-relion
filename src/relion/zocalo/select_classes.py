@@ -17,7 +17,6 @@ from relion.zocalo.spa_relion_service_options import RelionServiceOptions
 class SelectClassesParameters(BaseModel):
     input_file: str = Field(..., min_length=1)
     combine_star_job_number: int
-    particle_diameter: float
     particles_file: str = "particles.star"
     classes_file: str = "class_averages.star"
     python_exe: str = "/dls_sw/apps/EM/relion/4.0/conda/bin/python"
@@ -353,9 +352,7 @@ class SelectClasses(CommonService):
             class3d_params = {
                 "particles_file": f"{combine_star_dir}/particles_split1.star",
                 "class3d_dir": f"{project_dir}/Class3D/job",
-                "particle_diameter": autoselect_params.particle_diameter,
                 "batch_size": next_batch_size,
-                "relion_options": dict(autoselect_params.relion_options),
             }
             murfey_params = {
                 "register": "run_class3d",

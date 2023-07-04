@@ -57,14 +57,12 @@ def test_extract_service(mock_mrcfile, mock_environment, offline_transport, tmp_
     extract_test_message = {
         "parameters": {
             "pix_size": 0.1,
-            "ctf_values": {
-                "file": f"{tmp_path}/CtFind/job006/Movies/sample.ctf",
-                "CtfMaxResolution": "10",
-                "CtfFigureOfMerit": "20",
-                "DefocusU": "1.0",
-                "DefocusV": "2.0",
-                "DefocusAngle": "0.0",
-            },
+            "ctf_image": f"{tmp_path}/CtFind/job006/Movies/sample.ctf",
+            "ctf_max_resolution": "10",
+            "ctf_figure_of_merit": "20",
+            "defocus_u": "1.0",
+            "defocus_v": "2.0",
+            "defocus_angle": "0.0",
             "micrographs_file": f"{tmp_path}/MotionCorr/job002/sample.mrc",
             "coord_list_file": str(cryolo_file),
             "output_file": str(output_path),
@@ -117,8 +115,7 @@ def test_extract_service(mock_mrcfile, mock_environment, offline_transport, tmp_
             "parameters": {
                 "job_type": "relion.extract",
                 "input_file": (
-                    f"{cryolo_file}:"
-                    + extract_test_message["parameters"]["ctf_values"]["file"]
+                    f"{cryolo_file}:{extract_test_message['parameters']['ctf_image']}"
                 ),
                 "output_file": str(output_path),
                 "relion_options": output_relion_options,
@@ -146,8 +143,8 @@ def test_extract_service(mock_mrcfile, mock_environment, offline_transport, tmp_
         "MotionCorr/job002/sample.mrc"
     ]
     assert list(particles_data.find_loop("_rlnOpticsGroup")) == ["1"]
-    assert list(particles_data.find_loop("_rlnCtfMaxResolution")) == ["10"]
-    assert list(particles_data.find_loop("_rlnCtfFigureOfMerit")) == ["20"]
+    assert list(particles_data.find_loop("_rlnCtfMaxResolution")) == ["10.0"]
+    assert list(particles_data.find_loop("_rlnCtfFigureOfMerit")) == ["20.0"]
     assert list(particles_data.find_loop("_rlnDefocusU")) == ["1.0"]
     assert list(particles_data.find_loop("_rlnDefocusV")) == ["2.0"]
     assert list(particles_data.find_loop("_rlnDefocusAngle")) == ["0.0"]
