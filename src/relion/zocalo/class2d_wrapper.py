@@ -79,6 +79,11 @@ class Class2DWrapper(zocalo.wrapper.BaseWrapper):
         else:
             job_type = "relion.class2d.em"
 
+        # Update the relion options to get out the box sizes
+        class2d_params.relion_options.particle_diameter = (
+            class2d_params.particle_diameter
+        )
+
         # Make the job directory and move to the project directory
         job_dir = Path(class2d_params.class2d_dir)
         job_dir.mkdir(parents=True, exist_ok=True)
@@ -104,7 +109,6 @@ class Class2DWrapper(zocalo.wrapper.BaseWrapper):
             "ctf_intact_first_peak": "--ctf_intact_first_peak",
             "nr_iter": "--iter",
             "tau_fudge": "--tau2_fudge",
-            "particle_diameter": "--particle_diameter",
             "nr_classes": "--K",
             "flatten_solvent": "--flatten_solvent",
             "do_zero_mask": "--zero_mask",
@@ -129,6 +133,8 @@ class Class2DWrapper(zocalo.wrapper.BaseWrapper):
             particles_file,
             "--o",
             f"{job_dir.relative_to(project_dir)}/run",
+            "--particle_diameter",
+            f"{class2d_params.relion_options.mask_diameter}",
         ]
         for k, v in class2d_params.dict().items():
             if v and (k in class2d_flags):

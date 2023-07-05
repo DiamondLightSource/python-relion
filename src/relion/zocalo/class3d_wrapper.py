@@ -76,7 +76,6 @@ class Class3DWrapper(zocalo.wrapper.BaseWrapper):
         "skip_gridding": "--skip_gridding",
         "do_ctf": "--ctf",
         "ctf_intact_first_peak": "--ctf_intact_first_peak",
-        "particle_diameter": "--particle_diameter",
         "nr_classes": "--K",
         "flatten_solvent": "--flatten_solvent",
         "do_zero_mask": "--zero_mask",
@@ -111,6 +110,8 @@ class Class3DWrapper(zocalo.wrapper.BaseWrapper):
             particles_file,
             "--o",
             f"{job_dir.relative_to(project_dir)}/run",
+            "--particle_diameter",
+            f"{initial_model_params.relion_options.mask_diameter}",
         ]
         if initial_model_params.start_initial_model_C1:
             initial_model_command.extend(("--sym", "C1"))
@@ -195,6 +196,33 @@ class Class3DWrapper(zocalo.wrapper.BaseWrapper):
         }
         self.recwrap.send_to("murfey_feedback", murfey_params)
 
+        # Extract parameters for ispyb
+        initial_model_cif = cif.read_file(
+            f"{job_dir}/run_it{initial_model_params.initial_model_iterations:03}_model.star"
+        )
+        initial_model_block = initial_model_cif.find_block("model_classes")
+        model_scores = list(initial_model_block.find_loop("_rlnClassDistribution"))
+        model_resolutions = list(
+            initial_model_block.find_loop("_rlnEstimatedResolution")
+        )
+        resolution = model_resolutions[model_scores == max(model_scores)]
+        number_of_particles = (
+            model_scores[model_scores == max(model_scores)]
+            * initial_model_params.batch_size
+        )
+
+        self.log.info(
+            "Sending best initial model to ispyb with "
+            f"resolution {resolution} and {number_of_particles} particles"
+        )
+        ispyb_parameters = {
+            "resolution": resolution,
+            "number_of_particles": number_of_particles,
+            "ispyb_command": "buffer",
+            "buffer_command": {"ispyb_command": "insert_cryoem_initial_model"},
+        }
+        self.recwrap.send_to("ispyb", {"ispyb_command_list": ispyb_parameters})
+
         self.log.info("Running 3D classification using new initial model")
         return f"{ini_model_file}"
 
@@ -211,6 +239,11 @@ class Class3DWrapper(zocalo.wrapper.BaseWrapper):
                 f"Class3D parameter validation failed for parameters: {params_dict}."
             )
             return False
+
+        # Update the relion options to get out the box sizes
+        class3d_params.relion_options.particle_diameter = (
+            class3d_params.particle_diameter
+        )
 
         # Make the job directory and move to the project directory
         job_dir = Path(class3d_params.class3d_dir)
@@ -270,6 +303,8 @@ class Class3DWrapper(zocalo.wrapper.BaseWrapper):
             f"{job_dir.relative_to(project_dir)}/run",
             "--ref",
             initial_model_file,
+            "--particle_diameter",
+            f"{class3d_params.relion_options.mask_diameter}",
         ]
         for k, v in class3d_params.dict().items():
             if v and (k in class3d_flags):
