@@ -1,0 +1,4 @@
+apiVersion: v2
+name: icebreaker
+description: A Helm chart for IceBreaker service
+version: 0.0.1
