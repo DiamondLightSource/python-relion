@@ -54,7 +54,7 @@ class RelionServiceOptions(BaseModel):
 
     """Parameters that Murfey will set"""
     # Pixel size in Angstroms in the input movies
-    pixel_size_on_image: float = 0.885
+    angpix: float = 0.885
     # Dose in electrons per squared Angstrom per frame
     dose_per_frame: float = 1.277
     # Gain-reference image in MRC format
@@ -67,15 +67,15 @@ class RelionServiceOptions(BaseModel):
     eer_grouping: int = 20
     # Symmetry group
     symmetry: str = "C1"
-    # Diameter of particles picked by cryolo
-    particle_diameter: float = 0
     # Down-scale the particles upon extraction?
     downscale: bool = False
     # Run icebreaker?
-    do_icebreaker_jobs = True
+    do_icebreaker_jobs: bool = True
 
     """Parameters used in internal calculations"""
     pixel_size_downscaled: float = 0
+    # Diameter of particles picked by cryolo
+    particle_diameter: float = 0
     # Box size of particles in the averaged micrographs (in pixels)
     boxsize: int = 256
     # Box size of the down-scaled particles (in pixels)
@@ -94,7 +94,7 @@ class RelionServiceOptions(BaseModel):
     motioncor_patches_y: int = 5
 
     # Additional arguments for RELION's Motion Correction wrapper
-    motioncor_other_args = "--do_at_most 200 --skip_logfile"
+    motioncor_other_args: str = "--do_at_most 200 --skip_logfile"
     # Threshold for cryolo autopicking
     cryolo_threshold: float = 0.15
     # Location of the cryolo specific files
@@ -122,10 +122,10 @@ class RelionServiceOptions(BaseModel):
         if values.get("particle_diameter"):
             values["mask_diameter"] = 1.1 * values["particle_diameter"]
             values["boxsize"] = calculate_box_size(
-                values["particle_diameter"] / values["pixel_size_on_image"]
+                values["particle_diameter"] / values["angpix"]
             )
             values["small_boxsize"] = calculate_downscaled_box_size(
-                values["boxsize"], values["pixel_size_on_image"]
+                values["boxsize"], values["angpix"]
             )
         return values
 
@@ -140,7 +140,7 @@ def generate_service_options(
     }
 
     job_options["relion.import.movies"] = {
-        "angpix": relion_options.pixel_size_on_image,
+        "angpix": relion_options.angpix,
         "kV": relion_options.voltage,
     }
 
@@ -255,7 +255,7 @@ service_values = {
     service_options.do_icebreaker_jobs,
     service_options.cryolo_threshold,
     service_options.pixel_size_downscaled,
-    service_options.pixel_size_on_image,
+    service_options.angpix,
     service_options.voltage,
     service_options.spher_aber,
     service_options.ampl_contrast,

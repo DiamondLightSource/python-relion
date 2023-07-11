@@ -21,8 +21,9 @@ job_type = "relion.class3d"
 class Class3DParameters(BaseModel):
     particles_file: str = Field(..., min_length=1)
     class3d_dir: str = Field(..., min_length=1)
-    particle_diameter: float
     batch_size: int
+    particle_diameter: float = 0
+    mask_diameter: float = 190
     do_initial_model: bool = False
     initial_model_file: str = None
     initial_model_iterations: int = 200
@@ -241,9 +242,12 @@ class Class3DWrapper(zocalo.wrapper.BaseWrapper):
             return False
 
         # Update the relion options to get out the box sizes
-        class3d_params.relion_options.particle_diameter = (
-            class3d_params.particle_diameter
-        )
+        if class3d_params.particle_diameter:
+            class3d_params.relion_options.particle_diameter = (
+                class3d_params.particle_diameter
+            )
+        else:
+            class3d_params.relion_options.mask_diameter = class3d_params.mask_diameter
 
         # Make the job directory and move to the project directory
         job_dir = Path(class3d_params.class3d_dir)

@@ -26,7 +26,9 @@ class ExtractParameters(BaseModel):
     defocus_u: float
     defocus_v: float
     defocus_angle: float
-    particle_diameter: float
+    particle_diameter: float = 0
+    boxsize: int = 256
+    small_boxsize: int = 64
     norm: bool = True
     bg_radius: int = -1
     downscale: bool = False
@@ -114,9 +116,13 @@ class Extract(CommonService):
         )
 
         # Update the relion options to get out the box sizes
-        extract_params.relion_options.particle_diameter = (
-            extract_params.particle_diameter
-        )
+        if extract_params.particle_diameter:
+            extract_params.relion_options.particle_diameter = (
+                extract_params.particle_diameter
+            )
+        else:
+            extract_params.relion_options.boxsize = extract_params.boxsize
+            extract_params.relion_options.small_boxsize = extract_params.small_boxsize
         extract_params.relion_options.downscale = extract_params.downscale
 
         # Make sure the output directory exists
@@ -281,7 +287,7 @@ class Extract(CommonService):
             pix_size = extract_params.relion_options.pixel_size_downscaled
         else:
             box_len = extract_params.relion_options.boxsize
-            pix_size = extract_params.relion_options.pixel_size_on_image
+            pix_size = extract_params.relion_options.angpix
 
         self.log.info(f"Extracted {np.shape(output_mrc_stack)[0]} particles")
         with mrcfile.new(str(output_mrc_file), overwrite=True) as mrc:

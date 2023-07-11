@@ -20,8 +20,9 @@ class Class2DParameters(BaseModel):
     particles_file: str = Field(..., min_length=1)
     class2d_dir: str = Field(..., min_length=1)
     batch_is_complete: bool
-    particle_diameter: float
     batch_size: int
+    particle_diameter: float = 0
+    mask_diameter: float = 190
     do_vdam = False
     dont_combine_weights_via_disc: bool = True
     preread_images: bool = True
@@ -80,9 +81,12 @@ class Class2DWrapper(zocalo.wrapper.BaseWrapper):
             job_type = "relion.class2d.em"
 
         # Update the relion options to get out the box sizes
-        class2d_params.relion_options.particle_diameter = (
-            class2d_params.particle_diameter
-        )
+        if class2d_params.particle_diameter:
+            class2d_params.relion_options.particle_diameter = (
+                class2d_params.particle_diameter
+            )
+        else:
+            class2d_params.relion_options.mask_diameter = class2d_params.mask_diameter
 
         # Make the job directory and move to the project directory
         job_dir = Path(class2d_params.class2d_dir)

@@ -24,7 +24,7 @@ def get_optics_table(
     new_angpix = (
         str(relion_options.pixel_size_downscaled)
         if relion_options.pixel_size_downscaled
-        else str(relion_options.pixel_size_on_image)
+        else str(relion_options.angpix)
     )
 
     optics_columns = [
@@ -50,7 +50,7 @@ def get_optics_table(
     optics_values = [
         "opticsGroup1",
         "1",
-        str(relion_options.pixel_size_on_image),
+        str(relion_options.angpix),
         str(relion_options.voltage),
         str(relion_options.spher_aber),
         str(relion_options.ampl_contrast),
