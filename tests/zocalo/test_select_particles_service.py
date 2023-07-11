@@ -61,7 +61,7 @@ def test_select_particles_service(mock_environment, offline_transport, tmp_path)
     output_dir = tmp_path / "Select/job009/"
 
     input_relion_options = {
-        "pixel_size_on_image": 1.0,
+        "angpix": 1.0,
         "voltage": 200,
         "spher_aber": 2.7,
         "ampl_contrast": 0.1,
@@ -128,7 +128,7 @@ def test_select_particles_service(mock_environment, offline_transport, tmp_path)
     assert list(micrographs_optics.find_loop("_rlnOpticsGroupName")) == ["opticsGroup1"]
     assert list(micrographs_optics.find_loop("_rlnOpticsGroup")) == ["1"]
     assert list(micrographs_optics.find_loop("_rlnMicrographOriginalPixelSize")) == [
-        str(input_relion_options["pixel_size_on_image"])
+        str(input_relion_options["angpix"])
     ]
     assert list(micrographs_optics.find_loop("_rlnVoltage")) == [
         str(input_relion_options["voltage"])
@@ -140,7 +140,7 @@ def test_select_particles_service(mock_environment, offline_transport, tmp_path)
         str(input_relion_options["ampl_contrast"])
     ]
     assert list(micrographs_optics.find_loop("_rlnImagePixelSize")) == [
-        str(input_relion_options["pixel_size_on_image"])
+        str(input_relion_options["angpix"])
     ]
     assert list(micrographs_optics.find_loop("_rlnImageSize")) == ["64"]
     assert list(micrographs_optics.find_loop("_rlnImageDimensionality")) == ["2"]

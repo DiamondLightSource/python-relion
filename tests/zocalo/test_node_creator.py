@@ -130,7 +130,7 @@ def test_node_creator_import(mock_environment, offline_transport, tmp_path):
     assert list(micrographs_optics.find_loop("_rlnOpticsGroupName")) == ["opticsGroup1"]
     assert list(micrographs_optics.find_loop("_rlnOpticsGroup")) == ["1"]
     assert list(micrographs_optics.find_loop("_rlnMicrographOriginalPixelSize")) == [
-        str(relion_options.pixel_size_on_image)
+        str(relion_options.angpix)
     ]
     assert list(micrographs_optics.find_loop("_rlnVoltage")) == [
         str(relion_options.voltage)
@@ -142,7 +142,7 @@ def test_node_creator_import(mock_environment, offline_transport, tmp_path):
         str(relion_options.ampl_contrast)
     ]
     assert list(micrographs_optics.find_loop("_rlnMicrographPixelSize")) == [
-        str(relion_options.pixel_size_on_image)
+        str(relion_options.angpix)
     ]
 
     micrographs_data = micrographs_file.find_block("movies")
@@ -183,7 +183,7 @@ def test_node_creator_motioncorr(mock_environment, offline_transport, tmp_path):
     assert list(micrographs_optics.find_loop("_rlnOpticsGroupName")) == ["opticsGroup1"]
     assert list(micrographs_optics.find_loop("_rlnOpticsGroup")) == ["1"]
     assert list(micrographs_optics.find_loop("_rlnMicrographOriginalPixelSize")) == [
-        str(relion_options.pixel_size_on_image)
+        str(relion_options.angpix)
     ]
     assert list(micrographs_optics.find_loop("_rlnVoltage")) == [
         str(relion_options.voltage)
@@ -195,7 +195,7 @@ def test_node_creator_motioncorr(mock_environment, offline_transport, tmp_path):
         str(relion_options.ampl_contrast)
     ]
     assert list(micrographs_optics.find_loop("_rlnMicrographPixelSize")) == [
-        str(relion_options.pixel_size_on_image)
+        str(relion_options.angpix)
     ]
 
     micrographs_data = micrographs_file.find_block("micrographs")
@@ -361,7 +361,7 @@ def test_node_creator_ctffind(mock_environment, offline_transport, tmp_path):
     assert list(micrographs_optics.find_loop("_rlnOpticsGroupName")) == ["opticsGroup1"]
     assert list(micrographs_optics.find_loop("_rlnOpticsGroup")) == ["1"]
     assert list(micrographs_optics.find_loop("_rlnMicrographOriginalPixelSize")) == [
-        str(relion_options.pixel_size_on_image)
+        str(relion_options.angpix)
     ]
     assert list(micrographs_optics.find_loop("_rlnVoltage")) == [
         str(relion_options.voltage)
@@ -373,7 +373,7 @@ def test_node_creator_ctffind(mock_environment, offline_transport, tmp_path):
         str(relion_options.ampl_contrast)
     ]
     assert list(micrographs_optics.find_loop("_rlnMicrographPixelSize")) == [
-        str(relion_options.pixel_size_on_image)
+        str(relion_options.angpix)
     ]
 
     micrographs_data = micrographs_file.find_block("micrographs")
@@ -468,7 +468,7 @@ def test_node_creator_extract(mock_environment, offline_transport, tmp_path):
     assert list(micrographs_optics.find_loop("_rlnOpticsGroupName")) == ["opticsGroup1"]
     assert list(micrographs_optics.find_loop("_rlnOpticsGroup")) == ["1"]
     assert list(micrographs_optics.find_loop("_rlnMicrographOriginalPixelSize")) == [
-        str(relion_options.pixel_size_on_image)
+        str(relion_options.angpix)
     ]
     assert list(micrographs_optics.find_loop("_rlnVoltage")) == [
         str(relion_options.voltage)
@@ -480,7 +480,7 @@ def test_node_creator_extract(mock_environment, offline_transport, tmp_path):
         str(relion_options.ampl_contrast)
     ]
     assert list(micrographs_optics.find_loop("_rlnImagePixelSize")) == [
-        str(relion_options.pixel_size_on_image)
+        str(relion_options.angpix)
     ]
     assert list(micrographs_optics.find_loop("_rlnImageSize")) == ["64"]
     assert list(micrographs_optics.find_loop("_rlnImageDimensionality")) == ["2"]
