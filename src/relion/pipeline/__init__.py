@@ -393,10 +393,11 @@ class PipelineRunner:
 
         jobs = ["relion.import.movies"]
         aliases = {}
-        if self.options.motioncor_do_own:
-            jobs.append("relion.motioncorr.own")
-        else:
-            jobs.append("relion.motioncorr.motioncor2")
+        if self.options.images_are_movies:
+            if self.options.motioncor_do_own:
+                jobs.append("relion.motioncorr.own")
+            else:
+                jobs.append("relion.motioncorr.motioncor2")
         if self.options.do_icebreaker_job_group:
             jobs.append("icebreaker.micrograph_analysis.micrographs")
             aliases["icebreaker.micrograph_analysis.micrographs"] = "Icebreaker_G"

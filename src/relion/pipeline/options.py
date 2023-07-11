@@ -45,6 +45,7 @@ def generate_pipeline_options(
         "fn_in_raw": relion_it_options.import_images,
         "angpix": relion_it_options.angpix,
         "kV": relion_it_options.voltage,
+        "is_multiframe": relion_it_options.images_are_movies,
     }
 
     job_options["relion.motioncorr.own"] = {
