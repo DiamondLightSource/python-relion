@@ -427,7 +427,11 @@ class PipelineRunner:
                     self._do_post_run_actions(self.job_objects[job])
                 else:
                     self.project.continue_job(str(self.job_paths[job]))
-        if self.job_paths.get("relion.motioncorr.own"):
+        if not self.options.images_are_movies:
+            self._num_seen_movies = self._get_num_movies(
+                self.job_paths["relion.import.movies"] / "micrographs.star"
+            )
+        elif self.job_paths.get("relion.motioncorr.own"):
             self._num_seen_movies = self._get_num_movies(
                 self.job_paths["relion.motioncorr.own"] / "corrected_micrographs.star"
             )
@@ -438,10 +442,10 @@ class PipelineRunner:
             )
         else:
             logger.error(
-                "Neither a relion.motioncorr.own nor a relion.motioncorr.motioncor2 job were found"
+                "Neither a relion.motioncorr.own nor a relion.motioncorr.motioncor2 job were found and images are movies"
             )
             raise KeyError(
-                "Neither a relion.motioncorr.own nor a relion.motioncorr.motioncor2 job were found"
+                "Neither a relion.motioncorr.own nor a relion.motioncorr.motioncor2 job were found and images are movies"
             )
         if self.options.stop_after_ctf_estimation:
             return []

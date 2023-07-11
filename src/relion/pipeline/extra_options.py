@@ -8,9 +8,13 @@ from relion.cryolo_relion_it.cryolo_relion_it import RelionItOptions
 
 
 def _from_import(
-    tracker: Dict[str, Path], *args, in_key: str = "input_star_mics"
+    tracker: Dict[str, Path],
+    *args,
+    in_key: str = "input_star_mics",
+    movies: bool = True,
 ) -> Dict[str, Any]:
-    return {in_key: str(tracker["relion.import.movies"] / "movies.star")}
+    star_file_name = "movies.star" if movies else "micrographs.star"
+    return {in_key: str(tracker["relion.import.movies"] / star_file_name)}
 
 
 def _from_motioncorr(
@@ -28,7 +32,7 @@ def _from_motioncorr(
                 tracker["relion.motioncorr.motioncor2"] / "corrected_micrographs.star"
             )
         }
-    return _from_import(tracker, in_key=in_key)
+    return _from_import(tracker, in_key=in_key, movies=False)
 
 
 def _from_ctf(
