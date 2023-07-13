@@ -1,23 +1,23 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: spa.node_creator
+  name: spa-node-creator
   namespace: {{ .Values.global.namespace }}
 spec:
   replicas: {{ .Values.replicas }}
   selector:
     matchLabels:
-      app: spa.node_creator
+      app: spa-node-creator
   template:
     metadata:
       labels:
-        app: spa.node_creator
+        app: spa-node-creator
     spec:
       securityContext:
         runAsUser: {{ .Values.global.runAsUser }}
         runAsGroup: {{ .Values.global.runAsGroup }}
       containers:
-      - name: spa.node_creator-runner
+      - name: spa-node-creator-runner
         image: {{ .Values.image }}
         imagePullPolicy: Always
         resources:
@@ -65,16 +65,16 @@ spec:
 apiVersion: keda.sh/v1alpha1
 kind: ScaledObject
 metadata:
-  name: spa.node_creator
+  name: spa-node-creator
   namespace: {{ .Values.global.namespace }}
 spec:
   scaleTargetRef:
-    name: spa.node_creator
+    name: spa-node-creator
   triggers:
     - type: rabbitmq
       metadata:
         host: {{ .Values.global.rmqHost }}
-        queueName: spa.node_creator
+        queueName: spa_node_creator
         mode: QueueLength
         value: "{{ .Values.queueLengthTrigger }}"
   minReplicaCount: {{ .Values.minReplicaCount }}

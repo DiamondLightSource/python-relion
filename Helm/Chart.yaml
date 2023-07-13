@@ -1,6 +1,6 @@
 apiVersion: v2
 name: tomo-em
-description: An umbrella Helm chart for EM tomography services
+description: An umbrella Helm chart for EM processing services
 version: 0.0.1
 dependencies:
 - name: cryolo

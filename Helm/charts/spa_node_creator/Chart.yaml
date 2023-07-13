@@ -1,4 +1,4 @@
 apiVersion: v2
-name: spa.node_creator
+name: spa_node_creator
 description: A Helm chart for node creation
 version: 0.0.1
