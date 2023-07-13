@@ -5,8 +5,11 @@ version: 0.0.1
 dependencies:
 - name: cryolo
 - name: ctffind
+- name: extract
 - name: icebreaker
 - name: motioncorr
+- name: select_classes
+- name: select_particles
 - name: spa_node_creator
 - name: tomo_align
 - name: dispatcher
