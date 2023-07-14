@@ -30,7 +30,7 @@ class SelectParticles(CommonService):
     _service_name = "SelectParticles"
 
     # Logger name
-    _logger_name = "relion.zocalo.select.particles"
+    _logger_name = "relion.zocalo.select_particles"
 
     # Job name
     job_type = "relion.select.split"
@@ -40,7 +40,7 @@ class SelectParticles(CommonService):
         self.log.info("Select particles service starting")
         workflows.recipe.wrap_subscribe(
             self._transport,
-            "select.particles",
+            "select_particles",
             self.select_particles,
             acknowledgement=True,
             log_extender=self.extend_log,

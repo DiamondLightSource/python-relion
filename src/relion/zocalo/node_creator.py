@@ -121,7 +121,7 @@ class NodeCreator(CommonService):
     _service_name = "SPA_NodeCreator"
 
     # Logger name
-    _logger_name = "relion.zocalo_spa.node_setup"
+    _logger_name = "relion.zocalo.spa_node_creator"
 
     # Values to extract for ISPyB
     shift_list = []
@@ -131,7 +131,7 @@ class NodeCreator(CommonService):
         self.log.info("SPA node creator service starting")
         workflows.recipe.wrap_subscribe(
             self._transport,
-            "spa.node_creator",
+            "spa_node_creator",
             self.spa_node_creator,
             acknowledgement=True,
             log_extender=self.extend_log,

@@ -13,8 +13,14 @@ RUN source "/conda/etc/profile.d/conda.sh" && source "/conda/etc/profile.d/mamba
 
 # Install Relion
 RUN mkdir /install/relion
-COPY . /install/relion
+COPY python-relion /install/relion
 RUN source "/conda/etc/profile.d/conda.sh" && conda activate /install/pythonenv && pip install zocalo
 RUN source "/conda/etc/profile.d/conda.sh" && conda activate /install/pythonenv && pip install -e /install/relion
+
+# Install pipeliner
+RUN mkdir /install/ccpem-pipeliner
+COPY ccpem-pipeliner /install/ccpem-pipeliner
+RUN source "/conda/etc/profile.d/conda.sh" && conda activate /install/pythonenv && pip install -e /install/ccpem-pipeliner
+
 
 RUN chown -R "${userid}":"${groupid}" install
