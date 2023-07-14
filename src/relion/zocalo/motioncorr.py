@@ -59,6 +59,7 @@ class MotionCorrParameters(BaseModel):
     def is_spa_or_tomo(cls, experiment):
         if experiment not in ["spa", "tomography"]:
             raise ValidationError("Specify an experiment type of spa or tomography.")
+        return experiment
 
     class Config:
         ignore_extra = True
@@ -276,7 +277,7 @@ class MotionCorr(CommonService):
         average_motion_per_frame = total_motion / len(self.x_shift_list)
 
         # If this is SPA, determine and set up the next jobs
-        if mc_params.experiment_type.lower() == "spa":
+        if mc_params.experiment_type == "spa":
             # Set up icebreaker if requested, then ctffind
             if mc_params.relion_options.do_icebreaker_jobs:
                 # Three IceBreaker jobs: CtfFind job is MC+4
@@ -408,7 +409,7 @@ class MotionCorr(CommonService):
         else:
             rw.send_to("ispyb", ispyb_parameters)
 
-        if mc_params.experiment_type.lower() == "tomography":
+        if mc_params.experiment_type == "tomography":
             # Forward results to murfey
             self.log.info("Sending to Murfey")
             if isinstance(rw, MockRW):
@@ -452,7 +453,7 @@ class MotionCorr(CommonService):
             )
 
         # If this is SPA, send the results to be processed by the node creator
-        if mc_params.experiment_type.lower() == "spa":
+        if mc_params.experiment_type == "spa":
             # As this is the entry point we need to import the file to the project
             self.log.info("Sending relion.import.movies to node creator")
             project_dir = Path(

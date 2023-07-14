@@ -39,6 +39,7 @@ class CTFParameters(BaseModel):
     def is_spa_or_tomo(cls, experiment):
         if experiment not in ["spa", "tomography"]:
             raise ValidationError("Specify an experiment type of spa or tomography.")
+        return experiment
 
 
 class CTFFind(CommonService):
@@ -253,7 +254,7 @@ class CTFFind(CommonService):
             )
 
         # If this is SPA, send the results to be processed by the node creator
-        if ctf_params.experiment_type.lower() == "spa":
+        if ctf_params.experiment_type == "spa":
             # Register the ctf job with the node creator
             self.log.info(f"Sending {self.job_type} to node creator")
             node_creator_parameters = {
@@ -278,7 +279,7 @@ class CTFFind(CommonService):
                 rw.send_to("spa.node_creator", node_creator_parameters)
 
         # If this is SPA, also set up a cryolo job
-        if ctf_params.experiment_type.lower() == "spa":
+        if ctf_params.experiment_type == "spa":
             # Forward results to particle picking
             self.log.info(f"Sending to autopicking: {ctf_params.input_image}")
             ctf_params.autopick["input_path"] = ctf_params.input_image
