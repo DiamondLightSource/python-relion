@@ -9,8 +9,7 @@ from typing import Optional
 
 import htcondor
 import workflows.recipe
-from pydantic import BaseModel, Field, validator
-from pydantic.error_wrappers import ValidationError
+from pydantic import BaseModel, Field, ValidationError, validator
 from workflows.services.common_service import CommonService
 
 

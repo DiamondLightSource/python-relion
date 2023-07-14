@@ -6,12 +6,11 @@ import subprocess
 from collections import ChainMap
 from math import hypot
 from pathlib import Path
-from typing import Literal, Optional
+from typing import Optional
 
 import plotly.express as px
 import workflows.recipe
-from pydantic import BaseModel, Field
-from pydantic.error_wrappers import ValidationError
+from pydantic import BaseModel, Field, ValidationError, validator
 from workflows.services.common_service import CommonService
 
 from relion.zocalo.spa_relion_service_options import RelionServiceOptions
@@ -20,7 +19,7 @@ from relion.zocalo.spa_relion_service_options import RelionServiceOptions
 class MotionCorrParameters(BaseModel):
     movie: str = Field(..., min_length=1)
     mrc_out: str = Field(..., min_length=1)
-    experiment_type: str = Literal["spa", "tomography"]
+    experiment_type: str
     pix_size: float
     fm_dose: float
     patch_size: int = 5
@@ -55,6 +54,11 @@ class MotionCorrParameters(BaseModel):
     mc_uuid: int
     relion_options: Optional[RelionServiceOptions] = None
     ctf: dict = {}
+
+    @validator("experiment_type")
+    def is_spa_or_tomo(cls, experiment):
+        if experiment not in ["spa", "tomography"]:
+            raise ValidationError("Specify an experiment type of spa or tomography.")
 
     class Config:
         ignore_extra = True

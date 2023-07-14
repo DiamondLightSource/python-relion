@@ -1031,7 +1031,7 @@ class RelionItOptions(BaseModel):
     class Config:
         validate_assignment = True
 
-    @root_validator
+    @root_validator(skip_on_failure=True)
     def if_particle_diameter_compute_box_sizes(cls, values):
         if values.get("particle_diameter"):
             values["mask_diameter"] = 1.1 * values["particle_diameter"]

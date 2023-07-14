@@ -7,8 +7,7 @@ from pathlib import Path
 from typing import Literal, Optional
 
 import workflows.recipe
-from pydantic import BaseModel, Field
-from pydantic.error_wrappers import ValidationError
+from pydantic import BaseModel, Field, ValidationError
 from workflows.services.common_service import CommonService
 
 from relion.zocalo.spa_relion_service_options import RelionServiceOptions
