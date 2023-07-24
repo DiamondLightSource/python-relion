@@ -172,10 +172,11 @@ class NodeCreator(CommonService):
                 job_info = NodeCreatorParameters(
                     **{**rw.recipe_step.get("parameters", {})}
                 )
-        except (ValidationError, TypeError):
+        except (ValidationError, TypeError) as e:
             self.log.warning(
                 f"Node creator parameter validation failed for message: {message} "
-                f"and recipe parameters: {rw.recipe_step.get('parameters', {})}"
+                f"and recipe parameters: {rw.recipe_step.get('parameters', {})} "
+                f"with exception: {e}"
             )
             rw.transport.nack(header)
             return

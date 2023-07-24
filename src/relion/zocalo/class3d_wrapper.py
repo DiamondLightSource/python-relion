@@ -234,9 +234,10 @@ class Class3DWrapper(zocalo.wrapper.BaseWrapper):
         params_dict = self.recwrap.recipe_step["parameters"]
         try:
             class3d_params = Class3DParameters(**params_dict)
-        except (ValidationError, TypeError):
+        except (ValidationError, TypeError) as e:
             self.log.warning(
-                f"Class3D parameter validation failed for parameters: {params_dict}."
+                f"Class3D parameter validation failed for parameters: {params_dict} "
+                f"with exception: {e}"
             )
             return False
 

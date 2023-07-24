@@ -176,10 +176,11 @@ class MotionCorr(CommonService):
                 mc_params = MotionCorrParameters(**{**dict(parameter_map), **message})
             else:
                 mc_params = MotionCorrParameters(**{**dict(parameter_map)})
-        except (ValidationError, TypeError):
+        except (ValidationError, TypeError) as e:
             self.log.warning(
                 f"Motion correction parameter validation failed for message: {message} "
-                f"and recipe parameters: {rw.recipe_step.get('parameters', {})}"
+                f"and recipe parameters: {rw.recipe_step.get('parameters', {})} "
+                f"with exception: {e}"
             )
             rw.transport.nack(header)
             return

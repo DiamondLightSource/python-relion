@@ -191,8 +191,9 @@ class TomoAlign(CommonService):
             tomo_params.pix_size = tomo_params.pix_size * 1e10
         except (ValidationError, TypeError) as e:
             self.log.warning(
-                f"{e} TomoAlign parameter validation failed for message: {message} "
-                f"and recipe parameters: {rw.recipe_step.get('parameters', {})}"
+                f"TomoAlign parameter validation failed for message: {message} "
+                f"and recipe parameters: {rw.recipe_step.get('parameters', {})} "
+                f"with exception: {e}"
             )
             rw.transport.nack(header)
             return

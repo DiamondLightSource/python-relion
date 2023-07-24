@@ -129,7 +129,9 @@ class Denoise(CommonService):
                 d_params = DenoiseParameters(**{**rw.recipe_step.get("parameters", {})})
         except (ValidationError, TypeError) as e:
             self.log.warning(
-                f"{e} Denoise parameter validation failed for message: {message} and recipe parameters: {rw.recipe_step.get('parameters', {})}"
+                f"Denoise parameter validation failed for message: {message} "
+                f"and recipe parameters: {rw.recipe_step.get('parameters', {})} "
+                f"with exception: {e}"
             )
             rw.transport.nack(header)
             return

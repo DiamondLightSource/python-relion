@@ -68,9 +68,10 @@ class Class2DWrapper(zocalo.wrapper.BaseWrapper):
         params_dict = self.recwrap.recipe_step["parameters"]
         try:
             class2d_params = Class2DParameters(**params_dict)
-        except (ValidationError, TypeError):
+        except (ValidationError, TypeError) as e:
             self.log.warning(
-                f"Class2D parameter validation failed for parameters: {params_dict}."
+                f"Class2D parameter validation failed for parameters: {params_dict} "
+                f"with exception: {e}"
             )
             return False
 
