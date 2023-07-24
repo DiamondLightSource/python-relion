@@ -142,11 +142,7 @@ class Class2DWrapper(zocalo.wrapper.BaseWrapper):
         ]
         for k, v in class2d_params.dict().items():
             if v and (k in class2d_flags):
-                if type(v) is tuple:
-                    class2d_command.extend(
-                        (class2d_flags[k], " ".join(str(_) for _ in v))
-                    )
-                elif type(v) is bool:
+                if type(v) is bool:
                     class2d_command.append(class2d_flags[k])
                 else:
                     class2d_command.extend((class2d_flags[k], str(v)))

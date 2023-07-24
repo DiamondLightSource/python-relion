@@ -29,7 +29,7 @@ class MotionCorrParameters(BaseModel):
     flip_gain: int = None
     dark: str = None
     use_gpus: int = None
-    sum_range: Optional[tuple] = None
+    sum_range: Optional[dict] = None
     iter: int = None
     tol: float = None
     throw: int = None
@@ -37,13 +37,13 @@ class MotionCorrParameters(BaseModel):
     fm_ref: int = 1
     kv: int = None
     fm_int_file: str = None
-    mag: Optional[tuple] = None
+    mag: Optional[dict] = None
     ft_bin: float = None
     serial: int = None
     in_suffix: str = None
     eer_sampling: int = None
     out_stack: int = None
-    bft: Optional[tuple] = None
+    bft: Optional[dict] = None
     group: int = None
     detect_file: str = None
     arc_dir: str = None
@@ -236,8 +236,8 @@ class MotionCorr(CommonService):
         # Create the motion correction command
         for k, v in mc_params.dict().items():
             if v and (k in mc_flags):
-                if type(v) is tuple:
-                    command.extend((mc_flags[k], " ".join(str(_) for _ in v)))
+                if type(v) is dict:
+                    command.extend((mc_flags[k], " ".join(str(_) for _ in v.values())))
                 else:
                     command.extend((mc_flags[k], str(v)))
 

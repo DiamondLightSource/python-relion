@@ -167,10 +167,7 @@ class Denoise(CommonService):
 
         for k, v in d_params.dict().items():
             if v and (k in denoise_flags):
-                if type(v) is tuple:
-                    command.extend((denoise_flags[k], " ".join(str(_) for _ in v)))
-                else:
-                    command.extend((denoise_flags[k], str(v)))
+                command.extend((denoise_flags[k], str(v)))
 
         suffix = str(Path(d_params.volume).suffix)
         alignment_output_dir = str(Path(d_params.volume).parent)

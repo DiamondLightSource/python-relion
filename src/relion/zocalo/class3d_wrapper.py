@@ -119,11 +119,7 @@ class Class3DWrapper(zocalo.wrapper.BaseWrapper):
             initial_model_command.extend(("--sym", initial_model_params.symmetry))
         for k, v in initial_model_params.dict().items():
             if v and (k in initial_model_flags):
-                if type(v) is tuple:
-                    initial_model_command.extend(
-                        (initial_model_flags[k], " ".join(str(_) for _ in v))
-                    )
-                elif type(v) is bool:
+                if type(v) is bool:
                     initial_model_command.append(initial_model_flags[k])
                 else:
                     initial_model_command.extend((initial_model_flags[k], str(v)))
@@ -312,11 +308,7 @@ class Class3DWrapper(zocalo.wrapper.BaseWrapper):
         ]
         for k, v in class3d_params.dict().items():
             if v and (k in class3d_flags):
-                if type(v) is tuple:
-                    class3d_command.extend(
-                        (class3d_flags[k], " ".join(str(_) for _ in v))
-                    )
-                elif type(v) is bool:
+                if type(v) is bool:
                     class3d_command.append(class3d_flags[k])
                 else:
                     class3d_command.extend((class3d_flags[k], str(v)))

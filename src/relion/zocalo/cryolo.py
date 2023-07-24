@@ -142,10 +142,7 @@ class CrYOLO(CommonService):
 
         for k, v in cryolo_params.dict().items():
             if v and (k in cryolo_flags):
-                if type(v) is tuple:
-                    command.extend((cryolo_flags[k], " ".join(str(_) for _ in v)))
-                else:
-                    command.extend((cryolo_flags[k], str(v)))
+                command.extend((cryolo_flags[k], str(v)))
 
         self.log.info(
             f"Input: {cryolo_params.input_path} "

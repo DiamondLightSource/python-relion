@@ -149,12 +149,7 @@ class SelectClasses(CommonService):
         ]
         for k, v in autoselect_params.dict().items():
             if v and (k in autoselect_flags):
-                if type(v) is tuple:
-                    autoselect_command.extend(
-                        (autoselect_flags[k], " ".join(str(_) for _ in v))
-                    )
-                else:
-                    autoselect_command.extend((autoselect_flags[k], str(v)))
+                autoselect_command.extend((autoselect_flags[k], str(v)))
         autoselect_command.extend(
             ("--pipeline_control", f"{select_dir.relative_to(project_dir)}/")
         )
