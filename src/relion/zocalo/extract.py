@@ -129,8 +129,7 @@ class Extract(CommonService):
         job_dir = Path(re.search(".+/job[0-9]{3}/", extract_params.output_file)[0])
         project_dir = job_dir.parent.parent
         if not Path(extract_params.output_file).parent.exists():
-            for parent in reversed(Path(extract_params.output_file).parents):
-                parent.mkdir(exist_ok=True)
+            Path(extract_params.output_file).parent.mkdir(parents=True)
         output_mrc_file = (
             Path(extract_params.output_file).parent
             / Path(extract_params.micrographs_file).with_suffix(".mrcs").name
@@ -332,11 +331,11 @@ class Extract(CommonService):
         }
         if isinstance(rw, MockRW):
             rw.transport.send(
-                destination="select.particles",
+                destination="select_particles",
                 message={"parameters": select_params, "content": "dummy"},
             )
         else:
-            rw.send_to("select.particles", select_params)
+            rw.send_to("select_particles", select_params)
 
         self.log.info(f"Done {self.job_type} for {extract_params.coord_list_file}.")
         rw.transport.ack(header)

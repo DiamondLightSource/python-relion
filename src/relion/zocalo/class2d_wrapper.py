@@ -259,7 +259,7 @@ class Class2DWrapper(zocalo.wrapper.BaseWrapper):
                 "min_score": class2d_params.autoselect_min_score,
                 "relion_options": dict(class2d_params.relion_options),
             }
-            self.recwrap.send_to("select.classes", autoselect_parameters)
+            self.recwrap.send_to("select_classes", autoselect_parameters)
 
         self.log.info(f"Done {job_type} for {class2d_params.particles_file}.")
         return True
