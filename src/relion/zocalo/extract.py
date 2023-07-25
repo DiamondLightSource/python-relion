@@ -129,7 +129,8 @@ class Extract(CommonService):
         job_dir = Path(re.search(".+/job[0-9]{3}/", extract_params.output_file)[0])
         project_dir = job_dir.parent.parent
         if not Path(extract_params.output_file).parent.exists():
-            Path(extract_params.output_file).parent.mkdir(parents=True)
+            for parent in reversed(Path(extract_params.output_file).parents):
+                parent.mkdir(exist_ok=True)
         output_mrc_file = (
             Path(extract_params.output_file).parent
             / Path(extract_params.micrographs_file).with_suffix(".mrcs").name
