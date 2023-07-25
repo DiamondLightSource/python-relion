@@ -18,10 +18,8 @@ class CryoloParameters(BaseModel):
     input_path: str = Field(..., min_length=1)
     output_path: str = Field(..., min_length=1)
     pix_size: float
-    config_file: str = "/dls_sw/apps/EM/crYOLO/phosaurus_models/config.json"
-    weights: str = (
-        "/dls_sw/apps/EM/crYOLO/phosaurus_models/gmodel_phosnet_202005_N63_c17.h5"
-    )
+    config_file: str = "/crYOLO/phosaurus_models/config.json"
+    weights: str = "/crYOLO/phosaurus_models/gmodel_phosnet_202005_N63_c17.h5"
     threshold: float = 0.3
     cryolo_command: str = "cryolo_predict.py"
     mc_uuid: int
