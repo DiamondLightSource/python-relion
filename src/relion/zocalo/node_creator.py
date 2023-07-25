@@ -13,6 +13,7 @@ from pipeliner.api.api_utils import (
     job_default_parameters_dict,
     write_default_jobstar,
 )
+from pipeliner.api.manage_project import PipelinerProject
 from pipeliner.job_factory import read_job
 from pipeliner.project_graph import ProjectGraph
 from pydantic import BaseModel, Field, ValidationError
@@ -190,6 +191,9 @@ class NodeCreator(CommonService):
         job_dir = Path(re.search(".+/job[0-9]{3}", job_info.output_file)[0])
         project_dir = job_dir.parent.parent
         os.chdir(project_dir)
+
+        if not (project_dir / "default_pipeliner.star").exists():
+            PipelinerProject(make_new_project=True)
 
         try:
             # Get the options for this job out of the RelionServiceOptions
