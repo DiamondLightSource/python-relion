@@ -117,27 +117,27 @@ class NodeCreator(CommonService):
     """
 
     # Human readable service name
-    _service_name = "SPA_NodeCreator"
+    _service_name = "NodeCreator"
 
     # Logger name
-    _logger_name = "relion.zocalo.spa_node_creator"
+    _logger_name = "relion.zocalo.node_creator"
 
     # Values to extract for ISPyB
     shift_list = []
 
     def initializing(self):
         """Subscribe to a queue. Received messages must be acknowledged."""
-        self.log.info("SPA node creator service starting")
+        self.log.info("Relion node creator service starting")
         workflows.recipe.wrap_subscribe(
             self._transport,
-            "spa_node_creator",
-            self.spa_node_creator,
+            "node_creator",
+            self.node_creator,
             acknowledgement=True,
             log_extender=self.extend_log,
             allow_non_recipe_messages=True,
         )
 
-    def spa_node_creator(self, rw, header: dict, message: dict):
+    def node_creator(self, rw, header: dict, message: dict):
         class MockRW:
             def dummy(self, *args, **kwargs):
                 pass

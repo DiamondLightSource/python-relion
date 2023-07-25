@@ -88,7 +88,7 @@ def test_select_particles_service(mock_environment, offline_transport, tmp_path)
 
     # Check that the correct messages were sent
     offline_transport.send.assert_any_call(
-        destination="spa.node_creator",
+        destination="node_creator",
         message={
             "parameters": {
                 "job_type": "relion.select.split",

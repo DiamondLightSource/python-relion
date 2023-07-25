@@ -480,11 +480,11 @@ class MotionCorr(CommonService):
             }
             if isinstance(rw, MockRW):
                 rw.transport.send(
-                    destination="spa.node_creator",
+                    destination="node_creator",
                     message={"parameters": import_parameters, "content": "dummy"},
                 )
             else:
-                rw.send_to("spa.node_creator", import_parameters)
+                rw.send_to("node_creator", import_parameters)
 
             # Then register the motion correction job with the node creator
             self.log.info(f"Sending {self.job_type} to node creator")
@@ -504,11 +504,11 @@ class MotionCorr(CommonService):
             }
             if isinstance(rw, MockRW):
                 rw.transport.send(
-                    destination="spa.node_creator",
+                    destination="node_creator",
                     message={"parameters": node_creator_parameters, "content": "dummy"},
                 )
             else:
-                rw.send_to("spa.node_creator", node_creator_parameters)
+                rw.send_to("node_creator", node_creator_parameters)
 
         self.log.info(f"Done {self.job_type} for {mc_params.movie}.")
         rw.transport.ack(header)

@@ -83,7 +83,7 @@ def setup_and_run_node_creation(
     service = node_creator.NodeCreator(environment=environment)
     service.transport = transport
     service.start()
-    service.spa_node_creator(None, header=header, message=test_message)
+    service.node_creator(None, header=header, message=test_message)
 
     # Check that the correct general pipeline files have been made
     assert (project_dir / f"{job_type.replace('.', '_')}_job.star").exists()

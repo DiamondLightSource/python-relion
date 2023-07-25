@@ -266,7 +266,7 @@ def test_motioncorr_service_spa(
         },
     )
     offline_transport.send.assert_any_call(
-        destination="spa.node_creator",
+        destination="node_creator",
         message={
             "parameters": {
                 "job_type": "relion.import.movies",
@@ -281,7 +281,7 @@ def test_motioncorr_service_spa(
         },
     )
     offline_transport.send.assert_any_call(
-        destination="spa.node_creator",
+        destination="node_creator",
         message={
             "parameters": {
                 "job_type": "relion.motioncorr.motioncor2",

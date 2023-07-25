@@ -183,7 +183,7 @@ class Class3DWrapper(zocalo.wrapper.BaseWrapper):
             "stdout": result.stdout.decode("utf8", "replace"),
             "stderr": result.stderr.decode("utf8", "replace"),
         }
-        self.recwrap.send_to("spa.node_creator", node_creator_parameters)
+        self.recwrap.send_to("node_creator", node_creator_parameters)
 
         # Send Murfey the location of the initial model
         murfey_params = {
@@ -338,7 +338,7 @@ class Class3DWrapper(zocalo.wrapper.BaseWrapper):
             "stdout": result.stdout.decode("utf8", "replace"),
             "stderr": result.stderr.decode("utf8", "replace"),
         }
-        self.recwrap.send_to("spa.node_creator", node_creator_parameters)
+        self.recwrap.send_to("node_creator", node_creator_parameters)
 
         # Send classification job information to ispyb
         if job_is_rerun:

@@ -184,7 +184,7 @@ select_particles:
   dbSecretName: dev-db # name for database credentials
   dbFileName: db-dev.cfg
 
-spa_node_creator:
+node_creator:
   replicas: 1
   image: gcr.io/image/path
   command: zocalo.service -s service-name -e environment

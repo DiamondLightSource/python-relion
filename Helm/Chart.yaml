@@ -10,7 +10,7 @@ dependencies:
 - name: motioncorr
 - name: select_classes
 - name: select_particles
-- name: spa_node_creator
+- name: node_creator
 - name: tomo_align
 - name: dispatcher
 - name: ispyb

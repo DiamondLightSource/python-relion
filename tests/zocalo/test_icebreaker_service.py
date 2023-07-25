@@ -106,7 +106,7 @@ def test_icebreaker_micrographs_service(
         },
     )
     offline_transport.send.assert_any_call(
-        destination="spa.node_creator",
+        destination="node_creator",
         message={
             "parameters": {
                 "job_type": "icebreaker.micrograph_analysis.micrographs",
@@ -191,7 +191,7 @@ def test_icebreaker_enhancecontrast_service(
 
     # Check that the correct messages were sent
     offline_transport.send.assert_any_call(
-        destination="spa.node_creator",
+        destination="node_creator",
         message={
             "parameters": {
                 "job_type": "icebreaker.micrograph_analysis.enhancecontrast",
@@ -277,7 +277,7 @@ def test_icebreaker_summary_service(
 
     # Check that the correct messages were sent
     offline_transport.send.assert_any_call(
-        destination="spa.node_creator",
+        destination="node_creator",
         message={
             "parameters": {
                 "job_type": "icebreaker.micrograph_analysis.summary",
@@ -376,7 +376,7 @@ def test_icebreaker_particles_service(
 
     # Check that the correct messages were sent
     offline_transport.send.assert_any_call(
-        destination="spa.node_creator",
+        destination="node_creator",
         message={
             "parameters": {
                 "job_type": "icebreaker.micrograph_analysis.particles",

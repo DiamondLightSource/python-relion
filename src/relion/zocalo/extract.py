@@ -315,11 +315,11 @@ class Extract(CommonService):
         }
         if isinstance(rw, MockRW):
             rw.transport.send(
-                destination="spa.node_creator",
+                destination="node_creator",
                 message={"parameters": node_creator_parameters, "content": "dummy"},
             )
         else:
-            rw.send_to("spa.node_creator", node_creator_parameters)
+            rw.send_to("node_creator", node_creator_parameters)
 
         # Register the files needed for selection and batching
         self.log.info("Sending to particle selection")

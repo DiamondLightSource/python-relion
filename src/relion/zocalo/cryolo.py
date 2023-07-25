@@ -300,11 +300,11 @@ class CrYOLO(CommonService):
         }
         if isinstance(rw, MockRW):
             rw.transport.send(
-                destination="spa.node_creator",
+                destination="node_creator",
                 message={"parameters": node_creator_parameters, "content": "dummy"},
             )
         else:
-            rw.send_to("spa.node_creator", node_creator_parameters)
+            rw.send_to("node_creator", node_creator_parameters)
 
         self.log.info(f"Done {self.job_type} for {cryolo_params.input_path}.")
         rw.transport.ack(header)

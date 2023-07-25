@@ -223,14 +223,14 @@ class SelectClasses(CommonService):
         }
         if isinstance(rw, MockRW):
             rw.transport.send(
-                destination="spa.node_creator",
+                destination="node_creator",
                 message={
                     "parameters": autoselect_node_creator_params,
                     "content": "dummy",
                 },
             )
         else:
-            rw.send_to("spa.node_creator", autoselect_node_creator_params)
+            rw.send_to("node_creator", autoselect_node_creator_params)
 
         # Run the combine star files job to combine the files into particles_all.star
         self.log.info("Running star file combination and splitting")
@@ -333,11 +333,11 @@ class SelectClasses(CommonService):
         }
         if isinstance(rw, MockRW):
             rw.transport.send(
-                destination="spa.node_creator",
+                destination="node_creator",
                 message={"parameters": combine_node_creator_params, "content": "dummy"},
             )
         else:
-            rw.send_to("spa.node_creator", combine_node_creator_params)
+            rw.send_to("node_creator", combine_node_creator_params)
 
         # Create 3D classification jobs
         if send_to_3d_classification:

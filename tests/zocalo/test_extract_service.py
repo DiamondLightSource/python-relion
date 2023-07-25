@@ -110,7 +110,7 @@ def test_extract_service(mock_mrcfile, mock_environment, offline_transport, tmp_
         },
     )
     offline_transport.send.assert_any_call(
-        destination="spa.node_creator",
+        destination="node_creator",
         message={
             "parameters": {
                 "job_type": "relion.extract",

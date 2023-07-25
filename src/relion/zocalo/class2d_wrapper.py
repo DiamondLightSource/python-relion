@@ -172,7 +172,7 @@ class Class2DWrapper(zocalo.wrapper.BaseWrapper):
             "stdout": result.stdout.decode("utf8", "replace"),
             "stderr": result.stderr.decode("utf8", "replace"),
         }
-        self.recwrap.send_to("spa.node_creator", node_creator_parameters)
+        self.recwrap.send_to("node_creator", node_creator_parameters)
 
         # Send classification job information to ispyb
         ispyb_parameters = {

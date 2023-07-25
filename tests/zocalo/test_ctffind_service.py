@@ -179,7 +179,7 @@ def test_ctffind_service(
         },
     )
     offline_transport.send.assert_any_call(
-        destination="spa.node_creator",
+        destination="node_creator",
         message={
             "parameters": {
                 "job_type": "relion.ctffind.ctffind4",

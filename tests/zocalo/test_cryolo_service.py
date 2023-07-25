@@ -157,7 +157,7 @@ def test_cryolo_service(mock_subprocess, mock_environment, offline_transport, tm
         },
     )
     offline_transport.send.assert_any_call(
-        destination="spa.node_creator",
+        destination="node_creator",
         message={
             "parameters": {
                 "job_type": "cryolo.autopick",
