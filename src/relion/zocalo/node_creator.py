@@ -270,7 +270,7 @@ class NodeCreator(CommonService):
         with open(job_dir / "run.err", "w") as f:
             f.write(job_info.stderr)
         with open(job_dir / "note.txt", "w") as f:
-            f.write(job_info.command)
+            f.write(f"{job_info.command}\n")
 
         # Write the output files which Relion produces
         extra_output_nodes = create_output_files(
