@@ -104,7 +104,6 @@ def generate_pipeline_options(
         "log_maxres": relion_it_options.autopick_lowpass,
         "log_adjust_thr": relion_it_options.autopick_LoG_adjust_threshold,
         "log_upper_thr": relion_it_options.autopick_LoG_upper_threshold,
-        "gpu_ids": "0:1:2:3",
         "nr_mpi": relion_it_options.autopick_mpi,
     }
 
