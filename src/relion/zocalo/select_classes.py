@@ -349,14 +349,14 @@ class SelectClasses(CommonService):
                 "class3d_dir": f"{project_dir}/Class3D/job",
                 "batch_size": next_batch_size,
             }
-            murfey_params = {
+            murfey_3d_params = {
                 "register": "run_class3d",
                 "class3d_message": class3d_params,
             }
             if isinstance(rw, MockRW):
-                rw.transport.send("murfey_feedback", murfey_params)
+                rw.transport.send("murfey_feedback", murfey_3d_params)
             else:
-                rw.send_to("murfey_feedback", murfey_params)
+                rw.send_to("murfey_feedback", murfey_3d_params)
 
         self.log.info(f"Done {self.job_type} for {autoselect_params.input_file}.")
         rw.transport.ack(header)
