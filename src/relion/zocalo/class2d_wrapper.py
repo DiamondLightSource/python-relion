@@ -65,7 +65,7 @@ class Class2DWrapper(zocalo.wrapper.BaseWrapper):
         Run the 2D classification and register results
         """
         assert hasattr(self, "recwrap"), "No recipewrapper object found"
-        params_dict = self.recwrap.recipe_step["parameters"]
+        params_dict = self.recwrap.recipe_step["job_parameters"]
         try:
             class2d_params = Class2DParameters(**params_dict)
         except (ValidationError, TypeError) as e:
