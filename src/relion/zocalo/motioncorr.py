@@ -138,6 +138,11 @@ class MotionCorr(CommonService):
             if "x Shift" in line:
                 frames_line = True
 
+    def motioncor2(self, command, mrc_out):
+        result = subprocess.run(command, capture_output=True)
+        self.parse_mc_output(result.stdout.decode("utf8", "replace"))
+        return result
+
     def motion_correction(self, rw, header: dict, message: dict):
         class MockRW:
             def dummy(self, *args, **kwargs):
@@ -244,8 +249,7 @@ class MotionCorr(CommonService):
         self.log.info(f"Input: {mc_params.movie} Output: {mc_params.mrc_out}")
 
         # Run motion correction
-        result = subprocess.run(command, capture_output=True)
-        self.parse_mc_output(result.stdout.decode("utf8", "replace"))
+        result = self.motioncor2(command, mc_params.mrc_out)
         if result.returncode:
             self.log.error(
                 f"Motion correction of {mc_params.movie} "
