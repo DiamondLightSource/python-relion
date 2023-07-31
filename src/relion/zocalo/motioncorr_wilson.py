@@ -9,6 +9,7 @@ from collections import ChainMap
 from math import hypot
 from pathlib import Path
 
+import yaml
 from workflows.services.common_service import CommonService
 
 from relion.zocalo.motioncorr import MotionCorr
@@ -27,8 +28,8 @@ slurm_json_template = {
             "PATH": "/bin:/usr/bin/:/usr/local/bin/",
             "LD_LIBRARY_PATH": "/lib/:/lib64/:/usr/local/lib",
             "MODULEPATH": "",
-            "USER": "yxd92326",
-            "HOME": "/home/yxd92326",
+            "USER": "k8s-em",
+            "HOME": "/home/k8s-em",
         },
         "prefer": "em_node",
     },
@@ -97,8 +98,11 @@ class MotionCorrWilson(MotionCorr, CommonService):
 
     def motioncor2(self, command: list, mrc_out: Path):
         """Submit MotionCor2 jobs to the Wilson cluster via the RestAPI"""
-        user = "yxd92326"  # "k8s-em"
-        slurm_token = os.environ["SLURM_JWT"]
+        with open(os.environ["SLURM_RESTAPI_CONFIG"], "r") as f:
+            slurm_rest = yaml.safe_load(f)
+        user = slurm_rest["user"]  # "k8s-em"
+        with open(slurm_rest["user_token"], "r") as f:
+            slurm_token = f.read().strip()
 
         mc_output_file = f"{mrc_out}.out"
         mc_error_file = f"{mrc_out}.err"
@@ -120,7 +124,7 @@ class MotionCorrWilson(MotionCorr, CommonService):
         slurm_submit = (
             f'curl -H "X-SLURM-USER-NAME:{user}" -H "X-SLURM-USER-TOKEN:{slurm_token}" '
             '-H "Content-Type: application/json" -X POST '
-            "https://slurm-rest.diamond.ac.uk:8443/slurm/v0.0.38/job/submit "
+            f'{slurm_rest["url"]}/slurm/{slurm_rest["api_version"]}/job/submit '
             f"-d @{submission_file}"
         )
         slurm_submission_json = subprocess.run(
@@ -135,7 +139,7 @@ class MotionCorrWilson(MotionCorr, CommonService):
         slurm_status = (
             f'curl -H "X-SLURM-USER-NAME:{user}" -H "X-SLURM-USER-TOKEN:{slurm_token}" '
             '-H "Content-Type: application/json" -X GET '
-            f"https://slurm-rest.diamond.ac.uk:8443/slurm/v0.0.38/job/{job_id}"
+            f'{slurm_rest["url"]}/slurm/{slurm_rest["api_version"]}/job/{job_id}'
         )
         slurm_status_json = json.loads(
             subprocess.run(slurm_status, capture_output=True, shell=True).stdout.decode(
