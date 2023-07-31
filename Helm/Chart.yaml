@@ -8,6 +8,7 @@ dependencies:
 - name: extract
 - name: icebreaker
 - name: motioncorr
+- name: motioncorr_wilson
 - name: select_classes
 - name: select_particles
 - name: node_creator
