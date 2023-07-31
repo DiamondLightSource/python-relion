@@ -114,6 +114,12 @@ class RelionServiceOptions(BaseModel):
     # Initial lowpass filter on 3D reference
     class3d_ini_lowpass: int = 40
 
+    # Classification batches and iteration counts
+    class2d_nr_classes = 50
+    class2d_nr_iter = 20
+    class3d_nr_classes = 4
+    class3d_nr_iter = 20
+
     class Config:
         validate_assignment = True
 
@@ -145,7 +151,7 @@ def generate_service_options(
     }
 
     job_options["relion.motioncorr.own"] = {
-        "dose_per_frame": relion_options.gain_ref,
+        "dose_per_frame": relion_options.dose_per_frame,
         "fn_gain_ref": relion_options.gain_ref
         if Path(relion_options.gain_ref).exists()
         else "",
@@ -195,6 +201,8 @@ def generate_service_options(
     }
 
     job_options["relion.class2d.em"] = {
+        "nr_classes": relion_options.class2d_nr_classes,
+        "nr_iter_em": relion_options.class2d_nr_iter,
         "do_preread_images": True,
         "particle_diameter": relion_options.mask_diameter,
         "use_gpu": True,
@@ -204,6 +212,8 @@ def generate_service_options(
     }
 
     job_options["relion.class2d.vdam"] = {
+        "nr_classes": relion_options.class2d_nr_classes,
+        "nr_iter_grad": relion_options.class2d_nr_iter,
         "do_preread_images": True,
         "particle_diameter": relion_options.mask_diameter,
         "use_gpu": True,
@@ -235,6 +245,8 @@ def generate_service_options(
     }
 
     job_options["relion.class3d"] = {
+        "nr_classes": relion_options.class3d_nr_classes,
+        "nr_iter": relion_options.class3d_nr_iter,
         "sym_name": relion_options.symmetry,
         "ini_high": relion_options.class3d_ini_lowpass,
         "particle_diameter": relion_options.mask_diameter,
