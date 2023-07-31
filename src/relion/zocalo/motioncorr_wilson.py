@@ -96,6 +96,7 @@ class MotionCorrWilson(MotionCorr, CommonService):
                     frames_line = True
 
     def motioncor2(self, command: list, mrc_out: Path):
+        """Submit MotionCor2 jobs to the Wilson cluster via the RestAPI"""
         user = "yxd92326"  # "k8s-em"
         slurm_token = os.environ["SLURM_JWT"]
 
@@ -105,7 +106,7 @@ class MotionCorrWilson(MotionCorr, CommonService):
         slurm_files = {
             "standard_output": mc_output_file,
             "standard_error": mc_error_file,
-            "current_working_directory": str(mrc_out),
+            "current_working_directory": str(Path(mrc_out).parent),
         }
         slurm_json_job = dict(slurm_json_template["job"], **slurm_files)
         slurm_json = {
@@ -115,52 +116,34 @@ class MotionCorrWilson(MotionCorr, CommonService):
         with open(submission_file, "w") as f:
             json.dump(slurm_json, f)
 
-        slurm_submit = [
-            "curl",
-            "-d",
-            f"@{submission_file}",
-            "-H",
-            f'"X-SLURM-USER-NAME:{user}"',
-            "-H",
-            f'"X-SLURM-USER-TOKEN:{slurm_token}"',
-            "-H",
-            '"Content-Type: application/json"',
-            "-X",
-            "POST",
-            "https://slurm-rest.diamond.ac.uk:8443/slurm/v0.0.38/job/submit",
-        ]
-        print(" ".join(slurm_submit))
-        slurm_submit = " ".join(slurm_submit)
-
+        # RestAPI command to submit jobs
+        slurm_submit = (
+            f'curl -H "X-SLURM-USER-NAME:{user}" -H "X-SLURM-USER-TOKEN:{slurm_token}" '
+            '-H "Content-Type: application/json" -X POST '
+            "https://slurm-rest.diamond.ac.uk:8443/slurm/v0.0.38/job/submit "
+            f"-d @{submission_file}"
+        )
         slurm_submission_json = subprocess.run(
             slurm_submit, capture_output=True, shell=True
         )
-        print(slurm_submission_json)
         job_id = json.loads(slurm_submission_json.stdout.decode("utf8", "replace"))[
             "job_id"
         ]
+        self.log.info(f"Submitted MotionCorr job {job_id} to Wilson. Waiting...")
 
-        slurm_status = [
-            "curl",
-            "-H",
-            f'"X-SLURM-USER-NAME:{user}"',
-            "-H",
-            f'"X-SLURM-USER-TOKEN:{slurm_token}"',
-            "-H",
-            '"Content-Type: application/json"',
-            "-X",
-            "GET",
-            f"https://slurm-rest.diamond.ac.uk:8443/slurm/v0.0.38/job/{job_id}",
-        ]
-        slurm_status = " ".join(slurm_status)
-
+        # RestAPI command to get the status of the submitted job
+        slurm_status = (
+            f'curl -H "X-SLURM-USER-NAME:{user}" -H "X-SLURM-USER-TOKEN:{slurm_token}" '
+            '-H "Content-Type: application/json" -X GET '
+            f"https://slurm-rest.diamond.ac.uk:8443/slurm/v0.0.38/job/{job_id}"
+        )
         slurm_status_json = json.loads(
             subprocess.run(slurm_status, capture_output=True, shell=True).stdout.decode(
                 "utf8", "replace"
             )
         )
-        print("!!!!", slurm_status_json["jobs"]["job_state"])
-        while slurm_status_json["jobs"]["job_state"] in (
+        # Wait until the job has a status indicating it has finished
+        while slurm_status_json["jobs"][0]["job_state"] in (
             "PENDING",
             "CONFIGURING",
             "RUNNING",
@@ -173,8 +156,33 @@ class MotionCorrWilson(MotionCorr, CommonService):
                 ).stdout.decode("utf8", "replace")
             )
 
-        if slurm_status_json["jobs"]["job_state"] == "COMPLETED":
+        # Read in the MotionCor output then clean up the files
+        self.log.info(f"Job {job_id} has finished!")
+        try:
             self.parse_mc_output(mc_output_file)
-            return subprocess.CompletedProcess(args="", returncode=0)
+            with open(mc_output_file, "r") as mc_stdout:
+                stdout = mc_stdout.read()
+            with open(mc_output_file, "r") as mc_stderr:
+                stderr = mc_stderr.read()
+        except FileNotFoundError:
+            self.log.error(f"MotionCor output file {mc_output_file} not found")
+            stdout = ""
+            stderr = f"MotionCor output file {mc_output_file} not found"
+        Path(mc_output_file).unlink(missing_ok=True)
+        Path(mc_error_file).unlink(missing_ok=True)
+        Path(submission_file).unlink()
+
+        if slurm_status_json["jobs"][0]["job_state"] == "COMPLETED":
+            return subprocess.CompletedProcess(
+                args="",
+                returncode=0,
+                stdout=stdout.encode("utf8"),
+                stderr=stderr.encode("utf8"),
+            )
         else:
-            return subprocess.CompletedProcess(args="", returncode=1)
+            return subprocess.CompletedProcess(
+                args="",
+                returncode=1,
+                stdout=stdout.encode("utf8"),
+                stderr=stderr.encode("utf8"),
+            )

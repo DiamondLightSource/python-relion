@@ -139,6 +139,7 @@ class MotionCorr(CommonService):
                 frames_line = True
 
     def motioncor2(self, command, mrc_out):
+        """Run the MotionCor2 command"""
         result = subprocess.run(command, capture_output=True)
         self.parse_mc_output(result.stdout.decode("utf8", "replace"))
         return result
