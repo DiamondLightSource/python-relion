@@ -17,7 +17,7 @@ spec:
         runAsUser: {{ .Values.global.runAsUser }}
         runAsGroup: {{ .Values.global.runAsGroup }}
       containers:
-      - name: extact-runner
+      - name: extract-runner
         image: {{ .Values.image }}
         imagePullPolicy: Always
         resources:
