@@ -38,7 +38,6 @@ slurm_json_template = {
         "echo \"$(date '+%Y-%m-%d %H:%M:%S.%3N'): running MotionCorr2\"\n"
         "source /etc/profile.d/modules.sh\n"
         "module load EM/MotionCor2\n"
-        "unset SLURM_JWT\n"
         "srun -n 4 "
     ),
 }
@@ -147,13 +146,18 @@ class MotionCorrWilson(MotionCorr, CommonService):
             )
         )
         # Wait until the job has a status indicating it has finished
+        loop_counter = 0
         while slurm_status_json["jobs"][0]["job_state"] in (
             "PENDING",
             "CONFIGURING",
             "RUNNING",
             "COMPLETING",
         ):
-            time.sleep(10)
+            if loop_counter < 5:
+                time.sleep(5)
+            else:
+                time.sleep(30)
+            loop_counter += 1
             slurm_status_json = json.loads(
                 subprocess.run(
                     slurm_status, capture_output=True, shell=True
