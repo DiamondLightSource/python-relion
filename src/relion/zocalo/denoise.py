@@ -303,4 +303,4 @@ class Denoise(CommonService):
             )
 
         rw.transport.ack(header)
-        return subprocess.CompletedProcess(args="", returncode=None)
+        return subprocess.CompletedProcess(args="", returncode=0)

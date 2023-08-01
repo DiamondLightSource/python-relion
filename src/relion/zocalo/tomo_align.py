@@ -48,7 +48,8 @@ class TomoParameters(BaseModel):
             raise ValueError("input_file_list or path_pattern must be provided")
         if v and values.get("path_pattern"):
             raise ValueError(
-                "Message must only include one of 'path_pattern' and 'input_file_list'. Both are set or one has been set by the recipe."
+                "Message must only include one of 'path_pattern' and 'input_file_list'."
+                " Both are set or one has been set by the recipe."
             )
         return v
 
@@ -285,7 +286,12 @@ class TomoAlign(CommonService):
         aretomo_result = self.aretomo(tomo_params)
 
         if not aretomo_result:
-            rw.send("tomo_align", message)
+            # This happens if Iris cannot be connected to, so just stop and try again.
+            self.log.error(
+                "tomo_align service failed to reconstruct volume. Nacking message"
+            )
+            rw.transport.nack(header)
+            return
 
         if aretomo_result.returncode:
             self.log.error(
