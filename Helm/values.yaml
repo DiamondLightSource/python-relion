@@ -40,6 +40,24 @@ ctffind:
   dbSecretName: dev-db # name for database credentials
   dbFileName: db-dev.cfg
 
+denoise:
+  replicas: 1
+  image: gcr.io/image/path
+  command: zocalo.service -s service-name -e environment
+  extraVolumes:
+  - name: dls
+    hostPath:
+      path: /dls
+      type: Directory
+  extraVolumeMounts:
+  - mountPath: /dls
+    name: dls
+    mountPropagation: HostToContainer
+    readOnly: true
+  configMap: zocalo-conf
+  dbSecretName: dev-db # name for database credentials
+  dbFileName: db-dev.cfg
+
 dispatcher:
   replicas: 1
   image: gcr.io/image/path
@@ -75,7 +93,7 @@ extract:
   configMap: zocalo-conf
   dbSecretName: dev-db # name for database credentials
   dbFileName: db-dev.cfg
-  
+
 icebreaker:
   replicas: 1
   image: gcr.io/image/path
@@ -166,6 +184,24 @@ motioncorr_wilson:
   dbSecretName: dev-db # name for database credentials
   dbFileName: db-dev.cfg
 
+node_creator:
+  replicas: 1
+  image: gcr.io/image/path
+  command: zocalo.service -s service-name -e environment
+  extraVolumes:
+  - name: home
+    hostPath:
+      path: /home
+      type: Directory
+  extraVolumeMounts:
+  - mountPath: /home
+    name: home
+    mountPropagation: HostToContainer
+    readOnly: true
+  configMap: zocalo-conf
+  dbSecretName: dev-db # name for database credentials
+  dbFileName: db-dev.cfg
+
 select_classes:
   replicas: 1
   image: gcr.io/image/path
@@ -202,25 +238,25 @@ select_particles:
   dbSecretName: dev-db # name for database credentials
   dbFileName: db-dev.cfg
 
-node_creator:
+tomo_align:
   replicas: 1
   image: gcr.io/image/path
   command: zocalo.service -s service-name -e environment
   extraVolumes:
-  - name: home
+  - name: dls
     hostPath:
-      path: /home
+      path: /dls
       type: Directory
   extraVolumeMounts:
-  - mountPath: /home
-    name: home
+  - mountPath: /dls
+    name: dls
     mountPropagation: HostToContainer
     readOnly: true
   configMap: zocalo-conf
   dbSecretName: dev-db # name for database credentials
   dbFileName: db-dev.cfg
 
-tomo_align:
+tomo_align_iris:
   replicas: 1
   image: gcr.io/image/path
   command: zocalo.service -s service-name -e environment

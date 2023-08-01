@@ -5,16 +5,16 @@ version: 0.0.1
 dependencies:
 - name: cryolo
 - name: ctffind
+- name: denoise
 - name: extract
 - name: icebreaker
 - name: motioncorr
 - name: motioncorr_wilson
+- name: node_creator
 - name: select_classes
 - name: select_particles
-- name: node_creator
 - name: tomo_align
-- name: dispatcher
-- name: ispyb
-- name: images
-- name: denoise
 - name: tomo_align_iris
+- name: dispatcher
+- name: images
+- name: ispyb
