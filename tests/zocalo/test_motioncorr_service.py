@@ -40,7 +40,7 @@ def test_motioncorr_service_spa(
     """
     Send a test message to MotionCorr
     This should call the mock subprocess then send messages on to
-    the murfey_feedback, ispyb_connector and images services.
+    the ispyb_connector and images services.
     It also creates the next jobs (ctffind and two icebreaker jobs)
     and the node_creator is called for both import and motion correction.
     """
@@ -320,8 +320,7 @@ def test_motioncorr_service_tomo(
     Send a test message to MotionCorr
     This should call the mock subprocess then send messages on to
     the murfey_feedback, ispyb_connector and images services.
-    It also creates the next jobs (ctffind and two icebreaker jobs)
-    and the node_creator is called for both import and motion correction.
+    It also creates the ctffind job.
     """
     mock_subprocess().returncode = 0
     mock_subprocess().stdout = "stdout".encode("ascii")

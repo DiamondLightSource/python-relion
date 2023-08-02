@@ -604,7 +604,8 @@ class TomoAlign(CommonService):
 
         self.log.info(f"Running AreTomo {command}")
         self.log.info(
-            f"Input stack: {tomo_parameters.stack_file} \nOutput file: {self.aretomo_output_path}"
+            f"Input stack: {tomo_parameters.stack_file} \n"
+            f"Output file: {self.aretomo_output_path}"
         )
         result = subprocess.run(command, capture_output=True)
         if tomo_parameters.tilt_cor:
