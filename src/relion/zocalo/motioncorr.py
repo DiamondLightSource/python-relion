@@ -45,7 +45,7 @@ class MotionCorrParameters(BaseModel):
     out_stack: int = None
     bft: Optional[dict] = None
     group: int = None
-    detect_file: str = None
+    defect_file: str = None
     arc_dir: str = None
     in_fm_motion: int = None
     split_sum: int = None
@@ -233,7 +233,7 @@ class MotionCorr(CommonService):
             "out_stack": "-OutStack",
             "bft": "-Bft",
             "group": "-Group",
-            "detect_file": "-DetectFile",
+            "defect_file": "-DefectFile",
             "arc_dir": "-ArcDir",
             "in_fm_motion": "-InFmMotion",
             "split_sum": "-SplitSum",
