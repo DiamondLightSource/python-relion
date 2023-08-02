@@ -267,9 +267,9 @@ class NodeCreator(CommonService):
         # Write the log files
         with open(job_dir / "run.out", "w") as f:
             f.write(job_info.stdout)
-        with open(job_dir / "run.err", "w") as f:
-            f.write(job_info.stderr)
-        with open(job_dir / "note.txt", "w") as f:
+        with open(job_dir / "run.err", "a") as f:
+            f.write(f"{job_info.stderr}\n")
+        with open(job_dir / "note.txt", "a") as f:
             f.write(f"{job_info.command}\n")
 
         # Write the output files which Relion produces
