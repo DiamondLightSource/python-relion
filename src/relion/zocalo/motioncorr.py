@@ -139,52 +139,47 @@ class MotionCorr(CommonService):
         self.parse_mc_output(result.stdout.decode("utf8", "replace"))
         return result
 
-    def relion_motioncor(self, command, mrc_out):
+    def relion_motioncor(self, command, mc_params):
         # change directory
         # make star file
         # multiple jobs will be messy as i/o errors
         mc_flags = {
-            "patch": "-Patch",
-            "pix_size": "-PixSize",
-            "dark": "-Dark",
-            "sum_range": "-SumRange",
-            "iter": "-Iter",
-            "tol": "-Tol",
-            "throw": "-Throw",
-            "trunc": "-Trunc",
-            "fm_ref": "-FmRef",
-            "kv": "-Kv",
-            "fm_int_file": "-FmIntFile",
-            "mag": "-Mag",
-            "ft_bin": "-FtBin",
-            "serial": "-Serial",
-            "in_suffix": "-InSuffix",
-            "out_stack": "-OutStack",
-            "bft": "-Bft",
-            "group": "-Group",
-            "arc_dir": "-ArcDir",
-            "in_fm_motion": "-InFmMotion",
-            "split_sum": "-SplitSum",
-        }
-        mc_flags = {
+            "movie": "--in_movie",
+            "mrc_out": "--out_mic",
             "defect_file": "--defect_file",
             "fm_dose": "--dose_per_frame",
             "gain_ref": "--gainref",
             "rot_gain": "--gain_rot",
             "flip_gain": "--gain_flip",
             "eer_sampling": "--eer_grouping",
+            "patch_size": {"--patch_x": "x", "--patch_y": "y"},
+            "--bfactor": {"--bfactor": "local"},
         }
-        print(mc_flags)
 
+        # Create the motion correction command
+        for param_k, param_v in mc_params.dict().items():
+            if param_v and (param_k in mc_flags):
+                if type(param_v) is dict:
+                    for flag_k, flag_v in mc_flags[param_k]:
+                        command.extend((flag_k, mc_params[param_k][flag_v]))
+                else:
+                    command.extend((mc_flags[param_k], str(param_v)))
+        # Add some standard flags
         command.extend(
-            "--i Import/job001/movies.star "
-            "--o MotionCorr/job002/ --first_frame_sum 1 --last_frame_sum -1 "
-            "--j 1 --bin_factor 1 --bfactor 150 "
-            "--preexposure 0 --patch_x 1 --patch_y 1 "
-            "--dose_weighting  --grouping_for_ps 4  --float16 --save_noDW "
-            "--group_frames 2  "
-            "--pipeline_control MotionCorr/job002/"
+            (
+                "--dose_weighting",
+                "--first_frame_sum",
+                "1",
+                "--last_frame_sum",
+                "-1",
+                "--preexposure",
+                "0",
+                "--j",
+                "1",
+            )
         )
+        # Other flags we could add
+        # "--bin_factor 1 --grouping_for_ps 4  --float16 --save_noDW --group_frames 1"
         result = subprocess.run(command, capture_output=True)
         return result
 
@@ -298,8 +293,8 @@ class MotionCorr(CommonService):
                         command.extend((mc_flags[k], str(v)))
             result = self.motioncor2(command, mc_params.mrc_out)
         else:
-            command = ["relion_run_motioncorr", "--use_own"]
-            result = self.relion_motioncor(command, mc_params.mrc_out)
+            command = ["relion_motion_correction", "--use_own", "--i", "dummy"]
+            result = self.relion_motioncor(command, mc_params)
         if result.returncode:
             self.log.error(
                 f"Motion correction of {mc_params.movie} "
