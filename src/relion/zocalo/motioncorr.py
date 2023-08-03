@@ -22,7 +22,7 @@ class MotionCorrParameters(BaseModel):
     experiment_type: str
     pix_size: float
     fm_dose: float
-    patch_size: int = 5
+    patch_size: dict = {"x": 5, "y": 5}
     gpu: int = 0
     gain_ref: str = None
     rot_gain: int = None
@@ -208,7 +208,7 @@ class MotionCorr(CommonService):
 
         mc_flags = {
             "mrc_out": "-OutMrc",
-            "patch": "-Patch",
+            "patch_size": "-Patch",
             "pix_size": "-PixSize",
             "gain_ref": "-Gain",
             "rot_gain": "-RotGain",
@@ -390,8 +390,8 @@ class MotionCorr(CommonService):
             "drift_plot_full_path": str(plot_path),
             "micrograph_snapshot_full_path": str(snapshot_path),
             "micrograph_full_path": str(mc_params.mrc_out),
-            "patches_used_x": mc_params.patch_size,
-            "patches_used_y": mc_params.patch_size,
+            "patches_used_x": mc_params.patch_size["x"],
+            "patches_used_y": mc_params.patch_size["y"],
             "buffer_store": mc_params.mc_uuid,
             "dose_per_frame": mc_params.fm_dose,
         }
