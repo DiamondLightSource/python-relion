@@ -524,6 +524,8 @@ class Class2DWrapper(zocalo.wrapper.BaseWrapper):
                 "min_score": class2d_params.autoselect_min_score,
                 "relion_options": dict(class2d_params.relion_options),
             }
+            # Currently options on this to run in a separate service (next line)
+            # or as part of this wrapper (3 lines following that)
             # self.recwrap.send_to("select_classes", autoselect_parameters)
             autoselect_outcome = self.class_selection(autoselect_parameters)
             if not autoselect_outcome:
