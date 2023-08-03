@@ -19,7 +19,7 @@ class MotionCorrParameters(BaseModel):
     ctf: dict
     movie: str = Field(..., min_length=1)
     mrc_out: str = Field(..., min_length=1)
-    patch_size: int = 5
+    patch_size: dict = {"x": 5, "y": 5}
     gpu: int = 0
     gain_ref: str = None
     mc_uuid: int
@@ -27,7 +27,7 @@ class MotionCorrParameters(BaseModel):
     flip_gain: int = None
     dark: str = None
     use_gpus: int = None
-    sum_range: Optional[tuple] = None
+    sum_range: Optional[dict] = None
     iter: int = None
     tol: float = None
     throw: int = None
@@ -36,15 +36,15 @@ class MotionCorrParameters(BaseModel):
     kv: int = None
     fm_dose: float = None
     fm_int_file: str = None
-    mag: Optional[tuple] = None
+    mag: Optional[dict] = None
     ft_bin: float = None
     serial: int = None
     in_suffix: str = None
     eer_sampling: int = None
     out_stack: int = None
-    bft: Optional[tuple] = None
+    bft: Optional[dict] = None
     group: int = None
-    detect_file: str = None
+    defect_file: str = None
     arc_dir: str = None
     in_fm_motion: int = None
     split_sum: int = None
@@ -195,7 +195,7 @@ class MotionCorr(CommonService):
             "out_stack": "-OutStack",
             "bft": "-Bft",
             "group": "-Group",
-            "detect_file": "-DetectFile",
+            "defect_file": "-DefectFile",
             "arc_dir": "-ArcDir",
             "in_fm_motion": "-InFmMotion",
             "split_sum": "-SplitSum",
@@ -203,8 +203,8 @@ class MotionCorr(CommonService):
 
         for k, v in mc_params.dict().items():
             if v and (k in mc_flags):
-                if type(v) is tuple:
-                    command.extend((mc_flags[k], " ".join(str(_) for _ in v)))
+                if type(v) is dict:
+                    command.extend((mc_flags[k], " ".join(str(_) for _ in v.values())))
                 else:
                     command.extend((mc_flags[k], str(v)))
 
@@ -257,8 +257,8 @@ class MotionCorr(CommonService):
             "drift_plot_full_path": str(plot_path),
             "micrograph_snapshot_full_path": str(snapshot_path),
             "micrograph_full_path": str(mc_params.mrc_out),
-            "patches_used_x": mc_params.patch_size,
-            "patches_used_y": mc_params.patch_size,
+            "patches_used_x": mc_params.patch_size["x"],
+            "patches_used_y": mc_params.patch_size["y"],
             "buffer_store": mc_params.mc_uuid,
             "dose_per_frame": mc_params.fm_dose,
         }
