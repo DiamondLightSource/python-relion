@@ -22,6 +22,7 @@ class MotionCorrParameters(BaseModel):
     experiment_type: str
     pix_size: float
     fm_dose: float
+    use_motioncor2: bool = True
     patch_size: dict = {"x": 5, "y": 5}
     gpu: int = 0
     gain_ref: str = None
@@ -138,6 +139,55 @@ class MotionCorr(CommonService):
         self.parse_mc_output(result.stdout.decode("utf8", "replace"))
         return result
 
+    def relion_motioncor(self, command, mrc_out):
+        # change directory
+        # make star file
+        # multiple jobs will be messy as i/o errors
+        mc_flags = {
+            "patch": "-Patch",
+            "pix_size": "-PixSize",
+            "dark": "-Dark",
+            "sum_range": "-SumRange",
+            "iter": "-Iter",
+            "tol": "-Tol",
+            "throw": "-Throw",
+            "trunc": "-Trunc",
+            "fm_ref": "-FmRef",
+            "kv": "-Kv",
+            "fm_int_file": "-FmIntFile",
+            "mag": "-Mag",
+            "ft_bin": "-FtBin",
+            "serial": "-Serial",
+            "in_suffix": "-InSuffix",
+            "out_stack": "-OutStack",
+            "bft": "-Bft",
+            "group": "-Group",
+            "arc_dir": "-ArcDir",
+            "in_fm_motion": "-InFmMotion",
+            "split_sum": "-SplitSum",
+        }
+        mc_flags = {
+            "defect_file": "--defect_file",
+            "fm_dose": "--dose_per_frame",
+            "gain_ref": "--gainref",
+            "rot_gain": "--gain_rot",
+            "flip_gain": "--gain_flip",
+            "eer_sampling": "--eer_grouping",
+        }
+        print(mc_flags)
+
+        command.extend(
+            "--i Import/job001/movies.star "
+            "--o MotionCorr/job002/ --first_frame_sum 1 --last_frame_sum -1 "
+            "--j 1 --bin_factor 1 --bfactor 150 "
+            "--preexposure 0 --patch_x 1 --patch_y 1 "
+            "--dose_weighting  --grouping_for_ps 4  --float16 --save_noDW "
+            "--group_frames 2  "
+            "--pipeline_control MotionCorr/job002/"
+        )
+        result = subprocess.run(command, capture_output=True)
+        return result
+
     def motion_correction(self, rw, header: dict, message: dict):
         class MockRW:
             def dummy(self, *args, **kwargs):
@@ -163,8 +213,6 @@ class MotionCorr(CommonService):
             rw.send = rw.dummy
             message = message["content"]
 
-        command = ["MotionCor2"]
-
         parameter_map = ChainMapWithReplacement(
             message if isinstance(message, dict) else {},
             rw.recipe_step["parameters"],
@@ -185,39 +233,8 @@ class MotionCorr(CommonService):
             rw.transport.nack(header)
             return
 
-        mc_flags = {
-            "mrc_out": "-OutMrc",
-            "patch_size": "-Patch",
-            "pix_size": "-PixSize",
-            "gain_ref": "-Gain",
-            "rot_gain": "-RotGain",
-            "flip_gain": "-FlipGain",
-            "dark": "-Dark",
-            "gpu": "-Gpu",
-            "use_gpus": "-UseGpus",
-            "sum_range": "-SumRange",
-            "iter": "-Iter",
-            "tol": "-Tol",
-            "throw": "-Throw",
-            "trunc": "-Trunc",
-            "fm_ref": "-FmRef",
-            "kv": "-Kv",
-            "fm_dose": "-FmDose",
-            "mag": "-Mag",
-            "ft_bin": "-FtBin",
-            "serial": "-Serial",
-            "in_suffix": "-InSuffix",
-            "eer_sampling": "-EerSampling",
-            "out_stack": "-OutStack",
-            "bft": "-Bft",
-            "group": "-Group",
-            "defect_file": "-DefectFile",
-            "arc_dir": "-ArcDir",
-            "in_fm_motion": "-InFmMotion",
-            "split_sum": "-SplitSum",
-        }
-
         # Determine the input and output files
+        self.log.info(f"Input: {mc_params.movie} Output: {mc_params.mrc_out}")
         if not Path(mc_params.mrc_out).parent.exists():
             Path(mc_params.mrc_out).parent.mkdir(parents=True)
         if mc_params.movie.endswith(".mrc"):
@@ -231,20 +248,58 @@ class MotionCorr(CommonService):
             self.log.error(f"No input flag found for movie {mc_params.movie}")
             input_flag = None
             rw.transport.nack(header)
-        command.extend([input_flag, mc_params.movie])
 
-        # Create the motion correction command
-        for k, v in mc_params.dict().items():
-            if (v is not None) and (k in mc_flags):
-                if type(v) is dict:
-                    command.extend((mc_flags[k], " ".join(str(_) for _ in v.values())))
-                else:
-                    command.extend((mc_flags[k], str(v)))
+        # Run motion correction
+        if mc_params.use_motioncor2:
+            command = ["MotionCor2"]
+            command.extend([input_flag, mc_params.movie])
 
-        self.log.info(f"Input: {mc_params.movie} Output: {mc_params.mrc_out}")
+            mc_flags = {
+                "mrc_out": "-OutMrc",
+                "patch": "-Patch",
+                "pix_size": "-PixSize",
+                "gain_ref": "-Gain",
+                "rot_gain": "-RotGain",
+                "flip_gain": "-FlipGain",
+                "dark": "-Dark",
+                "gpu": "-Gpu",
+                "use_gpus": "-UseGpus",
+                "sum_range": "-SumRange",
+                "iter": "-Iter",
+                "tol": "-Tol",
+                "throw": "-Throw",
+                "trunc": "-Trunc",
+                "fm_ref": "-FmRef",
+                "kv": "-Kv",
+                "fm_dose": "-FmDose",
+                "fm_int_file": "-FmIntFile",
+                "mag": "-Mag",
+                "ft_bin": "-FtBin",
+                "serial": "-Serial",
+                "in_suffix": "-InSuffix",
+                "eer_sampling": "-EerSampling",
+                "out_stack": "-OutStack",
+                "bft": "-Bft",
+                "group": "-Group",
+                "defect_file": "-DefectFile",
+                "arc_dir": "-ArcDir",
+                "in_fm_motion": "-InFmMotion",
+                "split_sum": "-SplitSum",
+            }
 
-        # Run motion correction and confirm it ran successfully
-        result = self.motioncor2(command, mc_params.mrc_out)
+            # Create the motion correction command
+            for k, v in mc_params.dict().items():
+                if v and (k in mc_flags):
+                    if type(v) is dict:
+                        command.extend(
+                            (mc_flags[k], " ".join(str(_) for _ in v.values()))
+                        )
+                    else:
+                        command.extend((mc_flags[k], str(v)))
+            result = self.motioncor2(command, mc_params.mrc_out)
+        else:
+            command = ["relion_run_motioncorr", "--use_own"]
+            result = self.relion_motioncor(command, mc_params.mrc_out)
         if result.returncode:
             self.log.error(
                 f"Motion correction of {mc_params.movie} "
