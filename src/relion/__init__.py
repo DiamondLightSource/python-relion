@@ -22,6 +22,7 @@ from relion._parser.initialmodel import InitialModel
 from relion._parser.motioncorrection import MotionCorr
 from relion._parser.relativeicethickness import RelativeIceThickness
 from relion._parser.relion_pipeline import RelionPipeline
+from relion._parser.select import Select
 
 try:
     from relion.cryolo_relion_it.cryolo_relion_it import RelionItOptions
@@ -37,7 +38,7 @@ logger = logging.getLogger("relion.Project")
 __all__ = []
 __author__ = "Diamond Light Source - Scientific Software"
 __email__ = "scientificsoftware@diamond.ac.uk"
-__version__ = "0.11.4"
+__version__ = "0.12.1"
 __version_tuple__ = tuple(int(x) for x in __version__.split("."))
 
 pipeline_lock = ".relion_lock"
@@ -140,6 +141,7 @@ class Project(RelionPipeline):
             "Class3D": self.class3D,
             "External/Icebreaker_5fig/": self.relativeicethickness,
             "IceBreaker/Icebreaker_5fig/": self.relativeicethickness_ib,
+            "Select": self.select,
         }
         return resd
 
@@ -205,6 +207,11 @@ class Project(RelionPipeline):
     def relativeicethickness_ib(self):
         return RelativeIceThickness(self.basepath / "IceBreaker")
 
+    @property
+    @functools.lru_cache(maxsize=1)
+    def select(self):
+        return Select(self.basepath / "Select")
+
     def origin_present(self):
         try:
             self.load_nodes_from_star(self.basepath / "default_pipeline.star")
@@ -268,6 +275,10 @@ class Project(RelionPipeline):
                     self._update_pipeline(
                         jobnode,
                         jobnode.environment.get("alias"),
+                    )
+                elif jobnode.name == "Class2D":
+                    self._update_pipeline(
+                        jobnode, jobnode.name, prop=("job_string", "class2d_job_string")
                     )
                 else:
                     self._update_pipeline(jobnode, jobnode.name)

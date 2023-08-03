@@ -84,7 +84,7 @@ class Table:
             for c in self.columns:
                 if c != self._primary_key:
                     row_value = row.get(c)
-                    if self._tab[c][index] != row_value:
+                    if self._tab[c][index] != row_value and row_value is not None:
                         # if column c is marked for appending to then append to it:
                         # if current value is a list and the new row value is a list, set, or a tuple
                         # then combine them as sets and cast back to list for json serialisation,
