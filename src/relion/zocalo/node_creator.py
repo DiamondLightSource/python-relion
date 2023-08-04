@@ -192,7 +192,8 @@ class NodeCreator(CommonService):
         project_dir = job_dir.parent.parent
         os.chdir(project_dir)
 
-        if not (project_dir / "default_pipeliner.star").exists():
+        if not (project_dir / "default_pipeline.star").exists():
+            self.log.info("No existing project found, so creating one")
             PipelinerProject(make_new_project=True)
 
         try:
