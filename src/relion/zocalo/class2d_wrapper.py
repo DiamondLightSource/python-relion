@@ -54,6 +54,7 @@ class Class2DParameters(BaseModel):
     particle_picker_id: int
     class2d_grp_id: int
     autoselect_min_score: int = 0
+    autoselect_python: str = "python"
 
 
 class SelectClassesParameters(BaseModel):
@@ -523,13 +524,14 @@ class Class2DWrapper(zocalo.wrapper.BaseWrapper):
                 "combine_star_job_number": class2d_params.combine_star_job_number,
                 "min_score": class2d_params.autoselect_min_score,
                 "relion_options": dict(class2d_params.relion_options),
+                "python": class2d_params.autoselect_python,
             }
             # Currently options on this to run in a separate service (next line)
             # or as part of this wrapper (3 lines following that)
-            # self.recwrap.send_to("select_classes", autoselect_parameters)
-            autoselect_outcome = self.class_selection(autoselect_parameters)
-            if not autoselect_outcome:
-                return False
+            self.recwrap.send_to("select_classes", autoselect_parameters)
+            # autoselect_outcome = self.class_selection(autoselect_parameters)
+            # if not autoselect_outcome:
+            #     return False
 
         self.log.info(f"Done {job_type} for {class2d_params.particles_file}.")
         return True

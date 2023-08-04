@@ -18,7 +18,7 @@ class SelectClassesParameters(BaseModel):
     combine_star_job_number: int
     particles_file: str = "particles.star"
     classes_file: str = "class_averages.star"
-    python_exe: str = "/conda/bin/python"
+    python_exe: str = "python"
     min_score: float = 0
     min_particles: int = 500
     class3d_batch_size: int = 50000
