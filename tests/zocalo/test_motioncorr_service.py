@@ -60,7 +60,7 @@ def test_motioncorr_service_spa(
             "ctf": {"ctf": "ctf"},
             "movie": f"{tmp_path}/Movies/sample.tiff",
             "mrc_out": f"{tmp_path}/MotionCorr/job002/Movies/sample.mrc",
-            "patch_size": 5,
+            "patch_size": {"x": 5, "y": 5},
             "gpu": 0,
             "gain_ref": "gain.mrc",
             "mc_uuid": 0,
@@ -130,6 +130,8 @@ def test_motioncorr_service_spa(
         str(motioncorr_test_message["parameters"]["pix_size"]),
         "-FmDose",
         "1.0",
+        "-Patch",
+        "5 5",
         "-Gain",
         motioncorr_test_message["parameters"]["gain_ref"],
         "-RotGain",
@@ -247,8 +249,12 @@ def test_motioncorr_service_spa(
                 "micrograph_full_path": motioncorr_test_message["parameters"][
                     "mrc_out"
                 ],
-                "patches_used_x": motioncorr_test_message["parameters"]["patch_size"],
-                "patches_used_y": motioncorr_test_message["parameters"]["patch_size"],
+                "patches_used_x": motioncorr_test_message["parameters"]["patch_size"][
+                    "x"
+                ],
+                "patches_used_y": motioncorr_test_message["parameters"]["patch_size"][
+                    "y"
+                ],
                 "buffer_store": motioncorr_test_message["parameters"]["mc_uuid"],
                 "dose_per_frame": motioncorr_test_message["parameters"]["fm_dose"],
                 "ispyb_command": "buffer",
@@ -328,7 +334,7 @@ def test_motioncorr_service_tomo(
             "ctf": {"ctf": "ctf"},
             "movie": f"{tmp_path}/Movies/sample.tiff",
             "mrc_out": f"{tmp_path}/MotionCorr/job002/Movies/sample.mrc",
-            "patch_size": 5,
+            "patch_size": {"x": 5, "y": 5},
             "gpu": 0,
             "gain_ref": "gain.mrc",
             "mc_uuid": 0,
@@ -389,6 +395,8 @@ def test_motioncorr_service_tomo(
             str(motioncorr_test_message["parameters"]["pix_size"]),
             "-FmDose",
             "1.0",
+            "-Patch",
+            "5 5",
             "-Gain",
             motioncorr_test_message["parameters"]["gain_ref"],
             "-FmRef",
@@ -424,8 +432,12 @@ def test_motioncorr_service_tomo(
                 "micrograph_full_path": motioncorr_test_message["parameters"][
                     "mrc_out"
                 ],
-                "patches_used_x": motioncorr_test_message["parameters"]["patch_size"],
-                "patches_used_y": motioncorr_test_message["parameters"]["patch_size"],
+                "patches_used_x": motioncorr_test_message["parameters"]["patch_size"][
+                    "x"
+                ],
+                "patches_used_y": motioncorr_test_message["parameters"]["patch_size"][
+                    "y"
+                ],
                 "buffer_store": motioncorr_test_message["parameters"]["mc_uuid"],
                 "dose_per_frame": motioncorr_test_message["parameters"]["fm_dose"],
                 "ispyb_command": "buffer",
