@@ -176,6 +176,8 @@ class MotionCorr(CommonService):
                 "0",
                 "--j",
                 "1",
+                "--i",
+                "dummy",
             )
         )
         # Other flags we could add
@@ -293,7 +295,7 @@ class MotionCorr(CommonService):
                         command.extend((mc_flags[k], str(v)))
             result = self.motioncor2(command, mc_params.mrc_out)
         else:
-            command = ["relion_motion_correction", "--use_own", "--i", "dummy"]
+            command = ["FI_PROVIDER=tcp", "relion_motion_correction", "--use_own"]
             result = self.relion_motioncor(command, mc_params)
         if result.returncode:
             self.log.error(
