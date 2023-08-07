@@ -10,3 +10,4 @@ plotly==5.7.0
 pydantic==1.10.7
 starfile==0.4.11
 workflows==2.26
+zocalo==0.30.0
