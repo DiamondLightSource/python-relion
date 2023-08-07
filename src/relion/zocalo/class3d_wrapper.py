@@ -57,8 +57,9 @@ class Class3DParameters(BaseModel):
     do_scale: bool = True
     threads: int = 4
     gpus: str = "0"
-    particle_picker_id: int
-    class3d_grp_id: int
+    picker_uuid: int
+    class3d_grp_uuid: int
+    class_uuids: dict
     relion_options: RelionServiceOptions
 
 
@@ -208,19 +209,19 @@ class Class3DWrapper(zocalo.wrapper.BaseWrapper):
         )
 
         self.log.info(
-            "Sending best initial model to ispyb with "
+            "Will send best initial model to ispyb with "
             f"resolution {resolution} and {number_of_particles} particles"
         )
         ispyb_parameters = {
-            "resolution": resolution,
-            "number_of_particles": number_of_particles,
             "ispyb_command": "buffer",
             "buffer_command": {"ispyb_command": "insert_cryoem_initial_model"},
+            "particle_classification_id": initial_model_params.class_uuids["0"],
+            "resolution": resolution,
+            "number_of_particles": number_of_particles,
         }
-        self.recwrap.send_to("ispyb", {"ispyb_command_list": ispyb_parameters})
 
         self.log.info("Running 3D classification using new initial model")
-        return f"{ini_model_file}"
+        return f"{ini_model_file}", ispyb_parameters
 
     def run(self):
         """
@@ -266,13 +267,14 @@ class Class3DWrapper(zocalo.wrapper.BaseWrapper):
             job_num_3d = int(
                 re.search("/job[0-9]{3}", class3d_params.class3d_dir)[0][4:7]
             )
-            initial_model_file = self.run_initial_model(
+            initial_model_file, initial_model_ispyb_parameters = self.run_initial_model(
                 class3d_params, project_dir, job_num_3d - 1
             )
         else:
             initial_model_file = str(
                 Path(class3d_params.initial_model_file).relative_to(project_dir)
             )
+            initial_model_ispyb_parameters = {}
         if not initial_model_file:
             # If there isn't an initial model file something has gone wrong
             return False
@@ -343,12 +345,16 @@ class Class3DWrapper(zocalo.wrapper.BaseWrapper):
         # Send classification job information to ispyb
         if job_is_rerun:
             buffer_lookup = {
-                "particle_picker_id": class3d_params.particle_picker_id,
-                "particle_classification_group_id": class3d_params.class3d_grp_id,
+                "particle_picker_id": class3d_params.picker_uuid,
+                "particle_classification_group_id": class3d_params.class3d_grp_uuid,
             }
         else:
-            buffer_lookup = {"particle_picker_id": class3d_params.particle_picker_id}
+            buffer_lookup = {"particle_picker_id": class3d_params.picker_uuid}
         ispyb_parameters = {
+            "ispyb_command": "buffer",
+            "buffer_lookup": buffer_lookup,
+            "buffer_command": {"ispyb_command": "insert_particle_classification_group"},
+            "buffer_store": class3d_params.class3d_grp_uuid,
             "type": "3D",
             "batch_number": int(
                 class3d_params.particles_file.split("particles_split")[1].split(".")[0]
@@ -357,16 +363,6 @@ class Class3DWrapper(zocalo.wrapper.BaseWrapper):
             "number_of_classes_per_batch": class3d_params.nr_classes,
             "symmetry": class3d_params.symmetry,
         }
-        ispyb_parameters.update(
-            {
-                "ispyb_command": "buffer",
-                "buffer_store": class3d_params.class3d_grp_id,
-                "buffer_lookup": buffer_lookup,
-                "buffer_command": {
-                    "ispyb_command": "insert_particle_classification_group"
-                },
-            }
-        )
         self.log.info(f"Sending to ispyb {ispyb_parameters}")
         self.recwrap.send_to("ispyb", {"ispyb_command_list": ispyb_parameters})
 
@@ -377,31 +373,44 @@ class Class3DWrapper(zocalo.wrapper.BaseWrapper):
         classes_block = class_star_file.find_block("model_classes")
         classes_loop = classes_block.find_loop("_rlnReferenceImage").get_loop()
 
+        ispyb_parameters = []
         for class_id in range(class3d_params.nr_classes):
-            ispyb_parameters = {
-                "class_number": class_id + 1,
-                "class_image_full_path": None,
-                "particles_per_class": (
-                    float(classes_loop.val(class_id, 1)) * class3d_params.batch_size
-                ),
-                "class_distribution": classes_loop.val(class_id, 1),
-                "rotation_accuracy": classes_loop.val(class_id, 2),
-                "translation_accuracy": classes_loop.val(class_id, 3),
-                "estimated_resolution": classes_loop.val(class_id, 4),
-                "overall_fourier_completeness": classes_loop.val(class_id, 5),
-            }
-            ispyb_parameters.update(
+            # Add an ispyb insert for each class
+            if job_is_rerun:
+                buffer_lookup = {
+                    "particle_classification_id": class3d_params.class_uuids["0"],
+                    "particle_classification_group_id": class3d_params.class3d_grp_uuid,
+                }
+            else:
+                buffer_lookup = {
+                    "particle_classification_group_id": class3d_params.class3d_grp_uuid,
+                }
+            ispyb_parameters.append(
                 {
                     "ispyb_command": "buffer",
-                    "buffer_lookup": {
-                        "particle_classification_group_id": class3d_params.class3d_grp_id,
-                    },
+                    "buffer_lookup": buffer_lookup,
                     "buffer_command": {
                         "ispyb_command": "insert_particle_classification"
                     },
+                    "buffer_store": class3d_params.class_uuids[str(class_id)],
+                    "class_number": class_id + 1,
+                    "class_image_full_path": None,
+                    "particles_per_class": (
+                        float(classes_loop.val(class_id, 1)) * class3d_params.batch_size
+                    ),
+                    "class_distribution": classes_loop.val(class_id, 1),
+                    "rotation_accuracy": classes_loop.val(class_id, 2),
+                    "translation_accuracy": classes_loop.val(class_id, 3),
+                    "estimated_resolution": classes_loop.val(class_id, 4),
+                    "overall_fourier_completeness": classes_loop.val(class_id, 5),
                 }
             )
-            self.recwrap.send_to("ispyb", {"ispyb_command_list": ispyb_parameters})
+
+        # Add on the initial model insert before sending
+        if class3d_params.do_initial_model:
+            ispyb_parameters.append(initial_model_ispyb_parameters)
+
+        self.recwrap.send_to("ispyb", {"ispyb_command_list": ispyb_parameters})
 
         self.log.info(f"Done {job_type} for {class3d_params.particles_file}.")
         return True

@@ -232,6 +232,9 @@ class IceBreaker(CommonService):
         if icebreaker_params.icebreaker_type == "summary":
             self.parse_icebreaker_output(result.stdout.decode("utf8", "replace"))
             ispyb_parameters = {
+                "ispyb_command": "buffer",
+                "buffer_lookup": {"motion_correction_id": icebreaker_params.mc_uuid},
+                "buffer_command": {"ispyb_command": "insert_relative_ice_thickness"},
                 "minimum": self.ice_minimum,
                 "q1": self.ice_q1,
                 "median": self.ice_median,
@@ -239,17 +242,6 @@ class IceBreaker(CommonService):
                 "maximum": self.ice_maximum,
             }
             self.log.info(f"Sending to ispyb: {ispyb_parameters}")
-            ispyb_parameters.update(
-                {
-                    "ispyb_command": "buffer",
-                    "buffer_lookup": {
-                        "motion_correction_id": icebreaker_params.mc_uuid
-                    },
-                    "buffer_command": {
-                        "ispyb_command": "insert_relative_ice_thickness"
-                    },
-                }
-            )
             if isinstance(rw, MockRW):
                 rw.transport.send(
                     destination="ispyb_connector",

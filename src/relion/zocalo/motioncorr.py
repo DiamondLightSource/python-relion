@@ -52,6 +52,7 @@ class MotionCorrParameters(BaseModel):
     dose_motionstats_cutoff: float = 4.0
     movie_id: int
     mc_uuid: int
+    picker_uuid: int
     relion_options: Optional[RelionServiceOptions] = None
     ctf: dict = {}
 
@@ -364,6 +365,7 @@ class MotionCorr(CommonService):
         mc_params.ctf["experiment_type"] = mc_params.experiment_type
         mc_params.ctf["input_image"] = mc_params.mrc_out
         mc_params.ctf["mc_uuid"] = mc_params.mc_uuid
+        mc_params.ctf["picker_uuid"] = mc_params.picker_uuid
         mc_params.ctf["pix_size"] = mc_params.pix_size
         if isinstance(rw, MockRW):
             rw.transport.send(  # type: ignore
@@ -382,7 +384,11 @@ class MotionCorr(CommonService):
         snapshot_path = Path(mc_params.mrc_out).with_suffix(".jpeg")
         fig.write_json(plot_path)
 
+        # Forward results to ISPyB
         ispyb_parameters = {
+            "ispyb_command": "buffer",
+            "buffer_command": {"ispyb_command": "insert_motion_correction"},
+            "buffer_store": mc_params.mc_uuid,
             "first_frame": 1,
             "last_frame": len(self.x_shift_list),
             "total_motion": total_motion,
@@ -392,17 +398,8 @@ class MotionCorr(CommonService):
             "micrograph_full_path": str(mc_params.mrc_out),
             "patches_used_x": mc_params.patch_size["x"],
             "patches_used_y": mc_params.patch_size["y"],
-            "buffer_store": mc_params.mc_uuid,
             "dose_per_frame": mc_params.fm_dose,
         }
-
-        # Forward results to ISPyB
-        ispyb_parameters.update(
-            {
-                "ispyb_command": "buffer",
-                "buffer_command": {"ispyb_command": "insert_motion_correction"},
-            }
-        )
         self.log.info(f"Sending to ispyb {ispyb_parameters}")
         if isinstance(rw, MockRW):
             rw.transport.send(

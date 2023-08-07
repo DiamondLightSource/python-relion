@@ -32,6 +32,7 @@ class CTFParameters(BaseModel):
     additional_phase_shift: str = "no"
     expert_options: str = "no"
     mc_uuid: int
+    picker_uuid: int
     relion_options: Optional[RelionServiceOptions] = None
     autopick: dict = {}
 
@@ -196,7 +197,11 @@ class CTFFind(CommonService):
         astigmatism = self.defocus2 - self.defocus1
         estimated_defocus = (self.defocus1 + self.defocus2) / 2
 
+        # Forward results to ispyb
         ispyb_parameters = {
+            "ispyb_command": "buffer",
+            "buffer_lookup": {"motion_correction_id": ctf_params.mc_uuid},
+            "buffer_command": {"ispyb_command": "insert_ctf"},
             "box_size_x": str(ctf_params.ampl_spectrum),
             "box_size_y": str(ctf_params.ampl_spectrum),
             "min_resolution": str(ctf_params.min_res),
@@ -214,15 +219,6 @@ class CTFFind(CommonService):
                 Path(ctf_params.output_image).with_suffix(".jpeg")
             ),  # path to output mrc (would be jpeg if we could convert in SW)
         }
-
-        # Forward results to ispyb
-        ispyb_parameters.update(
-            {
-                "ispyb_command": "buffer",
-                "buffer_lookup": {"motion_correction_id": ctf_params.mc_uuid},
-                "buffer_command": {"ispyb_command": "insert_ctf"},
-            }
-        )
         self.log.info(f"Sending to ispyb {ispyb_parameters}")
         if isinstance(rw, MockRW):
             rw.transport.send(
@@ -307,6 +303,7 @@ class CTFFind(CommonService):
             }
             ctf_params.autopick["relion_options"] = dict(ctf_params.relion_options)
             ctf_params.autopick["mc_uuid"] = ctf_params.mc_uuid
+            ctf_params.autopick["picker_uuid"] = ctf_params.picker_uuid
             ctf_params.autopick["pix_size"] = ctf_params.pix_size
             ctf_params.autopick[
                 "threshold"

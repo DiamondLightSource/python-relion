@@ -51,8 +51,9 @@ class Class2DParameters(BaseModel):
     gpus: str = "0"
     relion_options: RelionServiceOptions
     combine_star_job_number: int
-    particle_picker_id: int
-    class2d_grp_id: int
+    picker_uuid: int
+    class2d_grp_uuid: int
+    class_uuids: dict
     autoselect_min_score: int = 0
     autoselect_python: str = "python"
 
@@ -356,7 +357,12 @@ class Class2DWrapper(zocalo.wrapper.BaseWrapper):
 
         # Make the job directory and move to the project directory
         job_dir = Path(class2d_params.class2d_dir)
-        job_dir.mkdir(parents=True, exist_ok=True)
+        if (job_dir / "run_it000_model.star").exists():
+            # This job over-writes a previous one
+            job_is_rerun = True
+        else:
+            job_is_rerun = False
+            job_dir.mkdir(parents=True, exist_ok=True)
         project_dir = job_dir.parent.parent
         os.chdir(project_dir)
         job_num = int(
@@ -441,7 +447,18 @@ class Class2DWrapper(zocalo.wrapper.BaseWrapper):
         self.recwrap.send_to("node_creator", node_creator_parameters)
 
         # Send classification job information to ispyb
+        if job_is_rerun:
+            buffer_lookup = {
+                "particle_picker_id": class2d_params.picker_uuid,
+                "particle_classification_group_id": class2d_params.class2d_grp_uuid,
+            }
+        else:
+            buffer_lookup = {"particle_picker_id": class2d_params.picker_uuid}
         ispyb_parameters = {
+            "ispyb_command": "buffer",
+            "buffer_lookup": buffer_lookup,
+            "buffer_command": {"ispyb_command": "insert_particle_classification_group"},
+            "buffer_store": class2d_params.class2d_grp_uuid,
             "type": "2D",
             "batch_number": int(
                 class2d_params.particles_file.split("particles_split")[1].split(".")[0]
@@ -450,18 +467,6 @@ class Class2DWrapper(zocalo.wrapper.BaseWrapper):
             "number_of_classes_per_batch": class2d_params.nr_classes,
             "symmetry": "C1",
         }
-        ispyb_parameters.update(
-            {
-                "ispyb_command": "buffer",
-                "buffer_store": class2d_params.class2d_grp_id,
-                "buffer_lookup": {
-                    "particle_picker_id": class2d_params.particle_picker_id,
-                },
-                "buffer_command": {
-                    "ispyb_command": "insert_particle_classification_group"
-                },
-            }
-        )
         self.log.info(f"Sending to ispyb {ispyb_parameters}")
         self.recwrap.send_to("ispyb", {"ispyb_command_list": ispyb_parameters})
 
@@ -472,34 +477,44 @@ class Class2DWrapper(zocalo.wrapper.BaseWrapper):
         classes_block = class_star_file.find_block("model_classes")
         classes_loop = classes_block.find_loop("_rlnReferenceImage").get_loop()
 
+        ispyb_parameters = []
         for class_id in range(class2d_params.nr_classes):
-            ispyb_parameters = {
-                "class_number": class_id + 1,
-                "class_image_full_path": (
-                    f"{class2d_params.class2d_dir}/Class_images"
-                    f"/run_it{class2d_params.nr_iter:03}_classes_{class_id+1}.jpeg"
-                ),
-                "particles_per_class": (
-                    float(classes_loop.val(class_id, 1)) * class2d_params.batch_size
-                ),
-                "class_distribution": classes_loop.val(class_id, 1),
-                "rotation_accuracy": classes_loop.val(class_id, 2),
-                "translation_accuracy": classes_loop.val(class_id, 3),
-                "estimated_resolution": classes_loop.val(class_id, 4),
-                "overall_fourier_completeness": classes_loop.val(class_id, 5),
-            }
-            ispyb_parameters.update(
+            # Add an ispyb insert for each class
+            if job_is_rerun:
+                buffer_lookup = {
+                    "particle_classification_id": class2d_params.class_uuids["0"],
+                    "particle_classification_group_id": class2d_params.class2d_grp_uuid,
+                }
+            else:
+                buffer_lookup = {
+                    "particle_classification_group_id": class2d_params.class2d_grp_uuid,
+                }
+            ispyb_parameters.append(
                 {
                     "ispyb_command": "buffer",
-                    "buffer_lookup": {
-                        "particle_classification_group_id": class2d_params.class2d_grp_id
-                    },
+                    "buffer_lookup": buffer_lookup,
                     "buffer_command": {
                         "ispyb_command": "insert_particle_classification"
                     },
+                    "buffer_store": class2d_params.class_uuids[str(class_id)],
+                    "class_number": class_id + 1,
+                    "class_image_full_path": (
+                        f"{class2d_params.class2d_dir}/Class_images"
+                        f"/run_it{class2d_params.nr_iter:03}_classes_{class_id+1}.jpeg"
+                    ),
+                    "particles_per_class": (
+                        float(classes_loop.val(class_id, 1)) * class2d_params.batch_size
+                    ),
+                    "class_distribution": classes_loop.val(class_id, 1),
+                    "rotation_accuracy": classes_loop.val(class_id, 2),
+                    "translation_accuracy": classes_loop.val(class_id, 3),
+                    "estimated_resolution": classes_loop.val(class_id, 4),
+                    "overall_fourier_completeness": classes_loop.val(class_id, 5),
                 }
             )
-            self.recwrap.send_to("ispyb", {"ispyb_command_list": ispyb_parameters})
+
+        # Send all the ispyb class insertion commands
+        self.recwrap.send_to("ispyb", {"ispyb_command_list": ispyb_parameters})
 
         if class2d_params.batch_is_complete:
             # Create an icebreaker job

@@ -25,6 +25,7 @@ class CryoloParameters(BaseModel):
     threshold: float = 0.3
     cryolo_command: str = "cryolo_predict.py"
     mc_uuid: int
+    picker_uuid: int
     relion_options: RelionServiceOptions
     ctf_values: dict = {}
 
@@ -185,21 +186,16 @@ class CrYOLO(CommonService):
             cbox_sizes[cbox_confidence > cryolo_params.threshold],
         )
 
-        # Extract results for ispyb
+        # Forward results to ISPyB
         ispyb_parameters = {
+            "ispyb_command": "buffer",
+            "buffer_lookup": {"motion_correction_id": cryolo_params.mc_uuid},
+            "buffer_command": {"ispyb_command": "insert_particle_picker"},
+            "buffer_store": cryolo_params.picker_uuid,
             "particle_picking_template": cryolo_params.weights,
             "number_of_particles": self.number_of_particles,
             "summary_image_full_path": f"{cryolo_params.output_path}/picked_particles.jpeg",
         }
-
-        # Forward results to ISPyB
-        ispyb_parameters.update(
-            {
-                "ispyb_command": "buffer",
-                "buffer_lookup": {"motion_correction_id": cryolo_params.mc_uuid},
-                "buffer_command": {"ispyb_command": "insert_particle_picker"},
-            }
-        )
         self.log.info(f"Sending to ispyb {ispyb_parameters}")
         if isinstance(rw, MockRW):
             rw.transport.send(
