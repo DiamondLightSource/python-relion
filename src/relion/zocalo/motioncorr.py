@@ -410,7 +410,7 @@ class MotionCorr(CommonService):
                 },
             )
         else:
-            rw.send_to("ispyb", ispyb_parameters)
+            rw.send_to("ispyb_connector", ispyb_parameters)
 
         if mc_params.experiment_type == "tomography":
             # Forward results to murfey

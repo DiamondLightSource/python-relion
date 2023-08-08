@@ -229,7 +229,7 @@ class CTFFind(CommonService):
                 },
             )
         else:
-            rw.send_to("ispyb", ispyb_parameters)
+            rw.send_to("ispyb_connector", ispyb_parameters)
 
         # Forward results to images service
         self.log.info(f"Sending to images service {ctf_params.output_image}")

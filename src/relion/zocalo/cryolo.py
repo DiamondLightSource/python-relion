@@ -206,7 +206,7 @@ class CrYOLO(CommonService):
                 },
             )
         else:
-            rw.send_to("ispyb", ispyb_parameters)
+            rw.send_to("ispyb_connector", ispyb_parameters)
 
         # Extract results for images service
         with open(cryolo_params.output_path, "r") as coords_file:

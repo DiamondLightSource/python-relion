@@ -248,7 +248,7 @@ class IceBreaker(CommonService):
                     message={"parameters": ispyb_parameters, "content": "dummy"},
                 )
             else:
-                rw.send_to("ispyb", ispyb_parameters)
+                rw.send_to("ispyb_connector", ispyb_parameters)
 
         # Register the icebreaker job with the node creator
         self.log.info(f"Sending {this_job_type} to node creator")
