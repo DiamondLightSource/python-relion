@@ -25,6 +25,7 @@ class MotionCorrParameters(BaseModel):
     use_motioncor2: bool = True
     patch_size: dict = {"x": 5, "y": 5}
     gpu: int = 0
+    threads: int = 1
     gain_ref: str = None
     rot_gain: int = None
     flip_gain: int = None
@@ -145,11 +146,14 @@ class MotionCorr(CommonService):
         # make star file
         # multiple jobs will be messy as i/o errors
         mc_flags = {
+            "threads": "--j",
             "movie": "--in_movie",
             "mrc_out": "--out_mic",
-            "defect_file": "--defect_file",
+            "pix_size": "--angpix",
+            "kv": "--voltage",
             "fm_dose": "--dose_per_frame",
             "gain_ref": "--gainref",
+            "defect_file": "--defect_file",
             "rot_gain": "--gain_rot",
             "flip_gain": "--gain_flip",
             "eer_sampling": "--eer_grouping",
@@ -170,18 +174,10 @@ class MotionCorr(CommonService):
         command.extend(
             (
                 "--dose_weighting",
-                "--first_frame_sum",
-                "1",
-                "--last_frame_sum",
-                "-1",
-                "--j",
-                "1",
                 "--i",
                 "dummy",
             )
         )
-        # Other flags we could add
-        # "--bin_factor 1 --grouping_for_ps 4  --float16 --save_noDW --group_frames 1"
         result = subprocess.run(command, capture_output=True)
         return result
 
