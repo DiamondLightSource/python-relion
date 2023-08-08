@@ -38,6 +38,7 @@ class MotionCorrParameters(BaseModel):
     fm_ref: int = 0
     kv: int = None
     fm_int_file: str = None
+    init_dose: float = None
     mag: Optional[dict] = None
     ft_bin: float = None
     serial: int = None
@@ -152,8 +153,9 @@ class MotionCorr(CommonService):
             "rot_gain": "--gain_rot",
             "flip_gain": "--gain_flip",
             "eer_sampling": "--eer_grouping",
+            "init_dose": "--preexposure",
             "patch_size": {"--patch_x": "x", "--patch_y": "y"},
-            "--bfactor": {"--bfactor": "local"},
+            "bft": {"--bfactor": "local"},
         }
 
         # Create the motion correction command
@@ -172,8 +174,6 @@ class MotionCorr(CommonService):
                 "1",
                 "--last_frame_sum",
                 "-1",
-                "--preexposure",
-                "0",
                 "--j",
                 "1",
                 "--i",
@@ -270,6 +270,7 @@ class MotionCorr(CommonService):
                 "kv": "-Kv",
                 "fm_dose": "-FmDose",
                 "fm_int_file": "-FmIntFile",
+                "init_dose": "-InitDose",
                 "mag": "-Mag",
                 "ft_bin": "-FtBin",
                 "serial": "-Serial",
