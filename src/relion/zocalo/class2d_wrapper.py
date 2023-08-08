@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import logging
 import os
 import re
@@ -53,7 +54,8 @@ class Class2DParameters(BaseModel):
     combine_star_job_number: int
     picker_uuid: int
     class2d_grp_uuid: int
-    class_uuids: dict
+    class_uuids: str
+    class_uuids_dict: dict = None
     autoselect_min_score: int = 0
     autoselect_python: str = "python"
 
@@ -342,6 +344,11 @@ class Class2DWrapper(zocalo.wrapper.BaseWrapper):
             )
             return False
 
+        # Class ids get fed in as a string, need to convert these to a dictionary
+        class2d_params.class_uuids_dict = json.loads(
+            class2d_params.class_uuids.replace("'", '"')
+        )
+
         if class2d_params.do_vdam:
             job_type = "relion.class2d.vdam"
         else:
@@ -447,6 +454,7 @@ class Class2DWrapper(zocalo.wrapper.BaseWrapper):
         self.recwrap.send_to("node_creator", node_creator_parameters)
 
         # Send classification job information to ispyb
+        ispyb_parameters = []
         if job_is_rerun:
             buffer_lookup = {
                 "particle_picker_id": class2d_params.picker_uuid,
@@ -454,21 +462,25 @@ class Class2DWrapper(zocalo.wrapper.BaseWrapper):
             }
         else:
             buffer_lookup = {"particle_picker_id": class2d_params.picker_uuid}
-        ispyb_parameters = {
-            "ispyb_command": "buffer",
-            "buffer_lookup": buffer_lookup,
-            "buffer_command": {"ispyb_command": "insert_particle_classification_group"},
-            "buffer_store": class2d_params.class2d_grp_uuid,
-            "type": "2D",
-            "batch_number": int(
-                class2d_params.particles_file.split("particles_split")[1].split(".")[0]
-            ),
-            "number_of_particles_per_batch": class2d_params.batch_size,
-            "number_of_classes_per_batch": class2d_params.nr_classes,
-            "symmetry": "C1",
-        }
-        self.log.info(f"Sending to ispyb {ispyb_parameters}")
-        self.recwrap.send_to("ispyb", {"ispyb_command_list": ispyb_parameters})
+        ispyb_parameters.append(
+            {
+                "ispyb_command": "buffer",
+                "buffer_lookup": buffer_lookup,
+                "buffer_command": {
+                    "ispyb_command": "insert_particle_classification_group"
+                },
+                "buffer_store": class2d_params.class2d_grp_uuid,
+                "type": "2D",
+                "batch_number": int(
+                    class2d_params.particles_file.split("particles_split")[1].split(
+                        "."
+                    )[0]
+                ),
+                "number_of_particles_per_batch": class2d_params.batch_size,
+                "number_of_classes_per_batch": class2d_params.nr_classes,
+                "symmetry": "C1",
+            }
+        )
 
         # Send individual classes to ispyb
         class_star_file = cif.read_file(
@@ -477,12 +489,11 @@ class Class2DWrapper(zocalo.wrapper.BaseWrapper):
         classes_block = class_star_file.find_block("model_classes")
         classes_loop = classes_block.find_loop("_rlnReferenceImage").get_loop()
 
-        ispyb_parameters = []
         for class_id in range(class2d_params.nr_classes):
             # Add an ispyb insert for each class
             if job_is_rerun:
                 buffer_lookup = {
-                    "particle_classification_id": class2d_params.class_uuids["0"],
+                    "particle_classification_id": class2d_params.class_uuids_dict["0"],
                     "particle_classification_group_id": class2d_params.class2d_grp_uuid,
                 }
             else:
@@ -496,7 +507,7 @@ class Class2DWrapper(zocalo.wrapper.BaseWrapper):
                     "buffer_command": {
                         "ispyb_command": "insert_particle_classification"
                     },
-                    "buffer_store": class2d_params.class_uuids[str(class_id)],
+                    "buffer_store": class2d_params.class_uuids_dict[str(class_id)],
                     "class_number": class_id + 1,
                     "class_image_full_path": (
                         f"{class2d_params.class2d_dir}/Class_images"
@@ -514,7 +525,10 @@ class Class2DWrapper(zocalo.wrapper.BaseWrapper):
             )
 
         # Send all the ispyb class insertion commands
-        self.recwrap.send_to("ispyb", {"ispyb_command_list": ispyb_parameters})
+        self.log.info(f"Sending to ispyb {ispyb_parameters}")
+        self.recwrap.send_to(
+            "ispyb_connector", {"ispyb_command_list": ispyb_parameters}
+        )
 
         if class2d_params.batch_is_complete:
             # Create an icebreaker job
