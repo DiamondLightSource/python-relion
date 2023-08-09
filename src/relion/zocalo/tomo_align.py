@@ -282,9 +282,6 @@ class TomoAlign(CommonService):
 
         aretomo_result = self.aretomo(tomo_params)
 
-        if not aretomo_result:
-            rw.send("tomo_align", message)
-
         if aretomo_result.returncode:
             self.log.error(
                 f"AreTomo failed with exitcode {aretomo_result.returncode}:\n"

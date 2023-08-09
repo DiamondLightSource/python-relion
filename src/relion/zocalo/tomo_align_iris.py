@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import datetime
 import subprocess
 import tarfile
 import time
@@ -148,7 +149,7 @@ class TomoAlignIris(TomoAlign, CommonService):
             )
         except Exception:
             self.log.warn("Couldn't connect submitter")
-            return None
+            return subprocess.CompletedProcess(args="", returncode=1)
 
         if tomo_parameters.out_imod:
             itemdata = [
@@ -180,6 +181,7 @@ class TomoAlignIris(TomoAlign, CommonService):
         self.log.info(f"Submitting to Iris, ID: {str(cluster_id)}")
 
         res = 1
+        start_time = datetime.datetime.now()
         while res:
             try:
                 res = schedd.query(
@@ -192,6 +194,10 @@ class TomoAlignIris(TomoAlign, CommonService):
                 schedd.act(htcondor.JobAction.Remove, f"ClusterId == {cluster_id}")
                 return subprocess.CompletedProcess(args="", returncode=res)
             time.sleep(10)
+            if (datetime.datetime.now() - start_time).seconds > 20 * 60:
+                # Abort if duration over 20 minutes
+                schedd.act(htcondor.JobAction.Remove, f"ClusterId == {cluster_id}")
+                return subprocess.CompletedProcess(args="", returncode=5)
 
         if tomo_parameters.tilt_cor:
             self.parse_tomo_output(output_file)
@@ -201,4 +207,4 @@ class TomoAlignIris(TomoAlign, CommonService):
         file.extractall(self.alignment_output_dir)
         file.close()
 
-        return subprocess.CompletedProcess(args="", returncode=None)
+        return subprocess.CompletedProcess(args="", returncode=0)
