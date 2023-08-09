@@ -6,8 +6,11 @@ dependencies:
 - name: cryolo
 - name: ctffind
 - name: denoise
+- name: dispatcher
 - name: extract
 - name: icebreaker
+- name: images
+- name: ispyb
 - name: motioncorr
 - name: motioncorr_wilson
 - name: node_creator
@@ -15,6 +18,3 @@ dependencies:
 - name: select_particles
 - name: tomo_align
 - name: tomo_align_iris
-- name: dispatcher
-- name: images
-- name: ispyb
