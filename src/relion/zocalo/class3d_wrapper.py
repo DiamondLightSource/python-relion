@@ -58,7 +58,7 @@ class Class3DParameters(BaseModel):
     do_scale: bool = True
     threads: int = 4
     gpus: str = "0"
-    picker_uuid: int
+    picker_id: int
     class3d_grp_uuid: int
     class_uuids: str
     class_uuids_dict: dict = None
@@ -351,32 +351,25 @@ class Class3DWrapper(zocalo.wrapper.BaseWrapper):
 
         # Send classification job information to ispyb
         ispyb_parameters = []
+        classification_grp_ispyb_parameters = {
+            "ispyb_command": "buffer",
+            "buffer_command": {"ispyb_command": "insert_particle_classification_group"},
+            "buffer_store": class3d_params.class3d_grp_uuid,
+            "type": "3D",
+            "batch_number": int(
+                class3d_params.particles_file.split("particles_split")[1].split(".")[0]
+            ),
+            "number_of_particles_per_batch": class3d_params.batch_size,
+            "number_of_classes_per_batch": class3d_params.nr_classes,
+            "symmetry": class3d_params.symmetry,
+            "particle_picker_id": class3d_params.picker_id,
+        }
         if job_is_rerun:
-            buffer_lookup = {
-                "particle_picker_id": class3d_params.picker_uuid,
+            # If this job overwrites another get the id for it
+            classification_grp_ispyb_parameters["buffer_lookup"] = {
                 "particle_classification_group_id": class3d_params.class3d_grp_uuid,
             }
-        else:
-            buffer_lookup = {"particle_picker_id": class3d_params.picker_uuid}
-        ispyb_parameters.append(
-            {
-                "ispyb_command": "buffer",
-                "buffer_lookup": buffer_lookup,
-                "buffer_command": {
-                    "ispyb_command": "insert_particle_classification_group"
-                },
-                "buffer_store": class3d_params.class3d_grp_uuid,
-                "type": "3D",
-                "batch_number": int(
-                    class3d_params.particles_file.split("particles_split")[1].split(
-                        "."
-                    )[0]
-                ),
-                "number_of_particles_per_batch": class3d_params.batch_size,
-                "number_of_classes_per_batch": class3d_params.nr_classes,
-                "symmetry": class3d_params.symmetry,
-            }
-        )
+        ispyb_parameters.append(classification_grp_ispyb_parameters)
 
         # Send individual classes to ispyb
         class_star_file = cif.read_file(
