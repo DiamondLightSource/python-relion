@@ -7,6 +7,7 @@ import re
 import subprocess
 from pathlib import Path
 
+import numpy as np
 import zocalo.wrapper
 from gemmi import cif
 from pydantic import BaseModel, Field, ValidationError
@@ -216,8 +217,10 @@ class Class3DWrapper(zocalo.wrapper.BaseWrapper):
         )
         ispyb_parameters = {
             "ispyb_command": "buffer",
+            "buffer_lookup": {
+                "particle_classification_id": initial_model_params.class_uuids_dict["1"]
+            },
             "buffer_command": {"ispyb_command": "insert_cryoem_initial_model"},
-            "particle_classification_id": initial_model_params.class_uuids_dict["0"],
             "resolution": resolution,
             "number_of_particles": number_of_particles,
         }
@@ -382,33 +385,37 @@ class Class3DWrapper(zocalo.wrapper.BaseWrapper):
             # Add an ispyb insert for each class
             if job_is_rerun:
                 buffer_lookup = {
-                    "particle_classification_id": class3d_params.class_uuids_dict["0"],
+                    "particle_classification_id": class3d_params.class_uuids_dict["1"],
                     "particle_classification_group_id": class3d_params.class3d_grp_uuid,
                 }
             else:
                 buffer_lookup = {
                     "particle_classification_group_id": class3d_params.class3d_grp_uuid,
                 }
-            ispyb_parameters.append(
-                {
-                    "ispyb_command": "buffer",
-                    "buffer_lookup": buffer_lookup,
-                    "buffer_command": {
-                        "ispyb_command": "insert_particle_classification"
-                    },
-                    "buffer_store": class3d_params.class_uuids_dict[str(class_id)],
-                    "class_number": class_id + 1,
-                    "class_image_full_path": None,
-                    "particles_per_class": (
-                        float(classes_loop.val(class_id, 1)) * class3d_params.batch_size
-                    ),
-                    "class_distribution": classes_loop.val(class_id, 1),
-                    "rotation_accuracy": classes_loop.val(class_id, 2),
-                    "translation_accuracy": classes_loop.val(class_id, 3),
-                    "estimated_resolution": classes_loop.val(class_id, 4),
-                    "overall_fourier_completeness": classes_loop.val(class_id, 5),
-                }
-            )
+            class_ispyb_parameters = {
+                "ispyb_command": "buffer",
+                "buffer_lookup": buffer_lookup,
+                "buffer_command": {"ispyb_command": "insert_particle_classification"},
+                "buffer_store": class3d_params.class_uuids_dict[str(class_id + 1)],
+                "class_number": class_id + 1,
+                "particles_per_class": (
+                    float(classes_loop.val(class_id, 1)) * class3d_params.batch_size
+                ),
+                "class_distribution": classes_loop.val(class_id, 1),
+                "rotation_accuracy": classes_loop.val(class_id, 2),
+                "translation_accuracy": classes_loop.val(class_id, 3),
+            }
+
+            # Add the resolution and fourier completeness if they are valid numbers
+            estimated_resolution = float(classes_loop.val(class_id, 4))
+            if np.isfinite(estimated_resolution):
+                class_ispyb_parameters["estimated_resolution"] = estimated_resolution
+            fourier_completeness = float(classes_loop.val(class_id, 5))
+            if np.isfinite(fourier_completeness):
+                class_ispyb_parameters["fourier_completeness"] = fourier_completeness
+
+            # Add the ispyb command to the command list
+            ispyb_parameters.append(class_ispyb_parameters)
 
         # Add on the initial model insert before sending
         if class3d_params.do_initial_model:
