@@ -60,3 +60,24 @@ spec:
 {{- if .Values.extraVolumes }}
 {{ toYaml .Values.extraVolumes | indent 6 }}
 {{ end }}
+{{- if .Values.scaleOnQueueLength }}
+---
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: denoise
+  namespace: {{ .Values.global.namespace }}
+spec:
+  scaleTargetRef:
+    name: denoise
+  triggers:
+    - type: rabbitmq
+      metadata:
+        host: {{ .Values.global.rmqHost }}
+        queueName: denoise
+        mode: QueueLength
+        value: "{{ .Values.queueLengthTrigger }}"
+  minReplicaCount: {{ .Values.minReplicaCount }}
+  maxReplicaCount: {{ .Values.maxReplicaCount }}
+  idleReplicaCount: {{ .Values.idleReplicaCount }}
+{{ end }}
