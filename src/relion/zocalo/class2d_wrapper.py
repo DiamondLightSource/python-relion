@@ -55,7 +55,6 @@ class Class2DParameters(BaseModel):
     picker_id: int
     class2d_grp_uuid: int
     class_uuids: str
-    class_uuids_dict: dict = None
     autoselect_min_score: int = 0
     autoselect_python: str = "python"
 
@@ -81,6 +80,10 @@ class Class2DWrapper(zocalo.wrapper.BaseWrapper):
     # Values to extract for ISPyB
     previous_total_count = 0
     total_count = 0
+
+    # Values for ISPyB lookups
+    class_uuids_dict: dict = {}
+    class_uuids_keys: list = []
 
     def parse_combiner_output(self, combiner_stdout: str):
         """
@@ -345,9 +348,8 @@ class Class2DWrapper(zocalo.wrapper.BaseWrapper):
             return False
 
         # Class ids get fed in as a string, need to convert these to a dictionary
-        class2d_params.class_uuids_dict = json.loads(
-            class2d_params.class_uuids.replace("'", '"')
-        )
+        self.class_uuids_dict = json.loads(class2d_params.class_uuids.replace("'", '"'))
+        self.class_uuids_keys = list(self.class_uuids_dict.keys())
 
         if class2d_params.do_vdam:
             job_type = "relion.class2d.vdam"
@@ -486,7 +488,9 @@ class Class2DWrapper(zocalo.wrapper.BaseWrapper):
             # Add an ispyb insert for each class
             if job_is_rerun:
                 buffer_lookup = {
-                    "particle_classification_id": class2d_params.class_uuids_dict["1"],
+                    "particle_classification_id": self.class_uuids_dict[
+                        self.class_uuids_keys[0]
+                    ],
                     "particle_classification_group_id": class2d_params.class2d_grp_uuid,
                 }
             else:
@@ -497,7 +501,7 @@ class Class2DWrapper(zocalo.wrapper.BaseWrapper):
                 "ispyb_command": "buffer",
                 "buffer_lookup": buffer_lookup,
                 "buffer_command": {"ispyb_command": "insert_particle_classification"},
-                "buffer_store": class2d_params.class_uuids_dict[str(class_id + 1)],
+                "buffer_store": self.class_uuids_dict[self.class_uuids_keys[class_id]],
                 "class_number": class_id + 1,
                 "class_image_full_path": (
                     f"{class2d_params.class2d_dir}/Class_images"

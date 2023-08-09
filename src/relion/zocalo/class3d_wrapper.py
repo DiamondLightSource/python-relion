@@ -62,7 +62,6 @@ class Class3DParameters(BaseModel):
     picker_id: int
     class3d_grp_uuid: int
     class_uuids: str
-    class_uuids_dict: dict = None
     relion_options: RelionServiceOptions
 
 
@@ -88,6 +87,10 @@ class Class3DWrapper(zocalo.wrapper.BaseWrapper):
         "threads": "--j",
         "gpus": "--gpu",
     }
+
+    # Values for ISPyB lookups
+    class_uuids_dict: dict = {}
+    class_uuids_keys: list = []
 
     def run_initial_model(self, initial_model_params, project_dir, job_num):
         """
@@ -215,18 +218,21 @@ class Class3DWrapper(zocalo.wrapper.BaseWrapper):
             "Will send best initial model to ispyb with "
             f"resolution {resolution} and {number_of_particles} particles"
         )
-        ispyb_parameters = {
+        ini_ispyb_parameters = {
             "ispyb_command": "buffer",
             "buffer_lookup": {
-                "particle_classification_id": initial_model_params.class_uuids_dict["1"]
+                "particle_classification_id": self.class_uuids_dict[
+                    self.class_uuids_keys[0]
+                ]
             },
             "buffer_command": {"ispyb_command": "insert_cryoem_initial_model"},
-            "resolution": resolution,
             "number_of_particles": number_of_particles,
         }
+        if np.isfinite(float(resolution)):
+            ini_ispyb_parameters["resolution"] = resolution
 
         self.log.info("Running 3D classification using new initial model")
-        return f"{ini_model_file}", ispyb_parameters
+        return f"{ini_model_file}", ini_ispyb_parameters
 
     def run(self):
         """
@@ -244,9 +250,8 @@ class Class3DWrapper(zocalo.wrapper.BaseWrapper):
             return False
 
         # Class ids get fed in as a string, need to convert these to a dictionary
-        class3d_params.class_uuids_dict = json.loads(
-            class3d_params.class_uuids.replace("'", '"')
-        )
+        self.class_uuids_dict = json.loads(class3d_params.class_uuids.replace("'", '"'))
+        self.class_uuids_keys = list(self.class_uuids_dict.keys())
 
         # Update the relion options to get out the box sizes
         if class3d_params.particle_diameter:
@@ -385,7 +390,9 @@ class Class3DWrapper(zocalo.wrapper.BaseWrapper):
             # Add an ispyb insert for each class
             if job_is_rerun:
                 buffer_lookup = {
-                    "particle_classification_id": class3d_params.class_uuids_dict["1"],
+                    "particle_classification_id": self.class_uuids_dict[
+                        self.class_uuids_keys[0]
+                    ],
                     "particle_classification_group_id": class3d_params.class3d_grp_uuid,
                 }
             else:
@@ -396,7 +403,7 @@ class Class3DWrapper(zocalo.wrapper.BaseWrapper):
                 "ispyb_command": "buffer",
                 "buffer_lookup": buffer_lookup,
                 "buffer_command": {"ispyb_command": "insert_particle_classification"},
-                "buffer_store": class3d_params.class_uuids_dict[str(class_id + 1)],
+                "buffer_store": self.class_uuids_dict[self.class_uuids_keys[class_id]],
                 "class_number": class_id + 1,
                 "particles_per_class": (
                     float(classes_loop.val(class_id, 1)) * class3d_params.batch_size
