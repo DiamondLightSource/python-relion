@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import datetime
 import string
 import subprocess
 import time
@@ -256,6 +257,7 @@ class Denoise(CommonService):
         self.log.info(f"Submitting to Iris, ID: {str(cluster_id)}")
 
         res = 1
+        start_time = datetime.datetime.now()
         while res:
             try:
                 res = schedd.query(
@@ -268,6 +270,11 @@ class Denoise(CommonService):
                 schedd.act(htcondor.JobAction.Remove, f"ClusterId == {cluster_id}")
                 return subprocess.CompletedProcess(args="", returncode=res)
             time.sleep(10)
+            if (datetime.datetime.now() - start_time).seconds > 20 * 60:
+                # Abort if duration over 20 minutes
+                schedd.act(htcondor.JobAction.Remove, f"ClusterId == {cluster_id}")
+                rw.transport.nack(header)
+                return
 
         # Forward results to images service
         self.log.info(f"Sending to images service {d_params.volume}")

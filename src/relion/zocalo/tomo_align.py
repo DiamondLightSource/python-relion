@@ -284,15 +284,6 @@ class TomoAlign(CommonService):
             )
 
         aretomo_result = self.aretomo(tomo_params)
-
-        if not aretomo_result:
-            # This happens if Iris cannot be connected to, so just stop and try again.
-            self.log.error(
-                "tomo_align service failed to reconstruct volume. Nacking message"
-            )
-            rw.transport.nack(header)
-            return
-
         if aretomo_result.returncode:
             self.log.error(
                 f"AreTomo failed with exitcode {aretomo_result.returncode}:\n"
