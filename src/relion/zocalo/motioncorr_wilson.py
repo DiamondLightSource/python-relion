@@ -97,11 +97,20 @@ class MotionCorrWilson(MotionCorr, CommonService):
 
     def motioncor2(self, command: list, mrc_out: Path):
         """Submit MotionCor2 jobs to the Wilson cluster via the RestAPI"""
-        with open(os.environ["SLURM_RESTAPI_CONFIG"], "r") as f:
-            slurm_rest = yaml.safe_load(f)
-        user = slurm_rest["user"]  # "k8s-em"
-        with open(slurm_rest["user_token"], "r") as f:
-            slurm_token = f.read().strip()
+        try:
+            with open(os.environ["SLURM_RESTAPI_CONFIG"], "r") as f:
+                slurm_rest = yaml.safe_load(f)
+            user = slurm_rest["user"]  # "k8s-em"
+            with open(slurm_rest["user_token"], "r") as f:
+                slurm_token = f.read().strip()
+        except (KeyError, FileNotFoundError):
+            self.log.error("Unable to load slurm restAPI config file and token")
+            return subprocess.CompletedProcess(
+                args="",
+                returncode=1,
+                stdout="".encode("utf8"),
+                stderr="No restAPI config or token".encode("utf8"),
+            )
 
         mc_output_file = f"{mrc_out}.out"
         mc_error_file = f"{mrc_out}.err"
@@ -120,34 +129,42 @@ class MotionCorrWilson(MotionCorr, CommonService):
             json.dump(slurm_json, f)
 
         # RestAPI command to submit jobs
-        slurm_submit = (
+        slurm_submit_command = (
             f'curl -H "X-SLURM-USER-NAME:{user}" -H "X-SLURM-USER-TOKEN:{slurm_token}" '
             '-H "Content-Type: application/json" -X POST '
             f'{slurm_rest["url"]}/slurm/{slurm_rest["api_version"]}/job/submit '
             f"-d @{submission_file}"
         )
         slurm_submission_json = subprocess.run(
-            slurm_submit, capture_output=True, shell=True
+            slurm_submit_command, capture_output=True, shell=True
         )
-        job_id = json.loads(slurm_submission_json.stdout.decode("utf8", "replace"))[
-            "job_id"
-        ]
+        try:
+            slurm_response = slurm_submission_json.stdout.decode("utf8", "replace")
+            job_id = json.loads(slurm_response)["job_id"]
+        except (json.JSONDecodeError, KeyError):
+            self.log.error(
+                f"Unable to submit job to {slurm_rest['url']}. The restAPI returned "
+                f"{slurm_submission_json.stdout.decode('utf8', 'replace')}"
+            )
+            return subprocess.CompletedProcess(
+                args="",
+                returncode=1,
+                stdout=slurm_submission_json.stdout,
+                stderr=slurm_submission_json.stderr,
+            )
         self.log.info(f"Submitted MotionCorr job {job_id} to Wilson. Waiting...")
 
         # RestAPI command to get the status of the submitted job
-        slurm_status = (
+        slurm_status_command = (
             f'curl -H "X-SLURM-USER-NAME:{user}" -H "X-SLURM-USER-TOKEN:{slurm_token}" '
             '-H "Content-Type: application/json" -X GET '
             f'{slurm_rest["url"]}/slurm/{slurm_rest["api_version"]}/job/{job_id}'
         )
-        slurm_status_json = json.loads(
-            subprocess.run(slurm_status, capture_output=True, shell=True).stdout.decode(
-                "utf8", "replace"
-            )
-        )
+        slurm_job_state = "PENDING"
+
         # Wait until the job has a status indicating it has finished
         loop_counter = 0
-        while slurm_status_json["jobs"][0]["job_state"] in (
+        while slurm_job_state in (
             "PENDING",
             "CONFIGURING",
             "RUNNING",
@@ -158,11 +175,26 @@ class MotionCorrWilson(MotionCorr, CommonService):
             else:
                 time.sleep(30)
             loop_counter += 1
-            slurm_status_json = json.loads(
-                subprocess.run(
-                    slurm_status, capture_output=True, shell=True
-                ).stdout.decode("utf8", "replace")
+
+            # Call the restAPI to find out the job state
+            slurm_status_json = subprocess.run(
+                slurm_status_command, capture_output=True, shell=True
             )
+            try:
+                slurm_response = slurm_status_json.stdout.decode("utf8", "replace")
+                slurm_job_state = json.loads(slurm_response)["jobs"][0]["job_state"]
+            except (json.JSONDecodeError, KeyError):
+                print(slurm_status_command)
+                self.log.error(
+                    f"Unable to get status for job {job_id}. The restAPI returned "
+                    f"{slurm_status_json.stdout.decode('utf8', 'replace')}"
+                )
+                return subprocess.CompletedProcess(
+                    args="",
+                    returncode=1,
+                    stdout=slurm_status_json.stdout,
+                    stderr=slurm_status_json.stderr,
+                )
 
         # Read in the MotionCor output then clean up the files
         self.log.info(f"Job {job_id} has finished!")
@@ -180,7 +212,7 @@ class MotionCorrWilson(MotionCorr, CommonService):
         Path(mc_error_file).unlink(missing_ok=True)
         Path(submission_file).unlink()
 
-        if slurm_status_json["jobs"][0]["job_state"] == "COMPLETED":
+        if slurm_job_state == "COMPLETED":
             return subprocess.CompletedProcess(
                 args="",
                 returncode=0,
