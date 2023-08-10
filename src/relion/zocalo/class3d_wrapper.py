@@ -286,9 +286,7 @@ class Class3DWrapper(zocalo.wrapper.BaseWrapper):
                 class3d_params, project_dir, job_num_3d - 1
             )
         else:
-            initial_model_file = str(
-                Path(class3d_params.initial_model_file).relative_to(project_dir)
-            )
+            initial_model_file = class3d_params.initial_model_file
             initial_model_ispyb_parameters = {}
         if not initial_model_file:
             # If there isn't an initial model file something has gone wrong
