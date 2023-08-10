@@ -98,6 +98,7 @@ class MotionCorrWilson(MotionCorr, CommonService):
     def motioncor2(self, command: list, mrc_out: Path):
         """Submit MotionCor2 jobs to the Wilson cluster via the RestAPI"""
         try:
+            # Get the configuration and token for the restAPI
             with open(os.environ["SLURM_RESTAPI_CONFIG"], "r") as f:
                 slurm_rest = yaml.safe_load(f)
             user = slurm_rest["user"]  # "k8s-em"
@@ -112,6 +113,7 @@ class MotionCorrWilson(MotionCorr, CommonService):
                 stderr="No restAPI config or token".encode("utf8"),
             )
 
+        # Construct the json for submission and save it
         mc_output_file = f"{mrc_out}.out"
         mc_error_file = f"{mrc_out}.err"
         submission_file = f"{mrc_out}.json"
@@ -128,7 +130,7 @@ class MotionCorrWilson(MotionCorr, CommonService):
         with open(submission_file, "w") as f:
             json.dump(slurm_json, f)
 
-        # RestAPI command to submit jobs
+        # Command to submit jobs to the restAPI
         slurm_submit_command = (
             f'curl -H "X-SLURM-USER-NAME:{user}" -H "X-SLURM-USER-TOKEN:{slurm_token}" '
             '-H "Content-Type: application/json" -X POST '
@@ -139,6 +141,7 @@ class MotionCorrWilson(MotionCorr, CommonService):
             slurm_submit_command, capture_output=True, shell=True
         )
         try:
+            # Extract the job id from the submission response to use in the next query
             slurm_response = slurm_submission_json.stdout.decode("utf8", "replace")
             job_id = json.loads(slurm_response)["job_id"]
         except (json.JSONDecodeError, KeyError):
@@ -154,7 +157,7 @@ class MotionCorrWilson(MotionCorr, CommonService):
             )
         self.log.info(f"Submitted MotionCorr job {job_id} to Wilson. Waiting...")
 
-        # RestAPI command to get the status of the submitted job
+        # Command to get the status of the submitted job from the restAPI
         slurm_status_command = (
             f'curl -H "X-SLURM-USER-NAME:{user}" -H "X-SLURM-USER-TOKEN:{slurm_token}" '
             '-H "Content-Type: application/json" -X GET '
