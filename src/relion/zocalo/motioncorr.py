@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import re
 import string
 import subprocess
@@ -137,13 +138,19 @@ class MotionCorr(CommonService):
                 frames_line = True
 
     def parse_relion_mc_output(self, stdout_file):
+        """
+        Read the output star file made by Relion to determine
+        the movement of each frame
+        """
         shift_cif = cif.read_file(str(stdout_file))
         shift_block = shift_cif.find_block("global_shift")
-        self.x_shift_list = list(shift_block.find_loop("_rlnMicrographShiftX"))
-        self.y_shift_list = list(shift_block.find_loop("_rlnMicrographShiftY"))
-        for frame in range(len(self.x_shift_list)):
+        x_shifts_str = list(shift_block.find_loop("_rlnMicrographShiftX"))
+        y_shifts_str = list(shift_block.find_loop("_rlnMicrographShiftY"))
+        for frame in range(len(x_shifts_str)):
+            self.x_shift_list.append(float(x_shifts_str[frame]))
+            self.y_shift_list.append(float(y_shifts_str[frame]))
             self.each_total_motion.append(
-                hypot(self.x_shift_list[frame], self.y_shift_list[frame])
+                hypot(float(x_shifts_str[frame]), float(y_shifts_str[frame]))
             )
 
     def motioncor2(self, command, mrc_out):
@@ -155,7 +162,12 @@ class MotionCorr(CommonService):
     def relion_motioncor(self, command, mrc_out):
         """Run Relion's owm motion correction"""
         result = subprocess.run(command, capture_output=True)
-        self.parse_relion_mc_output(Path(mrc_out).with_suffix(".star"))
+        if Path(mrc_out).with_suffix(".star").exists():
+            self.parse_relion_mc_output(Path(mrc_out).with_suffix(".star"))
+        else:
+            self.log.error(
+                f"Relion output log {Path(mrc_out).with_suffix('.star')} not found"
+            )
         return result
 
     def motion_correction(self, rw, header: dict, message: dict):
@@ -269,7 +281,8 @@ class MotionCorr(CommonService):
             result = self.motioncor2(command, mc_params.mrc_out)
         else:
             # Construct the command for Relion motion correction
-            command = ["FI_PROVIDER=tcp", "relion_motion_correction", "--use_own"]
+            os.environ["FI_PROVIDER"] = "tcp"
+            command = ["relion_motion_correction", "--use_own"]
             relion_mc_flags = {
                 "threads": "--j",
                 "movie": "--in_movie",
