@@ -428,7 +428,11 @@ class Class3DWrapper(zocalo.wrapper.BaseWrapper):
 
         self.log.info(f"Sending to ispyb {ispyb_parameters}")
         self.recwrap.send_to(
-            "ispyb_connector", {"ispyb_command_list": ispyb_parameters}
+            "ispyb_connector",
+            {
+                "ispyb_command": "multipart_message",
+                "ispyb_command_list": ispyb_parameters,
+            },
         )
 
         self.log.info(f"Done {job_type} for {class3d_params.particles_file}.")

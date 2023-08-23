@@ -282,7 +282,11 @@ class Class2DWrapper(zocalo.wrapper.BaseWrapper):
         # Send all the ispyb class insertion commands
         self.log.info(f"Sending to ispyb {ispyb_parameters}")
         self.recwrap.send_to(
-            "ispyb_connector", {"ispyb_command_list": ispyb_parameters}
+            "ispyb_connector",
+            {
+                "ispyb_command": "multipart_message",
+                "ispyb_command_list": ispyb_parameters,
+            },
         )
 
         if class2d_params.batch_is_complete:
