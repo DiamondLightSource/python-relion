@@ -24,6 +24,7 @@ class CryoloParameters(BaseModel):
     )
     threshold: float = 0.3
     cryolo_command: str = "cryolo_predict.py"
+    particle_diameter: float = None
     mc_uuid: int
     picker_uuid: int
     relion_options: RelionServiceOptions
@@ -196,6 +197,8 @@ class CrYOLO(CommonService):
             "number_of_particles": self.number_of_particles,
             "summary_image_full_path": f"{cryolo_params.output_path}/picked_particles.jpeg",
         }
+        if cryolo_params.particle_diameter:
+            ispyb_parameters["particle_diameter"] = cryolo_params.particle_diameter
         self.log.info(f"Sending to ispyb {ispyb_parameters}")
         if isinstance(rw, MockRW):
             rw.transport.send(

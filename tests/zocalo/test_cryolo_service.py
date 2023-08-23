@@ -62,6 +62,7 @@ def test_cryolo_service(mock_subprocess, mock_environment, offline_transport, tm
             "threshold": 0.3,
             "mc_uuid": 0,
             "picker_uuid": 0,
+            "particle_diameter": 1.1,
             "ctf_values": {"dummy": "dummy"},
             "cryolo_command": "cryolo_predict.py",
             "relion_options": {"batch_size": 20000, "downscale": True},
@@ -128,6 +129,7 @@ def test_cryolo_service(mock_subprocess, mock_environment, offline_transport, tm
             "parameters": {
                 "particle_picking_template": "sample_weights",
                 "number_of_particles": 0,
+                "particle_diameter": 1.1,
                 "summary_image_full_path": str(output_path) + "/picked_particles.jpeg",
                 "ispyb_command": "buffer",
                 "buffer_lookup": {"motion_correction_id": 0},

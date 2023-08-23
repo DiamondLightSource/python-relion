@@ -55,6 +55,7 @@ class MotionCorrParameters(BaseModel):
     picker_uuid: int
     relion_options: Optional[RelionServiceOptions] = None
     ctf: dict = {}
+    particle_diameter: float = None
 
     @validator("experiment_type")
     def is_spa_or_tomo(cls, experiment):
@@ -359,6 +360,9 @@ class MotionCorr(CommonService):
             )
             mc_params.ctf["relion_options"] = dict(mc_params.relion_options)
             mc_params.ctf["amplitude_contrast"] = mc_params.relion_options.ampl_contrast
+            mc_params.ctf["autopick"] = {
+                "particle_diameter": mc_params.particle_diameter
+            }
 
         # Forward results to ctffind (in both SPA and tomography)
         self.log.info(f"Sending to ctf: {mc_params.mrc_out}")
