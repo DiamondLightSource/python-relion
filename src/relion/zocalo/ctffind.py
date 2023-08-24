@@ -183,7 +183,6 @@ class CTFFind(CommonService):
         if result.returncode:
             self.log.error(
                 f"CTFFind failed with exitcode {result.returncode}:\n"
-                + result.stdout.decode("utf8", "replace")
                 + result.stderr.decode("utf8", "replace")
             )
             rw.transport.nack(header)
@@ -266,6 +265,7 @@ class CTFFind(CommonService):
                     + "\n"
                     + " ".join(str(param) for param in parameters_list)
                 ),
+                "stdout": result.stdout.decode("utf8", "replace"),
                 "stderr": result.stderr.decode("utf8", "replace"),
             }
             if isinstance(rw, MockRW):
