@@ -175,6 +175,7 @@ def test_select_classes_service_first_batch(
                 ),
                 "stdout": "stdout",
                 "stderr": "stderr",
+                "success": True,
             },
             "content": "dummy",
         },
@@ -189,12 +190,30 @@ def test_select_classes_service_first_batch(
                 "relion_options": relion_options,
                 "command": (
                     f"combine_star_files.py {tmp_path}/Select/job012/particles.star "
-                    f"--output_dir {tmp_path}/Select/job013\n"
+                    f"--output_dir {tmp_path}/Select/job013"
+                ),
+                "stdout": "stdout",
+                "stderr": "stderr",
+                "success": True,
+            },
+            "content": "dummy",
+        },
+    )
+    offline_transport.send.assert_any_call(
+        destination="node_creator",
+        message={
+            "parameters": {
+                "job_type": "combine_star_files_job",
+                "input_file": f"{tmp_path}/Select/job012/particles.star",
+                "output_file": f"{tmp_path}/Select/job013/particles_all.star",
+                "relion_options": relion_options,
+                "command": (
                     f"combine_star_files.py {tmp_path}/Select/job013/particles_all.star "
                     f"--output_dir {tmp_path}/Select/job013 --split --split_size 50000"
                 ),
                 "stdout": "stdout",
                 "stderr": "stderr",
+                "success": True,
             },
             "content": "dummy",
         },

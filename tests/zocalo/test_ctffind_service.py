@@ -191,6 +191,7 @@ def test_ctffind_service(
                 "command": f"ctffind\n{' '.join(map(str, parameters_list))}",
                 "stdout": "stdout",
                 "stderr": "stderr",
+                "success": True,
             },
             "content": "dummy",
         },

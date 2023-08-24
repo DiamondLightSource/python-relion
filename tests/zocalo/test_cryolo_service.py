@@ -62,6 +62,7 @@ def test_cryolo_service(mock_subprocess, mock_environment, offline_transport, tm
             "threshold": 0.3,
             "mc_uuid": 0,
             "picker_uuid": 0,
+            "session_id": 1,
             "particle_diameter": 1.1,
             "ctf_values": {"dummy": "dummy"},
             "cryolo_command": "cryolo_predict.py",
@@ -158,6 +159,7 @@ def test_cryolo_service(mock_subprocess, mock_environment, offline_transport, tm
             "micrograph": cryolo_test_message["parameters"]["input_path"],
             "particle_diameters": [100.0, 100.0, 200.0, 200.0],
             "extraction_parameters": extraction_params,
+            "session_id": cryolo_test_message["parameters"]["session_id"],
         },
     )
     offline_transport.send.assert_any_call(
@@ -176,6 +178,7 @@ def test_cryolo_service(mock_subprocess, mock_environment, offline_transport, tm
                 ),
                 "stdout": "stdout",
                 "stderr": "stderr",
+                "success": True,
             },
             "content": "dummy",
         },

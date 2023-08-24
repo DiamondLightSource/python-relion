@@ -259,6 +259,7 @@ def test_node_creator_icebreaker_micrographs(
     assert list(micrographs_data.find_loop("_rlnAccumMotionLate")) == ["8"]
 
 
+@pytest.mark.skipif(sys.platform == "win32", reason="does not run on windows")
 def test_node_creator_icebreaker_enhancecontrast(
     mock_environment, offline_transport, tmp_path
 ):
@@ -306,6 +307,7 @@ def test_node_creator_icebreaker_enhancecontrast(
     assert list(micrographs_data.find_loop("_rlnAccumMotionLate")) == ["8"]
 
 
+@pytest.mark.skipif(sys.platform == "win32", reason="does not run on windows")
 def test_node_creator_icebreaker_summary(mock_environment, offline_transport, tmp_path):
     """
     Send a test message to the node creator for
@@ -330,6 +332,7 @@ def test_node_creator_icebreaker_summary(mock_environment, offline_transport, tm
     )
 
 
+@pytest.mark.skipif(sys.platform == "win32", reason="does not run on windows")
 def test_node_creator_ctffind(mock_environment, offline_transport, tmp_path):
     """
     Send a test message to the node creator for
@@ -392,6 +395,7 @@ def test_node_creator_ctffind(mock_environment, offline_transport, tmp_path):
     assert list(micrographs_data.find_loop("_rlnCtfMaxResolution")) == ["6.0"]
 
 
+@pytest.mark.skipif(sys.platform == "win32", reason="does not run on windows")
 def test_node_creator_cryolo(mock_environment, offline_transport, tmp_path):
     """
     Send a test message to the node creator for
@@ -433,6 +437,7 @@ def test_node_creator_cryolo(mock_environment, offline_transport, tmp_path):
     ]
 
 
+@pytest.mark.skipif(sys.platform == "win32", reason="does not run on windows")
 def test_node_creator_extract(mock_environment, offline_transport, tmp_path):
     """
     Send a test message to the node creator for
@@ -491,6 +496,7 @@ def test_node_creator_extract(mock_environment, offline_transport, tmp_path):
     assert list(micrographs_data.find_loop("_rlnCoordinateY")) == ["2.0"]
 
 
+@pytest.mark.skipif(sys.platform == "win32", reason="does not run on windows")
 def test_node_creator_select_particles(mock_environment, offline_transport, tmp_path):
     """
     Send a test message to the node creator for
@@ -521,3 +527,53 @@ def test_node_creator_select_particles(mock_environment, offline_transport, tmp_
     assert (
         tmp_path / ".Nodes/ParticlesData/Select/job009/particles_split2.star"
     ).exists()
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="does not run on windows")
+def test_node_creator_failed_job(mock_environment, offline_transport, tmp_path):
+    """
+    Use motion correction to test that the node creator works for failed commands.
+    This should set up the general pipeliner parts, and add a failure file to the job.
+    """
+    job_dir = "MotionCorr/job002"
+    input_file = tmp_path / "Import/job001/Movies/sample.mrc"
+    output_file = tmp_path / job_dir / "Movies/sample.mrc"
+
+    header = {
+        "message-id": mock.sentinel,
+        "subscription": mock.sentinel,
+    }
+    output_file.parent.mkdir(parents=True, exist_ok=True)
+    output_file.touch()
+    test_message = {
+        "parameters": {
+            "job_type": "relion.motioncorr.motioncor2",
+            "input_file": str(input_file),
+            "output_file": str(output_file),
+            "relion_options": relion_options,
+            "command": "command",
+            "stdout": "stdout",
+            "stderr": "stderr",
+            "success": False,
+        },
+        "content": "dummy",
+    }
+
+    # set up the mock service and send the message to it
+    service = node_creator.NodeCreator(environment=mock_environment)
+    service.transport = offline_transport
+    service.start()
+    service.node_creator(None, header=header, message=test_message)
+
+    # Check that the correct general pipeline files have been made
+    assert (tmp_path / "relion_motioncorr_motioncor2_job.star").exists()
+    assert (tmp_path / ".gui_relion_motioncorr_motioncor2job.star").exists()
+    assert (tmp_path / job_dir / "job.star").exists()
+    assert (tmp_path / job_dir / "note.txt").exists()
+    assert (tmp_path / job_dir / "run.out").exists()
+    assert (tmp_path / job_dir / "run.err").exists()
+    assert (tmp_path / job_dir / "run.job").exists()
+    assert (tmp_path / job_dir / "continue_job.star").exists()
+    assert (tmp_path / job_dir / "PIPELINER_JOB_EXIT_FAILED").exists()
+    assert (tmp_path / job_dir / "default_pipeline.star").exists()
+    assert (tmp_path / job_dir / ".CCPEM_pipeliner_jobinfo").exists()
