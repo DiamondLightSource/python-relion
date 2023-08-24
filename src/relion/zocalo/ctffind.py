@@ -174,6 +174,7 @@ class CTFFind(CommonService):
         self.log.info(
             f"Input: {ctf_params.input_image} Output: {ctf_params.output_image}"
         )
+        self.log.info(f"Running {command} {parameters_string}")
 
         result = subprocess.run(
             command, input=parameters_string.encode("ascii"), capture_output=True
@@ -182,6 +183,7 @@ class CTFFind(CommonService):
         if result.returncode:
             self.log.error(
                 f"CTFFind failed with exitcode {result.returncode}:\n"
+                + result.stdout.decode("utf8", "replace")
                 + result.stderr.decode("utf8", "replace")
             )
             rw.transport.nack(header)

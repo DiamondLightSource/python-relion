@@ -218,9 +218,7 @@ class NodeCreator(CommonService):
                     )
                     ii += 1
             else:
-                pipeline_options["fn_in_raw"] = Path(job_info.input_file).relative_to(
-                    project_dir
-                )
+                pipeline_options["fn_in_raw"] = job_info.input_file
 
             # If this is a new job we need a job.star
             if not Path(f"{job_info.job_type.replace('.', '_')}_job.star").is_file():
