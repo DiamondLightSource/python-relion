@@ -21,7 +21,6 @@ class IceBreakerParameters(BaseModel):
     icebreaker_type: str = Literal[
         "micrographs", "enhancecontrast", "summary", "particles"
     ]
-
     cpus: int = 1
     total_motion: float = 0
     early_motion: float = 0
@@ -184,8 +183,43 @@ class IceBreaker(CommonService):
                 icebreaker_params.output_path,
             ]
 
-        # Run the icebreaker command
+        # Run the icebreaker command and confirm it ran successfully
         result = subprocess.run(command, capture_output=True)
+
+        # Register the icebreaker job with the node creator
+        self.log.info(f"Sending {this_job_type} to node creator")
+        node_creator_parameters = {
+            "job_type": this_job_type,
+            "input_file": icebreaker_params.input_micrographs,
+            "output_file": icebreaker_params.output_path,
+            "relion_options": dict(icebreaker_params.relion_options),
+            "command": " ".join(command),
+            "stdout": result.stdout.decode("utf8", "replace"),
+            "stderr": result.stderr.decode("utf8", "replace"),
+            "results": {
+                "icebreaker_type": icebreaker_params.icebreaker_type,
+                "total_motion": icebreaker_params.total_motion,
+                "early_motion": icebreaker_params.early_motion,
+                "late_motion": icebreaker_params.late_motion,
+            },
+        }
+        if result.returncode:
+            node_creator_parameters["success"] = False
+        else:
+            node_creator_parameters["success"] = True
+        if icebreaker_params.icebreaker_type == "particles":
+            node_creator_parameters[
+                "input_file"
+            ] += f":{icebreaker_params.input_particles}"
+        if isinstance(rw, MockRW):
+            rw.transport.send(
+                destination="node_creator",
+                message={"parameters": node_creator_parameters, "content": "dummy"},
+            )
+        else:
+            rw.send_to("node_creator", node_creator_parameters)
+
+        # End here if the command failed
         if result.returncode:
             self.log.error(
                 f"IceBreaker failed with exitcode {result.returncode}:\n"
@@ -298,35 +332,6 @@ class IceBreaker(CommonService):
                         )
             except (FileNotFoundError, OSError, RuntimeError, ValueError):
                 self.log.warning("Error creating Icebreaker histogram.")
-
-        # Register the icebreaker job with the node creator
-        self.log.info(f"Sending {this_job_type} to node creator")
-        node_creator_parameters = {
-            "job_type": this_job_type,
-            "input_file": icebreaker_params.input_micrographs,
-            "output_file": icebreaker_params.output_path,
-            "relion_options": dict(icebreaker_params.relion_options),
-            "command": " ".join(command),
-            "stdout": result.stdout.decode("utf8", "replace"),
-            "stderr": result.stderr.decode("utf8", "replace"),
-            "results": {
-                "icebreaker_type": icebreaker_params.icebreaker_type,
-                "total_motion": icebreaker_params.total_motion,
-                "early_motion": icebreaker_params.early_motion,
-                "late_motion": icebreaker_params.late_motion,
-            },
-        }
-        if icebreaker_params.icebreaker_type == "particles":
-            node_creator_parameters[
-                "input_file"
-            ] += f":{icebreaker_params.input_particles}"
-        if isinstance(rw, MockRW):
-            rw.transport.send(
-                destination="node_creator",
-                message={"parameters": node_creator_parameters, "content": "dummy"},
-            )
-        else:
-            rw.send_to("node_creator", node_creator_parameters)
 
         self.log.info(
             f"Done {this_job_type} for {icebreaker_params.input_micrographs}."

@@ -251,7 +251,7 @@ class MotionCorr(CommonService):
 
         self.log.info(f"Input: {mc_params.movie} Output: {mc_params.mrc_out}")
 
-        # Run motion correction
+        # Run motion correction and confirm it ran successfully
         result = self.motioncor2(command, mc_params.mrc_out)
         if result.returncode:
             self.log.error(
@@ -259,6 +259,27 @@ class MotionCorr(CommonService):
                 f"failed with exitcode {result.returncode}:\n"
                 + result.stderr.decode("utf8", "replace")
             )
+            if mc_params.experiment_type == "spa":
+                # On spa failure send the outputs to the node creator
+                node_creator_parameters = {
+                    "job_type": self.job_type,
+                    "input_file": mc_params.movie,
+                    "output_file": mc_params.mrc_out,
+                    "relion_options": dict(mc_params.relion_options),
+                    "command": " ".join(command),
+                    "stdout": result.stdout.decode("utf8", "replace"),
+                    "stderr": result.stderr.decode("utf8", "replace"),
+                }
+                if isinstance(rw, MockRW):
+                    rw.transport.send(
+                        destination="node_creator",
+                        message={
+                            "parameters": node_creator_parameters,
+                            "content": "dummy",
+                        },
+                    )
+                else:
+                    rw.send_to("node_creator", node_creator_parameters)
             rw.transport.nack(header)
             return
 

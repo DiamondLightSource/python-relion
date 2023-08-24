@@ -14,6 +14,7 @@ from pipeliner.api.api_utils import (
     write_default_jobstar,
 )
 from pipeliner.api.manage_project import PipelinerProject
+from pipeliner.data_structure import FAIL_FILE, SUCCESS_FILE
 from pipeliner.job_factory import read_job
 from pipeliner.project_graph import ProjectGraph
 from pydantic import BaseModel, Field, ValidationError
@@ -109,6 +110,7 @@ class NodeCreatorParameters(BaseModel):
     command: str
     stdout: str
     stderr: str
+    success: bool = True
     results: Optional[dict] = None
 
 
@@ -255,7 +257,10 @@ class NodeCreator(CommonService):
         # Mark the job completion status
         for exit_file in job_dir.glob("PIPELINER_JOB_EXIT_*"):
             exit_file.unlink()
-        (job_dir / "PIPELINER_JOB_EXIT_SUCCESS").touch()
+        if job_info.success:
+            (job_dir / SUCCESS_FILE).touch()
+        else:
+            (job_dir / FAIL_FILE).touch()
 
         # Load this job as a pipeliner job to create the nodes
         pipeliner_job = read_job(f"{job_dir}/job.star")
@@ -271,40 +276,46 @@ class NodeCreator(CommonService):
         with open(job_dir / "note.txt", "a") as f:
             f.write(f"{job_info.command}\n")
 
-        # Write the output files which Relion produces
-        extra_output_nodes = create_output_files(
-            job_type=job_info.job_type,
-            job_dir=job_dir.relative_to(project_dir),
-            input_file=(
-                job_info.input_file
-                if job_dir.parent.name == "Import"
-                else Path(job_info.input_file).relative_to(project_dir)
-            ),
-            output_file=Path(job_info.output_file).relative_to(project_dir),
-            relion_options=job_info.relion_options,
-            results=job_info.results,
-        )
-        if extra_output_nodes:
-            # Add any extra nodes if they are not already present
-            existing_nodes = []
-            for node in pipeliner_job.output_nodes:
-                existing_nodes.append(node.name)
-            for node in extra_output_nodes.keys():
-                if f"{job_dir.relative_to(project_dir)}/{node}" not in existing_nodes:
-                    pipeliner_job.add_output_node(
-                        node, extra_output_nodes[node][0], extra_output_nodes[node][1]
-                    )
+        if job_info.success:
+            # Write the output files which Relion produces
+            extra_output_nodes = create_output_files(
+                job_type=job_info.job_type,
+                job_dir=job_dir.relative_to(project_dir),
+                input_file=(
+                    job_info.input_file
+                    if job_dir.parent.name == "Import"
+                    else Path(job_info.input_file).relative_to(project_dir)
+                ),
+                output_file=Path(job_info.output_file).relative_to(project_dir),
+                relion_options=job_info.relion_options,
+                results=job_info.results,
+            )
+            if extra_output_nodes:
+                # Add any extra nodes if they are not already present
+                existing_nodes = []
+                for node in pipeliner_job.output_nodes:
+                    existing_nodes.append(node.name)
+                for node in extra_output_nodes.keys():
+                    if (
+                        f"{job_dir.relative_to(project_dir)}/{node}"
+                        not in existing_nodes
+                    ):
+                        pipeliner_job.add_output_node(
+                            node,
+                            extra_output_nodes[node][0],
+                            extra_output_nodes[node][1],
+                        )
 
-        # Save the metadata file
-        metadata_dict = pipeliner_job.gather_metadata()
-        with open(job_dir / "job_metadata.json", "w") as metadata_file:
-            metadata_file.write(json.dumps(metadata_dict))
+            # Save the metadata file
+            metadata_dict = pipeliner_job.gather_metadata()
+            with open(job_dir / "job_metadata.json", "w") as metadata_file:
+                metadata_file.write(json.dumps(metadata_dict))
 
         # Create the node and default_pipeline.star files in the project directory
         with ProjectGraph(read_only=False) as project:
             process = project.add_job(
                 pipeliner_job,
-                as_status="Succeeded",
+                as_status=("Succeeded" if job_info.success else "Failed"),
                 do_overwrite=True,
             )
             # Add the job commands to the process .CCPEM_pipeliner_jobinfo file

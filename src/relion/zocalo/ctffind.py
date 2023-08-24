@@ -176,10 +176,42 @@ class CTFFind(CommonService):
         )
         self.log.info(f"Running {command} {parameters_string}")
 
+        # Run ctffind and confirm it ran successfully
         result = subprocess.run(
             command, input=parameters_string.encode("ascii"), capture_output=True
         )
         self.parse_ctf_output(result.stdout.decode("utf8", "replace"))
+
+        # If this is SPA, send the results to be processed by the node creator
+        if ctf_params.experiment_type == "spa":
+            # Register the ctf job with the node creator
+            self.log.info(f"Sending {self.job_type} to node creator")
+            node_creator_parameters = {
+                "job_type": self.job_type,
+                "input_file": ctf_params.input_image,
+                "output_file": ctf_params.output_image,
+                "relion_options": dict(ctf_params.relion_options),
+                "command": (
+                    "".join(command)
+                    + "\n"
+                    + " ".join(str(param) for param in parameters_list)
+                ),
+                "stdout": result.stdout.decode("utf8", "replace"),
+                "stderr": result.stderr.decode("utf8", "replace"),
+            }
+            if result.returncode:
+                node_creator_parameters["success"] = False
+            else:
+                node_creator_parameters["success"] = True
+            if isinstance(rw, MockRW):
+                rw.transport.send(
+                    destination="node_creator",
+                    message={"parameters": node_creator_parameters, "content": "dummy"},
+                )
+            else:
+                rw.send_to("node_creator", node_creator_parameters)
+
+        # End here if the command failed
         if result.returncode:
             self.log.error(
                 f"CTFFind failed with exitcode {result.returncode}:\n"
@@ -250,31 +282,6 @@ class CTFFind(CommonService):
                     "file": ctf_params.output_image,
                 },
             )
-
-        # If this is SPA, send the results to be processed by the node creator
-        if ctf_params.experiment_type == "spa":
-            # Register the ctf job with the node creator
-            self.log.info(f"Sending {self.job_type} to node creator")
-            node_creator_parameters = {
-                "job_type": self.job_type,
-                "input_file": ctf_params.input_image,
-                "output_file": ctf_params.output_image,
-                "relion_options": dict(ctf_params.relion_options),
-                "command": (
-                    "".join(command)
-                    + "\n"
-                    + " ".join(str(param) for param in parameters_list)
-                ),
-                "stdout": result.stdout.decode("utf8", "replace"),
-                "stderr": result.stderr.decode("utf8", "replace"),
-            }
-            if isinstance(rw, MockRW):
-                rw.transport.send(
-                    destination="node_creator",
-                    message={"parameters": node_creator_parameters, "content": "dummy"},
-                )
-            else:
-                rw.send_to("node_creator", node_creator_parameters)
 
         # If this is SPA, also set up a cryolo job
         if ctf_params.experiment_type == "spa":

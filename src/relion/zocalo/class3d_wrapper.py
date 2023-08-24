@@ -139,6 +139,25 @@ class Class3DWrapper(zocalo.wrapper.BaseWrapper):
         result = subprocess.run(
             initial_model_command, cwd=str(project_dir), capture_output=True
         )
+
+        # Register the initial model job with the node creator
+        self.log.info("Sending relion.initialmodel (model) to node creator")
+        node_creator_parameters = {
+            "job_type": "relion.initialmodel",
+            "input_file": f"{project_dir}/{particles_file}",
+            "output_file": f"{job_dir}/initial_model.mrc",
+            "relion_options": dict(initial_model_params.relion_options),
+            "command": " ".join(initial_model_command),
+            "stdout": result.stdout.decode("utf8", "replace"),
+            "stderr": result.stderr.decode("utf8", "replace"),
+        }
+        if result.returncode:
+            node_creator_parameters["success"] = False
+        else:
+            node_creator_parameters["success"] = True
+        self.recwrap.send_to("node_creator", node_creator_parameters)
+
+        # End here if the command failed
         if result.returncode:
             self.log.error(
                 f"Relion initial model failed with exitcode {result.returncode}:\n"
@@ -169,28 +188,32 @@ class Class3DWrapper(zocalo.wrapper.BaseWrapper):
         result = subprocess.run(
             align_symmetry_command, cwd=str(project_dir), capture_output=True
         )
+
+        # Register the initial model job with the node creator
+        self.log.info("Sending relion.initialmodel (alignment) to node creator")
+        node_creator_parameters = {
+            "job_type": "relion.initialmodel",
+            "input_file": f"{project_dir}/{particles_file}",
+            "output_file": f"{job_dir}/initial_model.mrc",
+            "relion_options": dict(initial_model_params.relion_options),
+            "command": "".join(align_symmetry_command),
+            "stdout": result.stdout.decode("utf8", "replace"),
+            "stderr": result.stderr.decode("utf8", "replace"),
+        }
+        if result.returncode:
+            node_creator_parameters["success"] = False
+        else:
+            node_creator_parameters["success"] = True
+        self.recwrap.send_to("node_creator", node_creator_parameters)
+
+        # End here if the command failed
         if result.returncode:
             self.log.error(
                 f"Relion initial model symmetry alignment "
                 f"failed with exitcode {result.returncode}:\n"
                 + result.stderr.decode("utf8", "replace")
             )
-            return False
-
-        # Register the initial model job with the node creator
-        self.log.info("Sending relion.initialmodel to node creator")
-        node_creator_parameters = {
-            "job_type": "relion.initialmodel",
-            "input_file": f"{project_dir}/{particles_file}",
-            "output_file": f"{job_dir}/initial_model.mrc",
-            "relion_options": dict(initial_model_params.relion_options),
-            "command": (
-                " ".join(initial_model_command) + "\n" + "".join(align_symmetry_command)
-            ),
-            "stdout": result.stdout.decode("utf8", "replace"),
-            "stderr": result.stderr.decode("utf8", "replace"),
-        }
-        self.recwrap.send_to("node_creator", node_creator_parameters)
+            return "", {}
 
         # Send Murfey the location of the initial model
         murfey_params = {
@@ -290,6 +313,7 @@ class Class3DWrapper(zocalo.wrapper.BaseWrapper):
             initial_model_ispyb_parameters = {}
         if not initial_model_file:
             # If there isn't an initial model file something has gone wrong
+            self.log.error("No initial model file found, stopping.")
             return False
 
         class3d_flags = {
@@ -335,12 +359,6 @@ class Class3DWrapper(zocalo.wrapper.BaseWrapper):
         result = subprocess.run(
             class3d_command, cwd=str(project_dir), capture_output=True
         )
-        if result.returncode:
-            self.log.error(
-                f"Relion Class3D failed with exitcode {result.returncode}:\n"
-                + result.stderr.decode("utf8", "replace")
-            )
-            return False
 
         # Register the Class3D job with the node creator
         self.log.info(f"Sending {job_type} to node creator")
@@ -353,7 +371,19 @@ class Class3DWrapper(zocalo.wrapper.BaseWrapper):
             "stdout": result.stdout.decode("utf8", "replace"),
             "stderr": result.stderr.decode("utf8", "replace"),
         }
+        if result.returncode:
+            node_creator_parameters["success"] = False
+        else:
+            node_creator_parameters["success"] = True
         self.recwrap.send_to("node_creator", node_creator_parameters)
+
+        # End here if the command failed
+        if result.returncode:
+            self.log.error(
+                f"Relion Class3D failed with exitcode {result.returncode}:\n"
+                + result.stderr.decode("utf8", "replace")
+            )
+            return False
 
         # Send classification job information to ispyb
         ispyb_parameters = []

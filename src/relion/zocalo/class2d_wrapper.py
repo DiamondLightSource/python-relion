@@ -188,12 +188,6 @@ class Class2DWrapper(zocalo.wrapper.BaseWrapper):
         result = subprocess.run(
             class2d_command, cwd=str(project_dir), capture_output=True
         )
-        if result.returncode:
-            self.log.error(
-                f"Relion Class2D failed with exitcode {result.returncode}:\n"
-                + result.stderr.decode("utf8", "replace")
-            )
-            return False
 
         # Register the Class2D job with the node creator
         self.log.info(f"Sending {job_type} to node creator")
@@ -206,7 +200,19 @@ class Class2DWrapper(zocalo.wrapper.BaseWrapper):
             "stdout": result.stdout.decode("utf8", "replace"),
             "stderr": result.stderr.decode("utf8", "replace"),
         }
+        if result.returncode:
+            node_creator_parameters["success"] = False
+        else:
+            node_creator_parameters["success"] = True
         self.recwrap.send_to("node_creator", node_creator_parameters)
+
+        # End here if the command failed
+        if result.returncode:
+            self.log.error(
+                f"Relion Class2D failed with exitcode {result.returncode}:\n"
+                + result.stderr.decode("utf8", "replace")
+            )
+            return False
 
         # Send classification job information to ispyb
         ispyb_parameters = []

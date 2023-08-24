@@ -154,6 +154,31 @@ class CrYOLO(CommonService):
         # Run cryolo and confirm it ran successfully
         result = subprocess.run(command, cwd=project_dir, capture_output=True)
         self.parse_cryolo_output(result.stdout.decode("utf8", "replace"))
+
+        # Register the cryolo job with the node creator
+        self.log.info(f"Sending {self.job_type} to node creator")
+        node_creator_parameters = {
+            "job_type": self.job_type,
+            "input_file": cryolo_params.input_path,
+            "output_file": cryolo_params.output_path,
+            "relion_options": dict(cryolo_params.relion_options),
+            "command": " ".join(command),
+            "stdout": result.stdout.decode("utf8", "replace"),
+            "stderr": result.stderr.decode("utf8", "replace"),
+        }
+        if result.returncode:
+            node_creator_parameters["success"] = False
+        else:
+            node_creator_parameters["success"] = True
+        if isinstance(rw, MockRW):
+            rw.transport.send(
+                destination="node_creator",
+                message={"parameters": node_creator_parameters, "content": "dummy"},
+            )
+        else:
+            rw.send_to("node_creator", node_creator_parameters)
+
+        # End here if the command failed
         if result.returncode:
             self.log.error(
                 f"crYOLO failed with exitcode {result.returncode}:\n"
@@ -285,25 +310,6 @@ class CrYOLO(CommonService):
                     "extraction_parameters": extraction_params,
                 },
             )
-
-        # Register the cryolo job with the node creator
-        self.log.info(f"Sending {self.job_type} to node creator")
-        node_creator_parameters = {
-            "job_type": self.job_type,
-            "input_file": cryolo_params.input_path,
-            "output_file": cryolo_params.output_path,
-            "relion_options": dict(cryolo_params.relion_options),
-            "command": " ".join(command),
-            "stdout": result.stdout.decode("utf8", "replace"),
-            "stderr": result.stderr.decode("utf8", "replace"),
-        }
-        if isinstance(rw, MockRW):
-            rw.transport.send(
-                destination="node_creator",
-                message={"parameters": node_creator_parameters, "content": "dummy"},
-            )
-        else:
-            rw.send_to("node_creator", node_creator_parameters)
 
         self.log.info(f"Done {self.job_type} for {cryolo_params.input_path}.")
         rw.transport.ack(header)

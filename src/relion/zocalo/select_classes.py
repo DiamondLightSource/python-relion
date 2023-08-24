@@ -163,15 +163,8 @@ class SelectClasses(CommonService):
         result = subprocess.run(
             autoselect_command, cwd=str(project_dir), capture_output=True
         )
-        if result.returncode:
-            self.log.error(
-                f"2D autoselection failed with exitcode {result.returncode}:\n"
-                + result.stderr.decode("utf8", "replace")
-            )
-            rw.transport.nack(header)
-            return
 
-        if not autoselect_params.min_score:
+        if not autoselect_params.min_score and not result.returncode:
             # If a minimum score isn't given, then work it out and rerun the job
             star_doc = cif.read_file(str(select_dir / "rank_model.star"))
             star_block = star_doc["model_classes"]
@@ -202,15 +195,8 @@ class SelectClasses(CommonService):
             result = subprocess.run(
                 autoselect_command, cwd=str(project_dir), capture_output=True
             )
-            if result.returncode:
-                self.log.error(
-                    f"2D autoselection failed with exitcode {result.returncode}:\n"
-                    + result.stderr.decode("utf8", "replace")
-                )
-                rw.transport.nack(header)
-                return
 
-        # Send to node creator
+        # Send class selection job to node creator
         self.log.info(f"Sending {self.job_type} to node creator")
         autoselect_node_creator_params = {
             "job_type": self.job_type,
@@ -221,6 +207,10 @@ class SelectClasses(CommonService):
             "stdout": result.stdout.decode("utf8", "replace"),
             "stderr": result.stderr.decode("utf8", "replace"),
         }
+        if result.returncode:
+            autoselect_node_creator_params["success"] = False
+        else:
+            autoselect_node_creator_params["success"] = True
         if isinstance(rw, MockRW):
             rw.transport.send(
                 destination="node_creator",
@@ -231,6 +221,15 @@ class SelectClasses(CommonService):
             )
         else:
             rw.send_to("node_creator", autoselect_node_creator_params)
+
+        # End here if the command failed
+        if result.returncode:
+            self.log.error(
+                f"2D autoselection failed with exitcode {result.returncode}:\n"
+                + result.stderr.decode("utf8", "replace")
+            )
+            rw.transport.nack(header)
+            return
 
         # Run the combine star files job to combine the files into particles_all.star
         self.log.info("Running star file combination and splitting")
@@ -253,6 +252,31 @@ class SelectClasses(CommonService):
             combine_star_command, cwd=str(project_dir), capture_output=True
         )
         self.parse_combiner_output(result.stdout.decode("utf8", "replace"))
+
+        # Send combination job to node creator
+        self.log.info("Sending combine_star_files_job (combine) to node creator")
+        combine_node_creator_params = {
+            "job_type": "combine_star_files_job",
+            "input_file": f"{select_dir}/{autoselect_params.particles_file}",
+            "output_file": f"{combine_star_dir}/particles_all.star",
+            "relion_options": dict(autoselect_params.relion_options),
+            "command": " ".join(combine_star_command),
+            "stdout": result.stdout.decode("utf8", "replace"),
+            "stderr": result.stderr.decode("utf8", "replace"),
+        }
+        if result.returncode:
+            combine_node_creator_params["success"] = False
+        else:
+            combine_node_creator_params["success"] = True
+        if isinstance(rw, MockRW):
+            rw.transport.send(
+                destination="node_creator",
+                message={"parameters": combine_node_creator_params, "content": "dummy"},
+            )
+        else:
+            rw.send_to("node_creator", combine_node_creator_params)
+
+        # End here if the command failed
         if result.returncode:
             self.log.error(
                 f"Star file combination failed with exitcode {result.returncode}:\n"
@@ -310,27 +334,22 @@ class SelectClasses(CommonService):
             split_star_command, cwd=str(project_dir), capture_output=True
         )
         self.parse_combiner_output(result.stdout.decode("utf8", "replace"))
-        if result.returncode:
-            self.log.error(
-                f"Star file splitting failed with exitcode {result.returncode}:\n"
-                + result.stderr.decode("utf8", "replace")
-            )
-            rw.transport.nack(header)
-            return
 
-        # Send to node creator
-        self.log.info("Sending combine_star_files_job to node creator")
+        # Send splitting job to node creator
+        self.log.info("Sending combine_star_files_job (split) to node creator")
         combine_node_creator_params = {
             "job_type": "combine_star_files_job",
             "input_file": f"{select_dir}/{autoselect_params.particles_file}",
             "output_file": f"{combine_star_dir}/particles_all.star",
             "relion_options": dict(autoselect_params.relion_options),
-            "command": (
-                " ".join(combine_star_command) + "\n" + " ".join(split_star_command)
-            ),
+            "command": " ".join(split_star_command),
             "stdout": result.stdout.decode("utf8", "replace"),
             "stderr": result.stderr.decode("utf8", "replace"),
         }
+        if result.returncode:
+            combine_node_creator_params["success"] = False
+        else:
+            combine_node_creator_params["success"] = True
         if isinstance(rw, MockRW):
             rw.transport.send(
                 destination="node_creator",
@@ -338,6 +357,15 @@ class SelectClasses(CommonService):
             )
         else:
             rw.send_to("node_creator", combine_node_creator_params)
+
+        # End here if the command failed
+        if result.returncode:
+            self.log.error(
+                f"Star file splitting failed with exitcode {result.returncode}:\n"
+                + result.stderr.decode("utf8", "replace")
+            )
+            rw.transport.nack(header)
+            return
 
         # Create 3D classification jobs
         if send_to_3d_classification:
