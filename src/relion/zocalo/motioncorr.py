@@ -469,7 +469,10 @@ class MotionCorr(CommonService):
             import_movie = (
                 project_dir
                 / "Import/job001"
-                / Path(mc_params.movie).relative_to(project_dir)
+                / Path(mc_params.mrc_out)
+                .relative_to(project_dir / "MotionCorr/job002")
+                .parent
+                / Path(mc_params.movie).name
             )
             if not import_movie.parent.is_dir():
                 import_movie.parent.mkdir(parents=True)
