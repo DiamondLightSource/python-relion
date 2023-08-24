@@ -96,7 +96,6 @@ def test_motioncorr_service_spa(
                 "cryolo_threshold": 0.3,
                 "ampl_contrast": 0.2,
             },
-            "particle_diameter": 1.1,
         },
         "content": "dummy",
     }
@@ -235,7 +234,6 @@ def test_motioncorr_service_spa(
                 "experiment_type": "spa",
                 "output_image": f"{tmp_path}/CtfFind/job006/Movies/sample.ctf",
                 "pix_size": motioncorr_test_message["parameters"]["pix_size"],
-                "autopick": {"particle_diameter": 1.1},
             },
             "content": "dummy",
         },
