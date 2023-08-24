@@ -310,7 +310,7 @@ class CrYOLO(CommonService):
                     "micrograph": cryolo_params.input_path,
                     "particle_diameters": list(cryolo_particle_sizes),
                     "extraction_parameters": extraction_params,
-                    "session_id": cryolo_params.murfey_session_id,
+                    "session_id": cryolo_params.session_id,
                 },
             )
 
