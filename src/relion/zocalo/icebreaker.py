@@ -10,6 +10,7 @@ import workflows.recipe
 from pydantic import BaseModel, Field, ValidationError
 from workflows.services.common_service import CommonService
 
+from relion.cryolo_relion_it import icebreaker_histogram
 from relion.zocalo.spa_relion_service_options import RelionServiceOptions
 
 
@@ -249,6 +250,54 @@ class IceBreaker(CommonService):
                 )
             else:
                 rw.send_to("ispyb_connector", ispyb_parameters)
+
+        # Create histograms and send to ispyb for the particle grouping jobs
+        if (
+            icebreaker_params.icebreaker_type == "particles"
+            and Path(icebreaker_params.input_particles).name == "particles_split1.star"
+        ):
+            Path(project_dir / "IceBreaker/Icebreaker_group_batch_1").symlink_to(
+                icebreaker_params.output_path
+            )
+            try:
+                pdf_file_path = icebreaker_histogram.create_pdf_histogram(
+                    project_dir,
+                    version=4,
+                )
+                json_file_path = icebreaker_histogram.create_json_histogram(
+                    project_dir,
+                    version=4,
+                )
+                if pdf_file_path and json_file_path:
+                    attachment_list = [
+                        {
+                            "ispyb_command": "add_program_attachment",
+                            "file_name": f"{Path(json_file_path.name)}",
+                            "file_path": f"{Path(json_file_path.parent)}",
+                            "file_type": "Graph",
+                        },
+                        {
+                            "ispyb_command": "add_program_attachment",
+                            "file_name": f"{Path(pdf_file_path.name)}",
+                            "file_path": f"{Path(pdf_file_path.parent)}",
+                            "file_type": "Graph",
+                        },
+                    ]
+                    self.log.info(f"Sending ISPyB attachments {attachment_list}")
+                    if isinstance(rw, MockRW):
+                        rw.transport.send(
+                            destination="ispyb_connector",
+                            message={
+                                "parameters": {"ispyb_command_list": attachment_list},
+                                "content": "dummy",
+                            },
+                        )
+                    else:
+                        rw.send_to(
+                            "ispyb_connector", {"ispyb_command_list": attachment_list}
+                        )
+            except (FileNotFoundError, OSError, RuntimeError, ValueError):
+                self.log.warning("Error creating Icebreaker histogram.")
 
         # Register the icebreaker job with the node creator
         self.log.info(f"Sending {this_job_type} to node creator")
