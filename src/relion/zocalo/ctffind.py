@@ -266,7 +266,6 @@ class CTFFind(CommonService):
                     + "\n"
                     + " ".join(str(param) for param in parameters_list)
                 ),
-                "stdout": result.stdout.decode("utf8", "replace"),
                 "stderr": result.stderr.decode("utf8", "replace"),
             }
             if isinstance(rw, MockRW):

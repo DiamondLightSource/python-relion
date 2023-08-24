@@ -275,7 +275,11 @@ class NodeCreator(CommonService):
         extra_output_nodes = create_output_files(
             job_type=job_info.job_type,
             job_dir=job_dir.relative_to(project_dir),
-            input_file=Path(job_info.input_file).relative_to(project_dir),
+            input_file=(
+                job_info.input_file
+                if job_dir.parent.name == "Import"
+                else Path(job_info.input_file).relative_to(project_dir)
+            ),
             output_file=Path(job_info.output_file).relative_to(project_dir),
             relion_options=job_info.relion_options,
             results=job_info.results,
