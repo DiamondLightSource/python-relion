@@ -24,7 +24,7 @@ spec:
           requests:
             nvidia.com/gpu: "1"
           limits:
-            memory: 25Gi
+            memory: {{ .Values.memoryLimit }}
             nvidia.com/gpu: "1"
         command: ["/bin/sh"]
         args: 
