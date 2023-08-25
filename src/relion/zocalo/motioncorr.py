@@ -304,6 +304,43 @@ class MotionCorr(CommonService):
                 )
         average_motion_per_frame = total_motion / len(self.x_shift_list)
 
+        # Extract results for ispyb
+        drift_plot_x = [range(0, len(self.x_shift_list))]
+        drift_plot_y = self.each_total_motion
+        fig = px.scatter(x=drift_plot_x, y=drift_plot_y)
+        drift_plot_name = str(Path(mc_params.movie).stem) + "_drift_plot.json"
+        plot_path = Path(mc_params.mrc_out).parent / drift_plot_name
+        snapshot_path = Path(mc_params.mrc_out).with_suffix(".jpeg")
+        fig.write_json(plot_path)
+
+        # Forward results to ISPyB
+        ispyb_parameters = {
+            "ispyb_command": "buffer",
+            "buffer_command": {"ispyb_command": "insert_motion_correction"},
+            "buffer_store": mc_params.mc_uuid,
+            "first_frame": 1,
+            "last_frame": len(self.x_shift_list),
+            "total_motion": total_motion,
+            "average_motion_per_frame": average_motion_per_frame,
+            "drift_plot_full_path": str(plot_path),
+            "micrograph_snapshot_full_path": str(snapshot_path),
+            "micrograph_full_path": str(mc_params.mrc_out),
+            "patches_used_x": mc_params.patch_size["x"],
+            "patches_used_y": mc_params.patch_size["y"],
+            "dose_per_frame": mc_params.fm_dose,
+        }
+        self.log.info(f"Sending to ispyb {ispyb_parameters}")
+        if isinstance(rw, MockRW):
+            rw.transport.send(
+                destination="ispyb_connector",
+                message={
+                    "parameters": ispyb_parameters,
+                    "content": {"dummy": "dummy"},
+                },
+            )
+        else:
+            rw.send_to("ispyb_connector", ispyb_parameters)
+
         # If this is SPA, determine and set up the next jobs
         if mc_params.experiment_type == "spa":
             # Set up icebreaker if requested, then ctffind
@@ -396,67 +433,6 @@ class MotionCorr(CommonService):
         else:
             rw.send_to("ctffind", mc_params.ctf)
 
-        # Extract results for ispyb
-        drift_plot_x = [range(0, len(self.x_shift_list))]
-        drift_plot_y = self.each_total_motion
-        fig = px.scatter(x=drift_plot_x, y=drift_plot_y)
-        drift_plot_name = str(Path(mc_params.movie).stem) + "_drift_plot.json"
-        plot_path = Path(mc_params.mrc_out).parent / drift_plot_name
-        snapshot_path = Path(mc_params.mrc_out).with_suffix(".jpeg")
-        fig.write_json(plot_path)
-
-        # Forward results to ISPyB
-        ispyb_parameters = {
-            "ispyb_command": "buffer",
-            "buffer_command": {"ispyb_command": "insert_motion_correction"},
-            "buffer_store": mc_params.mc_uuid,
-            "first_frame": 1,
-            "last_frame": len(self.x_shift_list),
-            "total_motion": total_motion,
-            "average_motion_per_frame": average_motion_per_frame,
-            "drift_plot_full_path": str(plot_path),
-            "micrograph_snapshot_full_path": str(snapshot_path),
-            "micrograph_full_path": str(mc_params.mrc_out),
-            "patches_used_x": mc_params.patch_size["x"],
-            "patches_used_y": mc_params.patch_size["y"],
-            "dose_per_frame": mc_params.fm_dose,
-        }
-        self.log.info(f"Sending to ispyb {ispyb_parameters}")
-        if isinstance(rw, MockRW):
-            rw.transport.send(
-                destination="ispyb_connector",
-                message={
-                    "parameters": ispyb_parameters,
-                    "content": {"dummy": "dummy"},
-                },
-            )
-        else:
-            rw.send_to("ispyb_connector", ispyb_parameters)
-
-        if mc_params.experiment_type == "tomography":
-            # Forward results to murfey
-            self.log.info("Sending to Murfey")
-            if isinstance(rw, MockRW):
-                rw.transport.send(
-                    "murfey_feedback",
-                    {
-                        "register": "motion_corrected",
-                        "movie": mc_params.movie,
-                        "mrc_out": mc_params.mrc_out,
-                        "movie_id": mc_params.movie_id,
-                    },
-                )
-            else:
-                rw.send_to(
-                    "murfey_feedback",
-                    {
-                        "register": "motion_corrected",
-                        "movie": mc_params.movie,
-                        "mrc_out": mc_params.mrc_out,
-                        "movie_id": mc_params.movie_id,
-                    },
-                )
-
         # Forward results to images service
         self.log.info(f"Sending to images service {mc_params.mrc_out}")
         if isinstance(rw, MockRW):
@@ -535,6 +511,30 @@ class MotionCorr(CommonService):
                 )
             else:
                 rw.send_to("node_creator", node_creator_parameters)
+
+        # Register completion with Murfey if this is tomography
+        if mc_params.experiment_type == "tomography":
+            self.log.info("Sending to Murfey")
+            if isinstance(rw, MockRW):
+                rw.transport.send(
+                    "murfey_feedback",
+                    {
+                        "register": "motion_corrected",
+                        "movie": mc_params.movie,
+                        "mrc_out": mc_params.mrc_out,
+                        "movie_id": mc_params.movie_id,
+                    },
+                )
+            else:
+                rw.send_to(
+                    "murfey_feedback",
+                    {
+                        "register": "motion_corrected",
+                        "movie": mc_params.movie,
+                        "mrc_out": mc_params.mrc_out,
+                        "movie_id": mc_params.movie_id,
+                    },
+                )
 
         self.log.info(f"Done {self.job_type} for {mc_params.movie}.")
         rw.transport.ack(header)
