@@ -290,6 +290,9 @@ class IceBreaker(CommonService):
             icebreaker_params.icebreaker_type == "particles"
             and Path(icebreaker_params.input_particles).name == "particles_split1.star"
         ):
+            Path(project_dir / "IceBreaker/Icebreaker_group_batch_1").unlink(
+                missing_ok=True
+            )
             Path(project_dir / "IceBreaker/Icebreaker_group_batch_1").symlink_to(
                 icebreaker_params.output_path
             )
@@ -322,13 +325,20 @@ class IceBreaker(CommonService):
                         rw.transport.send(
                             destination="ispyb_connector",
                             message={
-                                "parameters": {"ispyb_command_list": attachment_list},
+                                "parameters": {
+                                    "ispyb_command": "multipart_message",
+                                    "ispyb_command_list": attachment_list,
+                                },
                                 "content": "dummy",
                             },
                         )
                     else:
                         rw.send_to(
-                            "ispyb_connector", {"ispyb_command_list": attachment_list}
+                            "ispyb_connector",
+                            {
+                                "ispyb_command": "multipart_message",
+                                "ispyb_command_list": attachment_list,
+                            },
                         )
             except (FileNotFoundError, OSError, RuntimeError, ValueError):
                 self.log.warning("Error creating Icebreaker histogram.")
