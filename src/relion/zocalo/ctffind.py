@@ -174,7 +174,7 @@ class CTFFind(CommonService):
         self.log.info(
             f"Input: {ctf_params.input_image} Output: {ctf_params.output_image}"
         )
-        self.log.info(f"Running {command} {parameters_string}")
+        self.log.info(f"Running {command} " + " ".join(map(str, parameters_list)))
 
         # Run ctffind and confirm it ran successfully
         result = subprocess.run(
