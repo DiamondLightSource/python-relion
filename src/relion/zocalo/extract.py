@@ -28,6 +28,7 @@ class ExtractParameters(BaseModel):
     particle_diameter: float = 0
     boxsize: int = 256
     small_boxsize: int = 64
+    batch_size: int = 50000
     norm: bool = True
     bg_radius: int = -1
     downscale: bool = False
@@ -124,6 +125,7 @@ class Extract(CommonService):
             extract_params.relion_options.boxsize = extract_params.boxsize
             extract_params.relion_options.small_boxsize = extract_params.small_boxsize
         extract_params.relion_options.downscale = extract_params.downscale
+        extract_params.relion_options.batch_size = extract_params.batch_size
 
         # Make sure the output directory exists
         job_dir = Path(re.search(".+/job[0-9]{3}/", extract_params.output_file)[0])
@@ -325,7 +327,7 @@ class Extract(CommonService):
         self.log.info("Sending to particle selection")
         select_params = {
             "input_file": extract_params.output_file,
-            "batch_size": extract_params.relion_options.batch_size,
+            "batch_size": extract_params.batch_size,
             "image_size": box_len,
             "relion_options": dict(extract_params.relion_options),
         }
