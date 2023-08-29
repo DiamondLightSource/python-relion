@@ -114,7 +114,7 @@ def test_cryolo_service(mock_subprocess, mock_environment, offline_transport, tm
             "--threshold",
             "0.3",
         ],
-        cwd=tmp_path,
+        cwd=tmp_path / "AutoPick/job007",
         capture_output=True,
     )
 
