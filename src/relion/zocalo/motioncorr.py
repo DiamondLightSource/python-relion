@@ -268,6 +268,7 @@ class MotionCorr(CommonService):
                     "command": " ".join(command),
                     "stdout": result.stdout.decode("utf8", "replace"),
                     "stderr": result.stderr.decode("utf8", "replace"),
+                    "success": False,
                 }
                 if isinstance(rw, MockRW):
                     rw.transport.send(
