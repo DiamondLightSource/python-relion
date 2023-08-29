@@ -69,6 +69,8 @@ def select_classes_common_setup(tmp_path):
             "min_particles": 500,
             "class3d_batch_size": 50000,
             "class3d_max_size": 200000,
+            "program_id": 1,
+            "session_id": 2,
             "relion_options": input_relion_options,
         },
         "content": "dummy",
@@ -223,6 +225,8 @@ def test_select_classes_service_first_batch(
         message={
             "register": "save_class_selection_score",
             "class_selection_score": 0.006,
+            "program_id": 1,
+            "session_id": 2,
         },
     )
     offline_transport.send.assert_any_call(
@@ -234,6 +238,8 @@ def test_select_classes_service_first_batch(
                 "class3d_dir": f"{tmp_path}/Class3D/job",
                 "batch_size": 50000,
             },
+            "program_id": 1,
+            "session_id": 2,
         },
     )
 
@@ -306,6 +312,8 @@ def test_select_classes_service_batch_threshold(
                 "class3d_dir": f"{tmp_path}/Class3D/job",
                 "batch_size": 100000,
             },
+            "program_id": 1,
+            "session_id": 2,
         },
     )
 
@@ -367,6 +375,8 @@ def test_select_classes_service_two_thresholds(
                 "class3d_dir": f"{tmp_path}/Class3D/job",
                 "batch_size": 100000,
             },
+            "program_id": 1,
+            "session_id": 2,
         },
     )
 
@@ -429,6 +439,8 @@ def test_select_classes_service_last_threshold(
                 "class3d_dir": f"{tmp_path}/Class3D/job",
                 "batch_size": 200000,
             },
+            "program_id": 1,
+            "session_id": 2,
         },
     )
 
