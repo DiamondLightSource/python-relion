@@ -262,7 +262,7 @@ class MotionCorr(CommonService):
                 # On spa failure send the outputs to the node creator
                 node_creator_parameters = {
                     "job_type": self.job_type,
-                    "input_file": mc_params.movie,
+                    "input_file": mc_params.mrc_out,
                     "output_file": mc_params.mrc_out,
                     "relion_options": dict(mc_params.relion_options),
                     "command": " ".join(command),
