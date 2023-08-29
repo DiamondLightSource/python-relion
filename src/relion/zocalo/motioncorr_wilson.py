@@ -16,14 +16,14 @@ from relion.zocalo.motioncorr import MotionCorr
 
 slurm_json_template = {
     "job": {
-        "partition": "em,cs05r",
+        "partition": "cs05r",
         "nodes": 1,
         "tasks": 4,
         "cpus_per_task": 10,
         "gpus": 4,
         "memory_per_gpu": 7000,
         "name": "MotionCorr",
-        "time_limit": "72:00:00",
+        "time_limit": "1:00:00",
         "environment": {
             "PATH": "/bin:/usr/bin/:/usr/local/bin/",
             "LD_LIBRARY_PATH": "/lib/:/lib64/:/usr/local/lib",
@@ -31,7 +31,6 @@ slurm_json_template = {
             "USER": "k8s-em",
             "HOME": "/home/k8s-em",
         },
-        "prefer": "em_node",
     },
     "script": (
         "#!/bin/bash\n"
@@ -205,7 +204,7 @@ class MotionCorrWilson(MotionCorr, CommonService):
             self.parse_mc_output(mc_output_file)
             with open(mc_output_file, "r") as mc_stdout:
                 stdout = mc_stdout.read()
-            with open(mc_output_file, "r") as mc_stderr:
+            with open(mc_error_file, "r") as mc_stderr:
                 stderr = mc_stderr.read()
         except FileNotFoundError:
             self.log.error(f"MotionCor output file {mc_output_file} not found")
