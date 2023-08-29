@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import re
-import shutil
 import subprocess
 from pathlib import Path
 
@@ -127,9 +126,8 @@ class CrYOLO(CommonService):
             rw.transport.nack(header)
             return
 
-        # CrYOLO requires running in the project directory
+        # CrYOLO requires running in the project directory or job directory
         job_dir = Path(re.search(".+/job[0-9]{3}/", cryolo_params.output_path)[0])
-        project_dir = job_dir.parent.parent
         job_dir.mkdir(parents=True, exist_ok=True)
 
         # Construct a command to run cryolo with the given parameters
@@ -154,7 +152,7 @@ class CrYOLO(CommonService):
         )
 
         # Run cryolo and confirm it ran successfully
-        result = subprocess.run(command, cwd=project_dir, capture_output=True)
+        result = subprocess.run(command, cwd=job_dir, capture_output=True)
         self.parse_cryolo_output(result.stdout.decode("utf8", "replace"))
 
         # Register the cryolo job with the node creator
@@ -188,10 +186,6 @@ class CrYOLO(CommonService):
             )
             rw.transport.nack(header)
             return
-
-        # Remove the temporary directories made by cryolo
-        shutil.rmtree(project_dir / "logs")
-        shutil.rmtree(project_dir / "filtered")
 
         # Find the diameters of the particles
         cryolo_particle_sizes = np.array([])
