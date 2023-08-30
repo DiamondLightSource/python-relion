@@ -50,6 +50,8 @@ class Class2DParameters(BaseModel):
     do_scale: bool = True
     threads: int = 4
     gpus: str = "0"
+    program_id: int
+    session_id: int
     relion_options: RelionServiceOptions
     combine_star_job_number: int
     picker_id: int
@@ -321,6 +323,15 @@ class Class2DWrapper(zocalo.wrapper.BaseWrapper):
                 "python": class2d_params.autoselect_python,
             }
             self.recwrap.send_to("select_classes", autoselect_parameters)
+        else:
+            # Tell Murfey the incomplete batch has finished
+            murfey_params = {
+                "register": "done_incomplete_2d_batch",
+                "job_dir": class2d_params.class2d_dir,
+                "program_id": class2d_params.program_id,
+                "session_id": class2d_params.session_id,
+            }
+            self.recwrap.send_to("murfey_feedback", murfey_params)
 
         self.log.info(f"Done {job_type} for {class2d_params.particles_file}.")
         return True

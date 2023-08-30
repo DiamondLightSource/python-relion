@@ -469,5 +469,13 @@ class Class3DWrapper(zocalo.wrapper.BaseWrapper):
             },
         )
 
+        # Tell Murfey the batch has finished
+        murfey_params = {
+            "register": "done_3d_batch",
+            "program_id": class3d_params.program_id,
+            "session_id": class3d_params.session_id,
+        }
+        self.recwrap.send_to("murfey_feedback", murfey_params)
+
         self.log.info(f"Done {job_type} for {class3d_params.particles_file}.")
         return True
