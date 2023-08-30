@@ -249,6 +249,7 @@ class SelectClasses(CommonService):
             combine_star_command.append(str(combine_star_dir / "particles_all.star"))
         else:
             combine_star_dir.mkdir(parents=True, exist_ok=True)
+            Path(project_dir / "Select/Star_combination").symlink_to(combine_star_dir)
             self.previous_total_count = 0
         combine_star_command.extend(("--output_dir", str(combine_star_dir)))
 
