@@ -207,6 +207,16 @@ class IceBreaker(CommonService):
             node_creator_parameters["success"] = False
         else:
             node_creator_parameters["success"] = True
+            if icebreaker_params.icebreaker_type == "summary":
+                # Summary jobs need to read results and send them to node creation
+                self.parse_icebreaker_output(result.stdout.decode("utf8", "replace"))
+                node_creator_parameters["results"]["summary"] = [
+                    self.ice_minimum,
+                    self.ice_q1,
+                    self.ice_median,
+                    self.ice_q2,
+                    self.ice_maximum,
+                ]
         if icebreaker_params.icebreaker_type == "particles":
             node_creator_parameters[
                 "input_file"
@@ -265,7 +275,6 @@ class IceBreaker(CommonService):
 
         # Send results to ispyb
         if icebreaker_params.icebreaker_type == "summary":
-            self.parse_icebreaker_output(result.stdout.decode("utf8", "replace"))
             ispyb_parameters = {
                 "ispyb_command": "buffer",
                 "buffer_lookup": {"motion_correction_id": icebreaker_params.mc_uuid},

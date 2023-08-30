@@ -203,6 +203,12 @@ def _icebreaker_output_files(
     relion_options: RelionServiceOptions,
     results: dict,
 ):
+
+    if results["icebreaker_type"] != "particles":
+        # Micrograph icebreaker jobs need a file listing the completed micrographs
+        with open(job_dir / "done_mics.txt", "a+") as f:
+            f.write(input_file.name + "\n")
+
     if results["icebreaker_type"] == "micrographs":
         # Micrograph jobs save a list of micrographs and their motion
         star_file = job_dir / "grouped_micrographs.star"
@@ -223,8 +229,16 @@ def _icebreaker_output_files(
             )
             + "_flattened.mrc"
         )
+    elif results["icebreaker_type"] == "summary":
+        csv_file = job_dir / "five_figs_test.csv"
+        if not csv_file.exists():
+            with open(csv_file, "w") as f:
+                f.write("path,min,q1,q2=median,q3,max\n")
+        with open(csv_file, "a+") as f:
+            f.write(",".join(results["summary"]) + "\n")
+        return
     else:
-        # Nothing to do for summary and particles jobs
+        # Nothing to do for particles job
         return
 
     # Read and append to the existing output file, or otherwise create one
