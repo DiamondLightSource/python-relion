@@ -211,11 +211,11 @@ class IceBreaker(CommonService):
                 # Summary jobs need to read results and send them to node creation
                 self.parse_icebreaker_output(result.stdout.decode("utf8", "replace"))
                 node_creator_parameters["results"]["summary"] = [
-                    self.ice_minimum,
-                    self.ice_q1,
-                    self.ice_median,
-                    self.ice_q2,
-                    self.ice_maximum,
+                    str(self.ice_minimum),
+                    str(self.ice_q1),
+                    str(self.ice_median),
+                    str(self.ice_q2),
+                    str(self.ice_maximum),
                 ]
         if icebreaker_params.icebreaker_type == "particles":
             node_creator_parameters[

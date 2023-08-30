@@ -328,7 +328,11 @@ def test_node_creator_icebreaker_summary(mock_environment, offline_transport, tm
         "icebreaker.micrograph_analysis.summary",
         input_file,
         output_file,
-        results={"icebreaker_type": "summary", "total_motion": "10"},
+        results={
+            "icebreaker_type": "summary",
+            "total_motion": "10",
+            "summary": ["0", "1", "2", "3", "4"],
+        },
     )
 
 

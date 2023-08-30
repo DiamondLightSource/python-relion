@@ -299,6 +299,7 @@ def test_icebreaker_summary_service(
                     "total_motion": 0.5,
                     "early_motion": 0.2,
                     "late_motion": 0.3,
+                    "summary": ["0", "1", "2", "3", "4"],
                 },
                 "success": True,
             },
