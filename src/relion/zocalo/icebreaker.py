@@ -44,11 +44,11 @@ class IceBreaker(CommonService):
     job_type = "icebreaker.micrograph_analysis"
 
     # Values to extract for ISPyB
-    ice_minimum: float
-    ice_q1: float
-    ice_median: float
-    ice_q2: float
-    ice_maximum: float
+    ice_minimum: int
+    ice_q1: int
+    ice_median: int
+    ice_q2: int
+    ice_maximum: int
 
     def initializing(self):
         """Subscribe to a queue. Received messages must be acknowledged."""
@@ -69,11 +69,11 @@ class IceBreaker(CommonService):
         for line in icebreaker_stdout.split("\n"):
             if line.startswith("Results:"):
                 line_split = line.split()
-                self.ice_minimum = float(line_split[2])
-                self.ice_q1 = float(line_split[3])
-                self.ice_median = float(line_split[4])
-                self.ice_q2 = float(line_split[5])
-                self.ice_maximum = float(line_split[6])
+                self.ice_minimum = int(line_split[2])
+                self.ice_q1 = int(line_split[3])
+                self.ice_median = int(line_split[4])
+                self.ice_q2 = int(line_split[5])
+                self.ice_maximum = int(line_split[6])
 
     def icebreaker(self, rw, header: dict, message: dict):
         """
