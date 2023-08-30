@@ -16,7 +16,7 @@ from relion.zocalo.motioncorr import MotionCorr
 
 slurm_json_template = {
     "job": {
-        "partition": "em, cs05r",
+        "partition": "em,cs05r",
         "prefer": "em_node",
         "nodes": 1,
         "tasks": 4,
