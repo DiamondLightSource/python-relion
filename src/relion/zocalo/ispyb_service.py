@@ -716,7 +716,7 @@ class EMISPyB(CommonService):
         else:
             return None
 
-    def do_insert_movie(self, parameters, session, message=None):
+    def do_insert_movie(self, parameters, session, message=None, **kwargs):
         if message is None:
             message = {}
         self.log.info("Inserting Movie parameters.")
@@ -746,7 +746,7 @@ class EMISPyB(CommonService):
             )
             return False
 
-    def do_insert_motion_correction(self, parameters, session, message=None):
+    def do_insert_motion_correction(self, parameters, session, message=None, **kwargs):
         if message is None:
             message = {}
         self.log.info("Inserting Motion Correction parameters.")
@@ -804,7 +804,9 @@ class EMISPyB(CommonService):
             )
             return False
 
-    def do_insert_relative_ice_thickness(self, parameters, session, message=None):
+    def do_insert_relative_ice_thickness(
+        self, parameters, session, message=None, **kwargs
+    ):
         if message is None:
             message = {}
         dcid = parameters("dcid")
@@ -834,7 +836,7 @@ class EMISPyB(CommonService):
             )
             return False
 
-    def do_insert_ctf(self, parameters, session, message=None):
+    def do_insert_ctf(self, parameters, session, message=None, **kwargs):
         if message is None:
             message = {}
         dcid = parameters("dcid")
@@ -876,7 +878,7 @@ class EMISPyB(CommonService):
             )
             return False
 
-    def do_insert_particle_picker(self, parameters, message=None):
+    def do_insert_particle_picker(self, parameters, message=None, **kwargs):
         if message is None:
             message = {}
         dcid = parameters("dcid")
@@ -908,7 +910,9 @@ class EMISPyB(CommonService):
             )
             return False
 
-    def do_insert_particle_classification(self, parameters, session, message=None):
+    def do_insert_particle_classification(
+        self, parameters, session, message=None, **kwargs
+    ):
         if message is None:
             message = {}
         dcid = parameters("dcid")
@@ -950,7 +954,7 @@ class EMISPyB(CommonService):
             return False
 
     def do_insert_particle_classification_group(
-        self, parameters, session, message=None
+        self, parameters, session, message=None, **kwargs
     ):
         if message is None:
             message = {}
@@ -993,7 +997,9 @@ class EMISPyB(CommonService):
             )
             return False
 
-    def do_insert_cryoem_initial_model(self, parameters, session, message=None):
+    def do_insert_cryoem_initial_model(
+        self, parameters, session, message=None, **kwargs
+    ):
         if message is None:
             message = {}
         dcid = parameters("dcid")
@@ -1024,7 +1030,7 @@ class EMISPyB(CommonService):
             )
             return False
 
-    def do_insert_tomogram(self, parameters, session, message=None):
+    def do_insert_tomogram(self, parameters, session, message=None, **kwargs):
         if message is None:
             message = {}
         dcid = parameters("dcid")
@@ -1066,7 +1072,9 @@ class EMISPyB(CommonService):
             )
             return False
 
-    def do_insert_tilt_image_alignment(self, parameters, session, message=None):
+    def do_insert_tilt_image_alignment(
+        self, parameters, session, message=None, **kwargs
+    ):
         if message is None:
             message = {}
         dcid = parameters("dcid")

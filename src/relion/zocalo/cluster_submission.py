@@ -9,7 +9,7 @@ import os
 import pathlib
 import subprocess
 from pprint import pformat
-from typing import Optional
+from typing import List, Optional
 
 import pydantic
 import requests
@@ -44,7 +44,7 @@ class JobSubmissionParameters(pydantic.BaseModel):
     gpus: Optional[int] = None
     exclusive: bool = False
     account: Optional[str]  # account in slurm terminology
-    commands: str | list[str]
+    commands: str | List[str]
     qos: Optional[str]
     queue: Optional[str]  # legacy for grid engine
     transfer_input_files: Optional[list[str]]  # HTCondor: list of inputs to transfer
