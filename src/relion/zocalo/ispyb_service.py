@@ -12,7 +12,7 @@ import ispyb.sqlalchemy as models
 import sqlalchemy.exc
 import sqlalchemy.orm
 import workflows.recipe
-from pydantic import BaseModel
+from pydantic import BaseModel, validate_arguments
 from workflows.services.common_service import CommonService
 
 import relion.zocalo.ispyb_buffer as buffer
@@ -716,7 +716,8 @@ class EMISPyB(CommonService):
         else:
             return None
 
-    def do_insert_movie(self, parameter_map: MovieParams, session, **kwargs):
+    @validate_arguments(config={"arbitrary_types_allowed": True})
+    def do_insert_movie(self, *, parameter_map: MovieParams, session, **kwargs):
         self.log.info("Inserting Movie parameters.")
 
         try:
