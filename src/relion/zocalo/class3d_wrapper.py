@@ -57,8 +57,10 @@ class Class3DParameters(BaseModel):
     symmetry: str = "C1"
     do_norm: bool = True
     do_scale: bool = True
-    threads: int = 4
-    gpus: str = "0"
+    mpi_run_command: str = "srun -n 5"
+    threads: int = 8
+    gpus: str = "0:1:2:3"
+    initial_model_gpus: str = "0,1,2,3"
     picker_id: int
     class3d_grp_uuid: int
     class_uuids: str
@@ -87,7 +89,6 @@ class Class3DWrapper(zocalo.wrapper.BaseWrapper):
         "oversampling": "--oversampling",
         "healpix_order": "--healpix_order",
         "threads": "--j",
-        "gpus": "--gpu",
     }
 
     # Values for ISPyB lookups
@@ -181,6 +182,8 @@ class Class3DWrapper(zocalo.wrapper.BaseWrapper):
             initial_model_params.symmetry,
             "--apply_sym",
             "--select_largest_class",
+            "--gpus",
+            initial_model_params.initial_model_gpus,
             "--pipeline_control",
             f"{job_dir.relative_to(project_dir)}/",
         ]
@@ -334,21 +337,25 @@ class Class3DWrapper(zocalo.wrapper.BaseWrapper):
             "symmetry": "--sym",
             "do_norm": "--norm",
             "do_scale": "--scale",
+            "gpus": "--gpu",
         }
         class3d_flags.update(self.common_flags)
 
         # Create the classification command
-        class3d_command = [
-            "relion_refine",
-            "--i",
-            particles_file,
-            "--o",
-            f"{job_dir.relative_to(project_dir)}/run",
-            "--ref",
-            initial_model_file,
-            "--particle_diameter",
-            f"{class3d_params.relion_options.mask_diameter}",
-        ]
+        class3d_command = class3d_params.mpi_run_command.split()
+        class3d_command.extend(
+            [
+                "relion_refine_mpi",
+                "--i",
+                particles_file,
+                "--o",
+                f"{job_dir.relative_to(project_dir)}/run",
+                "--ref",
+                initial_model_file,
+                "--particle_diameter",
+                f"{class3d_params.relion_options.mask_diameter}",
+            ]
+        )
         for k, v in class3d_params.dict().items():
             if v and (k in class3d_flags):
                 if type(v) is bool:

@@ -48,8 +48,9 @@ class Class2DParameters(BaseModel):
     allow_coarser: bool = False
     do_norm: bool = True
     do_scale: bool = True
-    threads: int = 4
-    gpus: str = "0"
+    mpi_run_command: str = "srun -n 5"
+    threads: int = 8
+    gpus: str = "0:1:2:3"
     program_id: int
     session_id: int
     relion_options: RelionServiceOptions
@@ -167,15 +168,18 @@ class Class2DWrapper(zocalo.wrapper.BaseWrapper):
         }
 
         # Create the classification command
-        class2d_command = [
-            "relion_refine",
-            "--i",
-            particles_file,
-            "--o",
-            f"{job_dir.relative_to(project_dir)}/run",
-            "--particle_diameter",
-            f"{class2d_params.relion_options.mask_diameter}",
-        ]
+        class2d_command = class2d_params.mpi_run_command.split()
+        class2d_command.extend(
+            [
+                "relion_refine_mpi",
+                "--i",
+                particles_file,
+                "--o",
+                f"{job_dir.relative_to(project_dir)}/run",
+                "--particle_diameter",
+                f"{class2d_params.relion_options.mask_diameter}",
+            ]
+        )
         for k, v in class2d_params.dict().items():
             if v and (k in class2d_flags):
                 if type(v) is bool:
@@ -250,7 +254,7 @@ class Class2DWrapper(zocalo.wrapper.BaseWrapper):
             if job_is_rerun:
                 buffer_lookup = {
                     "particle_classification_id": self.class_uuids_dict[
-                        self.class_uuids_keys[0]
+                        self.class_uuids_keys[class_id]
                     ],
                     "particle_classification_group_id": class2d_params.class2d_grp_uuid,
                 }
