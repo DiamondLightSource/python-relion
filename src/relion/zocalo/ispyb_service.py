@@ -716,22 +716,16 @@ class EMISPyB(CommonService):
         else:
             return None
 
-    def do_insert_movie(self, parameters, session, message=None, **kwargs):
-        if message is None:
-            message = {}
+    def do_insert_movie(self, parameter_map: MovieParams, session, **kwargs):
         self.log.info("Inserting Movie parameters.")
-
-        def full_parameters(param):
-            return message.get(param) or parameters(param)
 
         try:
             values = models.Movie(
-                movieId=full_parameters("movie_id"),
-                dataCollectionId=full_parameters("dcid"),
-                movieNumber=full_parameters("movie_number"),
-                movieFullPath=full_parameters("movie_path"),
+                dataCollectionId=parameter_map.dcid,
+                movieNumber=parameter_map.movie_number,
+                movieFullPath=parameter_map.movie_path,
                 createdTimeStamp=datetime.fromtimestamp(
-                    full_parameters("timestamp")
+                    parameter_map.timestamp
                 ).strftime("%Y-%m-%d %H:%M:%S"),
             )
             session.add(values)
@@ -760,12 +754,12 @@ class EMISPyB(CommonService):
                 movie_values = self.do_insert_movie(
                     parameters,
                     session,
-                    message={
-                        "dcid": full_parameters("dcid"),
-                        "movie_number": full_parameters("image_number"),
-                        "movie_path": full_parameters("micrograph_full_path"),
-                        "timestamp": full_parameters("created_time_stamp"),
-                    },
+                    parameter_map=MovieParams(
+                        dcid=full_parameters("dcid"),
+                        movie_number=full_parameters("image_number"),
+                        movie_path=full_parameters("micrograph_full_path"),
+                        timestamp=full_parameters("created_time_stamp"),
+                    ),
                 )
                 movie_id = movie_values["return_value"]
 
