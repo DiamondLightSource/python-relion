@@ -689,7 +689,7 @@ class EMISPyB(CommonService):
             )
             return False
 
-    # Old EM mixin parts from here
+    # EM-specific parts from here
     def _get_movie_id(
         self,
         full_path,
@@ -718,9 +718,7 @@ class EMISPyB(CommonService):
 
     @validate_arguments(config={"arbitrary_types_allowed": True})
     def do_insert_movie(self, *, parameter_map: MovieParams):
-
         self.log.info("Inserting Movie parameters.")
-
         movie_params = self.ispyb.em_acquisition.get_movie_params()
         movie_params["dataCollectionId"] = parameter_map.dcid
         movie_params["movieNumber"] = parameter_map.movie_number
@@ -733,7 +731,7 @@ class EMISPyB(CommonService):
         self.log.info(f"Created Movie record {result}")
         return {"success": True, "return_value": result}
 
-    def do_insert_motion_correction(self, parameters, message=None):
+    def do_insert_motion_correction(self, parameters, session, message=None):
         if message is None:
             message = {}
         self.log.info("Inserting Motion Correction parameters.")
@@ -756,44 +754,34 @@ class EMISPyB(CommonService):
                     list(movie_params.values())
                 )
                 self.log.info(f"Created Movie record {movieid}")
-            result = self.ispyb.em_acquisition.insert_motion_correction(
-                movie_id=full_parameters("movie_id") or movieid,
-                auto_proc_program_id=full_parameters("program_id"),
-                image_number=full_parameters("image_number"),
-                first_frame=full_parameters("first_frame"),
-                last_frame=full_parameters("last_frame"),
-                dose_per_frame=full_parameters("dose_per_frame"),
-                total_motion=full_parameters("total_motion"),
-                average_motion_per_frame=full_parameters("average_motion_per_frame"),
-                drift_plot_full_path=full_parameters("drift_plot_full_path"),
-                micrograph_full_path=full_parameters("micrograph_full_path"),
-                micrograph_snapshot_full_path=full_parameters(
+            values = models.MotionCorrection(
+                movieId=full_parameters("movie_id") or movieid,
+                autoProcProgramId=full_parameters("program_id"),
+                imageNumber=full_parameters("image_number"),
+                firstFrame=full_parameters("first_frame"),
+                lastFrame=full_parameters("last_frame"),
+                dosePerFrame=full_parameters("dose_per_frame"),
+                doseWeight=full_parameters("dose_weight"),
+                totalMotion=full_parameters("total_motion"),
+                averageMotionPerFrame=full_parameters("average_motion_per_frame"),
+                driftPlotFullPath=full_parameters("drift_plot_full_path"),
+                micrographFullPath=full_parameters("micrograph_full_path"),
+                micrographSnapshotFullPath=full_parameters(
                     "micrograph_snapshot_full_path"
                 ),
-                fft_full_path=full_parameters("fft_full_path"),
-                fft_corrected_full_path=full_parameters("fft_corrected_full_path"),
-                patches_used_x=full_parameters("patches_used_x"),
-                patches_used_y=full_parameters("patches_used_y"),
+                patchesUsedX=full_parameters("patches_used_x"),
+                patchesUsedY=full_parameters("patches_used_y"),
+                fftFullPath=full_parameters("fft_full_path"),
+                fftCorrectedFullPath=full_parameters("fft_corrected_full_path"),
                 comments=full_parameters("comments"),
             )
-            self.log.info(f"Created MotionCorrection record {result}")
-            driftparams = self.ispyb.em_acquisition.get_motion_correction_drift_params()
-            driftparams["motionCorrectionId"] = result
-            if full_parameters("drift_frames") is not None:
-                for frame, x, y in full_parameters("drift_frames"):
-                    driftparams["frameNumber"] = frame
-                    driftparams["deltaX"] = x
-                    driftparams["deltaY"] = y
-                    self.ispyb.em_acquisition.insert_motion_correction_drift(
-                        list(driftparams.values())
-                    )
-                self.log.info(
-                    "Created %d MotionCorrectionDrift records",
-                    len(full_parameters("drift_frames")),
-                )
-            return {"success": True, "return_value": result}
-
-        except ispyb.ISPyBException as e:
+            session.add(values)
+            session.commit()
+            self.log.info(
+                f"Created MotionCorrection record {values.motionCorrectionId}"
+            )
+            return {"success": True, "return_value": values.motionCorrectionId}
+        except sqlalchemy.exc.SQLAlchemyError as e:
             self.log.error(
                 "Inserting motion correction entry caused exception '%s'.",
                 e,
@@ -825,13 +813,13 @@ class EMISPyB(CommonService):
             return {"success": True, "return_value": values.relativeIceThicknessId}
         except sqlalchemy.exc.SQLAlchemyError as e:
             self.log.error(
-                "Inserting CTF entry caused exception '%s'.",
+                "Inserting relative ice thickness entry caused exception '%s'.",
                 e,
                 exc_info=True,
             )
             return False
 
-    def do_insert_ctf(self, parameters, message=None):
+    def do_insert_ctf(self, parameters, session, message=None):
         if message is None:
             message = {}
         dcid = parameters("dcid")
@@ -841,29 +829,31 @@ class EMISPyB(CommonService):
             return message.get(param) or parameters(param)
 
         try:
-            result = self.ispyb.em_acquisition.insert_ctf(
-                ctf_id=full_parameters("ctf_id"),
-                motion_correction_id=full_parameters("motion_correction_id"),
-                auto_proc_program_id=full_parameters("program_id"),
-                box_size_x=full_parameters("box_size_x"),
-                box_size_y=full_parameters("box_size_y"),
-                min_resolution=full_parameters("min_resolution"),
-                max_resolution=full_parameters("max_resolution"),
-                min_defocus=full_parameters("min_defocus"),
-                max_defocus=full_parameters("max_defocus"),
+            values = models.CTF(
+                ctfId=full_parameters("ctf_id"),
+                motionCorrectionId=full_parameters("motion_correction_id"),
+                autoProcProgramId=full_parameters("program_id"),
+                boxSizeX=full_parameters("box_size_x"),
+                boxSizeY=full_parameters("box_size_y"),
+                minResolution=full_parameters("min_resolution"),
+                maxResolution=full_parameters("max_resolution"),
+                minDefocus=full_parameters("min_defocus"),
+                maxDefocus=full_parameters("max_defocus"),
+                defocusStepSize=full_parameters("defocus_step_size"),
                 astigmatism=full_parameters("astigmatism"),
-                defocus_step_size=full_parameters("defocus_step_size"),
-                astigmatism_angle=full_parameters("astigmatism_angle"),
-                estimated_resolution=full_parameters("estimated_resolution"),
-                estimated_defocus=full_parameters("estimated_defocus"),
-                amplitude_contrast=full_parameters("amplitude_contrast"),
-                cc_value=full_parameters("cc_value"),
-                fft_theoretical_full_path=full_parameters("fft_theoretical_full_path"),
+                astigmatismAngle=full_parameters("astigmatism_angle"),
+                estimatedResolution=full_parameters("estimated_resolution"),
+                estimatedDefocuse=full_parameters("estimated_defocus"),
+                amplitudeContrast=full_parameters("amplitude_contrast"),
+                ccValue=full_parameters("cc_value"),
+                fftTheoreticalFullPath=full_parameters("fft_theoretical_full_path"),
                 comments=full_parameters("comments"),
             )
-            self.log.info(f"Created CTF record {result} for DCID {dcid}")
-            return {"success": True, "return_value": result}
-        except ispyb.ISPyBException as e:
+            session.add(values)
+            session.commit()
+            self.log.info(f"Created CTF record {values.ctfId} for DCID {dcid}")
+            return {"success": True, "return_value": values.ctfId}
+        except sqlalchemy.exc.SQLAlchemyError as e:
             self.log.error(
                 "Inserting CTF entry caused exception '%s'.",
                 e,
@@ -881,18 +871,21 @@ class EMISPyB(CommonService):
             return message.get(param) or parameters(param)
 
         try:
-            result = self.ispyb.em_acquisition.insert_particle_picker(
-                particle_picker_id=full_parameters("particle_picker_id"),
-                first_motion_correction_id=full_parameters("motion_correction_id"),
-                auto_proc_program_id=full_parameters("program_id"),
-                particle_picking_template=full_parameters("particle_picking_template"),
-                particle_diameter=full_parameters("particle_diameter"),
-                number_of_particles=full_parameters("number_of_particles"),
-                summary_image_full_path=full_parameters("summary_image_full_path"),
+            values = models.ParticlePicker(
+                particlePickerId=full_parameters("particle_picker_id"),
+                programId=full_parameters("program_id"),
+                firstMotionCorrectionId=full_parameters("motion_correction_id"),
+                particlePickingTemplate=full_parameters("particle_picking_template"),
+                particleDiameter=full_parameters("particle_diameter"),
+                numberOfParticles=full_parameters("number_of_particles"),
+                summaryImageFullPath=full_parameters("summary_image_full_path"),
             )
-            self.log.info(f"Created ParticlePicker record {result} for DCID {dcid}")
-            return {"success": True, "return_value": result}
-        except ispyb.ISPyBException as e:
+            self.log.info(
+                f"Created ParticlePicker record {values.particlePickerId} "
+                f"for DCID {dcid}"
+            )
+            return {"success": True, "return_value": values.particlePickerId}
+        except sqlalchemy.exc.SQLAlchemyError as e:
             self.log.error(
                 "Inserting Particle Picker entry caused exception '%s'.",
                 e,
@@ -910,28 +903,26 @@ class EMISPyB(CommonService):
 
         try:
             values = models.ParticleClassification(
-                particle_classification_id=full_parameters(
-                    "particle_classification_id"
-                ),
-                particle_classification_group_id=full_parameters(
+                particleClassificationId=full_parameters("particle_classification_id"),
+                particleClassificationGroupId=full_parameters(
                     "particle_classification_group_id"
                 ),
-                class_number=full_parameters("class_number"),
-                class_image_full_path=full_parameters("class_image_full_path"),
-                particles_per_class=full_parameters("particles_per_class"),
-                rotation_accuracy=full_parameters("rotation_accuracy"),
-                translation_accuracy=full_parameters("translation_accuracy"),
-                estimated_resolution=full_parameters("estimated_resolution"),
-                overall_fourier_completeness=full_parameters(
+                classNumber=full_parameters("class_number"),
+                classImageFullPath=full_parameters("class_image_full_path"),
+                particlesPerClass=full_parameters("particles_per_class"),
+                rotationAccuracy=full_parameters("rotation_accuracy"),
+                translationAccuracy=full_parameters("translation_accuracy"),
+                estimatedResolution=full_parameters("estimated_resolution"),
+                overallFourierCompleteness=full_parameters(
                     "overall_fourier_completeness"
                 ),
-                class_distribution=full_parameters("class_distribution"),
+                classDistribution=full_parameters("class_distribution"),
                 selected=full_parameters("selected"),
             )
             session.add(values)
             session.commit()
             self.log.info(
-                "Created particle classification record "
+                "Created ParticleClassification record "
                 f"{values.particleClassificationId} for DCID {dcid}"
             )
             return {"success": True, "return_value": values.particleClassificationId}
@@ -943,7 +934,9 @@ class EMISPyB(CommonService):
             )
             return False
 
-    def do_insert_particle_classification_group(self, parameters, message=None):
+    def do_insert_particle_classification_group(
+        self, parameters, session, message=None
+    ):
         if message is None:
             message = {}
         dcid = parameters("dcid")
@@ -953,29 +946,31 @@ class EMISPyB(CommonService):
 
         self.log.info(f"Inserting particle classification parameters. DCID: {dcid}")
         try:
-            class_result = (
-                self.ispyb.em_acquisition.insert_particle_classification_group(
-                    particle_classification_group_id=full_parameters(
-                        "particle_classification_group_id"
-                    ),
-                    particle_picker_id=full_parameters("particle_picker_id"),
-                    auto_proc_program_id=full_parameters("program_id"),
-                    type=full_parameters("type"),
-                    batch_number=full_parameters("batch_number"),
-                    number_of_particles_per_batch=full_parameters(
-                        "number_of_particles_per_batch"
-                    ),
-                    number_of_classes_per_batch=full_parameters(
-                        "number_of_classes_per_batch"
-                    ),
-                    symmetry=full_parameters("symmetry"),
-                )
+            values = models.ParticleClassificationGroup(
+                particleClassificationGroupId=full_parameters(
+                    "particle_classification_group_id"
+                ),
+                particlePickerId=full_parameters("particle_picker_id"),
+                programId=full_parameters("program_id"),
+                type=full_parameters("type"),
+                batchNumber=full_parameters("batch_number"),
+                numberOfParticlesPerBatch=full_parameters(
+                    "number_of_particles_per_batch"
+                ),
+                numberOfClassesPerBatch=full_parameters("number_of_classes_per_batch"),
+                symmetry=full_parameters("symmetry"),
             )
+            session.add(values)
+            session.commit()
             self.log.info(
-                f"Created particle classification group record {class_result} for DCID {dcid}"
+                "Created particle classification group record "
+                f"{values.particleClassificationGroupId} for DCID {dcid}"
             )
-            return {"success": True, "return_value": class_result}
-        except ispyb.ISPyBException as e:
+            return {
+                "success": True,
+                "return_value": values.particleClassificationGroupId,
+            }
+        except sqlalchemy.exc.SQLAlchemyError as e:
             self.log.error(
                 "Inserting particle classification group entry caused exception '%s'.",
                 e,
@@ -983,7 +978,7 @@ class EMISPyB(CommonService):
             )
             return False
 
-    def do_insert_cryoem_initial_model(self, parameters, message):
+    def do_insert_cryoem_initial_model(self, parameters, session, message=None):
         if message is None:
             message = {}
         dcid = parameters("dcid")
@@ -993,20 +988,19 @@ class EMISPyB(CommonService):
 
         self.log.info(f"Inserting CryoEM Initial Model parameters. DCID: {dcid}")
         try:
-            initial_model_result = (
-                self.ispyb.em_acquisition.insert_cryoem_initial_model(
-                    cryoem_initial_model_id=full_parameters("cryoem_inital_model_id"),
-                    particle_classification_id=full_parameters(
-                        "particle_classification_id"
-                    ),
-                    resolution=full_parameters("resolution"),
-                    number_of_particles=full_parameters("number_of_particles"),
-                )
+            values = models.CryoemInitialModel(
+                cryoemInitialModelId=full_parameters("cryoem_inital_model_id"),
+                particleClassificationId=full_parameters("particle_classification_id"),
+                resolution=full_parameters("resolution"),
+                numberOfParticles=full_parameters("number_of_particles"),
             )
+            session.add(values)
+            session.commit()
             self.log.info(
-                f"Created CryoEM Initial Model record {initial_model_result} for DCID {dcid}"
+                "Created CryoEM Initial Model record "
+                f"{values.cryoemInitialModelId} for DCID {dcid}"
             )
-            return {"success": True, "return_value": initial_model_result}
+            return {"success": True, "return_value": values.cryoemInitialModelId}
         except ispyb.ISPyBException as e:
             self.log.error(
                 "Inserting CryoEM Initial Model entry caused exception '%s'.",

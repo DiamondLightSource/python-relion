@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import re
 import subprocess
 from pathlib import Path
@@ -25,6 +26,7 @@ class SelectClassesParameters(BaseModel):
     class3d_max_size: int = 200000
     program_id: int
     session_id: int
+    class_uuids: str
     relion_options: RelionServiceOptions
 
 
@@ -45,6 +47,10 @@ class SelectClasses(CommonService):
     # Values to extract for ISPyB
     previous_total_count = 0
     total_count = 0
+
+    # Values for ISPyB lookups
+    class_uuids_dict: dict = {}
+    class_uuids_keys: list = []
 
     def initializing(self):
         """Subscribe to a queue. Received messages must be acknowledged."""
@@ -234,6 +240,50 @@ class SelectClasses(CommonService):
             )
             rw.transport.nack(header)
             return
+
+        # Find which classes were picked
+        classes_block = cif.read_file(f"{select_dir}/class_averages.star").sole_block()
+        selected_classes = list(classes_block.find_loop("_rlnReferenceImage"))
+
+        # Class ids get fed in as a string, need to convert these to a dictionary
+        self.class_uuids_dict = json.loads(
+            autoselect_params.class_uuids.replace("'", '"')
+        )
+        self.class_uuids_keys = list(self.class_uuids_dict.keys())
+
+        # Send the picked classes to ispyb
+        ispyb_command_list = []
+        for picked_class in selected_classes:
+            class_id = int(picked_class.split("@")[0])
+            ispyb_command_list.append(
+                {
+                    "ispyb_command": "buffer",
+                    "buffer_lookup": {
+                        "particle_classification_id": self.class_uuids_dict[
+                            self.class_uuids_keys[class_id - 1]
+                        ],
+                    },
+                    "buffer_command": {
+                        "ispyb_command": "insert_particle_classification"
+                    },
+                    "selected": 1,
+                }
+            )
+        ispyb_parameters = {
+            "ispyb_command": "multipart_message",
+            "ispyb_command_list": ispyb_command_list,
+        }
+        self.log.info(f"Sending to ispyb {ispyb_parameters}")
+        if isinstance(rw, MockRW):
+            rw.transport.send(
+                destination="ispyb_connector",
+                message={
+                    "parameters": ispyb_parameters,
+                    "content": {"dummy": "dummy"},
+                },
+            )
+        else:
+            rw.send_to("ispyb_connector", ispyb_parameters)
 
         # Run the combine star files job to combine the files into particles_all.star
         self.log.info("Running star file combination and splitting")
