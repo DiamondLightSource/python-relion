@@ -1,19 +1,18 @@
 from __future__ import annotations
 
 import os.path
+import string
 import time
-
+from collections import ChainMap
 from datetime import datetime
 from pathlib import Path
-import ispyb
-from pydantic import BaseModel, validate_arguments
 
+import ispyb
+import ispyb.sqlalchemy as models
 import sqlalchemy.exc
 import sqlalchemy.orm
-import string
 import workflows.recipe
-import ispyb.sqlalchemy as models
-from collections import ChainMap
+from pydantic import BaseModel, validate_arguments
 from workflows.services.common_service import CommonService
 
 import relion.zocalo.ispyb_buffer as buffer
@@ -717,7 +716,7 @@ class EMISPyB(CommonService):
         else:
             return None
 
-    @validate_arguments(config=dict(arbitrary_types_allowed=True))
+    @validate_arguments(config={"arbitrary_types_allowed": True})
     def do_insert_movie(self, *, parameter_map: MovieParams):
 
         self.log.info("Inserting Movie parameters.")
@@ -927,7 +926,7 @@ class EMISPyB(CommonService):
                     "overall_fourier_completeness"
                 ),
                 class_distribution=full_parameters("class_distribution"),
-                selected=full_parameters("selected")
+                selected=full_parameters("selected"),
             )
             session.add(values)
             session.commit()

@@ -40,10 +40,19 @@ def evict(*, session):
 
     (
         delete(ispyb.sqlalchemy.ZcZocaloBuffer)
-        .where(ispyb.sqlalchemy.AutoProcProgram.autoProcProgramId == ispyb.sqlalchemy.ZcZocaloBuffer.autoProcProgramId)
         .where(
-            (ispyb.sqlalchemy.AutoProcProgram.processingEndTime < datetime.datetime.now() - datetime.timedelta(days=30))
-            | (ispyb.sqlalchemy.AutoProcProgram.recordTimeStamp < datetime.datetime.now() - datetime.timedelta(days=60))
+            ispyb.sqlalchemy.AutoProcProgram.autoProcProgramId
+            == ispyb.sqlalchemy.ZcZocaloBuffer.autoProcProgramId
+        )
+        .where(
+            (
+                ispyb.sqlalchemy.AutoProcProgram.processingEndTime
+                < datetime.datetime.now() - datetime.timedelta(days=30)
+            )
+            | (
+                ispyb.sqlalchemy.AutoProcProgram.recordTimeStamp
+                < datetime.datetime.now() - datetime.timedelta(days=60)
+            )
         )
     )
 
