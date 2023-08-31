@@ -44,7 +44,7 @@ class JobSubmissionParameters(pydantic.BaseModel):
     gpus: Optional[int] = None
     exclusive: bool = False
     account: Optional[str]  # account in slurm terminology
-    commands: list[str] | str
+    commands: str | list[str]
     qos: Optional[str]
     queue: Optional[str]  # legacy for grid engine
     transfer_input_files: Optional[list[str]]  # HTCondor: list of inputs to transfer

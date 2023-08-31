@@ -12,7 +12,7 @@ import ispyb.sqlalchemy as models
 import sqlalchemy.exc
 import sqlalchemy.orm
 import workflows.recipe
-from pydantic import BaseModel, validate_arguments
+from pydantic import BaseModel
 from workflows.services.common_service import CommonService
 
 import relion.zocalo.ispyb_buffer as buffer
@@ -716,20 +716,35 @@ class EMISPyB(CommonService):
         else:
             return None
 
-    @validate_arguments(config={"arbitrary_types_allowed": True})
-    def do_insert_movie(self, *, parameter_map: MovieParams):
+    def do_insert_movie(self, parameters, session, message=None):
+        if message is None:
+            message = {}
         self.log.info("Inserting Movie parameters.")
-        movie_params = self.ispyb.em_acquisition.get_movie_params()
-        movie_params["dataCollectionId"] = parameter_map.dcid
-        movie_params["movieNumber"] = parameter_map.movie_number
-        movie_params["movieFullPath"] = parameter_map.movie_path
-        if parameter_map.timestamp:
-            movie_params["createdTimeStamp"] = datetime.fromtimestamp(
-                parameter_map.timestamp
-            ).strftime("%Y-%m-%d %H:%M:%S")
-        result = self.ispyb.em_acquisition.insert_movie(list(movie_params.values()))
-        self.log.info(f"Created Movie record {result}")
-        return {"success": True, "return_value": result}
+
+        def full_parameters(param):
+            return message.get(param) or parameters(param)
+
+        try:
+            values = models.Movie(
+                movieId=full_parameters("movie_id"),
+                dataCollectionId=full_parameters("dcid"),
+                movieNumber=full_parameters("movie_number"),
+                movieFullPath=full_parameters("movie_path"),
+                createdTimeStamp=datetime.fromtimestamp(
+                    full_parameters("timestamp")
+                ).strftime("%Y-%m-%d %H:%M:%S"),
+            )
+            session.add(values)
+            session.commit()
+            self.log.info(f"Created Movie record {values.movieId}")
+            return {"success": True, "return_value": values.movieId}
+        except sqlalchemy.exc.SQLAlchemyError as e:
+            self.log.error(
+                "Inserting motion correction entry caused exception '%s'.",
+                e,
+                exc_info=True,
+            )
+            return False
 
     def do_insert_motion_correction(self, parameters, session, message=None):
         if message is None:
@@ -740,22 +755,22 @@ class EMISPyB(CommonService):
             return message.get(param) or parameters(param)
 
         try:
-            movieid = None
+            movie_id = None
             if full_parameters("movie_id") is None:
-                movie_params = self.ispyb.em_acquisition.get_movie_params()
-                movie_params["dataCollectionId"] = full_parameters("dcid")
-                movie_params["movieNumber"] = full_parameters("image_number")
-                movie_params["movieFullPath"] = full_parameters("micrograph_full_path")
-                if full_parameters("created_time_stamp"):
-                    movie_params["createdTimeStamp"] = datetime.fromtimestamp(
-                        full_parameters("created_time_stamp")
-                    ).strftime("%Y-%m-%d %H:%M:%S")
-                movieid = self.ispyb.em_acquisition.insert_movie(
-                    list(movie_params.values())
+                movie_values = self.do_insert_movie(
+                    parameters,
+                    session,
+                    message={
+                        "dcid": full_parameters("dcid"),
+                        "movie_number": full_parameters("image_number"),
+                        "movie_path": full_parameters("micrograph_full_path"),
+                        "timestamp": full_parameters("created_time_stamp"),
+                    },
                 )
-                self.log.info(f"Created Movie record {movieid}")
+                movie_id = movie_values["return_value"]
+
             values = models.MotionCorrection(
-                movieId=full_parameters("movie_id") or movieid,
+                movieId=full_parameters("movie_id") or movie_id,
                 autoProcProgramId=full_parameters("program_id"),
                 imageNumber=full_parameters("image_number"),
                 firstFrame=full_parameters("first_frame"),

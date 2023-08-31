@@ -42,7 +42,7 @@ def evict(*, session):
         delete(ispyb.sqlalchemy.ZcZocaloBuffer)
         .where(
             ispyb.sqlalchemy.AutoProcProgram.autoProcProgramId
-            == ispyb.sqlalchemy.ZcZocaloBuffer.autoProcProgramId
+            == ispyb.sqlalchemy.ZcZocaloBuffer.AutoProcProgramID
         )
         .where(
             (
