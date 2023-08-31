@@ -1,0 +1,4 @@
+apiVersion: v2
+name: cluster_submission
+description: A Helm chart for the cluster submission service
+version: 0.0.1

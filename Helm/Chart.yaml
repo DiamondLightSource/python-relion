@@ -3,6 +3,7 @@ name: em-processing
 description: An umbrella Helm chart for EM processing services
 version: 0.0.1
 dependencies:
+- name: cluster_submission
 - name: cryolo
 - name: ctffind
 - name: denoise

@@ -4,6 +4,24 @@ global:
   runAsUser: user-id
   runAsGroup: group-id
 
+cluster_submission:
+  replicas: 1
+  image: gcr.io/image/path
+  command: zocalo.service -s service-name -e environment
+  extraVolumes:
+  - name: home
+    hostPath:
+      path: /home
+      type: Directory
+  extraVolumeMounts:
+  - mountPath: /home
+    name: home
+    mountPropagation: HostToContainer
+    readOnly: true
+  configMap: zocalo-conf
+  dbSecretName: dev-db # name for database credentials
+  dbFileName: db-dev.cfg
+
 cryolo:
   replicas: 1
   image: gcr.io/image/path
