@@ -235,7 +235,7 @@ def _icebreaker_output_files(
             with open(csv_file, "w") as f:
                 f.write("path,min,q1,q2=median,q3,max\n")
         with open(csv_file, "a+") as f:
-            f.write(",".join(results["summary"]) + "\n")
+            f.write(f"{input_file}," + ",".join(results["summary"]) + "\n")
         return
     else:
         # Nothing to do for particles job
