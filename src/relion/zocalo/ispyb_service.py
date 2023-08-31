@@ -721,14 +721,21 @@ class EMISPyB(CommonService):
         self.log.info("Inserting Movie parameters.")
 
         try:
-            values = models.Movie(
-                dataCollectionId=parameter_map.dcid,
-                movieNumber=parameter_map.movie_number,
-                movieFullPath=parameter_map.movie_path,
-                createdTimeStamp=datetime.fromtimestamp(
-                    parameter_map.timestamp
-                ).strftime("%Y-%m-%d %H:%M:%S"),
-            )
+            if parameter_map.timestamp:
+                values = models.Movie(
+                    dataCollectionId=parameter_map.dcid,
+                    movieNumber=parameter_map.movie_number,
+                    movieFullPath=parameter_map.movie_path,
+                    createdTimeStamp=datetime.fromtimestamp(
+                        parameter_map.timestamp
+                    ).strftime("%Y-%m-%d %H:%M:%S"),
+                )
+            else:
+                values = models.Movie(
+                    dataCollectionId=parameter_map.dcid,
+                    movieNumber=parameter_map.movie_number,
+                    movieFullPath=parameter_map.movie_path,
+                )
             session.add(values)
             session.commit()
             self.log.info(f"Created Movie record {values.movieId}")
