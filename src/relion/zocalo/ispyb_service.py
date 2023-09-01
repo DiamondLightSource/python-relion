@@ -1014,15 +1014,16 @@ class EMISPyB(CommonService):
                 .first()
             )
             if particle_classification_group:
-                session.execute(
-                    sqlalchemy_update(
-                        models.ParticleClassificationGroup,
-                        values={
-                            k: v
-                            for k, v in values.__dict__.items()
-                            if k != "_sa_instance_state"
-                        },
-                    ),
+                session.query(models.ParticleClassificationGroup).filter(
+                    models.ParticleClassificationGroup.particleClassificationGroupId
+                    == values.particleClassificationGroupId,
+                ).update(
+                    {
+                        k: v
+                        for k, v in values.__dict__.items()
+                        if k
+                        not in ["_sa_instance_state", "particleClassificationGroupId"]
+                    }
                 )
             else:
                 session.add(values)
