@@ -13,6 +13,7 @@ import sqlalchemy.exc
 import sqlalchemy.orm
 import workflows.recipe
 from pydantic import BaseModel, validate_arguments
+from sqlalchemy import update as sqlalchemy_update
 from workflows.services.common_service import CommonService
 
 import relion.zocalo.ispyb_buffer as buffer
@@ -984,7 +985,16 @@ class EMISPyB(CommonService):
                 numberOfClassesPerBatch=full_parameters("number_of_classes_per_batch"),
                 symmetry=full_parameters("symmetry"),
             )
-            session.add(values)
+            particle_classification_group = session.query(
+                models.ParticleClassificationGroup
+            ).filter(
+                models.ParticleClassificationGroup.particleClassificationGroupId
+                == values.particleClassificationGroupId,
+            )
+            if particle_classification_group:
+                sqlalchemy_update(particle_classification_group).values(values)
+            else:
+                session.add(values)
             session.commit()
             self.log.info(
                 "Created particle classification group record "
