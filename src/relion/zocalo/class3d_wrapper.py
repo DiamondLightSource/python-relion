@@ -248,18 +248,38 @@ class Class3DWrapper(zocalo.wrapper.BaseWrapper):
             "Will send best initial model to ispyb with "
             f"resolution {resolution} and {number_of_particles} particles"
         )
-        ini_ispyb_parameters = {
-            "ispyb_command": "buffer",
-            "buffer_lookup": {
-                "particle_classification_id": self.class_uuids_dict[
-                    self.class_uuids_keys[0]
-                ]
-            },
-            "buffer_command": {"ispyb_command": "insert_cryoem_initial_model"},
-            "number_of_particles": number_of_particles,
-        }
-        if np.isfinite(float(resolution)):
-            ini_ispyb_parameters["resolution"] = resolution
+        ini_ispyb_parameters = [
+            {
+                "ispyb_command": "buffer",
+                "buffer_lookup": {
+                    "particle_classification_id": self.class_uuids_dict[
+                        self.class_uuids_keys[0]
+                    ]
+                },
+                "buffer_command": {"ispyb_command": "insert_cryoem_initial_model"},
+                "number_of_particles": number_of_particles,
+                "store_result": "ispyb_initial_model_id",
+            }
+        ]
+        for i in range(1, initial_model_params.nr_classes):
+            # Insert initial model for every class, sending model id each time
+            ini_ispyb_parameters.append(
+                {
+                    "ispyb_command": "buffer",
+                    "buffer_lookup": {
+                        "particle_classification_id": self.class_uuids_dict[
+                            self.class_uuids_keys[i]
+                        ]
+                    },
+                    "buffer_command": {"ispyb_command": "insert_cryoem_initial_model"},
+                    "number_of_particles": number_of_particles,
+                    "cryoem_initial_model_id": "$ispyb_initial_model_id",
+                }
+            )
+        for i in range(initial_model_params.nr_classes):
+            # Add resolution to every model if it is finite
+            if np.isfinite(float(resolution)):
+                ini_ispyb_parameters[i]["resolution"] = resolution
 
         self.log.info("Running 3D classification using new initial model")
         return f"{ini_model_file}", ini_ispyb_parameters
@@ -461,7 +481,7 @@ class Class3DWrapper(zocalo.wrapper.BaseWrapper):
                 class_ispyb_parameters["fourier_completeness"] = fourier_completeness
 
             # Add the ispyb command to the command list
-            ispyb_parameters.append(class_ispyb_parameters)
+            ispyb_parameters.extend(class_ispyb_parameters)
 
         # Add on the initial model insert before sending
         if class3d_params.do_initial_model:
