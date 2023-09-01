@@ -1,12 +1,13 @@
 from __future__ import annotations
 
-import datetime
+# import datetime
 import logging
 from typing import NamedTuple, Optional
 
 import ispyb.sqlalchemy
 import sqlalchemy.exc
-from sqlalchemy import delete
+
+# from sqlalchemy import delete
 
 logger = logging.getLogger("relion.zocalo.ispybsvc_buffer")
 
@@ -38,23 +39,24 @@ def evict(*, session):
     # AND (DATE(app.processingEndTime) < DATE_SUB(CURDATE(), INTERVAL 30 DAY)
     #      OR DATE(app.recordTimeStamp) < DATE_SUB(CURDATE(), INTERVAL 60 DAY))
 
-    (
-        delete(ispyb.sqlalchemy.ZcZocaloBuffer)
-        .where(
-            ispyb.sqlalchemy.AutoProcProgram.autoProcProgramId
-            == ispyb.sqlalchemy.ZcZocaloBuffer.AutoProcProgramID
-        )
-        .where(
-            (
-                ispyb.sqlalchemy.AutoProcProgram.processingEndTime
-                < datetime.datetime.now() - datetime.timedelta(days=30)
-            )
-            | (
-                ispyb.sqlalchemy.AutoProcProgram.recordTimeStamp
-                < datetime.datetime.now() - datetime.timedelta(days=60)
-            )
-        )
-    )
+    # (
+    #     delete(ispyb.sqlalchemy.ZcZocaloBuffer)
+    #     .where(
+    #         ispyb.sqlalchemy.AutoProcProgram.autoProcProgramId
+    #         == ispyb.sqlalchemy.ZcZocaloBuffer.AutoProcProgramID
+    #     )
+    #     .where(
+    #         (
+    #             ispyb.sqlalchemy.AutoProcProgram.processingEndTime
+    #             < datetime.datetime.now() - datetime.timedelta(days=30)
+    #         )
+    #         | (
+    #             ispyb.sqlalchemy.AutoProcProgram.recordTimeStamp
+    #             < datetime.datetime.now() - datetime.timedelta(days=60)
+    #         )
+    #     )
+    # )
+    # session.commit()
 
 
 def load(*, session, program: int, uuid: int) -> BufferResult:
