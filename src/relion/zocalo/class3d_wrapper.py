@@ -122,6 +122,8 @@ class Class3DWrapper(zocalo.wrapper.BaseWrapper):
             f"{job_dir.relative_to(project_dir)}/run",
             "--particle_diameter",
             f"{initial_model_params.relion_options.mask_diameter}",
+            "--gpu",
+            initial_model_params.initial_model_gpus,
         ]
         if initial_model_params.start_initial_model_C1:
             initial_model_command.extend(("--sym", "C1"))
@@ -182,8 +184,6 @@ class Class3DWrapper(zocalo.wrapper.BaseWrapper):
             initial_model_params.symmetry,
             "--apply_sym",
             "--select_largest_class",
-            "--gpus",
-            initial_model_params.initial_model_gpus,
             "--pipeline_control",
             f"{job_dir.relative_to(project_dir)}/",
         ]
