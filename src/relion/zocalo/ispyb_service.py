@@ -950,7 +950,7 @@ class EMISPyB(CommonService):
                     models.ParticleClassification.particleClassificationId
                     == values.particleClassificationId,
                 )
-                .one()
+                .first()
             )
             if particle_classification:
                 sqlalchemy_update(particle_classification).values(values)
@@ -1002,7 +1002,7 @@ class EMISPyB(CommonService):
                     models.ParticleClassificationGroup.particleClassificationGroupId
                     == values.particleClassificationGroupId,
                 )
-                .one()
+                .first()
             )
             if particle_classification_group:
                 sqlalchemy_update(particle_classification_group).values(values)
