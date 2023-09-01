@@ -944,7 +944,18 @@ class EMISPyB(CommonService):
                 classDistribution=full_parameters("class_distribution"),
                 selected=full_parameters("selected"),
             )
-            session.add(values)
+            particle_classification = (
+                session.query(models.ParticleClassification)
+                .filter(
+                    models.ParticleClassification.particleClassificationId
+                    == values.particleClassificationId,
+                )
+                .one()
+            )
+            if particle_classification:
+                sqlalchemy_update(particle_classification).values(values)
+            else:
+                session.add(values)
             session.commit()
             self.log.info(
                 "Created ParticleClassification record "
@@ -985,11 +996,13 @@ class EMISPyB(CommonService):
                 numberOfClassesPerBatch=full_parameters("number_of_classes_per_batch"),
                 symmetry=full_parameters("symmetry"),
             )
-            particle_classification_group = session.query(
-                models.ParticleClassificationGroup
-            ).filter(
-                models.ParticleClassificationGroup.particleClassificationGroupId
-                == values.particleClassificationGroupId,
+            particle_classification_group = (
+                session.query(models.ParticleClassificationGroup)
+                .filter(
+                    models.ParticleClassificationGroup.particleClassificationGroupId
+                    == values.particleClassificationGroupId,
+                )
+                .one()
             )
             if particle_classification_group:
                 sqlalchemy_update(particle_classification_group).values(values)
