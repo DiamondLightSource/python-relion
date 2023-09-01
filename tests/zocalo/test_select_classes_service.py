@@ -51,6 +51,20 @@ def select_classes_common_setup(tmp_path):
             "0.008 0.035 3.100 1.416 16.183 1.000 -0.133 -0.001"
         )
 
+    classes_file = tmp_path / "Select/job012/class_averages.star"
+    with open(classes_file, "w") as f:
+        f.write(
+            "data_\n\nloop_\n_rlnReferenceImage\n_rlnPredictedClassScore\n"
+            "_rlnClassDistribution\n_rlnAccuracyRotations\n"
+            "_rlnAccuracyTranslationsAngst\n_rlnEstimatedResolution\n"
+        )
+        f.write(
+            "\n000001@Class2D/job010/run_it020_classes.mrcs "
+            "0.029585 0.063949 1.500000 0.752250 9.258462"
+            "\n00002@Class2D/job010/run_it020_classes.mrcs "
+            "0.015038 0.029918 1.500000 0.752250 9.628800"
+        )
+
     input_relion_options = {
         "do_icebreaker_jobs": True,
         "class2d_fraction_of_classes_to_remove": 0.5,
@@ -71,6 +85,7 @@ def select_classes_common_setup(tmp_path):
             "class3d_max_size": 200000,
             "program_id": 1,
             "session_id": 2,
+            "class_uuids": "{'1': '1', '2': '2'}",
             "relion_options": input_relion_options,
         },
         "content": "dummy",
@@ -158,6 +173,33 @@ def test_select_classes_service_first_batch(
     )
 
     # Check that the correct messages were sent
+    offline_transport.send.assert_any_call(
+        destination="ispyb_connector",
+        message={
+            "parameters": {
+                "ispyb_command": "multipart_message",
+                "ispyb_command_list": [
+                    {
+                        "ispyb_command": "buffer",
+                        "buffer_lookup": {"particle_classification_id": "1"},
+                        "buffer_command": {
+                            "ispyb_command": "insert_particle_classification"
+                        },
+                        "selected": 1,
+                    },
+                    {
+                        "ispyb_command": "buffer",
+                        "buffer_lookup": {"particle_classification_id": "2"},
+                        "buffer_command": {
+                            "ispyb_command": "insert_particle_classification"
+                        },
+                        "selected": 1,
+                    },
+                ],
+            },
+            "content": {"dummy": "dummy"},
+        },
+    )
     offline_transport.send.assert_any_call(
         destination="node_creator",
         message={
