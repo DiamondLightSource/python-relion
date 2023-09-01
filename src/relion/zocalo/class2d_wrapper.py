@@ -325,6 +325,7 @@ class Class2DWrapper(zocalo.wrapper.BaseWrapper):
                 "min_score": class2d_params.autoselect_min_score,
                 "relion_options": dict(class2d_params.relion_options),
                 "python": class2d_params.autoselect_python,
+                "class_uuids": class2d_params.class_uuids,
             }
             self.recwrap.send_to("select_classes", autoselect_parameters)
         else:
