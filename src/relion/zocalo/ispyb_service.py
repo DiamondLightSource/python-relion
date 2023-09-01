@@ -1046,18 +1046,23 @@ class EMISPyB(CommonService):
 
         self.log.info(f"Inserting CryoEM Initial Model parameters. DCID: {dcid}")
         try:
-            values = models.CryoemInitialModel(
-                cryoemInitialModelId=full_parameters("cryoem_inital_model_id"),
+            if not full_parameters("cryoem_initial_model_id"):
+                values_im = models.CryoemInitialModel(
+                    resolution=full_parameters("resolution"),
+                    numberOfParticles=full_parameters("number_of_particles"),
+                )
+                session.add(values_im)
+                session.commit()
+                self.log.info(
+                    "Created CryoEM Initial Model record "
+                    f"{values_im.cryoemInitialModelId} for DCID {dcid}"
+                )
+            values = models.t_ParticleClassification_has_CryoemInitialModel(
+                cryoemInitialModelId=full_parameters("cryoem_initial_model_id"),
                 particleClassificationId=full_parameters("particle_classification_id"),
-                resolution=full_parameters("resolution"),
-                numberOfParticles=full_parameters("number_of_particles"),
             )
             session.add(values)
             session.commit()
-            self.log.info(
-                "Created CryoEM Initial Model record "
-                f"{values.cryoemInitialModelId} for DCID {dcid}"
-            )
             return {"success": True, "return_value": values.cryoemInitialModelId}
         except ispyb.ISPyBException as e:
             self.log.error(
