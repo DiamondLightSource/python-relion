@@ -1005,7 +1005,16 @@ class EMISPyB(CommonService):
                 .first()
             )
             if particle_classification_group:
-                sqlalchemy_update(particle_classification_group).values(values)
+                session.execute(
+                    sqlalchemy_update(models.ParticleClassificationGroup),
+                    [
+                        {
+                            k: v
+                            for k, v in values.__dict__.items()
+                            if k != "_sa_instance_state"
+                        }
+                    ],
+                )
             else:
                 session.add(values)
             session.commit()
