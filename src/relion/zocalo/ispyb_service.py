@@ -213,7 +213,7 @@ class EMISPyB(CommonService):
             return
         rw.transport.transaction_commit(txn)
 
-    def do_create_ispyb_job(self, parameters, *, rw=None):
+    def do_create_ispyb_job(self, parameters, *, rw=None, **kwargs):
         dcid = int(parameters("DCID"))
         if not dcid:
             self.log.error("Can not create job: DCID not specified")
@@ -252,7 +252,7 @@ class EMISPyB(CommonService):
 
         return {"success": True, "return_value": jobid}
 
-    def do_update_processing_status(self, parameters):
+    def do_update_processing_status(self, parameters, **kwargs):
         ppid = parameters("program_id")
         message = parameters("message")
         status = parameters("status")
@@ -279,7 +279,7 @@ class EMISPyB(CommonService):
             )
             return False
 
-    def do_register_processing(self, parameters):
+    def do_register_processing(self, parameters, **kwargs):
         program = parameters("program")
         cmdline = parameters("cmdline")
         environment = parameters("environment") or ""
@@ -320,7 +320,7 @@ class EMISPyB(CommonService):
             )
             return False
 
-    def do_add_program_attachment(self, parameters):
+    def do_add_program_attachment(self, parameters, **kwargs):
         params = self.ispyb.mx_processing.get_program_attachment_params()
         params["parentid"] = parameters("program_id")
         try:
@@ -358,7 +358,7 @@ class EMISPyB(CommonService):
         )
         return {"success": True, "return_value": result}
 
-    def do_multipart_message(self, rw, message):
+    def do_multipart_message(self, rw, message, **kwargs):
         """The multipart_message command allows the recipe or client to specify a
         multi-stage operation. With this you can process a list of API calls.
         Each API call may have a return value that can be stored.
@@ -434,6 +434,8 @@ class EMISPyB(CommonService):
                     base_value = base_value.replace("$" + key, str(rw.environment[key]))
             return base_value
 
+        kwargs["parameters"] = step_parameters
+
         # If this step previously checkpointed then override the message passed
         # to the step.
         step_message = current_command
@@ -441,9 +443,7 @@ class EMISPyB(CommonService):
             step_message = message.get("step_message", step_message)
 
         # Run the multipart step
-        result = command_function(
-            rw=rw, message=step_message, parameters=step_parameters
-        )
+        result = command_function(rw=rw, message=step_message, **kwargs)
 
         # Store step result if appropriate
         store_result = current_command.get("store_result")
@@ -498,7 +498,7 @@ class EMISPyB(CommonService):
             del checkpoint_dictionary["step_message"]
         return {"checkpoint": True, "return_value": checkpoint_dictionary}
 
-    def do_buffer(self, rw, message, session, parameters, header):
+    def do_buffer(self, rw, message, session, parameters, header, **kwargs):
         """The buffer command supports running buffer lookups before running
         a command, and optionally storing the result in a buffer after running
         the command. It also takes care of checkpointing in case a required
@@ -602,6 +602,7 @@ class EMISPyB(CommonService):
             message=message["buffer_command"],
             session=session,
             parameters=parameters,
+            **kwargs,
         )
 
         # Store result if appropriate
@@ -643,7 +644,7 @@ class EMISPyB(CommonService):
         # Finally, propagate result
         return result
 
-    def do_insert_data_collection_group(self, parameters, message=None):
+    def do_insert_data_collection_group(self, parameters, message=None, **kwargs):
         dcgparams = self.ispyb.em_acquisition.get_data_collection_group_params()
         dcgparams["parentid"] = parameters("session_id")
         dcgparams["experimenttype"] = parameters("experiment_type")
@@ -666,7 +667,7 @@ class EMISPyB(CommonService):
             )
         return False
 
-    def do_insert_data_collection(self, parameters, message=None):
+    def do_insert_data_collection(self, parameters, message=None, **kwargs):
         dc_params = self.ispyb.em_acquisition.get_data_collection_params()
         dc_params["parentid"] = parameters("dcgid")
         dc_params["starttime"] = parameters("start_time")
