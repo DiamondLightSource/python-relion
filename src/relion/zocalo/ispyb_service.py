@@ -881,7 +881,7 @@ class EMISPyB(CommonService):
             )
             return False
 
-    def do_insert_particle_picker(self, parameters, message=None, **kwargs):
+    def do_insert_particle_picker(self, parameters, session, message=None, **kwargs):
         if message is None:
             message = {}
         dcid = parameters("dcid")
@@ -900,6 +900,8 @@ class EMISPyB(CommonService):
                 numberOfParticles=full_parameters("number_of_particles"),
                 summaryImageFullPath=full_parameters("summary_image_full_path"),
             )
+            session.add(values)
+            session.commit()
             self.log.info(
                 f"Created ParticlePicker record {values.particlePickerId} "
                 f"for DCID {dcid}"
