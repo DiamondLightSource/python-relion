@@ -863,7 +863,7 @@ class EMISPyB(CommonService):
                 astigmatism=full_parameters("astigmatism"),
                 astigmatismAngle=full_parameters("astigmatism_angle"),
                 estimatedResolution=full_parameters("estimated_resolution"),
-                estimatedDefocuse=full_parameters("estimated_defocus"),
+                estimatedDefocus=full_parameters("estimated_defocus"),
                 amplitudeContrast=full_parameters("amplitude_contrast"),
                 ccValue=full_parameters("cc_value"),
                 fftTheoreticalFullPath=full_parameters("fft_theoretical_full_path"),
