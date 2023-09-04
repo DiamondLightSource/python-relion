@@ -209,7 +209,7 @@ class MotionCorrWilson(MotionCorr, CommonService):
         except FileNotFoundError:
             self.log.error(f"MotionCor output file {mc_output_file} not found")
             stdout = ""
-            stderr = f"MotionCor output file {mc_output_file} not found"
+            stderr = f"Reading MotionCor output file {mc_output_file} failed"
             slurm_job_state = "FAILED"
 
         if self.x_shift_list and self.y_shift_list and self.each_total_motion:
@@ -217,7 +217,7 @@ class MotionCorrWilson(MotionCorr, CommonService):
             Path(mc_error_file).unlink()
             Path(submission_file).unlink()
         else:
-            self.log.error(f"MotionCor output file {mc_output_file} read failed")
+            self.log.error(f"Reading shifts from {mc_output_file} failed")
             slurm_job_state = "FAILED"
 
         if slurm_job_state == "COMPLETED":

@@ -513,6 +513,7 @@ class TomoAlign(CommonService):
                 "success",
                 "",
             )
+        self.log.info(f"Done tomogram alignment for {tomo_params.stack_file}")
         rw.transport.ack(header)
 
     def newstack(self, tomo_parameters):

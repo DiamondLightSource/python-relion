@@ -309,5 +309,6 @@ class Denoise(CommonService):
                 },
             )
 
+        self.log.info(f"Done denoising for {d_params.volume}")
         rw.transport.ack(header)
         return subprocess.CompletedProcess(args="", returncode=0)
