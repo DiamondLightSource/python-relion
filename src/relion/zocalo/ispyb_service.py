@@ -13,7 +13,6 @@ import sqlalchemy.exc
 import sqlalchemy.orm
 import workflows.recipe
 from pydantic import BaseModel, validate_arguments
-from sqlalchemy import update as sqlalchemy_update
 from workflows.services.common_service import CommonService
 
 import relion.zocalo.ispyb_buffer as buffer
@@ -953,15 +952,15 @@ class EMISPyB(CommonService):
                 .first()
             )
             if particle_classification:
-                session.execute(
-                    sqlalchemy_update(
-                        models.ParticleClassification,
-                        values={
-                            k: v
-                            for k, v in values.__dict__.items()
-                            if k != "_sa_instance_state"
-                        },
-                    ),
+                session.query(models.ParticleClassification).filter(
+                    models.ParticleClassification.particleClassificationId
+                    == values.particleClassificationId,
+                ).update(
+                    {
+                        k: v
+                        for k, v in values.__dict__.items()
+                        if k not in ["_sa_instance_state", "particleClassificationId"]
+                    }
                 )
             else:
                 session.add(values)
