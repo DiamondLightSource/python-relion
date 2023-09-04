@@ -116,9 +116,9 @@ class RelionServiceOptions(BaseModel):
 
     # Classification batches and iteration counts
     class2d_nr_classes: int = 50
-    class2d_nr_iter: int = 20
+    class2d_nr_iter: int = 25
     class3d_nr_classes: int = 4
-    class3d_nr_iter: int = 20
+    class3d_nr_iter: int = 25
 
     class Config:
         validate_assignment = True
