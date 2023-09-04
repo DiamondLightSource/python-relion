@@ -217,6 +217,7 @@ class MotionCorrWilson(MotionCorr, CommonService):
             Path(mc_output_file).unlink()
             Path(mc_error_file).unlink()
             Path(submission_file).unlink()
+        else:
             self.log.error(f"MotionCor output file {mc_output_file} read failed")
             slurm_job_state = "FAILED"
 
