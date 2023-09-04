@@ -211,9 +211,14 @@ class MotionCorrWilson(MotionCorr, CommonService):
             self.log.error(f"MotionCor output file {mc_output_file} not found")
             stdout = ""
             stderr = f"MotionCor output file {mc_output_file} not found"
-        Path(mc_output_file).unlink(missing_ok=True)
-        Path(mc_error_file).unlink(missing_ok=True)
-        Path(submission_file).unlink()
+            slurm_job_state = "FAILED"
+
+        if self.x_shift_list and self.y_shift_list and self.each_total_motion:
+            Path(mc_output_file).unlink()
+            Path(mc_error_file).unlink()
+            Path(submission_file).unlink()
+            self.log.error(f"MotionCor output file {mc_output_file} read failed")
+            slurm_job_state = "FAILED"
 
         if slurm_job_state == "COMPLETED":
             return subprocess.CompletedProcess(
