@@ -38,7 +38,6 @@ slurm_json_template = {
         "echo \"$(date '+%Y-%m-%d %H:%M:%S.%3N'): running MotionCorr2\"\n"
         "source /etc/profile.d/modules.sh\n"
         "module load EM/MotionCor2\n"
-        "srun -n 4 "
     ),
 }
 
