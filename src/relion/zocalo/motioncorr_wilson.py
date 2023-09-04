@@ -20,7 +20,7 @@ slurm_json_template = {
         "prefer": "em_node",
         "nodes": 1,
         "tasks": 5,
-        "cpus_per_task": 10,
+        "cpus_per_task": 8,
         "gpus": 4,
         "memory_per_gpu": 7000,
         "name": "MotionCorr",
