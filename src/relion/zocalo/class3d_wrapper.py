@@ -481,7 +481,7 @@ class Class3DWrapper(zocalo.wrapper.BaseWrapper):
                 class_ispyb_parameters["fourier_completeness"] = fourier_completeness
 
             # Add the ispyb command to the command list
-            ispyb_parameters.extend(class_ispyb_parameters)
+            ispyb_parameters.append(class_ispyb_parameters)
 
         # Add on the initial model insert before sending
         if class3d_params.do_initial_model:
