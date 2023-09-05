@@ -960,6 +960,7 @@ class EMISPyB(CommonService):
                         k: v
                         for k, v in values.__dict__.items()
                         if k not in ["_sa_instance_state", "particleClassificationId"]
+                        and v is not None
                     }
                 )
             else:
