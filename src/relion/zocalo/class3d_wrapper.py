@@ -452,7 +452,7 @@ class Class3DWrapper(zocalo.wrapper.BaseWrapper):
             if job_is_rerun:
                 buffer_lookup = {
                     "particle_classification_id": self.class_uuids_dict[
-                        self.class_uuids_keys[0]
+                        self.class_uuids_keys[class_id]
                     ],
                     "particle_classification_group_id": class3d_params.class3d_grp_uuid,
                 }
@@ -466,6 +466,7 @@ class Class3DWrapper(zocalo.wrapper.BaseWrapper):
                 "buffer_command": {"ispyb_command": "insert_particle_classification"},
                 "buffer_store": self.class_uuids_dict[self.class_uuids_keys[class_id]],
                 "class_number": class_id + 1,
+                "class_image_full_path": f"{class3d_params.class3d_dir}/run_it{class3d_params.nr_iter:03}_class{class_id+1:03}.mrc",
                 "particles_per_class": (
                     float(classes_loop.val(class_id, 1)) * class3d_params.batch_size
                 ),
