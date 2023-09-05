@@ -258,6 +258,7 @@ class Class3DWrapper(zocalo.wrapper.BaseWrapper):
                 },
                 "buffer_command": {"ispyb_command": "insert_cryoem_initial_model"},
                 "number_of_particles": number_of_particles,
+                "resolution": resolution,
                 "store_result": "ispyb_initial_model_id",
             }
         ]
@@ -273,6 +274,7 @@ class Class3DWrapper(zocalo.wrapper.BaseWrapper):
                     },
                     "buffer_command": {"ispyb_command": "insert_cryoem_initial_model"},
                     "number_of_particles": number_of_particles,
+                    "resolution": resolution,
                     "cryoem_initial_model_id": "$ispyb_initial_model_id",
                 }
             )

@@ -1069,13 +1069,19 @@ class EMISPyB(CommonService):
                     "Created CryoEM Initial Model record "
                     f"{values_im.cryoemInitialModelId} for DCID {dcid}"
                 )
-            values = models.t_ParticleClassification_has_CryoemInitialModel(
-                cryoemInitialModelId=full_parameters("cryoem_initial_model_id"),
-                particleClassificationId=full_parameters("particle_classification_id"),
+                initial_model_id = values_im.cryoemInitialModelId
+            else:
+                initial_model_id = full_parameters("cryoem_initial_model_id")
+            session.execute(
+                models.t_ParticleClassification_has_CryoemInitialModel.insert().values(
+                    cryoemInitialModelId=initial_model_id,
+                    particleClassificationId=full_parameters(
+                        "particle_classification_id"
+                    ),
+                )
             )
-            session.add(values)
             session.commit()
-            return {"success": True, "return_value": values.cryoemInitialModelId}
+            return {"success": True, "return_value": initial_model_id}
         except ispyb.ISPyBException as e:
             self.log.error(
                 "Inserting CryoEM Initial Model entry caused exception '%s'.",
