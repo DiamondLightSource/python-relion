@@ -47,7 +47,7 @@ class IceBreaker(CommonService):
     ice_minimum: int
     ice_q1: int
     ice_median: int
-    ice_q2: int
+    ice_q3: int
     ice_maximum: int
 
     def initializing(self):
@@ -72,7 +72,7 @@ class IceBreaker(CommonService):
                 self.ice_minimum = int(line_split[2])
                 self.ice_q1 = int(line_split[3])
                 self.ice_median = int(line_split[4])
-                self.ice_q2 = int(line_split[5])
+                self.ice_q3 = int(line_split[5])
                 self.ice_maximum = int(line_split[6])
 
     def icebreaker(self, rw, header: dict, message: dict):
@@ -214,7 +214,7 @@ class IceBreaker(CommonService):
                     str(self.ice_minimum),
                     str(self.ice_q1),
                     str(self.ice_median),
-                    str(self.ice_q2),
+                    str(self.ice_q3),
                     str(self.ice_maximum),
                 ]
         if icebreaker_params.icebreaker_type == "particles":
@@ -282,7 +282,7 @@ class IceBreaker(CommonService):
                 "minimum": self.ice_minimum,
                 "q1": self.ice_q1,
                 "median": self.ice_median,
-                "q2": self.ice_q2,
+                "q3": self.ice_q3,
                 "maximum": self.ice_maximum,
             }
             self.log.info(f"Sending to ispyb: {ispyb_parameters}")

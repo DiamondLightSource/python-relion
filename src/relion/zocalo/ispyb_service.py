@@ -773,6 +773,7 @@ class EMISPyB(CommonService):
                 movie_id = movie_values["return_value"]
 
             values = models.MotionCorrection(
+                dataCollectionId=full_parameters("dcid"),
                 movieId=full_parameters("movie_id") or movie_id,
                 autoProcProgramId=full_parameters("program_id"),
                 imageNumber=full_parameters("image_number"),

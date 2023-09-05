@@ -286,7 +286,9 @@ class Class2DWrapper(zocalo.wrapper.BaseWrapper):
                 class_ispyb_parameters["estimated_resolution"] = estimated_resolution
             fourier_completeness = float(classes_loop.val(class_id, 5))
             if np.isfinite(fourier_completeness):
-                class_ispyb_parameters["fourier_completeness"] = fourier_completeness
+                class_ispyb_parameters[
+                    "overall_fourier_completeness"
+                ] = fourier_completeness
 
             # Add the ispyb command to the command list
             ispyb_parameters.append(class_ispyb_parameters)

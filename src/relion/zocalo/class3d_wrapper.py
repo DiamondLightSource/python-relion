@@ -478,14 +478,16 @@ class Class3DWrapper(zocalo.wrapper.BaseWrapper):
                 class_ispyb_parameters["estimated_resolution"] = estimated_resolution
             fourier_completeness = float(classes_loop.val(class_id, 5))
             if np.isfinite(fourier_completeness):
-                class_ispyb_parameters["fourier_completeness"] = fourier_completeness
+                class_ispyb_parameters[
+                    "overall_fourier_completeness"
+                ] = fourier_completeness
 
             # Add the ispyb command to the command list
             ispyb_parameters.append(class_ispyb_parameters)
 
         # Add on the initial model insert before sending
         if class3d_params.do_initial_model:
-            ispyb_parameters.append(initial_model_ispyb_parameters)
+            ispyb_parameters.extend(initial_model_ispyb_parameters)
 
         self.log.info(f"Sending to ispyb {ispyb_parameters}")
         self.recwrap.send_to(
