@@ -48,8 +48,8 @@ class TomoAlignIris(TomoAlign, CommonService):
             args.extend(
                 (
                     "-TiltRange",
-                    tomo_parameters.input_file_list[0][1],  # lowest tilt
-                    tomo_parameters.input_file_list[-1][1],
+                    str(tomo_parameters.input_file_list[0][1]),  # lowest tilt
+                    str(tomo_parameters.input_file_list[-1][1]),
                 )
             )  # highest tilt
 
