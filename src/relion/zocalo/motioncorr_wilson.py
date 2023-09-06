@@ -19,7 +19,7 @@ slurm_json_template = {
         "partition": "em,cs05r",
         "prefer": "em_node",
         "nodes": 1,
-        "tasks": 2,
+        "tasks": 1,
         "cpus_per_task": 8,
         "gpus": 1,
         "memory_per_gpu": 7000,
