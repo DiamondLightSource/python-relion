@@ -278,5 +278,17 @@ class SelectParticles(CommonService):
                 else:
                     rw.send_to("murfey_feedback", murfey_params)
 
+        murfey_confirmation = {
+            "register": "done_particle_selection",
+            "program_id": select_params.program_id,
+            "session_id": select_params.session_id,
+        }
+        if isinstance(rw, MockRW):
+            rw.transport.send(
+                destination="murfey_feedback", message=murfey_confirmation
+            )
+        else:
+            rw.send_to("murfey_feedback", murfey_confirmation)
+
         self.log.info(f"Done {self.job_type} for {select_params.input_file}.")
         rw.transport.ack(header)

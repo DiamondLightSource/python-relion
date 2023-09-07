@@ -117,6 +117,14 @@ def test_select_particles_service(mock_environment, offline_transport, tmp_path)
             "session_id": 2,
         },
     )
+    offline_transport.send.assert_any_call(
+        destination="murfey_feedback",
+        message={
+            "register": "done_particle_selection",
+            "program_id": 1,
+            "session_id": 2,
+        },
+    )
 
     # Check the output files and their structure
     assert (output_dir / "particles_split1.star").exists()

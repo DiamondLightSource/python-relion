@@ -192,7 +192,7 @@ class SelectClasses(CommonService):
                 "session_id": autoselect_params.session_id,
             }
             if isinstance(rw, MockRW):
-                rw.transport.send("murfey_feedback", murfey_params)
+                rw.transport.send(destination="murfey_feedback", message=murfey_params)
             else:
                 rw.send_to("murfey_feedback", murfey_params)
 
@@ -442,6 +442,18 @@ class SelectClasses(CommonService):
                 rw.transport.send("murfey_feedback", murfey_3d_params)
             else:
                 rw.send_to("murfey_feedback", murfey_3d_params)
+
+        murfey_confirmation = {
+            "register": "done_class_selection",
+            "program_id": autoselect_params.program_id,
+            "session_id": autoselect_params.session_id,
+        }
+        if isinstance(rw, MockRW):
+            rw.transport.send(
+                destination="murfey_feedback", message=murfey_confirmation
+            )
+        else:
+            rw.send_to("murfey_feedback", murfey_confirmation)
 
         self.log.info(f"Done {self.job_type} for {autoselect_params.input_file}.")
         rw.transport.ack(header)

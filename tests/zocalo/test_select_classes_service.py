@@ -284,6 +284,14 @@ def test_select_classes_service_first_batch(
             "session_id": 2,
         },
     )
+    offline_transport.send.assert_any_call(
+        destination="murfey_feedback",
+        message={
+            "register": "done_class_selection",
+            "program_id": 1,
+            "session_id": 2,
+        },
+    )
 
 
 @pytest.mark.skipif(sys.platform == "win32", reason="does not run on windows")
@@ -533,10 +541,7 @@ def test_select_classes_service_not_threshold(
         cwd=str(tmp_path),
         capture_output=True,
     )
-    assert (
-        mock.call(destination="murfey_feedback", message=mock.ANY)
-        not in offline_transport.send.mock_calls
-    )
+    assert len(offline_transport.send.call_args_list) == 6
 
 
 @pytest.mark.skipif(sys.platform == "win32", reason="does not run on windows")
@@ -585,10 +590,7 @@ def test_select_classes_service_past_maximum(
         cwd=str(tmp_path),
         capture_output=True,
     )
-    assert (
-        mock.call(destination="murfey_feedback", message=mock.ANY)
-        not in offline_transport.send.mock_calls
-    )
+    assert len(offline_transport.send.call_args_list) == 6
 
 
 def test_parse_combiner_output(mock_environment, offline_transport):
