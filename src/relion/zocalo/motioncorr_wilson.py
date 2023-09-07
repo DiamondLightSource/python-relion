@@ -14,6 +14,8 @@ from workflows.services.common_service import CommonService
 
 from relion.zocalo.motioncorr import MotionCorr
 
+# To get the required image run
+# singularity pull docker://gcr.io/diamond-pubreg/em/motioncorr:version
 slurm_json_template = {
     "job": {
         "partition": "em,cs05r",
@@ -35,11 +37,15 @@ slurm_json_template = {
     },
     "script": (
         "#!/bin/bash\n"
-        "echo \"$(date '+%Y-%m-%d %H:%M:%S.%3N'): running MotionCorr2\"\n"
-        "source /etc/profile.d/modules.sh\n"
-        "module load EM/MotionCor2\n"
+        "echo \"$(date '+%Y-%m-%d %H:%M:%S.%3N'): running MotionCor2\"\n"
+        "mkdir /tmp/tmp_$SLURM_JOB_ID\n"
+        "export SINGULARITY_CACHEDIR=/tmp/tmp_$SLURM_JOB_ID\n"
+        "export SINGULARITY_TMPDIR=/tmp/tmp_$SLURM_JOB_ID\n"
+        "singularity exec --home /home/k8s-em "
+        "--bind /lib64,/dls,/tmp/tmp_$SLURM_JOB_ID:/tmp --nv "
     ),
 }
+slurm_tmp_cleanup = "\nrm -rf /tmp/tmp_$SLURM_JOB_ID"
 
 
 class ChainMapWithReplacement(ChainMap):
@@ -124,7 +130,11 @@ class MotionCorrWilson(MotionCorr, CommonService):
         slurm_json_job = dict(slurm_json_template["job"], **slurm_files)
         slurm_json = {
             "job": slurm_json_job,
-            "script": slurm_json_template["script"] + " ".join(command),
+            "script": slurm_json_template["script"]
+            + os.environ["MOTIONCOR2_SIF"]
+            + " "
+            + " ".join(command)
+            + slurm_tmp_cleanup,
         }
         with open(submission_file, "w") as f:
             json.dump(slurm_json, f)
@@ -213,9 +223,10 @@ class MotionCorrWilson(MotionCorr, CommonService):
             slurm_job_state = "FAILED"
 
         if self.x_shift_list and self.y_shift_list and self.each_total_motion:
-            Path(mc_output_file).unlink()
-            Path(mc_error_file).unlink()
-            Path(submission_file).unlink()
+            # Path(mc_output_file).unlink()
+            # Path(mc_error_file).unlink()
+            # Path(submission_file).unlink()
+            pass
         else:
             self.log.error(f"Reading shifts from {mc_output_file} failed")
             slurm_job_state = "FAILED"
