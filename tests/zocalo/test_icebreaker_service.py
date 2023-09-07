@@ -259,7 +259,7 @@ def test_icebreaker_summary_service(
     service.ice_minimum = 0
     service.ice_q1 = 1
     service.ice_median = 2
-    service.ice_q2 = 3
+    service.ice_q3 = 3
     service.ice_maximum = 4
     service.transport = offline_transport
     service.start()
@@ -313,7 +313,7 @@ def test_icebreaker_summary_service(
                 "minimum": 0,
                 "q1": 1,
                 "median": 2,
-                "q2": 3,
+                "q3": 3,
                 "maximum": 4,
                 "ispyb_command": "buffer",
                 "buffer_lookup": {"motion_correction_id": 0},
@@ -422,5 +422,5 @@ def test_parse_icebreaker_output(mock_environment, offline_transport):
     assert service.ice_minimum == 0
     assert service.ice_q1 == 1
     assert service.ice_median == 2
-    assert service.ice_q2 == 3
+    assert service.ice_q3 == 3
     assert service.ice_maximum == 4
