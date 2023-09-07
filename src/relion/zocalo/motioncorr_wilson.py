@@ -223,10 +223,9 @@ class MotionCorrWilson(MotionCorr, CommonService):
             slurm_job_state = "FAILED"
 
         if self.x_shift_list and self.y_shift_list and self.each_total_motion:
-            # Path(mc_output_file).unlink()
-            # Path(mc_error_file).unlink()
-            # Path(submission_file).unlink()
-            pass
+            Path(mc_output_file).unlink()
+            Path(mc_error_file).unlink()
+            Path(submission_file).unlink()
         else:
             self.log.error(f"Reading shifts from {mc_output_file} failed")
             slurm_job_state = "FAILED"
