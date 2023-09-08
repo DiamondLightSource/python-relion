@@ -59,7 +59,7 @@ class MotionCorrParameters(BaseModel):
     @validator("experiment_type")
     def is_spa_or_tomo(cls, experiment):
         if experiment not in ["spa", "tomography"]:
-            raise ValidationError("Specify an experiment type of spa or tomography.")
+            raise ValueError("Specify an experiment type of spa or tomography.")
         return experiment
 
     class Config:
