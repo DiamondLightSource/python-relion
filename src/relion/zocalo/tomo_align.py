@@ -2,16 +2,15 @@ from __future__ import annotations
 
 import ast
 import os.path
+import subprocess
 import time
 from pathlib import Path
 from typing import List, Optional, Union
 
 import plotly.express as px
-import procrunner
 import workflows.recipe
 import workflows.transport
-from pydantic import BaseModel, Field, validator
-from pydantic.error_wrappers import ValidationError
+from pydantic import BaseModel, Field, ValidationError, validator
 from workflows.services.common_service import CommonService
 
 
@@ -49,7 +48,8 @@ class TomoParameters(BaseModel):
             raise ValueError("input_file_list or path_pattern must be provided")
         if v and values.get("path_pattern"):
             raise ValueError(
-                "Message must only include one of 'path_pattern' and 'input_file_list'. Both are set or one has been set by the recipe."
+                "Message must only include one of 'path_pattern' and 'input_file_list'."
+                " Both are set or one has been set by the recipe."
             )
         return v
 
@@ -81,7 +81,7 @@ class TomoAlign(CommonService):
     """
 
     # Human readable service name
-    _service_name = "DLS TomoAlign"
+    _service_name = "TomoAlign"
     # Logger name
     _logger_name = "relion.zocalo.tomo_align"
 
@@ -116,11 +116,12 @@ class TomoAlign(CommonService):
             allow_non_recipe_messages=True,
         )
 
-    def parse_tomo_output(self, line):
-        if line.startswith("Rot center Z"):
-            self.rot_centre_z_list.append(line.split()[5])
-        if line.startswith("Tilt offset"):
-            self.tilt_offset = float(line.split()[2].strip(","))
+    def parse_tomo_output(self, tomo_stdout: str):
+        for line in tomo_stdout.split("\n"):
+            if line.startswith("Rot center Z"):
+                self.rot_centre_z_list.append(line.split()[5])
+            if line.startswith("Tilt offset"):
+                self.tilt_offset = float(line.split()[2].strip(","))
 
     def extract_from_aln(self, tomo_parameters):
         tomo_aln_file = None
@@ -151,7 +152,7 @@ class TomoAlign(CommonService):
         return tomo_aln_file  # not needed anywhere atm
 
     def tomo_align(self, rw, header: dict, message: dict):
-        class RW_mock:
+        class MockRW:
             transport: workflows.transport.common_transport.CommonTransport
 
             def dummy(self, *args, **kwargs):
@@ -173,7 +174,7 @@ class TomoAlign(CommonService):
             # Create a wrapper-like object that can be passed to functions
             # as if a recipe wrapper was present.
 
-            rw = RW_mock()
+            rw = MockRW()
             rw.transport = self._transport
             rw.recipe_step = {"parameters": message["parameters"]}
             rw.environment = {"has_recipe_wrapper": False}
@@ -191,7 +192,9 @@ class TomoAlign(CommonService):
             tomo_params.pix_size = tomo_params.pix_size * 1e10
         except (ValidationError, TypeError) as e:
             self.log.warning(
-                f"{e} TomoAlign parameter validation failed for message: {message} and recipe parameters: {rw.recipe_step.get('parameters', {})}"
+                f"TomoAlign parameter validation failed for message: {message} "
+                f"and recipe parameters: {rw.recipe_step.get('parameters', {})} "
+                f"with exception: {e}"
             )
             rw.transport.nack(header)
             return
@@ -281,14 +284,13 @@ class TomoAlign(CommonService):
             )
 
         aretomo_result = self.aretomo(tomo_params)
-
         if aretomo_result.returncode:
             self.log.error(
                 f"AreTomo failed with exitcode {aretomo_result.returncode}:\n"
                 + aretomo_result.stderr.decode("utf8", "replace")
             )
             # Update failure processing status
-            if isinstance(rw, RW_mock):
+            if isinstance(rw, MockRW):
                 rw.transport.send(
                     destination="failure",
                     message="",
@@ -398,7 +400,7 @@ class TomoAlign(CommonService):
             "ispyb_command_list": ispyb_command_list,
         }
         self.log.info(f"Sending to ispyb {ispyb_parameters}")
-        if isinstance(rw, RW_mock):
+        if isinstance(rw, MockRW):
             rw.transport.send(
                 destination="ispyb_connector",
                 message={
@@ -407,11 +409,11 @@ class TomoAlign(CommonService):
                 },
             )
         else:
-            rw.send_to("ispyb", ispyb_parameters)
+            rw.send_to("ispyb_connector", ispyb_parameters)
 
         # Forward results to images service
         self.log.info(f"Sending to images service {self.aretomo_output_path}")
-        if isinstance(rw, RW_mock):
+        if isinstance(rw, MockRW):
             rw.transport.send(
                 destination="images",
                 message={
@@ -452,7 +454,7 @@ class TomoAlign(CommonService):
             + str(Path(self.xz_proj_file).with_suffix(".mrc"))
         )
         self.log.info(f"Sending to images service {xy_input}, {xz_input}")
-        if isinstance(rw, RW_mock):
+        if isinstance(rw, MockRW):
             rw.transport.send(
                 destination="projxy",
                 message={
@@ -485,7 +487,7 @@ class TomoAlign(CommonService):
 
         # Forward results to denoise service
         self.log.info(f"Sending to denoise service {self.aretomo_output_path}")
-        if isinstance(rw, RW_mock):
+        if isinstance(rw, MockRW):
             rw.transport.send(
                 destination="denoise",
                 message={
@@ -501,7 +503,7 @@ class TomoAlign(CommonService):
             )
 
         # Update success processing status
-        if isinstance(rw, RW_mock):
+        if isinstance(rw, MockRW):
             rw.transport.send(
                 destination="success",
                 message="",
@@ -511,6 +513,7 @@ class TomoAlign(CommonService):
                 "success",
                 "",
             )
+        self.log.info(f"Done tomogram alignment for {tomo_params.stack_file}")
         rw.transport.ack(header)
 
     def newstack(self, tomo_parameters):
@@ -534,7 +537,7 @@ class TomoAlign(CommonService):
             "-quiet",
         ]
         self.log.info("Running Newstack")
-        result = procrunner.run(newstack_cmd)
+        result = subprocess.run(newstack_cmd)
         return result
 
     def aretomo(self, tomo_parameters):
@@ -593,11 +596,10 @@ class TomoAlign(CommonService):
 
         self.log.info(f"Running AreTomo {command}")
         self.log.info(
-            f"Input stack: {tomo_parameters.stack_file} \nOutput file: {self.aretomo_output_path}"
+            f"Input stack: {tomo_parameters.stack_file} \n"
+            f"Output file: {self.aretomo_output_path}"
         )
+        result = subprocess.run(command, capture_output=True)
         if tomo_parameters.tilt_cor:
-            callback = self.parse_tomo_output
-        else:
-            callback = None
-        result = procrunner.run(command=command, callback_stdout=callback)
+            self.parse_tomo_output(result.stdout.decode("utf8", "replace"))
         return result

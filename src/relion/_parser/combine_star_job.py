@@ -93,6 +93,9 @@ class ProcessStarFiles(PipelinerJob):
 
         return [command]
 
+    def create_output_nodes(self):
+        self.add_output_node("particles_all.star", NODE_PARTICLESDATA, ["relion"])
+
     def post_run_actions(self):
         """Find any output files produced by the splitting"""
         output_files = Path(self.output_dir).glob("particles_split*.star")

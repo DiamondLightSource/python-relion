@@ -1,4 +1,4 @@
 apiVersion: v2
 name: ispyb
-description: A Helm chart for DLS ISPyB service
+description: A Helm chart for the ISPyB service
 version: 0.0.1

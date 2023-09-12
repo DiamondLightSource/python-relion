@@ -28,7 +28,11 @@ from pipeliner.data_structure import (
     JOBSTATUS_RUN,
     SUCCESS_FILE,
 )
-from pipeliner.job_runner import JobRunner
+
+try:
+    from pipeliner.job_runner import JobRunner
+except ImportError:
+    print("Unable to import JobRunner, likely because of the pipeliner version used")
 from pipeliner.pipeliner_job import PipelinerJob
 from pipeliner.project_graph import ProjectGraph
 from pipeliner.utils import touch
@@ -339,6 +343,7 @@ class PipelineRunner:
         all_split_files = list(select_job.glob("*particles_split*.star"))
         if len(all_split_files) == 1:
             return [str(all_split_files[0])]
+
         # drop the most recent batch if there is more than one as it probably isn't complete
         def batch(fname: str) -> int:
             spfname = fname.split("particles_split")

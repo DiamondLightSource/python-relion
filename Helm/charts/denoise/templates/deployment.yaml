@@ -23,6 +23,9 @@ spec:
         resources:
           requests:
             cpu: "250m"
+          limits:
+            cpu: {{ .Values.cpuLimit }}
+            memory: {{ .Values.memoryLimit }}
         command: ["/bin/sh"]
         args:
           - -c
@@ -46,7 +49,7 @@ spec:
       volumes:
       - name: config-file
         configMap:
-          name: zocalo-conf
+          name: {{ .Values.configMap }}
       - name: secrets
         projected:
           defaultMode: 0444
@@ -59,4 +62,25 @@ spec:
               name: {{ .Values.rmqApiSecretName }}
 {{- if .Values.extraVolumes }}
 {{ toYaml .Values.extraVolumes | indent 6 }}
+{{ end }}
+{{- if .Values.scaleOnQueueLength }}
+---
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: denoise
+  namespace: {{ .Values.global.namespace }}
+spec:
+  scaleTargetRef:
+    name: denoise
+  triggers:
+    - type: rabbitmq
+      metadata:
+        host: {{ .Values.global.rmqHost }}
+        queueName: denoise
+        mode: QueueLength
+        value: "{{ .Values.queueLengthTrigger }}"
+  minReplicaCount: {{ .Values.minReplicaCount }}
+  maxReplicaCount: {{ .Values.maxReplicaCount }}
+  idleReplicaCount: {{ .Values.idleReplicaCount }}
 {{ end }}

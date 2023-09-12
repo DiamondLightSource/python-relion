@@ -25,6 +25,7 @@ spec:
             nvidia.com/gpu: "1"
           limits:
             nvidia.com/gpu: "1"
+            memory: {{ .Values.memoryLimit }}
         command: ["/bin/sh"]
         args:
           - -c
@@ -50,7 +51,7 @@ spec:
       volumes:
       - name: config-file
         configMap:
-          name: zocalo-conf
+          name: {{ .Values.configMap }}
       - name: secrets
         projected:
           defaultMode: 0444

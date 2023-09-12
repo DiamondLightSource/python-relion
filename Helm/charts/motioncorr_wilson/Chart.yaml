@@ -1,0 +1,4 @@
+apiVersion: v2
+name: motioncorr_wilson
+description: A Helm chart for MotionCorr service which submits to the Wilson cluster
+version: 0.0.1

@@ -4,6 +4,42 @@ global:
   runAsUser: user-id
   runAsGroup: group-id
 
+cluster_submission:
+  replicas: 1
+  image: gcr.io/image/path
+  command: zocalo.service -s service-name -e environment
+  extraVolumes:
+  - name: home
+    hostPath:
+      path: /home
+      type: Directory
+  extraVolumeMounts:
+  - mountPath: /home
+    name: home
+    mountPropagation: HostToContainer
+    readOnly: true
+  configMap: zocalo-conf
+  dbSecretName: dev-db # name for database credentials
+  dbFileName: db-dev.cfg
+
+cryolo:
+  replicas: 1
+  image: gcr.io/image/path
+  command: zocalo.service -s service-name -e environment
+  extraVolumes:
+  - name: home
+    hostPath:
+      path: /home
+      type: Directory
+  extraVolumeMounts:
+  - mountPath: /home
+    name: home
+    mountPropagation: HostToContainer
+    readOnly: true
+  configMap: zocalo-conf
+  dbSecretName: dev-db # name for database credentials
+  dbFileName: db-dev.cfg
+
 ctffind:
   replicas: 1
   image: gcr.io/image/path
@@ -18,6 +54,25 @@ ctffind:
     name: home
     mountPropagation: HostToContainer
     readOnly: true
+  configMap: zocalo-conf
+  dbSecretName: dev-db # name for database credentials
+  dbFileName: db-dev.cfg
+
+denoise:
+  replicas: 1
+  image: gcr.io/image/path
+  command: zocalo.service -s service-name -e environment
+  extraVolumes:
+  - name: dls
+    hostPath:
+      path: /dls
+      type: Directory
+  extraVolumeMounts:
+  - mountPath: /dls
+    name: dls
+    mountPropagation: HostToContainer
+    readOnly: true
+  configMap: zocalo-conf
   dbSecretName: dev-db # name for database credentials
   dbFileName: db-dev.cfg
 
@@ -35,6 +90,43 @@ dispatcher:
     name: home
     mountPropagation: HostToContainer
     readOnly: true
+  configMap: zocalo-conf
+  dbSecretName: dev-db # name for database credentials
+  dbFileName: db-dev.cfg
+
+extract:
+  replicas: 1
+  image: gcr.io/image/path
+  command: zocalo.service -s service-name -e environment
+  extraVolumes:
+  - name: home
+    hostPath:
+      path: /home
+      type: Directory
+  extraVolumeMounts:
+  - mountPath: /home
+    name: home
+    mountPropagation: HostToContainer
+    readOnly: true
+  configMap: zocalo-conf
+  dbSecretName: dev-db # name for database credentials
+  dbFileName: db-dev.cfg
+
+icebreaker:
+  replicas: 1
+  image: gcr.io/image/path
+  command: zocalo.service -s service-name -e environment
+  extraVolumes:
+  - name: home
+    hostPath:
+      path: /home
+      type: Directory
+  extraVolumeMounts:
+  - mountPath: /home
+    name: home
+    mountPropagation: HostToContainer
+    readOnly: true
+  configMap: zocalo-conf
   dbSecretName: dev-db # name for database credentials
   dbFileName: db-dev.cfg
 
@@ -52,6 +144,7 @@ images:
     name: home
     mountPropagation: HostToContainer
     readOnly: true
+  configMap: zocalo-conf
   dbSecretName: dev-db # name for database credentials
   dbFileName: db-dev.cfg
 
@@ -69,6 +162,7 @@ ispyb:
     name: home
     mountPropagation: HostToContainer
     readOnly: true
+  configMap: zocalo-conf
   dbSecretName: dev-db # name for database credentials
   dbFileName: db-dev.cfg
 
@@ -86,6 +180,79 @@ motioncorr:
     name: home
     mountPropagation: HostToContainer
     readOnly: true
+  configMap: zocalo-conf
+  dbSecretName: dev-db # name for database credentials
+  dbFileName: db-dev.cfg
+
+motioncorr_wilson:
+  replicas: 1
+  image: gcr.io/image/path
+  command: zocalo.service -s service-name -e environment
+  extraVolumes:
+  - name: home
+    hostPath:
+      path: /home
+      type: Directory
+  extraVolumeMounts:
+  - mountPath: /home
+    name: home
+    mountPropagation: HostToContainer
+    readOnly: true
+  configMap: zocalo-conf
+  dbSecretName: dev-db # name for database credentials
+  dbFileName: db-dev.cfg
+
+node_creator:
+  replicas: 1
+  image: gcr.io/image/path
+  command: zocalo.service -s service-name -e environment
+  extraVolumes:
+  - name: home
+    hostPath:
+      path: /home
+      type: Directory
+  extraVolumeMounts:
+  - mountPath: /home
+    name: home
+    mountPropagation: HostToContainer
+    readOnly: true
+  configMap: zocalo-conf
+  dbSecretName: dev-db # name for database credentials
+  dbFileName: db-dev.cfg
+
+select_classes:
+  replicas: 1
+  image: gcr.io/image/path
+  command: zocalo.service -s service-name -e environment
+  extraVolumes:
+  - name: home
+    hostPath:
+      path: /home
+      type: Directory
+  extraVolumeMounts:
+  - mountPath: /home
+    name: home
+    mountPropagation: HostToContainer
+    readOnly: true
+  configMap: zocalo-conf
+  dbSecretName: dev-db # name for database credentials
+  dbFileName: db-dev.cfg
+
+select_particles:
+  replicas: 1
+  image: gcr.io/image/path
+  command: zocalo.service -s service-name -e environment
+  extraVolumes:
+  - name: home
+    hostPath:
+      path: /home
+      type: Directory
+  extraVolumeMounts:
+  - mountPath: /home
+    name: home
+    mountPropagation: HostToContainer
+    readOnly: true
+  configMap: zocalo-conf
   dbSecretName: dev-db # name for database credentials
   dbFileName: db-dev.cfg
 
@@ -103,5 +270,24 @@ tomo_align:
     name: dls
     mountPropagation: HostToContainer
     readOnly: true
+  configMap: zocalo-conf
+  dbSecretName: dev-db # name for database credentials
+  dbFileName: db-dev.cfg
+
+tomo_align_iris:
+  replicas: 1
+  image: gcr.io/image/path
+  command: zocalo.service -s service-name -e environment
+  extraVolumes:
+  - name: dls
+    hostPath:
+      path: /dls
+      type: Directory
+  extraVolumeMounts:
+  - mountPath: /dls
+    name: dls
+    mountPropagation: HostToContainer
+    readOnly: true
+  configMap: zocalo-conf
   dbSecretName: dev-db # name for database credentials
   dbFileName: db-dev.cfg

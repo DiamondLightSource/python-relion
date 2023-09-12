@@ -10,8 +10,7 @@ from typing import Optional
 
 import htcondor
 import workflows.recipe
-from pydantic import BaseModel, Field, validator
-from pydantic.error_wrappers import ValidationError
+from pydantic import BaseModel, Field, ValidationError, validator
 from workflows.services.common_service import CommonService
 
 
@@ -98,7 +97,7 @@ class Denoise(CommonService):
         )
 
     def denoise(self, rw, header: dict, message: dict):
-        class RW_mock:
+        class MockRW:
             def dummy(self, *args, **kwargs):
                 pass
 
@@ -114,7 +113,7 @@ class Denoise(CommonService):
 
             # Create a wrapper-like object that can be passed to functions
             # as if a recipe wrapper was present.
-            rw = RW_mock()
+            rw = MockRW()
             rw.transport = self._transport
             rw.recipe_step = {"parameters": message["parameters"], "output": None}
             rw.environment = {"has_recipe_wrapper": False}
@@ -131,7 +130,9 @@ class Denoise(CommonService):
                 d_params = DenoiseParameters(**{**rw.recipe_step.get("parameters", {})})
         except (ValidationError, TypeError) as e:
             self.log.warning(
-                f"{e} Denoise parameter validation failed for message: {message} and recipe parameters: {rw.recipe_step.get('parameters', {})}"
+                f"Denoise parameter validation failed for message: {message} "
+                f"and recipe parameters: {rw.recipe_step.get('parameters', {})} "
+                f"with exception: {e}"
             )
             rw.transport.nack(header)
             return
@@ -167,10 +168,7 @@ class Denoise(CommonService):
 
         for k, v in d_params.dict().items():
             if v and (k in denoise_flags):
-                if type(v) is tuple:
-                    command.extend((denoise_flags[k], " ".join(str(_) for _ in v)))
-                else:
-                    command.extend((denoise_flags[k], str(v)))
+                command.extend((denoise_flags[k], str(v)))
 
         suffix = str(Path(d_params.volume).suffix)
         alignment_output_dir = str(Path(d_params.volume).parent)
@@ -280,7 +278,7 @@ class Denoise(CommonService):
 
         # Forward results to images service
         self.log.info(f"Sending to images service {d_params.volume}")
-        if isinstance(rw, RW_mock):
+        if isinstance(rw, MockRW):
             rw.transport.send(
                 destination="images",
                 message={
@@ -311,5 +309,6 @@ class Denoise(CommonService):
                 },
             )
 
+        self.log.info(f"Done denoising for {d_params.volume}")
         rw.transport.ack(header)
         return subprocess.CompletedProcess(args="", returncode=0)

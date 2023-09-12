@@ -48,8 +48,8 @@ class TomoAlignIris(TomoAlign, CommonService):
             args.extend(
                 (
                     "-TiltRange",
-                    tomo_parameters.input_file_list[0][1],  # lowest tilt
-                    tomo_parameters.input_file_list[-1][1],
+                    str(tomo_parameters.input_file_list[0][1]),  # lowest tilt
+                    str(tomo_parameters.input_file_list[-1][1]),
                 )
             )  # highest tilt
 
@@ -91,7 +91,8 @@ class TomoAlignIris(TomoAlign, CommonService):
 
         self.log.info(f"Running AreTomo with args: {args}")
         self.log.info(
-            f"Input stack: {tomo_parameters.stack_file} \nOutput file: {tomo_parameters.aretomo_output_file}"
+            f"Input stack: {tomo_parameters.stack_file} \n"
+            f"Output file: {tomo_parameters.aretomo_output_file}"
         )
 
         # Set-up condor config

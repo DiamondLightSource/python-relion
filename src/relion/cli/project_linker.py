@@ -1,9 +1,8 @@
 from __future__ import annotations
 
 import argparse
+import subprocess
 from pathlib import Path
-
-import procrunner
 
 
 def run():
@@ -41,7 +40,7 @@ def run():
 
     for f in project_path.glob("*"):
         if (f.is_dir() and f.name in required_dirs) or f.is_file():
-            procrunner.run(
+            subprocess.run(
                 [
                     "rsync",
                     "--recursive",
@@ -72,7 +71,7 @@ def run():
                                 except OSError:
                                     file_linked = False
                             if not file_linked:
-                                procrunner.run(
+                                subprocess.run(
                                     [
                                         "rsync",
                                         str(jf),
