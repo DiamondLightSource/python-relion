@@ -1,17 +1,17 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: images-dev
+  name: images
   namespace: {{ .Values.global.namespace }}
 spec:
   replicas: {{ .Values.replicas }}
   selector:
     matchLabels:
-      app: images-dev
+      app: images
   template:
     metadata:
       labels:
-        app: images-dev
+        app: images
     spec:
       securityContext:
         runAsUser: {{ .Values.global.runAsUser }}
@@ -68,11 +68,11 @@ spec:
 apiVersion: keda.sh/v1alpha1
 kind: ScaledObject
 metadata:
-  name: images-dev
+  name: images
   namespace: {{ .Values.global.namespace }}
 spec:
   scaleTargetRef:
-    name: images-dev
+    name: images
   triggers:
     - type: rabbitmq
       metadata:

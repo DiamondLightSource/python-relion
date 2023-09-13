@@ -1,17 +1,17 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: dispatcher-dev
+  name: dispatcher
   namespace: {{ .Values.global.namespace }}
 spec:
   replicas: {{ .Values.replicas }}
   selector:
     matchLabels:
-      app: dispatcher-dev
+      app: dispatcher
   template:
     metadata:
       labels:
-        app: dispatcher-dev
+        app: dispatcher
     spec:
       securityContext:
         runAsUser: {{ .Values.global.runAsUser }}
@@ -68,11 +68,11 @@ spec:
 apiVersion: keda.sh/v1alpha1
 kind: ScaledObject
 metadata:
-  name: dispatcher-dev
+  name: dispatcher
   namespace: {{ .Values.global.namespace }}
 spec:
   scaleTargetRef:
-    name: dispatcher-dev
+    name: dispatcher
   triggers:
     - type: rabbitmq
       metadata:

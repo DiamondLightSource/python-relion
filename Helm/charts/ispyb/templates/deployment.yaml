@@ -1,17 +1,17 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: ispyb-dev
+  name: ispyb
   namespace: {{ .Values.global.namespace }}
 spec:
   replicas: {{ .Values.replicas }}
   selector:
     matchLabels:
-      app: ispyb-dev
+      app: ispyb
   template:
     metadata:
       labels:
-        app: ispyb-dev
+        app: ispyb
     spec:
       securityContext:
         runAsUser: {{ .Values.global.runAsUser }}
@@ -68,11 +68,11 @@ spec:
 apiVersion: keda.sh/v1alpha1
 kind: ScaledObject
 metadata:
-  name: ispyb-dev
+  name: ispyb
   namespace: {{ .Values.global.namespace }}
 spec:
   scaleTargetRef:
-    name: ispyb-dev
+    name: ispyb
   triggers:
     - type: rabbitmq
       metadata:
