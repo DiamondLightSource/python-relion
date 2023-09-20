@@ -234,6 +234,7 @@ class MotionCorr(CommonService):
         # Run motion correction
         if mc_params.use_motioncor2:
             # Construct the command for MotionCor2
+            self.log.info("Using MotionCor2")
             command = ["MotionCor2", input_flag, mc_params.movie]
             mc2_flags = {
                 "mrc_out": "-OutMrc",
@@ -281,6 +282,7 @@ class MotionCorr(CommonService):
             result = self.motioncor2(command, mc_params.mrc_out)
         else:
             # Construct the command for Relion motion correction
+            self.log.info("Using Relion's own motion correction")
             os.environ["FI_PROVIDER"] = "tcp"
             command = ["relion_motion_correction", "--use_own"]
             relion_mc_flags = {
