@@ -718,7 +718,7 @@ class EMISPyB(CommonService):
             return None
 
     @validate_arguments(config={"arbitrary_types_allowed": True})
-    def do_insert_movie(self, *, parameter_map: MovieParams, session, **kwargs):
+    def do_insert_movie(self, parameter_map: MovieParams, session, **kwargs):
         self.log.info("Inserting Movie parameters.")
 
         try:
@@ -743,7 +743,7 @@ class EMISPyB(CommonService):
             return {"success": True, "return_value": values.movieId}
         except sqlalchemy.exc.SQLAlchemyError as e:
             self.log.error(
-                "Inserting motion correction entry caused exception '%s'.",
+                "Inserting movie entry caused exception '%s'.",
                 e,
                 exc_info=True,
             )
@@ -761,14 +761,13 @@ class EMISPyB(CommonService):
             movie_id = None
             if full_parameters("movie_id") is None:
                 movie_values = self.do_insert_movie(
-                    parameters,
-                    session,
                     parameter_map=MovieParams(
                         dcid=full_parameters("dcid"),
                         movie_number=full_parameters("image_number"),
                         movie_path=full_parameters("micrograph_full_path"),
                         timestamp=full_parameters("created_time_stamp"),
                     ),
+                    session=session,
                 )
                 movie_id = movie_values["return_value"]
 
