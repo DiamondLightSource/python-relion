@@ -238,7 +238,7 @@ class MotionCorr(CommonService):
             command = ["MotionCor2", input_flag, mc_params.movie]
             mc2_flags = {
                 "mrc_out": "-OutMrc",
-                "patch": "-Patch",
+                "patch_size": "-Patch",
                 "pix_size": "-PixSize",
                 "gain_ref": "-Gain",
                 "rot_gain": "-RotGain",
