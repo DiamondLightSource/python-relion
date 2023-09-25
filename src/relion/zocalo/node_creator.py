@@ -30,6 +30,10 @@ from relion.zocalo.spa_relion_service_options import (
 # the folder name they run in, and the names of their inputs in the job star
 pipeline_spa_jobs = {
     "relion.import.movies": {"folder": "Import"},
+    "relion.motioncorr.own": {
+        "folder": "MotionCorr",
+        "input_stars": {"input_star_mics": "movies.star"},
+    },
     "relion.motioncorr.motioncor2": {
         "folder": "MotionCorr",
         "input_stars": {"input_star_mics": "movies.star"},

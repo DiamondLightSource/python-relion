@@ -96,7 +96,7 @@ class MotionCorr(CommonService):
     _logger_name = "relion.zocalo.motioncorr"
 
     # Job name
-    job_type = "relion.motioncorr.motioncor2"
+    job_type = "relion.motioncorr"
 
     # Values to extract for ISPyB
     x_shift_list = []
@@ -233,7 +233,8 @@ class MotionCorr(CommonService):
 
         # Run motion correction
         if mc_params.use_motioncor2:
-            # Construct the command for MotionCor2
+            # Construct the command for MotionCor
+            self.job_type = "relion.motioncorr.motioncor2"
             self.log.info("Using MotionCor2")
             command = ["MotionCor2", input_flag, mc_params.movie]
             mc2_flags = {
@@ -282,6 +283,7 @@ class MotionCorr(CommonService):
             result = self.motioncor2(command, mc_params.mrc_out)
         else:
             # Construct the command for Relion motion correction
+            self.job_type = "relion.motioncorr.own"
             self.log.info("Using Relion's own motion correction")
             os.environ["FI_PROVIDER"] = "tcp"
             command = ["relion_motion_correction", "--use_own"]
