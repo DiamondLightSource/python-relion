@@ -552,7 +552,7 @@ def test_motioncor_relion_service_spa(
         destination="node_creator",
         message={
             "parameters": {
-                "job_type": "relion.motioncorr.motioncor2",
+                "job_type": "relion.motioncorr.own",
                 "input_file": f"{tmp_path}/Import/job001/Movies/sample.tiff",
                 "output_file": motioncorr_test_message["parameters"]["mrc_out"],
                 "relion_options": output_relion_options,
