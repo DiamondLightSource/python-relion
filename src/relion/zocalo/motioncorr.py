@@ -448,7 +448,7 @@ class MotionCorr(CommonService):
                     rw.send_to("icebreaker", icebreaker_job003_params)
 
                 self.log.info(
-                    f"Sending to IceBreaker contract enhancement: {mc_params.mrc_out}"
+                    f"Sending to IceBreaker contrast enhancement: {mc_params.mrc_out}"
                 )
                 icebreaker_job004_params = {
                     "icebreaker_type": "enhancecontrast",
