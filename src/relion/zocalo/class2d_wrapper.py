@@ -269,7 +269,7 @@ class Class2DWrapper(zocalo.wrapper.BaseWrapper):
                 "buffer_store": self.class_uuids_dict[self.class_uuids_keys[class_id]],
                 "class_number": class_id + 1,
                 "class_image_full_path": (
-                    f"{class2d_params.class2d_dir}/Class_images"
+                    f"{class2d_params.class2d_dir}"
                     f"/run_it{class2d_params.nr_iter:03}_classes_{class_id+1}.jpeg"
                 ),
                 "particles_per_class": (
@@ -292,6 +292,20 @@ class Class2DWrapper(zocalo.wrapper.BaseWrapper):
 
             # Add the ispyb command to the command list
             ispyb_parameters.append(class_ispyb_parameters)
+
+        # Send a request to make the class images
+        self.log.info("Sending to images service")
+        self.recwrap.send_to(
+            "images",
+            {
+                "parameters": {"images_command": "mrc_to_jpeg"},
+                "file": (
+                    f"{class2d_params.class2d_dir}"
+                    f"/run_it{class2d_params.nr_iter:03}_classes.mrcs"
+                ),
+                "all_frames": "True",
+            },
+        )
 
         # Send all the ispyb class insertion commands
         self.log.info(f"Sending to ispyb {ispyb_parameters}")
