@@ -156,7 +156,7 @@ stages:
       - task: TwineAuthenticate@1
         displayName: Set up credentials
         inputs:
-          pythonUploadServiceConnection: pypi-relion
+          pythonUploadServiceConnection: pypi-relion-new
 
       - bash: |
           python -m twine upload -r pypi-relion --config-file $(PYPIRC_PATH) $(System.ArtifactsDirectory)/package/pypi/*.tar.gz $(System.ArtifactsDirectory)/package/pypi/*.whl
