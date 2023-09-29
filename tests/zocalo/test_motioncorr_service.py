@@ -268,7 +268,7 @@ def test_motioncorr_service_spa(
     offline_transport.send.assert_any_call(
         destination="images",
         message={
-            "parameters": {"images_command": "mrc_to_jpeg"},
+            "image_command": "mrc_to_jpeg",
             "file": motioncorr_test_message["parameters"]["mrc_out"],
         },
     )
@@ -462,7 +462,7 @@ def test_motioncorr_service_tomo(
     offline_transport.send.assert_any_call(
         destination="images",
         message={
-            "parameters": {"images_command": "mrc_to_jpeg"},
+            "image_command": "mrc_to_jpeg",
             "file": motioncorr_test_message["parameters"]["mrc_out"],
         },
     )

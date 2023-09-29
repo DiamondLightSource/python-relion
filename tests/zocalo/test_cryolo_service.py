@@ -144,7 +144,7 @@ def test_cryolo_service(mock_subprocess, mock_environment, offline_transport, tm
     offline_transport.send.assert_any_call(
         destination="images",
         message={
-            "parameters": {"images_command": "picked_particles"},
+            "image_command": "picked_particles",
             "file": cryolo_test_message["parameters"]["input_path"],
             "coordinates": [["0.1", "0.2"]],
             "angpix": 0.1,

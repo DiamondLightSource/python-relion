@@ -177,28 +177,28 @@ def test_tomo_align_service(
     offline_transport.send.assert_any_call(
         destination="images",
         message={
-            "parameters": {"images_command": "mrc_central_slice"},
+            "image_command": "mrc_central_slice",
             "file": f"{tmp_path}/test_stack_aretomo.mrc",
         },
     )
     offline_transport.send.assert_any_call(
         destination="movie",
         message={
-            "parameters": {"images_command": "mrc_to_apng"},
+            "image_command": "mrc_to_apng",
             "file": f"{tmp_path}/test_stack_aretomo.mrc",
         },
     )
     offline_transport.send.assert_any_call(
         destination="projxy",
         message={
-            "parameters": {"images_command": "mrc_to_jpeg"},
+            "image_command": "mrc_to_jpeg",
             "file": f"{tmp_path}/test_stack_aretomo_projXY.mrc",
         },
     )
     offline_transport.send.assert_any_call(
         destination="projxz",
         message={
-            "parameters": {"images_command": "mrc_to_jpeg"},
+            "image_command": "mrc_to_jpeg",
             "file": f"{tmp_path}/test_stack_aretomo_projXZ.mrc",
         },
     )

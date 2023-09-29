@@ -176,7 +176,7 @@ def test_ctffind_service(
     offline_transport.send.assert_any_call(
         destination="images",
         message={
-            "parameters": {"images_command": "mrc_to_jpeg"},
+            "image_command": "mrc_to_jpeg",
             "file": f"{tmp_path}/CtfFind/job006/sample.ctf",
         },
     )
