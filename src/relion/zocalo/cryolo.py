@@ -216,7 +216,9 @@ class CrYOLO(CommonService):
             "buffer_store": cryolo_params.picker_uuid,
             "particle_picking_template": cryolo_params.weights,
             "number_of_particles": self.number_of_particles,
-            "summary_image_full_path": f"{cryolo_params.output_path}/picked_particles.jpeg",
+            "summary_image_full_path": str(
+                Path(cryolo_params.output_path).with_suffix(".jpeg")
+            ),
         }
         if cryolo_params.particle_diameter:
             ispyb_parameters["particle_diameter"] = cryolo_params.particle_diameter
@@ -248,7 +250,9 @@ class CrYOLO(CommonService):
                     "coordinates": coords,
                     "angpix": cryolo_params.pix_size,
                     "diameter": cryolo_params.pix_size * 160,
-                    "outfile": f"{cryolo_params.output_path}/picked_particles.jpeg",
+                    "outfile": str(
+                        Path(cryolo_params.output_path).with_suffix(".jpeg")
+                    ),
                 },
             )
         else:
@@ -260,7 +264,9 @@ class CrYOLO(CommonService):
                     "coordinates": coords,
                     "angpix": cryolo_params.pix_size,
                     "diameter": cryolo_params.pix_size * 160,
-                    "outfile": f"{cryolo_params.output_path}/picked_particles.jpeg",
+                    "outfile": str(
+                        Path(cryolo_params.output_path).with_suffix(".jpeg")
+                    ),
                 },
             )
 
