@@ -132,7 +132,7 @@ def test_cryolo_service(mock_subprocess, mock_environment, offline_transport, tm
                 "particle_picking_template": "sample_weights",
                 "number_of_particles": 0,
                 "particle_diameter": 1.1,
-                "summary_image_full_path": str(output_path) + "/picked_particles.jpeg",
+                "summary_image_full_path": str(output_path.with_suffix(".jpeg")),
                 "ispyb_command": "buffer",
                 "buffer_lookup": {"motion_correction_id": 0},
                 "buffer_command": {"ispyb_command": "insert_particle_picker"},
@@ -149,7 +149,7 @@ def test_cryolo_service(mock_subprocess, mock_environment, offline_transport, tm
             "coordinates": [["0.1", "0.2"]],
             "angpix": 0.1,
             "diameter": 16.0,
-            "outfile": str(output_path) + "/picked_particles.jpeg",
+            "outfile": str(output_path.with_suffix(".jpeg")),
         },
     )
     offline_transport.send.assert_any_call(
