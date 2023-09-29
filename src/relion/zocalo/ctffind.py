@@ -270,7 +270,7 @@ class CTFFind(CommonService):
             rw.transport.send(
                 destination="images",
                 message={
-                    "parameters": {"images_command": "mrc_to_jpeg"},
+                    "image_command": "mrc_to_jpeg",
                     "file": ctf_params.output_image,
                 },
             )
@@ -278,7 +278,7 @@ class CTFFind(CommonService):
             rw.send_to(
                 "images",
                 {
-                    "parameters": {"images_command": "mrc_to_jpeg"},
+                    "image_command": "mrc_to_jpeg",
                     "file": ctf_params.output_image,
                 },
             )

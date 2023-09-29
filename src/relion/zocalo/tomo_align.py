@@ -417,14 +417,14 @@ class TomoAlign(CommonService):
             rw.transport.send(
                 destination="images",
                 message={
-                    "parameters": {"images_command": "mrc_central_slice"},
+                    "image_command": "mrc_central_slice",
                     "file": self.aretomo_output_path,
                 },
             )
             rw.transport.send(
                 destination="movie",
                 message={
-                    "parameters": {"images_command": "mrc_to_apng"},
+                    "image_command": "mrc_to_apng",
                     "file": self.aretomo_output_path,
                 },
             )
@@ -432,14 +432,14 @@ class TomoAlign(CommonService):
             rw.send_to(
                 "images",
                 {
-                    "parameters": {"images_command": "mrc_central_slice"},
+                    "image_command": "mrc_central_slice",
                     "file": self.aretomo_output_path,
                 },
             )
             rw.send_to(
                 "movie",
                 {
-                    "parameters": {"images_command": "mrc_to_apng"},
+                    "image_command": "mrc_to_apng",
                     "file": self.aretomo_output_path,
                 },
             )
@@ -458,14 +458,14 @@ class TomoAlign(CommonService):
             rw.transport.send(
                 destination="projxy",
                 message={
-                    "parameters": {"images_command": "mrc_to_jpeg"},
+                    "image_command": "mrc_to_jpeg",
                     "file": xy_input,
                 },
             )
             rw.transport.send(
                 destination="projxz",
                 message={
-                    "parameters": {"images_command": "mrc_to_jpeg"},
+                    "image_command": "mrc_to_jpeg",
                     "file": xz_input,
                 },
             )
@@ -473,14 +473,14 @@ class TomoAlign(CommonService):
             rw.send_to(
                 "projxy",
                 {
-                    "parameters": {"images_command": "mrc_to_jpeg"},
+                    "image_command": "mrc_to_jpeg",
                     "file": xy_input,
                 },
             )
             rw.send_to(
                 "projxz",
                 {
-                    "parameters": {"images_command": "mrc_to_jpeg"},
+                    "image_command": "mrc_to_jpeg",
                     "file": xz_input,
                 },
             )

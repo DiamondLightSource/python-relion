@@ -282,14 +282,14 @@ class Denoise(CommonService):
             rw.transport.send(
                 destination="images",
                 message={
-                    "parameters": {"images_command": "mrc_central_slice"},
+                    "image_command": "mrc_central_slice",
                     "file": denoised_full_path,
                 },
             )
             rw.transport.send(
                 destination="movie",
                 message={
-                    "parameters": {"images_command": "mrc_to_apng"},
+                    "image_command": "mrc_to_apng",
                     "file": denoised_full_path,
                 },
             )
@@ -297,14 +297,14 @@ class Denoise(CommonService):
             rw.send_to(
                 "images",
                 {
-                    "parameters": {"images_command": "mrc_central_slice"},
+                    "image_command": "mrc_central_slice",
                     "file": denoised_full_path,
                 },
             )
             rw.send_to(
                 "movie",
                 {
-                    "parameters": {"images_command": "mrc_to_apng"},
+                    "image_command": "mrc_to_apng",
                     "file": denoised_full_path,
                 },
             )

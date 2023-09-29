@@ -245,7 +245,7 @@ class CrYOLO(CommonService):
             rw.transport.send(
                 destination="images",
                 message={
-                    "parameters": {"images_command": "picked_particles"},
+                    "image_command": "picked_particles",
                     "file": cryolo_params.input_path,
                     "coordinates": coords,
                     "angpix": cryolo_params.pix_size,
@@ -259,7 +259,7 @@ class CrYOLO(CommonService):
             rw.send_to(
                 "images",
                 {
-                    "parameters": {"images_command": "picked_particles"},
+                    "image_command": "picked_particles",
                     "file": cryolo_params.input_path,
                     "coordinates": coords,
                     "angpix": cryolo_params.pix_size,

@@ -440,7 +440,7 @@ class MotionCorr(CommonService):
             rw.transport.send(
                 destination="images",
                 message={
-                    "parameters": {"images_command": "mrc_to_jpeg"},
+                    "image_command": "mrc_to_jpeg",
                     "file": mc_params.mrc_out,
                 },
             )
@@ -448,7 +448,7 @@ class MotionCorr(CommonService):
             rw.send_to(
                 "images",
                 {
-                    "parameters": {"images_command": "mrc_to_jpeg"},
+                    "image_command": "mrc_to_jpeg",
                     "file": mc_params.mrc_out,
                 },
             )

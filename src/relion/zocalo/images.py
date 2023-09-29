@@ -68,13 +68,13 @@ class Images(CommonService):
 
     def image_call(self, rw, header, message):
         """Pass incoming message to the relevant plugin function."""
-        command = rw.recipe_step.get("parameters", {}).get("image_command")
 
         def parameters(key: str, default=None):
             if isinstance(message, dict) and message.get(key):
                 return message[key]
             return rw.recipe_step.get("parameters", {}).get(key, default)
 
+        command = parameters("image_command")
         if command not in self.image_functions:
             self.log.error(f"Unknown command: {command!r}")
             rw.transport.nack(header)

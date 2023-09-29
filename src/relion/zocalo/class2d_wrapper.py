@@ -298,7 +298,7 @@ class Class2DWrapper(zocalo.wrapper.BaseWrapper):
         self.recwrap.send_to(
             "images",
             {
-                "parameters": {"images_command": "mrc_to_jpeg"},
+                "image_command": "mrc_to_jpeg",
                 "file": (
                     f"{class2d_params.class2d_dir}"
                     f"/run_it{class2d_params.nr_iter:03}_classes.mrcs"
