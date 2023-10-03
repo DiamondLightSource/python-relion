@@ -110,6 +110,7 @@ def run():
     abs_working = pathlib.Path(args.working_directory).resolve()
     os.chdir(args.working_directory)
 
+    allowed_data_suffixes = [".eer", ".mrc", ".tiff", ".tif"]
     if args.version == 3.1:
         cryolo_relion_it.run_pipeline(opts)
     elif args.version == 4:
@@ -118,8 +119,9 @@ def run():
         suffix = ""
         for movie in (abs_working / "Movies").glob("**/*"):
             if movie.is_file():
-                suffix = movie.suffix
-                break
+                if movie.suffix in allowed_data_suffixes:
+                    suffix = movie.suffix
+                    break
         if not suffix:
             raise ValueError(
                 f"Movie suffix could not be determined from the files in {abs_working / 'Movies'}"
