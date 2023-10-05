@@ -3,7 +3,7 @@ ispyb==6.10.0
 matplotlib==3.5.1
 mrcfile==1.4
 pandas==1.4.2
-pillow==9.3.0
+pillow==10.0.1
 plotly==5.7.0
 pydantic==1.10.7
 Sphinx==4.5.0
