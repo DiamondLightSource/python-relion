@@ -291,15 +291,17 @@ class Extract(CommonService):
             box_len = extract_params.relion_options.boxsize
             pix_size = extract_params.relion_options.angpix
 
-        self.log.info(f"Extracted {np.shape(output_mrc_stack)[0]} particles")
-        with mrcfile.new(str(output_mrc_file), overwrite=True) as mrc:
-            mrc.set_data(output_mrc_stack)
-            mrc.header.mx = box_len
-            mrc.header.my = box_len
-            mrc.header.mz = 1
-            mrc.header.cella.x = pix_size * box_len
-            mrc.header.cella.y = pix_size * box_len
-            mrc.header.cella.z = 1
+        particle_count = np.shape(output_mrc_stack)[0]
+        self.log.info(f"Extracted {particle_count} particles")
+        if particle_count > 0:
+            with mrcfile.new(str(output_mrc_file), overwrite=True) as mrc:
+                mrc.set_data(output_mrc_stack)
+                mrc.header.mx = box_len
+                mrc.header.my = box_len
+                mrc.header.mz = 1
+                mrc.header.cella.x = pix_size * box_len
+                mrc.header.cella.y = pix_size * box_len
+                mrc.header.cella.z = 1
 
         # Register the extract job with the node creator
         self.log.info(f"Sending {self.job_type} to node creator")

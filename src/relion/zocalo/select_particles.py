@@ -115,8 +115,13 @@ class SelectParticles(CommonService):
         ).get_loop()
 
         current_splits = sorted(select_dir.glob("particles_split*.star"))
-        num_new_parts = extracted_parts_loop.length()
-        num_remaining_parts = extracted_parts_loop.length()
+        try:
+            num_new_parts = extracted_parts_loop.length()
+            num_remaining_parts = extracted_parts_loop.length()
+        except AttributeError:
+            self.log.info("No particles found for selection")
+            num_new_parts = 0
+            num_remaining_parts = 0
         if current_splits:
             # If this is a continuation, find the previous split files
             select_output_file = str(current_splits[-1])
