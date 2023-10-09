@@ -107,6 +107,7 @@ def test_cryolo_service(mock_subprocess, mock_environment, offline_transport, tm
             str(tmp_path / "config.json"),
             "-o",
             str(output_path.parent.parent),
+            "--otf",
             "-i",
             "MotionCorr/job002/sample.mrc",
             "--weights",
@@ -174,7 +175,7 @@ def test_cryolo_service(mock_subprocess, mock_environment, offline_transport, tm
                 "relion_options": output_relion_options,
                 "command": (
                     f"cryolo_predict.py --conf {tmp_path}/config.json "
-                    f"-o {tmp_path}/AutoPick/job007 "
+                    f"-o {tmp_path}/AutoPick/job007 --otf "
                     f"-i MotionCorr/job002/sample.mrc "
                     f"--weights sample_weights --threshold 0.3"
                 ),
