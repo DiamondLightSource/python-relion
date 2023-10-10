@@ -114,7 +114,7 @@ class SelectParticles(CommonService):
             "_rlnCoordinateX"
         ).get_loop()
 
-        current_splits = sorted(select_dir.glob("particles_split*.star"))
+        current_splits = list(select_dir.glob("particles_split*.star"))
         try:
             num_new_parts = extracted_parts_loop.length()
             num_remaining_parts = extracted_parts_loop.length()
@@ -124,7 +124,12 @@ class SelectParticles(CommonService):
             num_remaining_parts = 0
         if current_splits:
             # If this is a continuation, find the previous split files
-            select_output_file = str(current_splits[-1])
+            last_split = 1
+            for split_file in current_splits:
+                split_number = int(re.search("split[0-9]+", str(split_file))[0][5:])
+                if split_number > last_split:
+                    last_split = split_number
+            select_output_file = f"{select_dir}/particles_split{last_split}.star"
 
             particles_cif = cif.read_file(select_output_file)
             prev_parts_block = particles_cif.find_block("particles")
@@ -269,7 +274,9 @@ class SelectParticles(CommonService):
                 ] = f"{select_dir}/particles_split{new_split}.star"
 
                 # Send all newly completed files to murfey
-                self.log.info(f"Sending complete batch {select_output_file} to Murfey")
+                self.log.info(
+                    f"Sending complete batch {class2d_params['particles_file']} to Murfey"
+                )
                 murfey_params = {
                     "register": "complete_particles_file",
                     "class2d_message": class2d_params,
