@@ -68,12 +68,15 @@ class IceBreaker(CommonService):
         """
         for line in icebreaker_stdout.split("\n"):
             if line.startswith("Results:"):
-                line_split = line.split()
-                self.ice_minimum = int(line_split[2])
-                self.ice_q1 = int(line_split[3])
-                self.ice_median = int(line_split[4])
-                self.ice_q3 = int(line_split[5])
-                self.ice_maximum = int(line_split[6])
+                try:
+                    line_split = line.split()
+                    self.ice_minimum = int(line_split[2])
+                    self.ice_q1 = int(line_split[3])
+                    self.ice_median = int(line_split[4])
+                    self.ice_q3 = int(line_split[5])
+                    self.ice_maximum = int(line_split[6])
+                except IndexError:
+                    self.log.error(f"Failed to read line {line} in {icebreaker_stdout}")
 
     def icebreaker(self, rw, header: dict, message: dict):
         """

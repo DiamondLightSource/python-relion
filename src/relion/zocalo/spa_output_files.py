@@ -181,7 +181,7 @@ def _ctffind_output_files(
         [
             str(input_file),
             "1",
-            str(output_file.with_suffix(".star")) + ":mrc",
+            str(output_file.with_suffix(".ctf")) + ":mrc",
             ctf_results[1],
             ctf_results[2],
             str(abs(float(ctf_results[1]) - float(ctf_results[2]))),
@@ -335,11 +335,12 @@ def _extract_output_files(
         added_particles = added_cif.find_block("particles")
         added_loop = added_particles.find_loop("_rlnCoordinateX").get_loop()
 
-        for row in range(added_loop.length()):
-            new_row = []
-            for col in range(added_loop.width()):
-                new_row.append(added_loop.val(row, col))
-            particles_loop.add_row(new_row)
+        if added_loop is not None:
+            for row in range(added_loop.length()):
+                new_row = []
+                for col in range(added_loop.width()):
+                    new_row.append(added_loop.val(row, col))
+                particles_loop.add_row(new_row)
 
     output_cif.write_file(str(star_file), style=cif.Style.Simple)
 

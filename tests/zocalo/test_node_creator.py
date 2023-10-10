@@ -389,7 +389,7 @@ def test_node_creator_ctffind(mock_environment, offline_transport, tmp_path):
     ]
     assert list(micrographs_data.find_loop("_rlnOpticsGroup")) == ["1"]
     assert list(micrographs_data.find_loop("_rlnCtfImage")) == [
-        "CtfFind/job006/Movies/sample.star:mrc"
+        "CtfFind/job006/Movies/sample.ctf:mrc"
     ]
     assert list(micrographs_data.find_loop("_rlnDefocusU")) == ["1.0"]
     assert list(micrographs_data.find_loop("_rlnDefocusV")) == ["2.0"]
