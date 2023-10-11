@@ -264,14 +264,18 @@ class Extract(CommonService):
                 )
 
             # Background normalisation
+            extract_width_downscaled = round(
+                extract_params.relion_options.small_boxsize / 2
+            )
             if extract_params.norm:
                 # Distance of each pixel from the centre, compared to background radius
                 grid_indexes = np.meshgrid(
-                    np.arange(2 * extract_width), np.arange(2 * extract_width)
+                    np.arange(2 * extract_width_downscaled),
+                    np.arange(2 * extract_width_downscaled),
                 )
                 distance_from_centre = np.sqrt(
-                    (grid_indexes[0] - extract_width + 0.5) ** 2
-                    + (grid_indexes[1] - extract_width + 0.5) ** 2
+                    (grid_indexes[0] - extract_width_downscaled + 0.5) ** 2
+                    + (grid_indexes[1] - extract_width_downscaled + 0.5) ** 2
                 )
                 bg_region = (
                     distance_from_centre
