@@ -282,6 +282,8 @@ class Class3DWrapper(zocalo.wrapper.BaseWrapper):
             # Add resolution to every model if it is finite
             if np.isfinite(float(resolution)):
                 ini_ispyb_parameters[i]["resolution"] = resolution
+            else:
+                ini_ispyb_parameters[i]["resolution"] = 0.0
 
         self.log.info("Running 3D classification using new initial model")
         return f"{ini_model_file}", ini_ispyb_parameters
@@ -479,11 +481,15 @@ class Class3DWrapper(zocalo.wrapper.BaseWrapper):
             estimated_resolution = float(classes_loop.val(class_id, 4))
             if np.isfinite(estimated_resolution):
                 class_ispyb_parameters["estimated_resolution"] = estimated_resolution
+            else:
+                class_ispyb_parameters["estimated_resolution"] = 0.0
             fourier_completeness = float(classes_loop.val(class_id, 5))
             if np.isfinite(fourier_completeness):
                 class_ispyb_parameters[
                     "overall_fourier_completeness"
                 ] = fourier_completeness
+            else:
+                class_ispyb_parameters["overall_fourier_completeness"] = 0.0
 
             # Add the ispyb command to the command list
             ispyb_parameters.append(class_ispyb_parameters)
