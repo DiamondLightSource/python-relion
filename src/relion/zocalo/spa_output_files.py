@@ -325,24 +325,16 @@ def _extract_output_files(
         particles_cif = cif.read_file(str(output_file))
         data_particles = particles_cif.find_block("particles")
         output_cif.add_copied_block(data_particles)
+        output_cif.write_file(str(star_file), style=cif.Style.Simple)
 
     else:
-        output_cif = cif.read_file(str(star_file))
-        data_particles = output_cif.find_block("particles")
-        particles_loop = data_particles.find_loop("_rlnCoordinateX").get_loop()
+        with open(output_file, "r") as added_cif:
+            added_lines = added_cif.readlines()
 
-        added_cif = cif.read_file(str(output_file))
-        added_particles = added_cif.find_block("particles")
-        added_loop = added_particles.find_loop("_rlnCoordinateX").get_loop()
-
-        if added_loop is not None:
-            for row in range(added_loop.length()):
-                new_row = []
-                for col in range(added_loop.width()):
-                    new_row.append(added_loop.val(row, col))
-                particles_loop.add_row(new_row)
-
-    output_cif.write_file(str(star_file), style=cif.Style.Simple)
+        with open(star_file, "a") as output_cif:
+            for new_row in added_lines:
+                if new_row[:1].isdigit():
+                    output_cif.write(new_row)
 
 
 def _select_output_files(

@@ -210,24 +210,28 @@ class SelectParticles(CommonService):
             new_particles_cif.write_file(f"{select_output_file}.tmp")
             Path(f"{select_output_file}.tmp").rename(select_output_file)
 
-        # Send to node creator
-        self.log.info(f"Sending {self.job_type} to node creator")
-        node_creator_params = {
-            "job_type": self.job_type,
-            "input_file": select_params.input_file,
-            "output_file": select_output_file,
-            "relion_options": dict(select_params.relion_options),
-            "command": "",
-            "stdout": "",
-            "stderr": "",
-        }
-        if isinstance(rw, MockRW):
-            rw.transport.send(
-                destination="node_creator",
-                message={"parameters": node_creator_params, "content": "dummy"},
-            )
-        else:
-            rw.send_to("node_creator", node_creator_params)
+        # Send to node creator if a new file was made or there isn't a complete batch
+        if (
+            select_output_file == f"{select_dir}/particles_split1.star"
+            or new_finished_files
+        ):
+            self.log.info(f"Sending {self.job_type} to node creator")
+            node_creator_params = {
+                "job_type": self.job_type,
+                "input_file": select_params.input_file,
+                "output_file": select_output_file,
+                "relion_options": dict(select_params.relion_options),
+                "command": "",
+                "stdout": "",
+                "stderr": "",
+            }
+            if isinstance(rw, MockRW):
+                rw.transport.send(
+                    destination="node_creator",
+                    message={"parameters": node_creator_params, "content": "dummy"},
+                )
+            else:
+                rw.send_to("node_creator", node_creator_params)
 
         class2d_params = {
             "class2d_dir": f"{project_dir}/Class2D/job",
