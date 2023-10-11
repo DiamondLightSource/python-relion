@@ -58,7 +58,7 @@ class Class2DParameters(BaseModel):
     picker_id: int
     class2d_grp_uuid: int
     class_uuids: str
-    autoselect_min_score: int = 0
+    autoselect_min_score: float = 0
     autoselect_python: str = "python"
 
 
