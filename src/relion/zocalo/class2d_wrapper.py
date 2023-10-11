@@ -58,7 +58,6 @@ class Class2DParameters(BaseModel):
     picker_id: int
     class2d_grp_uuid: int
     class_uuids: str
-    autoselect_min_score: float = 0
     autoselect_python: str = "python"
 
 
@@ -342,7 +341,6 @@ class Class2DWrapper(zocalo.wrapper.BaseWrapper):
             autoselect_parameters = {
                 "input_file": f"{class2d_params.class2d_dir}/run_it{class2d_params.nr_iter:03}_optimiser.star",
                 "combine_star_job_number": class2d_params.combine_star_job_number,
-                "min_score": class2d_params.autoselect_min_score,
                 "relion_options": dict(class2d_params.relion_options),
                 "python": class2d_params.autoselect_python,
                 "class_uuids": class2d_params.class_uuids,
