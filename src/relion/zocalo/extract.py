@@ -192,9 +192,8 @@ class Extract(CommonService):
         )
 
         # Extraction
-        extract_width = round(extract_params.relion_options.boxsize / 2)
-        input_micrograph = mrcfile.open(extract_params.micrographs_file)
-        input_micrograph_image = np.array(input_micrograph.data, dtype=np.float32)
+        with mrcfile.open(extract_params.micrographs_file) as input_micrograph:
+            input_micrograph_image = np.array(input_micrograph.data, dtype=np.float32)
         image_size = np.shape(input_micrograph_image)
         output_mrc_stack = []
 
@@ -208,6 +207,8 @@ class Extract(CommonService):
             x_right_pad = 0
             y_top_pad = 0
             y_bot_pad = 0
+
+            extract_width = round(extract_params.relion_options.boxsize / 2)
 
             x_left = pixel_location_x - extract_width
             if x_left < 0:
@@ -227,7 +228,6 @@ class Extract(CommonService):
                 y_bot = image_size[0]
 
             particle_subimage = input_micrograph_image[y_top:y_bot, x_left:x_right]
-            particle_subimage = np.flip(particle_subimage, axis=0)
             particle_subimage = np.pad(
                 particle_subimage,
                 ((y_bot_pad, y_top_pad), (x_left_pad, x_right_pad)),
