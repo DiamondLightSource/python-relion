@@ -305,7 +305,7 @@ class Extract(CommonService):
         self.log.info(f"Extracted {particle_count} particles")
         if particle_count > 0:
             with mrcfile.new(str(output_mrc_file), overwrite=True) as mrc:
-                mrc.set_data(output_mrc_stack)
+                mrc.set_data(output_mrc_stack.astype(np.float32))
                 mrc.header.mx = box_len
                 mrc.header.my = box_len
                 mrc.header.mz = 1
