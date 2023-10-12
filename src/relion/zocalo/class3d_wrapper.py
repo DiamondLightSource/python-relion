@@ -42,6 +42,7 @@ class Class3DParameters(BaseModel):
     do_ctf: bool = True
     ctf_intact_first_peak: bool = False
     nr_iter: int = 20
+    fast_subsets: bool = False
     tau_fudge: float = 4
     nr_classes: int = 4
     flatten_solvent: bool = True
@@ -52,7 +53,7 @@ class Class3DParameters(BaseModel):
     skip_align: bool = False
     healpix_order: float = 2
     offset_range: float = 5
-    offset_step: float = 1
+    offset_step: float = 2
     allow_coarser: bool = False
     symmetry: str = "C1"
     do_norm: bool = True
@@ -351,6 +352,7 @@ class Class3DWrapper(zocalo.wrapper.BaseWrapper):
             "dont_correct_greyscale": "--firstiter_cc",
             "ini_high": "--ini_high",
             "nr_iter": "--iter",
+            "fast_subsets": "--fast_subsets",
             "tau_fudge": "--tau2_fudge",
             "highres_limit": "--strict_highres_exp",
             "fn_mask": "--solvent_mask",
