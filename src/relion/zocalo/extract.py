@@ -3,7 +3,6 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-import cv2
 import mrcfile
 import numpy as np
 import workflows.recipe
@@ -239,11 +238,38 @@ class Extract(CommonService):
             if extract_params.invert_contrast:
                 particle_subimage = -1 * particle_subimage
 
+            # Downscale the image size
+            if extract_params.downscale:
+                extract_params.relion_options.pixel_size_downscaled = (
+                    extract_params.pix_size
+                    * extract_params.relion_options.boxsize
+                    / extract_params.relion_options.small_boxsize
+                )
+                subimage_ft = np.fft.fftshift(np.fft.fft2(particle_subimage))
+                deltax = (
+                    subimage_ft.shape[0] - extract_params.relion_options.small_boxsize
+                )
+                deltay = (
+                    subimage_ft.shape[1] - extract_params.relion_options.small_boxsize
+                )
+                particle_subimage = np.real(
+                    np.fft.ifft2(
+                        np.fft.ifftshift(
+                            subimage_ft[
+                                deltax // 2 : subimage_ft.shape[0] - deltax // 2,
+                                deltay // 2 : subimage_ft.shape[1] - deltay // 2,
+                            ]
+                        )
+                    )
+                )
+                extract_width = round(extract_params.relion_options.small_boxsize / 2)
+
             # Background normalisation
             if extract_params.norm:
                 # Distance of each pixel from the centre, compared to background radius
                 grid_indexes = np.meshgrid(
-                    np.arange(2 * extract_width), np.arange(2 * extract_width)
+                    np.arange(2 * extract_width),
+                    np.arange(2 * extract_width),
                 )
                 distance_from_centre = np.sqrt(
                     (grid_indexes[0] - extract_width + 0.5) ** 2
@@ -258,22 +284,6 @@ class Extract(CommonService):
                 bg_mean = np.mean(particle_subimage[bg_region])
                 bg_std = np.std(particle_subimage[bg_region])
                 particle_subimage = (particle_subimage - bg_mean) / bg_std
-
-            # Downscale the image size
-            if extract_params.downscale:
-                extract_params.relion_options.pixel_size_downscaled = (
-                    extract_params.pix_size
-                    * extract_params.relion_options.boxsize
-                    / extract_params.relion_options.small_boxsize
-                )
-                particle_subimage = cv2.resize(
-                    particle_subimage,
-                    dsize=(
-                        extract_params.relion_options.small_boxsize,
-                        extract_params.relion_options.small_boxsize,
-                    ),
-                    interpolation=cv2.INTER_CUBIC,
-                )
 
             # Add to output stack
             if len(output_mrc_stack):
