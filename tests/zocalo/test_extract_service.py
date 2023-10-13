@@ -41,7 +41,7 @@ def test_extract_service(mock_mrcfile, mock_environment, offline_transport, tmp_
     This should call the mock file reader then send messages on to the
     node_creator and select services
     """
-    mock_mrcfile().data = [[1, 2, 3], [4, 5, 6], [7, 8, 9]]
+    mock_mrcfile().__enter__().data = [[1, 2, 3], [4, 5, 6], [7, 8, 9]]
 
     header = {
         "message-id": mock.sentinel,
@@ -95,7 +95,7 @@ def test_extract_service(mock_mrcfile, mock_environment, offline_transport, tmp_
     service.start()
     service.extract(None, header=header, message=extract_test_message)
 
-    assert mock_mrcfile.call_count == 2
+    assert mock_mrcfile().__enter__.call_count == 2
 
     # Check that the correct messages were sent
     offline_transport.send.assert_any_call(
