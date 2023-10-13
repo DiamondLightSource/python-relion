@@ -139,7 +139,12 @@ class Extract(CommonService):
         # If no background radius set diameter as 75% of box
         if extract_params.bg_radius == -1:
             extract_params.bg_radius = round(
-                0.375 * extract_params.relion_options.small_boxsize
+                0.375
+                * (
+                    extract_params.small_boxsize
+                    if extract_params.downscale
+                    else extract_params.boxsize
+                )
             )
 
         # Find the locations of the particles
@@ -281,7 +286,11 @@ class Extract(CommonService):
             # Fit background to a plane and subtract the plane from the image
             positions = [grid_indexes[0][bg_region], grid_indexes[1][bg_region]]
             # needs to create a matrix of the correct shape for  a*x + b*y + c plane fit
-            assert len(positions[0]) == len(positions[1])
+            if not len(positions[0]) == len(positions[1]):
+                self.log.warning(
+                    f"Particle image {particle} in {extract_params.micrographs_file} is not square"
+                )
+                continue
             data_size = len(positions[0])
             positions_matrix = np.hstack(
                 (
