@@ -139,7 +139,7 @@ class Extract(CommonService):
         # If no background radius set diameter as 75% of box
         if extract_params.bg_radius == -1:
             extract_params.bg_radius = round(
-                0.375 * extract_params.relion_options.boxsize
+                0.375 * extract_params.relion_options.small_boxsize
             )
 
         # Find the locations of the particles

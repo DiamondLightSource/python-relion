@@ -138,8 +138,8 @@ def test_extract_service(mock_mrcfile, mock_environment, offline_transport, tmp_
 
     particles_file = cif.read_file(str(output_path))
     particles_data = particles_file.find_block("particles")
-    assert list(particles_data.find_loop("_rlnCoordinateX")) == ["1.0"]
-    assert list(particles_data.find_loop("_rlnCoordinateY")) == ["2.0"]
+    assert list(particles_data.find_loop("_rlnCoordinateX")) == ["100.0"]
+    assert list(particles_data.find_loop("_rlnCoordinateY")) == ["200.0"]
     assert list(particles_data.find_loop("_rlnImageName")) == [
         f"000000@{output_path.relative_to(tmp_path).with_suffix('.mrcs')}"
     ]
