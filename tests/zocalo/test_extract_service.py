@@ -52,7 +52,9 @@ def test_extract_service(mock_mrcfile, mock_environment, offline_transport, tmp_
     cryolo_file = tmp_path / "AutoPick/job007/STAR/sample.star"
     cryolo_file.parent.mkdir(parents=True)
     with open(cryolo_file, "w") as f:
-        f.write("data_particles\n\nloop_\n_rlnCoordinateX\n_rlnCoordinateY\n1.0 2.0")
+        f.write(
+            "data_particles\n\nloop_\n_rlnCoordinateX\n_rlnCoordinateY\n100.0 200.0"
+        )
     output_path = tmp_path / "Extract/job008/Movies/sample.star"
 
     extract_test_message = {

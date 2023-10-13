@@ -293,15 +293,21 @@ class Extract(CommonService):
             positions_matrix = np.hstack((np.ones((data_size, 1)), positions_matrix))
             values = particle_subimage[bg_region]
             # normal equation
-            theta = np.dot(
-                np.dot(
-                    np.linalg.inv(
-                        np.dot(positions_matrix.transpose(), positions_matrix)
+            try:
+                theta = np.dot(
+                    np.dot(
+                        np.linalg.inv(
+                            np.dot(positions_matrix.transpose(), positions_matrix)
+                        ),
+                        positions_matrix.transpose(),
                     ),
-                    positions_matrix.transpose(),
-                ),
-                values,
-            )
+                    values,
+                )
+            except np.linalg.LinAlgError:
+                self.log.warning(
+                    f"Could not fit image plane for particle {particle} in {extract_params.micrographs_file}"
+                )
+                continue
             # now we need the full grid across the image
             positions_matrix = np.hstack(
                 (
