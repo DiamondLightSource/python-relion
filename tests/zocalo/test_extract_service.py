@@ -3,6 +3,7 @@ from __future__ import annotations
 import sys
 from unittest import mock
 
+import numpy as np
 import pytest
 import zocalo.configuration
 from gemmi import cif
@@ -41,7 +42,7 @@ def test_extract_service(mock_mrcfile, mock_environment, offline_transport, tmp_
     This should call the mock file reader then send messages on to the
     node_creator and select services
     """
-    mock_mrcfile().__enter__().data = [[1, 2, 3], [4, 5, 6], [7, 8, 9]]
+    mock_mrcfile().__enter__().data = np.random.rand((256, 256))
 
     header = {
         "message-id": mock.sentinel,
