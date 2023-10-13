@@ -264,22 +264,62 @@ class Extract(CommonService):
                 )
                 extract_width = round(extract_params.relion_options.small_boxsize / 2)
 
+            # Distance of each pixel from the centre, compared to background radius
+            grid_indexes = np.meshgrid(
+                np.arange(2 * extract_width),
+                np.arange(2 * extract_width),
+            )
+            distance_from_centre = np.sqrt(
+                (grid_indexes[0] - extract_width + 0.5) ** 2
+                + (grid_indexes[1] - extract_width + 0.5) ** 2
+            )
+            bg_region = (
+                distance_from_centre
+                > np.ones(np.shape(particle_subimage)) * extract_params.bg_radius
+            )
+
+            # Fit background to a plane and subtract the plane from the image
+            positions = [grid_indexes[0][bg_region], grid_indexes[1][bg_region]]
+            # needs to create a matrix of the correct shape for  a*x + b*y + c plane fit
+            assert len(positions[0]) == len(positions[1])
+            data_size = len(positions[0])
+            positions_matrix = np.hstack(
+                (
+                    np.reshape(positions[0], (data_size, 1)),
+                    np.reshape(positions[1], (data_size, 1)),
+                )
+            )
+            # this ones for c
+            positions_matrix = np.hstack((np.ones((data_size, 1)), positions_matrix))
+            values = particle_subimage[bg_region]
+            # normal equation
+            theta = np.dot(
+                np.dot(
+                    np.linalg.inv(
+                        np.dot(positions_matrix.transpose(), positions_matrix)
+                    ),
+                    positions_matrix.transpose(),
+                ),
+                values,
+            )
+            # now we need the full grid across the image
+            positions_matrix = np.hstack(
+                (
+                    np.reshape(grid_indexes[0], (4 * extract_width**2, 1)),
+                    np.reshape(grid_indexes[1], (4 * extract_width**2, 1)),
+                )
+            )
+            positions_matrix = np.hstack(
+                (np.ones((4 * extract_width**2, 1)), positions_matrix)
+            )
+            plane = np.reshape(
+                np.dot(positions_matrix, theta), (2 * extract_width, 2 * extract_width)
+            )
+
+            particle_subimage -= plane
+
             # Background normalisation
             if extract_params.norm:
-                # Distance of each pixel from the centre, compared to background radius
-                grid_indexes = np.meshgrid(
-                    np.arange(2 * extract_width),
-                    np.arange(2 * extract_width),
-                )
-                distance_from_centre = np.sqrt(
-                    (grid_indexes[0] - extract_width + 0.5) ** 2
-                    + (grid_indexes[1] - extract_width + 0.5) ** 2
-                )
-                bg_region = (
-                    distance_from_centre
-                    > np.ones(np.shape(particle_subimage)) * extract_params.bg_radius
-                )
-
                 # Standardise the values using the background
                 bg_mean = np.mean(particle_subimage[bg_region])
                 bg_std = np.std(particle_subimage[bg_region])
