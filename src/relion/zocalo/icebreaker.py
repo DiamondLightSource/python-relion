@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 import re
+import shutil
 import subprocess
 from pathlib import Path
 from typing import Literal, Optional
@@ -185,6 +186,15 @@ class IceBreaker(CommonService):
                 "--o",
                 icebreaker_params.output_path,
             ]
+
+        # Check for existing temporary directory
+        job_dir = Path(re.search(".+/job[0-9]{3}/", icebreaker_params.output_path)[0])
+        icebreaker_tmp_dir = job_dir / f"IB_input_{mic_from_project.stem}"
+        if icebreaker_tmp_dir.is_dir():
+            self.log.warning(
+                f"Directory {icebreaker_tmp_dir} already exists - now removing it"
+            )
+            shutil.rmtree(icebreaker_tmp_dir)
 
         # Run the icebreaker command and confirm it ran successfully
         result = subprocess.run(command, capture_output=True)
