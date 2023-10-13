@@ -42,7 +42,7 @@ def test_extract_service(mock_mrcfile, mock_environment, offline_transport, tmp_
     This should call the mock file reader then send messages on to the
     node_creator and select services
     """
-    mock_mrcfile().__enter__().data = np.random.rand((256, 256))
+    mock_mrcfile().__enter__().data = np.random.rand(256, 256)
 
     header = {
         "message-id": mock.sentinel,
