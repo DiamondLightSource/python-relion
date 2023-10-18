@@ -22,7 +22,7 @@ spec:
         imagePullPolicy: Always
         resources:
           requests:
-            cpu: "250m"
+            cpu: {{ .Values.cpuRequest }}
           limits:
             cpu: {{ .Values.cpuLimit }}
             memory: {{ .Values.memoryLimit }}
