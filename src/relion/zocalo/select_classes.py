@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import re
+import shutil
 import subprocess
 from pathlib import Path
 
@@ -427,8 +428,16 @@ class SelectClasses(CommonService):
             # Only send to 3D if a new multiple of the batch threshold is crossed
             # and the count has not passed the maximum
             self.log.info("Sending to Murfey for Class3D")
+
+            # Copy the particle batch file
+            shutil.copy2(
+                combine_star_dir / "particles_split1.star",
+                combine_star_dir / f"particles_batch_{next_batch_size}.star",
+            )
+
+            # Tell Murfey to do Class3D
             class3d_params = {
-                "particles_file": f"{combine_star_dir}/particles_split1.star",
+                "particles_file": f"{combine_star_dir}/particles_batch_{next_batch_size}.star",
                 "class3d_dir": f"{project_dir}/Class3D/job",
                 "batch_size": next_batch_size,
             }

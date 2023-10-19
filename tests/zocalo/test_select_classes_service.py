@@ -94,9 +94,10 @@ def select_classes_common_setup(tmp_path):
 
 
 @pytest.mark.skipif(sys.platform == "win32", reason="does not run on windows")
-@mock.patch("relion.zocalo.ctffind.subprocess.run")
+@mock.patch("relion.zocalo.select_classes.subprocess.run")
+@mock.patch("relion.zocalo.select_classes.shutil.copy2")
 def test_select_classes_service_first_batch(
-    mock_subprocess, mock_environment, offline_transport, tmp_path
+    mock_copy, mock_subprocess, mock_environment, offline_transport, tmp_path
 ):
     """
     Send a test message to the select classes service when it is a new job.
@@ -120,6 +121,7 @@ def test_select_classes_service_first_batch(
     service.total_count = 60000
     service.select_classes(None, header=header, message=select_test_message)
 
+    assert mock_copy.call_count == 1
     assert mock_subprocess.call_count == 7
     mock_subprocess.assert_any_call(
         [
@@ -276,7 +278,7 @@ def test_select_classes_service_first_batch(
         message={
             "register": "run_class3d",
             "class3d_message": {
-                "particles_file": f"{tmp_path}/Select/job013/particles_split1.star",
+                "particles_file": f"{tmp_path}/Select/job013/particles_batch_50000.star",
                 "class3d_dir": f"{tmp_path}/Class3D/job",
                 "batch_size": 50000,
             },
@@ -295,9 +297,10 @@ def test_select_classes_service_first_batch(
 
 
 @pytest.mark.skipif(sys.platform == "win32", reason="does not run on windows")
-@mock.patch("relion.zocalo.ctffind.subprocess.run")
+@mock.patch("relion.zocalo.select_classes.subprocess.run")
+@mock.patch("relion.zocalo.select_classes.shutil.copy2")
 def test_select_classes_service_batch_threshold(
-    mock_subprocess, mock_environment, offline_transport, tmp_path
+    mock_copy, mock_subprocess, mock_environment, offline_transport, tmp_path
 ):
     """
     Test the service for the case where the particle count crosses a batch threshold.
@@ -329,6 +332,7 @@ def test_select_classes_service_batch_threshold(
 
     # Don't bother to check the auto-selection calls here, they are checked above
     # Do check the combiner calls for the batch threshold and check the Murfey 3D calls
+    assert mock_copy.call_count == 1
     mock_subprocess.assert_any_call(
         [
             "combine_star_files.py",
@@ -358,7 +362,7 @@ def test_select_classes_service_batch_threshold(
         message={
             "register": "run_class3d",
             "class3d_message": {
-                "particles_file": f"{tmp_path}/Select/job013/particles_split1.star",
+                "particles_file": f"{tmp_path}/Select/job013/particles_batch_100000.star",
                 "class3d_dir": f"{tmp_path}/Class3D/job",
                 "batch_size": 100000,
             },
@@ -369,9 +373,10 @@ def test_select_classes_service_batch_threshold(
 
 
 @pytest.mark.skipif(sys.platform == "win32", reason="does not run on windows")
-@mock.patch("relion.zocalo.ctffind.subprocess.run")
+@mock.patch("relion.zocalo.select_classes.subprocess.run")
+@mock.patch("relion.zocalo.select_classes.shutil.copy2")
 def test_select_classes_service_two_thresholds(
-    mock_subprocess, mock_environment, offline_transport, tmp_path
+    mock_copy, mock_subprocess, mock_environment, offline_transport, tmp_path
 ):
     """
     Test the service for the case where the particle count crosses two thresholds.
@@ -403,6 +408,7 @@ def test_select_classes_service_two_thresholds(
 
     # Don't bother to check the auto-selection calls here, they are checked above
     # Do check the combiner calls for the batch threshold and check the Murfey 3D calls
+    assert mock_copy.call_count == 1
     mock_subprocess.assert_any_call(
         [
             "combine_star_files.py",
@@ -421,7 +427,7 @@ def test_select_classes_service_two_thresholds(
         message={
             "register": "run_class3d",
             "class3d_message": {
-                "particles_file": f"{tmp_path}/Select/job013/particles_split1.star",
+                "particles_file": f"{tmp_path}/Select/job013/particles_batch_100000.star",
                 "class3d_dir": f"{tmp_path}/Class3D/job",
                 "batch_size": 100000,
             },
@@ -433,8 +439,9 @@ def test_select_classes_service_two_thresholds(
 
 @pytest.mark.skipif(sys.platform == "win32", reason="does not run on windows")
 @mock.patch("relion.zocalo.ctffind.subprocess.run")
+@mock.patch("relion.zocalo.select_classes.shutil.copy2")
 def test_select_classes_service_last_threshold(
-    mock_subprocess, mock_environment, offline_transport, tmp_path
+    mock_copy, mock_subprocess, mock_environment, offline_transport, tmp_path
 ):
     """
     Test the service for the case where the particle count crosses the maximum.
@@ -467,6 +474,7 @@ def test_select_classes_service_last_threshold(
 
     # Don't bother to check the auto-selection calls here, they are checked above
     # Do check the combiner calls for the batch threshold and check the Murfey 3D calls
+    assert mock_copy.call_count == 1
     mock_subprocess.assert_any_call(
         [
             "combine_star_files.py",
@@ -485,7 +493,7 @@ def test_select_classes_service_last_threshold(
         message={
             "register": "run_class3d",
             "class3d_message": {
-                "particles_file": f"{tmp_path}/Select/job013/particles_split1.star",
+                "particles_file": f"{tmp_path}/Select/job013/particles_batch_200000.star",
                 "class3d_dir": f"{tmp_path}/Class3D/job",
                 "batch_size": 200000,
             },
@@ -496,7 +504,7 @@ def test_select_classes_service_last_threshold(
 
 
 @pytest.mark.skipif(sys.platform == "win32", reason="does not run on windows")
-@mock.patch("relion.zocalo.ctffind.subprocess.run")
+@mock.patch("relion.zocalo.select_classes.subprocess.run")
 def test_select_classes_service_not_threshold(
     mock_subprocess, mock_environment, offline_transport, tmp_path
 ):
@@ -545,7 +553,7 @@ def test_select_classes_service_not_threshold(
 
 
 @pytest.mark.skipif(sys.platform == "win32", reason="does not run on windows")
-@mock.patch("relion.zocalo.ctffind.subprocess.run")
+@mock.patch("relion.zocalo.select_classes.subprocess.run")
 def test_select_classes_service_past_maximum(
     mock_subprocess, mock_environment, offline_transport, tmp_path
 ):
