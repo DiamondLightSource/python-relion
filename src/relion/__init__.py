@@ -95,7 +95,6 @@ class Project(RelionPipeline):
             raise ValueError(f"path {self.basepath} is not a directory")
         self._data_pipeline = Graph("DataPipeline", [])
         self._db_model = DBModel(database)
-        self._drift_cache = {}
         if run_options is None:
             self.run_options = RelionItOptions()
         else:
@@ -159,7 +158,7 @@ class Project(RelionPipeline):
         """access the motion correction stage of the project.
         Returns a dictionary-like object with job names as keys,
         and lists of MCMicrograph namedtuples as values."""
-        return MotionCorr(self.basepath / "MotionCorr", self._drift_cache)
+        return MotionCorr(self.basepath / "MotionCorr")
 
     @property
     @functools.lru_cache(maxsize=1)
