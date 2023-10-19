@@ -167,9 +167,11 @@ class MotionCorr(JobType):
         movie_name = self.parse_star_file_pair(
             "_rlnMicrographMovieName", drift_star_file, movie_table
         )
-        total_motions = np.hypot(deltaxs, deltays)
+        total_motions = np.hypot(
+            np.array(deltaxs, dtype=float), np.array(deltays, dtype=float)
+        )
         try:
-            fig = px.scatter(x=frame_numbers, y=total_motions)
+            fig = px.scatter(x=np.array(frame_numbers, dtype=float), y=total_motions)
             drift_plot_name = Path(mic_name).stem + "_drift_plot.json"
             drift_plot_full_path = Path(mic_name).parent / drift_plot_name
             fig.write_json(drift_plot_full_path)
