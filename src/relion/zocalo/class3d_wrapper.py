@@ -53,7 +53,7 @@ class Class3DParameters(BaseModel):
     skip_align: bool = False
     healpix_order: float = 2
     offset_range: float = 5
-    offset_step: float = 2
+    offset_step: float = 4
     allow_coarser: bool = False
     symmetry: str = "C1"
     do_norm: bool = True
@@ -393,6 +393,7 @@ class Class3DWrapper(zocalo.wrapper.BaseWrapper):
         )
 
         # Run Class3D and confirm it ran successfully
+        self.log.info(" ".join(class3d_command))
         result = subprocess.run(
             class3d_command, cwd=str(project_dir), capture_output=True
         )

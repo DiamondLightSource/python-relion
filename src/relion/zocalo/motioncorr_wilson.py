@@ -208,6 +208,22 @@ class MotionCorrWilson(MotionCorr, CommonService):
                     stderr=slurm_status_json.stderr,
                 )
 
+            if loop_counter >= 60:
+                slurm_cancel_command = (
+                    f'curl -H "X-SLURM-USER-NAME:{user}" '
+                    f'-H "X-SLURM-USER-TOKEN:{slurm_token}" '
+                    '-H "Content-Type: application/json" -X DELETE '
+                    f'{slurm_rest["url"]}/slurm/{slurm_rest["api_version"]}/job/{job_id}'
+                )
+                subprocess.run(slurm_cancel_command, capture_output=True, shell=True)
+                self.log.error("Timeout running motion correction")
+                return subprocess.CompletedProcess(
+                    args="",
+                    returncode=1,
+                    stdout="".encode("utf8"),
+                    stderr="Timeout running motion correction".encode("utf8"),
+                )
+
         # Read in the MotionCor output then clean up the files
         self.log.info(f"Job {job_id} has finished!")
         try:

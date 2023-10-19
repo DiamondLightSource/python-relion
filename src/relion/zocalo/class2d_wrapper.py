@@ -190,6 +190,7 @@ class Class2DWrapper(zocalo.wrapper.BaseWrapper):
         )
 
         # Run Class2D and confirm it ran successfully
+        self.log.info(" ".join(class2d_command))
         result = subprocess.run(
             class2d_command, cwd=str(project_dir), capture_output=True
         )

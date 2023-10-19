@@ -97,10 +97,6 @@ def picked_particles(plugin_params):
         logger.info(f"Replacing jpeg extension with mrc extension for {basefilename}")
         basefilename = basefilename.replace(".jpeg", ".mrc")
     coords = plugin_params.parameters("coordinates")
-    if not coords:
-        logger.warning(f"No coordinates provided for {basefilename}")
-        # If there were no coordinates don't bother nacking the message
-        return True
     angpix = plugin_params.parameters("angpix")
     diam = plugin_params.parameters("diameter")
     contrast_factor = plugin_params.parameters("contrast_factor", default=6)
@@ -139,15 +135,18 @@ def picked_particles(plugin_params):
         enhanced = enhancer.enhance(contrast_factor)
         fim = enhanced.filter(ImageFilter.BLUR)
         dim = ImageDraw.Draw(fim)
-        for x, y in coords:
-            dim.ellipse(
-                [
-                    (float(x) - radius, float(y) - radius),
-                    (float(x) + radius, float(y) + radius),
-                ],
-                width=8,
-                outline="#f58a07",
-            )
+        if coords and coords[0]:
+            for x, y in coords:
+                dim.ellipse(
+                    [
+                        (float(x) - radius, float(y) - radius),
+                        (float(x) + radius, float(y) + radius),
+                    ],
+                    width=8,
+                    outline="#f58a07",
+                )
+        else:
+            logger.warning(f"No coordinates provided for {basefilename}")
         try:
             fim.save(outfile)
         except FileNotFoundError:
