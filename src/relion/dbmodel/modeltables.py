@@ -189,7 +189,6 @@ class MotionCorrectionTable(Table):
     def __init__(self):
         columns, prim_key = parse_sqlalchemy_table(sqlalchemy.MotionCorrection)
         columns.append("created_time_stamp")
-        columns.append("drift_data")
         # columns.append("job_string")
         super().__init__(
             columns,

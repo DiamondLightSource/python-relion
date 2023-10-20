@@ -2,6 +2,10 @@ from __future__ import annotations
 
 import logging
 from collections import namedtuple
+from pathlib import Path
+
+import numpy as np
+import plotly.express as px
 
 from relion._parser.jobtype import JobType
 
@@ -16,8 +20,9 @@ MCMicrograph = namedtuple(
         "total_motion",
         "early_motion",
         "late_motion",
+        "average_motion_per_frame",
         "micrograph_timestamp",
-        "drift_data",
+        "drift_plot_full_path",
     ],
 )
 
@@ -57,12 +62,8 @@ MCDriftCacheRecord = namedtuple(
 
 
 class MotionCorr(JobType):
-    def __init__(self, path, drift_cache=None):
+    def __init__(self, path):
         super().__init__(path)
-        if drift_cache is None:
-            self._drift_cache = {}
-        else:
-            self._drift_cache = drift_cache
 
     def __eq__(self, other):
         if isinstance(other, MotionCorr):  # check this
@@ -102,7 +103,11 @@ class MotionCorr(JobType):
 
         micrograph_list = []
         for j in range(len(micrograph_name)):
-            drift_data, movie_name = self.collect_drift_data(micrograph_name[j], jobdir)
+            (
+                number_of_frames,
+                drift_plot_full_path,
+                movie_name,
+            ) = self.collect_drift_data(micrograph_name[j], jobdir)
             if movie_name:
                 try:
                     movie_creation_time = (
@@ -125,55 +130,31 @@ class MotionCorr(JobType):
                     accum_motion_total[j],
                     accum_motion_early[j],
                     accum_motion_late[j],
+                    float(accum_motion_total[j]) / number_of_frames,
                     movie_creation_time,
-                    drift_data,
+                    drift_plot_full_path,
                 )
             )
         return micrograph_list
 
     def collect_drift_data(self, mic_name, jobdir):
-        drift_data = []
         drift_star_file_path = mic_name.split(jobdir + "/")[-1].replace("mrc", "star")
-        if self._drift_cache.get(jobdir):
-            if self._drift_cache[jobdir].get(mic_name):
-                try:
-                    if (
-                        self._drift_cache[jobdir][mic_name].file_size
-                        == (self._basepath / jobdir / drift_star_file_path)
-                        .stat()
-                        .st_size
-                    ):
-                        return (
-                            self._drift_cache[jobdir][mic_name].data,
-                            self._drift_cache[jobdir][mic_name].movie_name,
-                        )
-                except FileNotFoundError:
-                    logger.debug(
-                        "Could not find expected file containing drift data",
-                        exc_info=True,
-                    )
-                    return [], ""
-        else:
-            self._drift_cache[jobdir] = {}
         try:
             drift_star_file = self._read_star_file(jobdir, drift_star_file_path)
         except (FileNotFoundError, OSError, RuntimeError, ValueError):
-            return drift_data, ""
+            return 1, "", ""
         try:
             info_table = self._find_table_from_column_name(
                 "_rlnMicrographFrameNumber", drift_star_file
             )
             movie_table = 0
         except (FileNotFoundError, OSError, RuntimeError, ValueError):
-            return drift_data, ""
+            return 1, "", ""
         if info_table is None:
             logger.debug(
                 f"_rlnMicrographFrameNumber or _rlnMicrographMovieName not found in file {drift_star_file}"
             )
-            return drift_data, ""
-        frame_numbers = self.parse_star_file(
-            "_rlnMicrographFrameNumber", drift_star_file, info_table
-        )
+            return 1, "", ""
         deltaxs = self.parse_star_file(
             "_rlnMicrographShiftX", drift_star_file, info_table
         )
@@ -183,17 +164,16 @@ class MotionCorr(JobType):
         movie_name = self.parse_star_file_pair(
             "_rlnMicrographMovieName", drift_star_file, movie_table
         )
-        for f, dx, dy in zip(frame_numbers, deltaxs, deltays):
-            drift_data.append(MCMicrographDrift(int(f), float(dx), float(dy)))
         try:
-            self._drift_cache[jobdir][mic_name] = MCDriftCacheRecord(
-                drift_data,
-                (self._basepath / jobdir / drift_star_file_path).stat().st_size,
-                movie_name,
+            fig = px.scatter(
+                x=np.array(deltaxs, dtype=float), y=np.array(deltays, dtype=float)
             )
+            drift_plot_name = Path(mic_name).stem + "_drift_plot.json"
+            drift_plot_full_path = Path(mic_name).parent / drift_plot_name
+            fig.write_json(drift_plot_full_path)
         except FileNotFoundError:
-            return [], ""
-        return drift_data, movie_name
+            return 1, "", ""
+        return len(deltaxs), drift_plot_full_path, movie_name
 
     @staticmethod
     def for_cache(mcmicrograph):
@@ -220,12 +200,10 @@ class MotionCorr(JobType):
                 "total_motion": micrograph.total_motion,
                 "early_motion": micrograph.early_motion,
                 "late_motion": micrograph.late_motion,
-                "average_motion_per_frame": (
-                    float(micrograph.total_motion) / len(micrograph.drift_data)
-                ),
+                "average_motion_per_frame": micrograph.average_motion_per_frame,
                 "image_number": micrograph.micrograph_number,
                 "micrograph_snapshot_full_path": micrograph.micrograph_snapshot_full_path,
-                "drift_data": micrograph.drift_data,
+                "drift_plot_full_path": micrograph.drift_plot_full_path,
                 "created_time_stamp": micrograph.micrograph_timestamp,
             }
             for micrograph in micrograph_list
