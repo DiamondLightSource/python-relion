@@ -155,9 +155,6 @@ class MotionCorr(JobType):
                 f"_rlnMicrographFrameNumber or _rlnMicrographMovieName not found in file {drift_star_file}"
             )
             return 1, "", ""
-        frame_numbers = self.parse_star_file(
-            "_rlnMicrographFrameNumber", drift_star_file, info_table
-        )
         deltaxs = self.parse_star_file(
             "_rlnMicrographShiftX", drift_star_file, info_table
         )
@@ -167,17 +164,16 @@ class MotionCorr(JobType):
         movie_name = self.parse_star_file_pair(
             "_rlnMicrographMovieName", drift_star_file, movie_table
         )
-        total_motions = np.hypot(
-            np.array(deltaxs, dtype=float), np.array(deltays, dtype=float)
-        )
         try:
-            fig = px.scatter(x=np.array(frame_numbers, dtype=float), y=total_motions)
+            fig = px.scatter(
+                x=np.array(deltaxs, dtype=float), y=np.array(deltays, dtype=float)
+            )
             drift_plot_name = Path(mic_name).stem + "_drift_plot.json"
             drift_plot_full_path = Path(mic_name).parent / drift_plot_name
             fig.write_json(drift_plot_full_path)
         except FileNotFoundError:
             return 1, "", ""
-        return len(frame_numbers), drift_plot_full_path, movie_name
+        return len(deltaxs), drift_plot_full_path, movie_name
 
     @staticmethod
     def for_cache(mcmicrograph):
