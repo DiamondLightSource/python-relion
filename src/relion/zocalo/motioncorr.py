@@ -96,7 +96,6 @@ class MotionCorr(CommonService):
     # Values to extract for ISPyB
     x_shift_list = []
     y_shift_list = []
-    each_total_motion = []
 
     def initializing(self):
         """Subscribe to a queue. Received messages must be acknowledged."""
@@ -122,9 +121,6 @@ class MotionCorr(CommonService):
                 line_split = line.split()
                 self.x_shift_list.append(float(line_split[-2]))
                 self.y_shift_list.append(float(line_split[-1]))
-                self.each_total_motion.append(
-                    hypot(float(line_split[-2]), float(line_split[-1]))
-                )
 
             # Alternative frame reading for MotionCorr 1.6.3
             if not line:
@@ -133,9 +129,6 @@ class MotionCorr(CommonService):
                 line_split = line.split()
                 self.x_shift_list.append(float(line_split[1]))
                 self.y_shift_list.append(float(line_split[2]))
-                self.each_total_motion.append(
-                    hypot(float(line_split[1]), float(line_split[2]))
-                )
             if "x Shift" in line:
                 frames_line = True
 
@@ -306,9 +299,7 @@ class MotionCorr(CommonService):
         average_motion_per_frame = total_motion / len(self.x_shift_list)
 
         # Extract results for ispyb
-        drift_plot_x = [range(0, len(self.x_shift_list))]
-        drift_plot_y = self.each_total_motion
-        fig = px.scatter(x=drift_plot_x, y=drift_plot_y)
+        fig = px.scatter(x=self.x_shift_list, y=self.y_shift_list)
         drift_plot_name = str(Path(mc_params.movie).stem) + "_drift_plot.json"
         plot_path = Path(mc_params.mrc_out).parent / drift_plot_name
         snapshot_path = Path(mc_params.mrc_out).with_suffix(".jpeg")
@@ -541,4 +532,3 @@ class MotionCorr(CommonService):
         rw.transport.ack(header)
         self.x_shift_list = []
         self.y_shift_list = []
-        self.each_total_motion = []

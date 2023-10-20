@@ -485,4 +485,3 @@ def test_parse_motioncorr_output(mock_environment, offline_transport):
     )
     assert service.x_shift_list == [-3.0, 3.0]
     assert service.y_shift_list == [4.0, -4.0]
-    assert service.each_total_motion == [5.0, 5.0]
