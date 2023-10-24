@@ -14,6 +14,7 @@ logger = logging.getLogger("relion.refine.wrapper")
 
 
 class RefineParameters(BaseModel):
+    bfactor_directory: str = Field(..., min_length=1)
     class_particles_file: str = Field(..., min_length=1)
     class_number: int
     particle_count: int
@@ -80,18 +81,15 @@ class RefineWrapper(zocalo.wrapper.BaseWrapper):
 
         # Determine the directory to run in
         project_dir = Path(refine_params.class_particles_file).parent.parent.parent
-        bfactor_dir = (
-            project_dir / f"bfactor_pipeline/bfactor_{refine_params.particle_count:07}"
-        )
+        bfactor_dir = Path(refine_params.bfactor_directory)
         try:
-            bfactor_dir.mkdir(parents=True)
+            (bfactor_dir / "Import/job001").mkdir(parents=True)
         except FileExistsError:
-            self.log.warning(f"Refinement pipeline folder {bfactor_dir} already exists")
+            self.log.warning(f"Refinement pipeline run {bfactor_dir} already exists")
             return False
         os.chdir(bfactor_dir)
 
         # Link the required files
-        (bfactor_dir / "Import/job001").mkdir(parents=True)
         (bfactor_dir / "Import/job001/particles_data.star").symlink_to(
             refine_params.class_particles_file
         )
@@ -349,6 +347,15 @@ class RefineWrapper(zocalo.wrapper.BaseWrapper):
             # Link mask file to newly created mask
             refine_mask_file.symlink_to(f"{bfactor_dir}/{mask_job_dir}/mask.mrc")
 
+            # Send the mask to murfey
+            murfey_mask_params = {
+                "register": "save_mask_file",
+                "mask_file": f"{bfactor_dir}/{mask_job_dir}/mask.mrc",
+                "program_id": refine_params.program_id,
+                "session_id": refine_params.session_id,
+            }
+            self.recwrap.send_to("murfey_feedback", murfey_mask_params)
+
         ###############################################################################
         # Do the post-processsing
         postprocess_job_number = 5 if refine_params.mask_file else 6
@@ -417,7 +424,7 @@ class RefineWrapper(zocalo.wrapper.BaseWrapper):
             self.log.error(f"Unable to read bfactor and resolution for {bfactor_dir}")
             return False
 
-        murfey_params = {
+        murfey_postprocess_params = {
             "register": "done_refinement",
             "particle_count": refine_params.particle_count,
             "bfactor": final_bfactor,
@@ -425,7 +432,7 @@ class RefineWrapper(zocalo.wrapper.BaseWrapper):
             "program_id": refine_params.program_id,
             "session_id": refine_params.session_id,
         }
-        self.recwrap.send_to("murfey_feedback", murfey_params)
+        self.recwrap.send_to("murfey_feedback", murfey_postprocess_params)
 
         self.log.info(f"Done refinement for {refine_params.class_particles_file}.")
         return True
