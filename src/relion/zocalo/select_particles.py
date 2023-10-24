@@ -16,7 +16,7 @@ class SelectParticlesParameters(BaseModel):
     input_file: str = Field(..., min_length=1)
     batch_size: int
     image_size: int
-    incomplete_batch_size: int = 5000
+    incomplete_batch_size: int = 10000
     program_id: int
     session_id: int
     relion_options: RelionServiceOptions
