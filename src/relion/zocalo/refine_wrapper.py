@@ -420,6 +420,10 @@ class RefineWrapper(zocalo.wrapper.BaseWrapper):
             elif "+ FINAL RESOLUTION:" in line:
                 final_resolution = float(line.split()[-1])
 
+        self.log.info(
+            f"Final results: bfactor {final_bfactor} and resolution {final_resolution} "
+            f"for {refine_params.particle_count} particles."
+        )
         if not final_bfactor or not final_resolution:
             self.log.error(f"Unable to read bfactor and resolution for {bfactor_dir}")
             return False
