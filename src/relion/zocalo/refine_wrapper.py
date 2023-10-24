@@ -120,9 +120,9 @@ class RefineWrapper(zocalo.wrapper.BaseWrapper):
             "--maxval",
             str(refine_params.class_number),
             "--pipeline_control",
-            str(select_job_dir),
+            f"{select_job_dir}/",
         ]
-        result = subprocess.run(
+        select_result = subprocess.run(
             select_command, cwd=str(bfactor_dir), capture_output=True
         )
 
@@ -135,20 +135,21 @@ class RefineWrapper(zocalo.wrapper.BaseWrapper):
             "output_file": f"{bfactor_dir}/{select_job_dir}/particles.star",
             "relion_options": dict(refine_params.relion_options),
             "command": " ".join(select_command),
-            "stdout": result.stdout.decode("utf8", "replace"),
-            "stderr": result.stderr.decode("utf8", "replace"),
+            "stdout": select_result.stdout.decode("utf8", "replace"),
+            "stderr": select_result.stderr.decode("utf8", "replace"),
         }
-        if result.returncode:
+        if select_result.returncode:
             node_creator_parameters["success"] = False
         else:
             node_creator_parameters["success"] = True
         self.recwrap.send_to("node_creator", node_creator_parameters)
 
         # End here if the command failed
-        if result.returncode:
+        if select_result.returncode:
             self.log.error(
-                f"Refinement selection failed with exitcode {result.returncode}:\n"
-                + result.stderr.decode("utf8", "replace")
+                "Refinement selection failed with exitcode "
+                f"{select_result.returncode}:\n"
+                + select_result.stderr.decode("utf8", "replace")
             )
             return False
 
@@ -169,9 +170,9 @@ class RefineWrapper(zocalo.wrapper.BaseWrapper):
             "--split_size",
             str(refine_params.particle_count),
             "--pipeline_control",
-            str(split_job_dir),
+            f"{split_job_dir}/",
         ]
-        result = subprocess.run(
+        split_result = subprocess.run(
             split_command, cwd=str(bfactor_dir), capture_output=True
         )
 
@@ -184,20 +185,21 @@ class RefineWrapper(zocalo.wrapper.BaseWrapper):
             "output_file": f"{bfactor_dir}/{split_job_dir}/particles_split1.star",
             "relion_options": dict(refine_params.relion_options),
             "command": " ".join(split_command),
-            "stdout": result.stdout.decode("utf8", "replace"),
-            "stderr": result.stderr.decode("utf8", "replace"),
+            "stdout": split_result.stdout.decode("utf8", "replace"),
+            "stderr": split_result.stderr.decode("utf8", "replace"),
         }
-        if result.returncode:
+        if split_result.returncode:
             node_creator_parameters["success"] = False
         else:
             node_creator_parameters["success"] = True
         self.recwrap.send_to("node_creator", node_creator_parameters)
 
         # End here if the command failed
-        if result.returncode:
+        if split_result.returncode:
             self.log.error(
-                f"Refinement splitting failed with exitcode {result.returncode}:\n"
-                + result.stderr.decode("utf8", "replace")
+                "Refinement splitting failed with exitcode "
+                f"{split_result.returncode}:\n"
+                + split_result.stderr.decode("utf8", "replace")
             )
             return False
 
@@ -251,11 +253,11 @@ class RefineWrapper(zocalo.wrapper.BaseWrapper):
                     refine_command.append(refine_flags[k])
                 else:
                     refine_command.extend((refine_flags[k], str(v)))
-        refine_command.extend(("--pipeline_control", str(refine_job_dir)))
+        refine_command.extend(("--pipeline_control", f"{refine_job_dir}/"))
 
         # Run Refine3D and confirm it ran successfully
         self.log.info(" ".join(refine_command))
-        result = subprocess.run(
+        refine_result = subprocess.run(
             refine_command, cwd=str(bfactor_dir), capture_output=True
         )
 
@@ -267,20 +269,21 @@ class RefineWrapper(zocalo.wrapper.BaseWrapper):
             "output_file": f"{bfactor_dir}/{refine_job_dir}/",
             "relion_options": dict(refine_params.relion_options),
             "command": " ".join(refine_command),
-            "stdout": result.stdout.decode("utf8", "replace"),
-            "stderr": result.stderr.decode("utf8", "replace"),
+            "stdout": refine_result.stdout.decode("utf8", "replace"),
+            "stderr": refine_result.stderr.decode("utf8", "replace"),
         }
-        if result.returncode:
+        if refine_result.returncode:
             node_creator_parameters["success"] = False
         else:
             node_creator_parameters["success"] = True
         self.recwrap.send_to("node_creator", node_creator_parameters)
 
         # End here if the command failed
-        if result.returncode:
+        if refine_result.returncode:
             self.log.error(
-                f"Refinement Refine3D failed with exitcode {result.returncode}:\n"
-                + result.stderr.decode("utf8", "replace")
+                "Refinement Refine3D failed with exitcode "
+                f"{refine_result.returncode}:\n"
+                + refine_result.stderr.decode("utf8", "replace")
             )
             return False
 
@@ -310,9 +313,9 @@ class RefineWrapper(zocalo.wrapper.BaseWrapper):
                 "--j",
                 str(refine_params.threads),
                 "--pipeline_control",
-                str(mask_job_dir),
+                f"{mask_job_dir}/",
             ]
-            result = subprocess.run(
+            mask_result = subprocess.run(
                 mask_command, cwd=str(bfactor_dir), capture_output=True
             )
 
@@ -325,20 +328,21 @@ class RefineWrapper(zocalo.wrapper.BaseWrapper):
                 "output_file": f"{bfactor_dir}/{mask_job_dir}/mask.mrc",
                 "relion_options": dict(refine_params.relion_options),
                 "command": " ".join(mask_command),
-                "stdout": result.stdout.decode("utf8", "replace"),
-                "stderr": result.stderr.decode("utf8", "replace"),
+                "stdout": mask_result.stdout.decode("utf8", "replace"),
+                "stderr": mask_result.stderr.decode("utf8", "replace"),
             }
-            if result.returncode:
+            if mask_result.returncode:
                 node_creator_parameters["success"] = False
             else:
                 node_creator_parameters["success"] = True
             self.recwrap.send_to("node_creator", node_creator_parameters)
 
             # End here if the command failed
-            if result.returncode:
+            if mask_result.returncode:
                 self.log.error(
-                    f"Refinement mask creation failed with exitcode {result.returncode}:\n"
-                    + result.stderr.decode("utf8", "replace")
+                    "Refinement mask creation failed with exitcode "
+                    f"{mask_result.returncode}:\n"
+                    + mask_result.stderr.decode("utf8", "replace")
                 )
                 return False
 
@@ -364,9 +368,9 @@ class RefineWrapper(zocalo.wrapper.BaseWrapper):
             "--autob_lowres",
             str(refine_params.postprocess_lowres),
             "--pipeline_control",
-            str(postprocess_job_dir),
+            f"{postprocess_job_dir}/",
         ]
-        result = subprocess.run(
+        postprocess_result = subprocess.run(
             postprocess_command, cwd=str(bfactor_dir), capture_output=True
         )
 
@@ -378,28 +382,46 @@ class RefineWrapper(zocalo.wrapper.BaseWrapper):
             "output_file": f"{bfactor_dir}/{postprocess_job_dir}/postprocess.mrc",
             "relion_options": dict(refine_params.relion_options),
             "command": " ".join(postprocess_command),
-            "stdout": result.stdout.decode("utf8", "replace"),
-            "stderr": result.stderr.decode("utf8", "replace"),
+            "stdout": postprocess_result.stdout.decode("utf8", "replace"),
+            "stderr": postprocess_result.stderr.decode("utf8", "replace"),
         }
-        if result.returncode:
+        if postprocess_result.returncode:
             node_creator_parameters["success"] = False
         else:
             node_creator_parameters["success"] = True
         self.recwrap.send_to("node_creator", node_creator_parameters)
 
         # End here if the command failed
-        if result.returncode:
+        if postprocess_result.returncode:
             self.log.error(
-                f"Refinement post-process failed with exitcode {result.returncode}:\n"
-                + result.stderr.decode("utf8", "replace")
+                "Refinement post-process failed with exitcode "
+                f"{postprocess_result.returncode}:\n"
+                + postprocess_result.stderr.decode("utf8", "replace")
             )
             return False
 
         ###############################################################################
-        # Tell Murfey the refinement has finished
+        # Get the statistics and tell Murfey the refinement has finished
+        postprocess_lines = postprocess_result.stdout.decode("utf8", "replace").split(
+            "\n"
+        )
+        final_bfactor = None
+        final_resolution = None
+        for line in postprocess_lines:
+            if "+ apply b-factor of:" in line:
+                final_bfactor = float(line.split()[-1])
+            elif "+ FINAL RESOLUTION:" in line:
+                final_resolution = float(line.split()[-1])
+
+        if not final_bfactor or not final_resolution:
+            self.log.error(f"Unable to read bfactor and resolution for {bfactor_dir}")
+            return False
+
         murfey_params = {
             "register": "done_refinement",
             "particle_count": refine_params.particle_count,
+            "bfactor": final_bfactor,
+            "resolution": final_resolution,
             "program_id": refine_params.program_id,
             "session_id": refine_params.session_id,
         }
