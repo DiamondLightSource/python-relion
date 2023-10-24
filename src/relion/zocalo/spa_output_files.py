@@ -370,6 +370,10 @@ _output_files: Dict[str, Callable] = {
     "combine_star_files_job": _relion_no_extra_files,
     "relion.initialmodel": _relion_no_extra_files,
     "relion.class3d": _relion_no_extra_files,
+    "relion.select.onvalue": _relion_no_extra_files,
+    "relion.refine3d": _relion_no_extra_files,
+    "relion.maskcreate": _relion_no_extra_files,
+    "relion.postprocess": _relion_no_extra_files,
 }
 
 

@@ -83,7 +83,11 @@ class RefineWrapper(zocalo.wrapper.BaseWrapper):
         bfactor_dir = (
             project_dir / f"bfactor_pipeline/bfactor_{refine_params.particle_count:07}"
         )
-        bfactor_dir.mkdir(parents=True, exist_ok=True)
+        try:
+            bfactor_dir.mkdir(parents=True)
+        except FileExistsError:
+            self.log.warning(f"Refinement pipeline folder {bfactor_dir} already exists")
+            return False
         os.chdir(bfactor_dir)
 
         # Link the required files
@@ -122,10 +126,11 @@ class RefineWrapper(zocalo.wrapper.BaseWrapper):
 
         # Register the Selection job with the node creator
         self.log.info(f"Sending {self.select_job_type} to node creator")
+        refine_params.relion_options.refine_class = refine_params.class_number
         node_creator_parameters = {
             "job_type": self.select_job_type,
-            "input_file": refine_params.class_particles_file,
-            "output_file": f"{select_job_dir}/particles.star",
+            "input_file": f"{bfactor_dir}/particles_data.star",
+            "output_file": f"{bfactor_dir}/{select_job_dir}/particles.star",
             "relion_options": dict(refine_params.relion_options),
             "command": " ".join(select_command),
             "stdout": result.stdout.decode("utf8", "replace"),
@@ -170,10 +175,11 @@ class RefineWrapper(zocalo.wrapper.BaseWrapper):
 
         # Register the Selection job with the node creator
         self.log.info(f"Sending {self.split_job_type} to node creator")
+        refine_params.relion_options.batch_size = refine_params.particle_count
         node_creator_parameters = {
             "job_type": self.split_job_type,
-            "input_file": f"{select_job_dir}/particles.star",
-            "output_file": f"{split_job_dir}/particles_split1.star",
+            "input_file": f"{bfactor_dir}/{select_job_dir}/particles.star",
+            "output_file": f"{bfactor_dir}/{split_job_dir}/particles_split1.star",
             "relion_options": dict(refine_params.relion_options),
             "command": " ".join(split_command),
             "stdout": result.stdout.decode("utf8", "replace"),
@@ -255,8 +261,8 @@ class RefineWrapper(zocalo.wrapper.BaseWrapper):
         self.log.info(f"Sending {self.refine_job_type} to node creator")
         node_creator_parameters = {
             "job_type": self.refine_job_type,
-            "input_file": f"{select_job_dir}/particles.star",
-            "output_file": f"{refine_job_dir}/",
+            "input_file": f"{bfactor_dir}/{select_job_dir}/particles_split1.star:{class_reference}",
+            "output_file": f"{bfactor_dir}/{refine_job_dir}/",
             "relion_options": dict(refine_params.relion_options),
             "command": " ".join(refine_command),
             "stdout": result.stdout.decode("utf8", "replace"),
@@ -278,19 +284,18 @@ class RefineWrapper(zocalo.wrapper.BaseWrapper):
 
         ###############################################################################
         # Do the mask creation if one is not provided
+        refine_mask_file = bfactor_dir / "mask.mrc"
         if refine_params.mask_file:
-            refine_mask_file = bfactor_dir / "mask.mrc"
             refine_mask_file.symlink_to(refine_params.mask_file)
         else:
             mask_job_dir = Path("Mask/job004")
-            refine_mask_file = f"{mask_job_dir}/mask.mrc"
             mask_job_dir.mkdir(parents=True)
             mask_command = [
                 "relion_mask_create",
                 "--i",
                 f"{refine_job_dir}/run_class001.mrc",
                 "--o",
-                refine_mask_file,
+                f"{mask_job_dir}/mask.mrc",
                 "--lowpass",
                 str(refine_params.mask_lowpass),
                 "--ini_threshold",
@@ -312,10 +317,11 @@ class RefineWrapper(zocalo.wrapper.BaseWrapper):
 
             # Register the mask creation job with the node creator
             self.log.info(f"Sending {self.mask_job_type} to node creator")
+            refine_params.relion_options.angpix = refine_params.pixel_size
             node_creator_parameters = {
                 "job_type": self.mask_job_type,
-                "input_file": f"{refine_job_dir}/run_class001.mrc",
-                "output_file": f"{mask_job_dir}/mask.mrc",
+                "input_file": f"{bfactor_dir}/{refine_job_dir}/run_class001.mrc",
+                "output_file": f"{bfactor_dir}/{mask_job_dir}/mask.mrc",
                 "relion_options": dict(refine_params.relion_options),
                 "command": " ".join(mask_command),
                 "stdout": result.stdout.decode("utf8", "replace"),
@@ -335,6 +341,9 @@ class RefineWrapper(zocalo.wrapper.BaseWrapper):
                 )
                 return False
 
+            # Link mask file to newly created mask
+            refine_mask_file.symlink_to(f"{bfactor_dir}/{mask_job_dir}/mask.mrc")
+
         ###############################################################################
         # Do the post-processsing
         postprocess_job_number = 4 if refine_params.mask_file else 5
@@ -343,11 +352,11 @@ class RefineWrapper(zocalo.wrapper.BaseWrapper):
         postprocess_command = [
             "relion_postprocess",
             "--i",
-            f"{refine_job_dir}/run_class001_unfil.mrc",
+            f"{refine_job_dir}/run_half1_class001_unfil.mrc",
             "--o",
             f"{postprocess_job_dir}/postprocess",
             "--mask",
-            refine_mask_file,
+            str(refine_mask_file),
             "--angpix",
             str(refine_params.pixel_size),
             "--auto_bfac",
@@ -364,8 +373,8 @@ class RefineWrapper(zocalo.wrapper.BaseWrapper):
         self.log.info(f"Sending {self.postprocess_job_type} to node creator")
         node_creator_parameters = {
             "job_type": self.postprocess_job_type,
-            "input_file": f"{refine_job_dir}/run_class001_unfil.mrc",
-            "output_file": f"{postprocess_job_dir}/postprocess.mrc",
+            "input_file": f"{bfactor_dir}/{refine_job_dir}/run_half1_class001_unfil.mrc:{refine_mask_file}",
+            "output_file": f"{bfactor_dir}/{postprocess_job_dir}/postprocess.mrc",
             "relion_options": dict(refine_params.relion_options),
             "command": " ".join(postprocess_command),
             "stdout": result.stdout.decode("utf8", "replace"),

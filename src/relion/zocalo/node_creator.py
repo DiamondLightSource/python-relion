@@ -99,6 +99,28 @@ pipeline_spa_jobs = {
             "fn_ref": "initial_model.mrc",
         },
     },
+    "relion.select.onvalue": {
+        "folder": "Select",
+        "input_stars": {"fn_data": "run_it020_data.star"},
+    },
+    "relion.refine3d": {
+        "folder": "Refine3D",
+        "input_stars": {
+            "fn_img": "particles_split1.star",
+            "fn_ref": "run_it020_class.mrc",
+        },
+    },
+    "relion.maskcreate": {
+        "folder": "MaskCreate",
+        "input_stars": {"fn_in": "run_class001.star"},
+    },
+    "relion.postprocess": {
+        "folder": "PostProcess",
+        "input_stars": {
+            "fn_in": "run_half1_class001_unfil.mrc",
+            "fn_mask": "mask.mrc",
+        },
+    },
 }
 
 
