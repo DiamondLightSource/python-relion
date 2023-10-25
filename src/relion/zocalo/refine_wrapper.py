@@ -47,6 +47,7 @@ class RefineParameters(BaseModel):
     mask_extend: int = 3
     mask_soft_edge: int = 3
     postprocess_lowres: float = 10
+    refined_grp_uuid: int
     program_id: int
     session_id: int
     relion_options: RelionServiceOptions
@@ -427,6 +428,25 @@ class RefineWrapper(zocalo.wrapper.BaseWrapper):
         if not final_bfactor or not final_resolution:
             self.log.error(f"Unable to read bfactor and resolution for {bfactor_dir}")
             return False
+
+        refined_ispyb_parameters = {
+            "ispyb_command": "buffer",
+            "buffer_command": {"ispyb_command": "insert_particle_classification"},
+            "class_number": refine_params.class_number,
+            "class_image_full_path": f"{bfactor_dir}/{postprocess_job_dir}/postprocess.mrc",
+            "particles_per_class": refine_params.particle_count,
+            "class_distribution": 1,
+            "rotation_accuracy": 1,
+            "translation_accuracy": 1,
+            "estimated_resolution": final_resolution,
+        }
+        job_is_rerun = True
+        if job_is_rerun:
+            refined_ispyb_parameters["buffer_lookup"] = {
+                "particle_classification_id": refine_params.refined_grp_uuid
+            }
+        else:
+            refined_ispyb_parameters["buffer_store"] = refine_params.refined_grp_uuid
 
         murfey_postprocess_params = {
             "register": "done_refinement",
