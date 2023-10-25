@@ -121,9 +121,10 @@ class Class2DWrapper(zocalo.wrapper.BaseWrapper):
 
         # Make the job directory and move to the project directory
         job_dir = Path(class2d_params.class2d_dir)
-        if (job_dir / "run_it000_model.star").exists():
+        if (job_dir / "RELION_JOB_EXIT_SUCCESS").exists():
             # This job over-writes a previous one
             job_is_rerun = True
+            (job_dir / "RELION_JOB_EXIT_SUCCESS").unlink()
         else:
             job_is_rerun = False
             job_dir.mkdir(parents=True, exist_ok=True)
@@ -194,6 +195,7 @@ class Class2DWrapper(zocalo.wrapper.BaseWrapper):
         result = subprocess.run(
             class2d_command, cwd=str(project_dir), capture_output=True
         )
+        (job_dir / "RELION_JOB_EXIT_SUCCESS").unlink()
 
         # Register the Class2D job with the node creator
         self.log.info(f"Sending {job_type} to node creator")
@@ -362,5 +364,6 @@ class Class2DWrapper(zocalo.wrapper.BaseWrapper):
             }
             self.recwrap.send_to("murfey_feedback", murfey_params)
 
+        (job_dir / "RELION_JOB_EXIT_SUCCESS").touch()
         self.log.info(f"Done {job_type} for {class2d_params.particles_file}.")
         return True
