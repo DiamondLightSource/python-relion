@@ -430,9 +430,7 @@ class Class3DWrapper(zocalo.wrapper.BaseWrapper):
             "buffer_command": {"ispyb_command": "insert_particle_classification_group"},
             "buffer_store": class3d_params.class3d_grp_uuid,
             "type": "3D",
-            "batch_number": int(
-                class3d_params.particles_file.split("particles_split")[1].split(".")[0]
-            ),
+            "batch_number": "1",
             "number_of_particles_per_batch": class3d_params.batch_size,
             "number_of_classes_per_batch": class3d_params.nr_classes,
             "symmetry": class3d_params.symmetry,
