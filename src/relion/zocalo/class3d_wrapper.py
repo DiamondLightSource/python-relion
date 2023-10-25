@@ -428,7 +428,6 @@ class Class3DWrapper(zocalo.wrapper.BaseWrapper):
         classification_grp_ispyb_parameters = {
             "ispyb_command": "buffer",
             "buffer_command": {"ispyb_command": "insert_particle_classification_group"},
-            "buffer_store": class3d_params.class3d_grp_uuid,
             "type": "3D",
             "batch_number": "1",
             "number_of_particles_per_batch": class3d_params.batch_size,
@@ -441,6 +440,10 @@ class Class3DWrapper(zocalo.wrapper.BaseWrapper):
             classification_grp_ispyb_parameters["buffer_lookup"] = {
                 "particle_classification_group_id": class3d_params.class3d_grp_uuid,
             }
+        else:
+            classification_grp_ispyb_parameters[
+                "buffer_store"
+            ] = class3d_params.class3d_grp_uuid
         ispyb_parameters.append(classification_grp_ispyb_parameters)
 
         # Send individual classes to ispyb
