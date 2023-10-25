@@ -225,7 +225,6 @@ class Class2DWrapper(zocalo.wrapper.BaseWrapper):
         classification_grp_ispyb_parameters = {
             "ispyb_command": "buffer",
             "buffer_command": {"ispyb_command": "insert_particle_classification_group"},
-            "buffer_store": class2d_params.class2d_grp_uuid,
             "type": "2D",
             "batch_number": int(
                 class2d_params.particles_file.split("particles_split")[1].split(".")[0]
@@ -240,6 +239,10 @@ class Class2DWrapper(zocalo.wrapper.BaseWrapper):
             classification_grp_ispyb_parameters["buffer_lookup"] = {
                 "particle_classification_group_id": class2d_params.class2d_grp_uuid,
             }
+        else:
+            classification_grp_ispyb_parameters[
+                "buffer_store"
+            ] = class2d_params.class2d_grp_uuid
         ispyb_parameters.append(classification_grp_ispyb_parameters)
 
         # Send individual classes to ispyb
@@ -251,22 +254,12 @@ class Class2DWrapper(zocalo.wrapper.BaseWrapper):
 
         for class_id in range(class2d_params.nr_classes):
             # Add an ispyb insert for each class
-            if job_is_rerun:
-                buffer_lookup = {
-                    "particle_classification_id": self.class_uuids_dict[
-                        self.class_uuids_keys[class_id]
-                    ],
-                    "particle_classification_group_id": class2d_params.class2d_grp_uuid,
-                }
-            else:
-                buffer_lookup = {
-                    "particle_classification_group_id": class2d_params.class2d_grp_uuid,
-                }
             class_ispyb_parameters = {
                 "ispyb_command": "buffer",
-                "buffer_lookup": buffer_lookup,
+                "buffer_lookup": {
+                    "particle_classification_group_id": class2d_params.class2d_grp_uuid
+                },
                 "buffer_command": {"ispyb_command": "insert_particle_classification"},
-                "buffer_store": self.class_uuids_dict[self.class_uuids_keys[class_id]],
                 "class_number": class_id + 1,
                 "class_image_full_path": (
                     f"{class2d_params.class2d_dir}"
@@ -279,6 +272,18 @@ class Class2DWrapper(zocalo.wrapper.BaseWrapper):
                 "rotation_accuracy": classes_loop.val(class_id, 2),
                 "translation_accuracy": classes_loop.val(class_id, 3),
             }
+            if job_is_rerun:
+                class_ispyb_parameters["buffer_lookup"].update(
+                    {
+                        "particle_classification_id": self.class_uuids_dict[
+                            self.class_uuids_keys[class_id]
+                        ]
+                    }
+                )
+            else:
+                class_ispyb_parameters["buffer_store"] = self.class_uuids_dict[
+                    self.class_uuids_keys[class_id]
+                ]
 
             # Add the resolution and fourier completeness if they are valid numbers
             estimated_resolution = float(classes_loop.val(class_id, 4))
