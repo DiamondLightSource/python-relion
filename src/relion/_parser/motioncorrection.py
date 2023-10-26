@@ -173,7 +173,7 @@ class MotionCorr(JobType):
             fig.write_json(drift_plot_full_path)
         except FileNotFoundError:
             return 1, "", ""
-        return len(deltaxs), drift_plot_full_path, movie_name
+        return len(deltaxs), str(drift_plot_full_path), movie_name
 
     @staticmethod
     def for_cache(mcmicrograph):
