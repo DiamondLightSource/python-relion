@@ -122,7 +122,7 @@ class MotionCorr(JobType):
                 movie_creation_time = None
             micrograph_list.append(
                 MCMicrograph(
-                    micrograph_name[j],
+                    str(self._basepath.parent / micrograph_name[j]),
                     str(self._basepath.parent / micrograph_name[j]).replace(
                         ".mrc", ".jpeg"
                     ),
@@ -169,7 +169,9 @@ class MotionCorr(JobType):
                 x=np.array(deltaxs, dtype=float), y=np.array(deltays, dtype=float)
             )
             drift_plot_name = Path(mic_name).stem + "_drift_plot.json"
-            drift_plot_full_path = Path(mic_name).parent / drift_plot_name
+            drift_plot_full_path = (
+                self._basepath.parent / Path(mic_name).parent / drift_plot_name
+            )
             fig.write_json(drift_plot_full_path)
         except FileNotFoundError:
             return 1, "", ""
