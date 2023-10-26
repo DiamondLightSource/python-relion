@@ -102,6 +102,16 @@ class RefineWrapper(zocalo.wrapper.BaseWrapper):
         (bfactor_dir / "Extract").symlink_to(project_dir / "Extract")
         refine_mask_file = bfactor_dir / "Import/job001/mask.mrc"
 
+        # Use PostProcessing to determine if this is a rerun
+        postprocess_job_number = 5 if refine_params.mask_file else 6
+        postprocess_job_dir = Path(f"PostProcess/job{postprocess_job_number:03}")
+        if (postprocess_job_dir / "RELION_JOB_EXIT_SUCCESS").exists():
+            job_is_rerun = True
+            (postprocess_job_dir / "RELION_JOB_EXIT_SUCCESS").unlink()
+        else:
+            job_is_rerun = False
+            postprocess_job_dir.mkdir(parents=True)
+
         ###############################################################################
         # Select the particles from the requested class
         select_job_dir = Path("Select/job002")
@@ -359,9 +369,6 @@ class RefineWrapper(zocalo.wrapper.BaseWrapper):
 
         ###############################################################################
         # Do the post-processsing
-        postprocess_job_number = 5 if refine_params.mask_file else 6
-        postprocess_job_dir = Path(f"PostProcess/job{postprocess_job_number:03}")
-        postprocess_job_dir.mkdir(parents=True)
         postprocess_command = [
             "relion_postprocess",
             "--i",
@@ -381,6 +388,7 @@ class RefineWrapper(zocalo.wrapper.BaseWrapper):
         postprocess_result = subprocess.run(
             postprocess_command, cwd=str(bfactor_dir), capture_output=True
         )
+        (postprocess_job_dir / "RELION_JOB_EXIT_SUCCESS").unlink()
 
         # Register the post-processing job with the node creator
         self.log.info(f"Sending {self.postprocess_job_type} to node creator")
@@ -440,7 +448,6 @@ class RefineWrapper(zocalo.wrapper.BaseWrapper):
             "translation_accuracy": 1,
             "estimated_resolution": final_resolution,
         }
-        job_is_rerun = True
         if job_is_rerun:
             refined_ispyb_parameters["buffer_lookup"] = {
                 "particle_classification_id": refine_params.refined_grp_uuid
@@ -458,5 +465,6 @@ class RefineWrapper(zocalo.wrapper.BaseWrapper):
         }
         self.recwrap.send_to("murfey_feedback", murfey_postprocess_params)
 
+        (postprocess_job_dir / "RELION_JOB_EXIT_SUCCESS").touch()
         self.log.info(f"Done refinement for {refine_params.class_particles_file}.")
         return True
