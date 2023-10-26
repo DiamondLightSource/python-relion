@@ -196,14 +196,14 @@ def test_prepended_results_are_picked_up_correctly(dials_data, proj):
         proj._db_model["MotionCorr"].tables[0]._tab["motion_correction_id"]
     )[-1]
     first_row = proj._db_model["MotionCorr"].tables[0].get_row_by_primary_key(base_id)
-    assert (
-        first_row["micrograph_full_path"]
-        == "MotionCorr/job002/Movies/20170629_00023_frameImage.mrc"
+    assert first_row["micrograph_full_path"] == str(
+        dials_data("relion_tutorial_data", pathlib=True)
+        / "MotionCorr/job002/Movies/20170629_00023_frameImage.mrc"
     )
     last_row = proj._db_model["MotionCorr"].tables[0].get_row_by_primary_key(last_mc_id)
-    assert (
-        last_row["micrograph_full_path"]
-        == "MotionCorr/job002/Movies/20170629_00022_frameImage.mrc"
+    assert last_row["micrograph_full_path"] == str(
+        dials_data("relion_tutorial_data", pathlib=True)
+        / "MotionCorr/job002/Movies/20170629_00022_frameImage.mrc"
     )
 
 
@@ -249,14 +249,14 @@ def test_appended_results_are_picked_up_correctly(dials_data, proj):
         proj._db_model["MotionCorr"].tables[0]._tab["motion_correction_id"]
     )[-1]
     first_row = proj._db_model["MotionCorr"].tables[0].get_row_by_primary_key(base_id)
-    assert (
-        first_row["micrograph_full_path"]
-        == "MotionCorr/job002/Movies/20170629_00021_frameImage.mrc"
+    assert first_row["micrograph_full_path"] == str(
+        dials_data("relion_tutorial_data", pathlib=True)
+        / "MotionCorr/job002/Movies/20170629_00021_frameImage.mrc"
     )
     last_row = proj._db_model["MotionCorr"].tables[0].get_row_by_primary_key(last_mc_id)
-    assert (
-        last_row["micrograph_full_path"]
-        == "MotionCorr/job002/Movies/20170629_00049_frameImage.mrc"
+    assert last_row["micrograph_full_path"] == str(
+        dials_data("relion_tutorial_data", pathlib=True)
+        / "MotionCorr/job002/Movies/20170629_00049_frameImage.mrc"
     )
 
 
@@ -293,9 +293,9 @@ def test_prepended_results_are_picked_up_correctly_in_project_messages(dials_dat
 
     assert len(msgs) == 5
     assert len(msgs[0]["ispyb"]) == 2
-    assert (
-        msgs[0]["ispyb"][0]["buffer_command"]["micrograph_full_path"]
-        == "MotionCorr/job002/Movies/20170629_00021_frameImage.mrc"
+    assert msgs[0]["ispyb"][0]["buffer_command"]["micrograph_full_path"] == str(
+        dials_data("relion_tutorial_data", pathlib=True)
+        / "MotionCorr/job002/Movies/20170629_00021_frameImage.mrc"
     )
     mc_id = msgs[0]["ispyb"][0]["buffer_store"]
     assert msgs[1]["ispyb"][0]["buffer_lookup"]["motion_correction_id"] == mc_id
@@ -334,9 +334,9 @@ def test_appended_results_are_picked_up_correctly_in_project_messages(dials_data
 
     assert len(msgs) == 5
     assert len(msgs[0]["ispyb"]) == 2
-    assert (
-        msgs[0]["ispyb"][0]["buffer_command"]["micrograph_full_path"]
-        == "MotionCorr/job002/Movies/20170629_00048_frameImage.mrc"
+    assert msgs[0]["ispyb"][0]["buffer_command"]["micrograph_full_path"] == str(
+        dials_data("relion_tutorial_data", pathlib=True)
+        / "MotionCorr/job002/Movies/20170629_00048_frameImage.mrc"
     )
     mc_id = msgs[0]["ispyb"][0]["buffer_store"]
     assert msgs[1]["ispyb"][0]["buffer_lookup"]["motion_correction_id"] == mc_id
