@@ -5,7 +5,9 @@ import os
 import subprocess
 from pathlib import Path
 
+import numpy as np
 import zocalo.wrapper
+from gemmi import cif
 from pydantic import BaseModel, Field, ValidationError
 
 from relion.zocalo.spa_relion_service_options import RelionServiceOptions
@@ -16,6 +18,7 @@ logger = logging.getLogger("relion.refine.wrapper")
 class RefineParameters(BaseModel):
     bfactor_directory: str = Field(..., min_length=1)
     class_particles_file: str = Field(..., min_length=1)
+    total_particles: int
     class_number: int
     particle_count: int
     pixel_size: float
@@ -47,7 +50,9 @@ class RefineParameters(BaseModel):
     mask_extend: int = 3
     mask_soft_edge: int = 3
     postprocess_lowres: float = 10
+    picker_id: int
     refined_grp_uuid: int
+    refined_class_uuid: int
     program_id: int
     session_id: int
     relion_options: RelionServiceOptions
@@ -419,7 +424,7 @@ class RefineWrapper(zocalo.wrapper.BaseWrapper):
             return False
 
         ###############################################################################
-        # Get the statistics and tell Murfey the refinement has finished
+        # Get the statistics
         postprocess_lines = postprocess_result.stdout.decode("utf8", "replace").split(
             "\n"
         )
@@ -439,29 +444,99 @@ class RefineWrapper(zocalo.wrapper.BaseWrapper):
             self.log.error(f"Unable to read bfactor and resolution for {bfactor_dir}")
             return False
 
-        refined_ispyb_parameters = {
-            "ispyb_command": "buffer",
-            "buffer_command": {"ispyb_command": "insert_particle_classification"},
-            "class_number": refine_params.class_number,
-            "class_image_full_path": f"{bfactor_dir}/{postprocess_job_dir}/postprocess.mrc",
-            "particles_per_class": refine_params.particle_count,
-            "class_distribution": 1,
-            "rotation_accuracy": 1,
-            "translation_accuracy": 1,
-            "estimated_resolution": final_resolution,
-        }
-        if job_is_rerun:
-            refined_ispyb_parameters["buffer_lookup"] = {
-                "particle_classification_id": refine_params.refined_grp_uuid
+        # Send classification job information to ispyb
+        ispyb_parameters = []
+        if refine_params.particle_count == refine_params.total_particles:
+            refined_grp_ispyb_parameters = {
+                "ispyb_command": "buffer",
+                "buffer_command": {
+                    "ispyb_command": "insert_particle_classification_group"
+                },
+                "type": "refine",
+                "batch_number": "1",
+                "number_of_particles_per_batch": refine_params.particle_count,
+                "number_of_classes_per_batch": "1",
+                "symmetry": refine_params.symmetry,
+                "particle_picker_id": refine_params.picker_id,
             }
-        else:
-            refined_ispyb_parameters["buffer_store"] = refine_params.refined_grp_uuid
+            if job_is_rerun:
+                # If this job overwrites another get the id for it
+                refined_grp_ispyb_parameters["buffer_lookup"] = {
+                    "particle_classification_group_id": refine_params.refined_grp_uuid,
+                }
+            else:
+                refined_grp_ispyb_parameters[
+                    "buffer_store"
+                ] = refine_params.refined_grp_uuid
+            ispyb_parameters.append(refined_grp_ispyb_parameters)
 
+            # Send individual classes to ispyb
+            class_star_file = cif.read_file(f"{refine_job_dir}/run_model.star")
+            classes_block = class_star_file.find_block("model_classes")
+            classes_loop = classes_block.find_loop("_rlnReferenceImage").get_loop()
+
+            refined_ispyb_parameters = {
+                "ispyb_command": "buffer",
+                "buffer_lookup": {
+                    "particle_classification_group_id": refine_params.refined_grp_uuid
+                },
+                "buffer_command": {"ispyb_command": "insert_particle_classification"},
+                "class_number": refine_params.class_number,
+                "class_image_full_path": f"{bfactor_dir}/{postprocess_job_dir}/postprocess.mrc",
+                "particles_per_class": refine_params.particle_count,
+                "class_distribution": 1,
+                "rotation_accuracy": classes_loop.val(1, 2),
+                "translation_accuracy": classes_loop.val(1, 3),
+                "estimated_resolution": final_resolution,
+                "selected": (
+                    refine_params.particle_count == refine_params.total_particles
+                ),
+            }
+            if job_is_rerun:
+                refined_ispyb_parameters["buffer_lookup"].update(
+                    {
+                        "particle_classification_id": refine_params.refined_class_uuid,
+                    }
+                )
+            else:
+                refined_ispyb_parameters[
+                    "buffer_store"
+                ] = refine_params.refined_class_uuid
+
+            # Add the resolution and fourier completeness if they are valid numbers
+            estimated_resolution = float(classes_loop.val(1, 4))
+            if np.isfinite(estimated_resolution):
+                refined_ispyb_parameters["estimated_resolution"] = estimated_resolution
+            else:
+                refined_ispyb_parameters["estimated_resolution"] = 0.0
+            fourier_completeness = float(classes_loop.val(1, 5))
+            if np.isfinite(fourier_completeness):
+                refined_ispyb_parameters[
+                    "overall_fourier_completeness"
+                ] = fourier_completeness
+            else:
+                refined_ispyb_parameters["overall_fourier_completeness"] = 0.0
+
+            # Add the ispyb command to the command list
+            ispyb_parameters.append(refined_ispyb_parameters)
+
+        bfactor_ispyb_parameters = {
+            "ispyb_command": "buffer",
+            "buffer_lookup": {
+                "particle_classification_id": refine_params.refined_class_uuid
+            },
+            "buffer_command": {"ispyb_command": "insert_bfactor"},
+            "particle_count": refine_params.particle_count,
+            "total_particles": refine_params.total_particles,
+            "resolution": final_resolution,
+        }
+        ispyb_parameters.append(bfactor_ispyb_parameters)
+
+        self.recwrap.send_to("ispyb_connector", ispyb_parameters)
+
+        # Tell Murfey the refinement has finished
         murfey_postprocess_params = {
             "register": "done_refinement",
-            "particle_count": refine_params.particle_count,
-            "bfactor": final_bfactor,
-            "resolution": final_resolution,
             "program_id": refine_params.program_id,
             "session_id": refine_params.session_id,
         }
