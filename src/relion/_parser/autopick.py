@@ -81,7 +81,7 @@ class AutoPick(JobType):
             particle_picker_info.append(
                 ParticlePickerInfo(
                     int(np),
-                    mic,
+                    str(self._basepath.parent / mic),
                     str(self._basepath.parent / mic).replace(".mrc", ".jpeg"),
                     first_mc_micrograph,
                     str(highlighted_micrograph),

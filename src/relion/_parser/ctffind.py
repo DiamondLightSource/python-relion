@@ -96,7 +96,7 @@ class CTFFind(JobType):
             )
             micrograph_list.append(
                 CTFMicrograph(
-                    micrograph_name[j],
+                    str(self._basepath.parent / micrograph_name[j]),
                     astigmatism[j],
                     defocus_u[j],
                     defocus_v[j],
