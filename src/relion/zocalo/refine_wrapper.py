@@ -83,43 +83,44 @@ class RefineWrapper(zocalo.wrapper.BaseWrapper):
         # Determine the directory to run in
         project_dir = Path(refine_params.class_particles_file).parent.parent.parent
         bfactor_dir = Path(refine_params.bfactor_directory)
-        try:
-            (bfactor_dir / "Import/job001").mkdir(parents=True)
-        except FileExistsError:
-            self.log.warning(f"Refinement pipeline run {bfactor_dir} already exists")
-            return False
+        (bfactor_dir / "Import/job001").mkdir(parents=True, exist_ok=True)
         os.chdir(bfactor_dir)
 
         # Link the required files
-        (bfactor_dir / "Import/job001/particles_data.star").symlink_to(
-            refine_params.class_particles_file
-        )
+        particles_data = bfactor_dir / "Import/job001/particles_data.star"
+        particles_data.unlink(missing_ok=True)
+        particles_data.symlink_to(refine_params.class_particles_file)
+
         class_reference = bfactor_dir / "Import/job001/refinement_ref.mrc"
+        class_reference.unlink(missing_ok=True)
         class_reference.symlink_to(
             Path(refine_params.class_particles_file).parent
             / f"run_it{refine_params.nr_iter_3d:03}_class{refine_params.class_number:03}.mrc"
         )
+
+        (bfactor_dir / "Extract").unlink(missing_ok=True)
         (bfactor_dir / "Extract").symlink_to(project_dir / "Extract")
+
         refine_mask_file = bfactor_dir / "Import/job001/mask.mrc"
+        refine_mask_file.unlink(missing_ok=True)
 
         # Use PostProcessing to determine if this is a rerun
         postprocess_job_number = 5 if refine_params.mask_file else 6
         postprocess_job_dir = Path(f"PostProcess/job{postprocess_job_number:03}")
         if (postprocess_job_dir / "RELION_JOB_EXIT_SUCCESS").exists():
             job_is_rerun = True
-            (postprocess_job_dir / "RELION_JOB_EXIT_SUCCESS").unlink()
         else:
             job_is_rerun = False
-            postprocess_job_dir.mkdir(parents=True)
+            postprocess_job_dir.mkdir(parents=True, exist_ok=True)
 
         ###############################################################################
         # Select the particles from the requested class
         select_job_dir = Path("Select/job002")
-        select_job_dir.mkdir(parents=True)
+        select_job_dir.mkdir(parents=True, exist_ok=True)
         select_command = [
             "relion_star_handler",
             "--i",
-            f"{bfactor_dir}/Import/job001/particles_data.star",
+            str(particles_data),
             "--o",
             f"{select_job_dir}/particles.star",
             "--select",
@@ -140,7 +141,7 @@ class RefineWrapper(zocalo.wrapper.BaseWrapper):
         refine_params.relion_options.refine_class = refine_params.class_number
         node_creator_parameters = {
             "job_type": self.select_job_type,
-            "input_file": f"{bfactor_dir}/Import/job001/particles_data.star",
+            "input_file": str(particles_data),
             "output_file": f"{bfactor_dir}/{select_job_dir}/particles.star",
             "relion_options": dict(refine_params.relion_options),
             "command": " ".join(select_command),
@@ -165,7 +166,7 @@ class RefineWrapper(zocalo.wrapper.BaseWrapper):
         ###############################################################################
         # Split the particles file
         split_job_dir = Path("Select/job003")
-        split_job_dir.mkdir(parents=True)
+        split_job_dir.mkdir(parents=True, exist_ok=True)
         split_command = [
             "relion_star_handler",
             "--i",
@@ -215,7 +216,7 @@ class RefineWrapper(zocalo.wrapper.BaseWrapper):
         ###############################################################################
         # Set up the refinement job
         refine_job_dir = Path("Refine3D/job004")
-        refine_job_dir.mkdir(parents=True)
+        refine_job_dir.mkdir(parents=True, exist_ok=True)
 
         refine_flags = {
             "dont_correct_greyscale": "--firstiter_cc",
@@ -302,7 +303,7 @@ class RefineWrapper(zocalo.wrapper.BaseWrapper):
             refine_mask_file.symlink_to(refine_params.mask_file)
         else:
             mask_job_dir = Path("Mask/job005")
-            mask_job_dir.mkdir(parents=True)
+            mask_job_dir.mkdir(parents=True, exist_ok=True)
             mask_command = [
                 "relion_mask_create",
                 "--i",
@@ -388,7 +389,8 @@ class RefineWrapper(zocalo.wrapper.BaseWrapper):
         postprocess_result = subprocess.run(
             postprocess_command, cwd=str(bfactor_dir), capture_output=True
         )
-        (postprocess_job_dir / "RELION_JOB_EXIT_SUCCESS").unlink()
+        if not job_is_rerun:
+            (postprocess_job_dir / "RELION_JOB_EXIT_SUCCESS").unlink()
 
         # Register the post-processing job with the node creator
         self.log.info(f"Sending {self.postprocess_job_type} to node creator")
@@ -465,6 +467,6 @@ class RefineWrapper(zocalo.wrapper.BaseWrapper):
         }
         self.recwrap.send_to("murfey_feedback", murfey_postprocess_params)
 
-        (postprocess_job_dir / "RELION_JOB_EXIT_SUCCESS").touch()
+        (postprocess_job_dir / "RELION_JOB_EXIT_SUCCESS").touch(exist_ok=True)
         self.log.info(f"Done refinement for {refine_params.class_particles_file}.")
         return True
