@@ -100,7 +100,7 @@ class Cryolo(JobType):
             particle_picker_info.append(
                 ParticlePickerInfo(
                     num_particles,
-                    mc_mic_name,
+                    str(self._basepath.parent / mc_mic_name),
                     str(self._basepath.parent / mc_mic_name).replace(".mrc", ".jpeg"),
                     str(first_mic.relative_to(self._basepath / jobdir))
                     .replace("_autopick", "")
