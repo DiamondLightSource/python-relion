@@ -41,7 +41,7 @@ slurm_json_template = {
         "export SINGULARITY_CACHEDIR=/tmp/tmp_$SLURM_JOB_ID\n"
         "export SINGULARITY_TMPDIR=/tmp/tmp_$SLURM_JOB_ID\n"
         "singularity exec --home /home/k8s-em "
-        "--bind /lib64,/dls,/tmp/tmp_$SLURM_JOB_ID:/tmp --nv "
+        "--bind /lib64,/dls,/dls_sw,/tmp/tmp_$SLURM_JOB_ID:/tmp --nv "
     ),
 }
 slurm_tmp_cleanup = "\nrm -rf /tmp/tmp_$SLURM_JOB_ID"
