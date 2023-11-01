@@ -74,6 +74,7 @@ def _import_output_files(
 ):
     """Import jobs save a list of all micrographs"""
     star_file = job_dir / "movies.star"
+    added_line = [str(output_file), "1"]
 
     # Read and append to the existing output file, or otherwise create one
     if not star_file.exists():
@@ -83,13 +84,11 @@ def _import_output_files(
         movies_loop = data_movies.init_loop(
             "_rln", ["MicrographMovieName", "OpticsGroup"]
         )
+        movies_loop.add_row(added_line)
+        output_cif.write_file(str(star_file), style=cif.Style.Simple)
     else:
-        output_cif = cif.read_file(str(star_file))
-        data_movies = output_cif.find_block("movies")
-        movies_loop = data_movies.find_loop("_rlnMicrographMovieName").get_loop()
-
-    movies_loop.add_row([str(output_file), "1"])
-    output_cif.write_file(str(star_file), style=cif.Style.Simple)
+        with open(star_file, "a") as output_cif:
+            output_cif.write(" ".join(added_line) + "\n")
 
 
 def _motioncorr_output_files(
@@ -101,6 +100,14 @@ def _motioncorr_output_files(
 ):
     """Motion correction saves a list of micrographs and their motion"""
     star_file = job_dir / "corrected_micrographs.star"
+    added_line = [
+        str(output_file),
+        str(output_file.with_suffix(".star")),
+        "1",
+        str(results["total_motion"]),
+        str(results["early_motion"]),
+        str(results["late_motion"]),
+    ]
 
     # Read and append to the existing output file, or otherwise create one
     if not star_file.exists():
@@ -118,22 +125,11 @@ def _motioncorr_output_files(
                 "AccumMotionLate",
             ],
         )
+        movies_loop.add_row(added_line)
+        output_cif.write_file(str(star_file), style=cif.Style.Simple)
     else:
-        output_cif = cif.read_file(str(star_file))
-        data_movies = output_cif.find_block("micrographs")
-        movies_loop = data_movies.find_loop("_rlnMicrographName").get_loop()
-
-    movies_loop.add_row(
-        [
-            str(output_file),
-            str(output_file.with_suffix(".star")),
-            "1",
-            str(results["total_motion"]),
-            str(results["early_motion"]),
-            str(results["late_motion"]),
-        ]
-    )
-    output_cif.write_file(str(star_file), style=cif.Style.Simple)
+        with open(star_file, "a") as output_cif:
+            output_cif.write(" ".join(added_line) + "\n")
 
     # Logfile is expected but will not be made
     (star_file.parent / "logfile.pdf").touch()
@@ -148,6 +144,21 @@ def _ctffind_output_files(
 ):
     """Ctf estimation saves a list of micrographs and their ctf parameters"""
     star_file = job_dir / "micrographs_ctf.star"
+
+    # Results needed in the star file are stored in a txt file with the output
+    with open(output_file.with_suffix(".txt"), "r") as f:
+        ctf_results = f.readlines()[-1].split()
+    added_line = [
+        str(input_file),
+        "1",
+        str(output_file.with_suffix(".ctf")) + ":mrc",
+        ctf_results[1],
+        ctf_results[2],
+        str(abs(float(ctf_results[1]) - float(ctf_results[2]))),
+        ctf_results[3],
+        ctf_results[5],
+        ctf_results[6],
+    ]
 
     # Read and append to the existing output file, or otherwise create one
     if not star_file.exists():
@@ -168,29 +179,11 @@ def _ctffind_output_files(
                 "CtfMaxResolution",
             ],
         )
+        movies_loop.add_row(added_line)
+        output_cif.write_file(str(star_file), style=cif.Style.Simple)
     else:
-        output_cif = cif.read_file(str(star_file))
-        data_movies = output_cif.find_block("micrographs")
-        movies_loop = data_movies.find_loop("_rlnMicrographName").get_loop()
-
-    # Results needed in the star file are stored in a txt file with the output
-    with open(output_file.with_suffix(".txt"), "r") as f:
-        ctf_results = f.readlines()[-1].split()
-
-    movies_loop.add_row(
-        [
-            str(input_file),
-            "1",
-            str(output_file.with_suffix(".ctf")) + ":mrc",
-            ctf_results[1],
-            ctf_results[2],
-            str(abs(float(ctf_results[1]) - float(ctf_results[2]))),
-            ctf_results[3],
-            ctf_results[5],
-            ctf_results[6],
-        ]
-    )
-    output_cif.write_file(str(star_file), style=cif.Style.Simple)
+        with open(star_file, "a") as output_cif:
+            output_cif.write(" ".join(added_line) + "\n")
 
     # Logfile is expected but will not be made
     (star_file.parent / "logfile.pdf").touch()
@@ -242,6 +235,14 @@ def _icebreaker_output_files(
         return
 
     # Read and append to the existing output file, or otherwise create one
+    added_line = [
+        file_to_add,
+        str(input_file.with_suffix(".star")),
+        "1",
+        str(results["total_motion"]),
+        str(results["early_motion"]),
+        str(results["late_motion"]),
+    ]
     if not star_file.exists():
         output_cif = cif.Document()
 
@@ -257,22 +258,11 @@ def _icebreaker_output_files(
                 "AccumMotionLate",
             ],
         )
+        movies_loop.add_row(added_line)
+        output_cif.write_file(str(star_file), style=cif.Style.Simple)
     else:
-        output_cif = cif.read_file(str(star_file))
-        data_movies = output_cif.find_block("micrographs")
-        movies_loop = data_movies.find_loop("_rlnMicrographName").get_loop()
-
-    movies_loop.add_row(
-        [
-            file_to_add,
-            str(input_file.with_suffix(".star")),
-            "1",
-            str(results["total_motion"]),
-            str(results["early_motion"]),
-            str(results["late_motion"]),
-        ]
-    )
-    output_cif.write_file(str(star_file), style=cif.Style.Simple)
+        with open(star_file, "a") as output_cif:
+            output_cif.write(" ".join(added_line) + "\n")
 
 
 def _cryolo_output_files(
@@ -284,6 +274,7 @@ def _cryolo_output_files(
 ):
     """Cryolo jobs save a list of micrographs and files with particle coordinates"""
     star_file = job_dir / "autopick.star"
+    added_line = [str(input_file), str(output_file)]
 
     # Read and append to the existing output file, or otherwise create one
     if not star_file.exists():
@@ -297,13 +288,11 @@ def _cryolo_output_files(
                 "MicrographCoordinates",
             ],
         )
+        movies_loop.add_row(added_line)
+        output_cif.write_file(str(star_file), style=cif.Style.Simple)
     else:
-        output_cif = cif.read_file(str(star_file))
-        data_movies = output_cif.find_block("coordinate_files")
-        movies_loop = data_movies.find_loop("_rlnMicrographName").get_loop()
-
-    movies_loop.add_row([str(input_file), str(output_file)])
-    output_cif.write_file(str(star_file), style=cif.Style.Simple)
+        with open(star_file, "a") as output_cif:
+            output_cif.write(" ".join(added_line) + "\n")
 
 
 def _extract_output_files(

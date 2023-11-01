@@ -272,7 +272,8 @@ class NodeCreator(CommonService):
         with open(job_dir / "run.out", "w") as f:
             f.write(job_info.stdout)
         with open(job_dir / "run.err", "a") as f:
-            f.write(f"{job_info.stderr}\n")
+            if job_info.stderr:
+                f.write(f"{job_info.stderr}\n")
         with open(job_dir / "note.txt", "a") as f:
             f.write(f"{job_info.command}\n")
 
