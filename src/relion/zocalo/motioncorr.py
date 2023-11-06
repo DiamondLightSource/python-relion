@@ -34,7 +34,7 @@ class MotionCorrParameters(BaseModel):
     tol: float = None
     throw: int = None
     trunc: int = None
-    fm_ref: int = 1
+    fm_ref: int = 0
     kv: int = None
     fm_int_file: str = None
     mag: Optional[dict] = None
@@ -185,21 +185,6 @@ class MotionCorr(CommonService):
             rw.transport.nack(header)
             return
 
-        # Determine the input and output files
-        if not Path(mc_params.mrc_out).parent.exists():
-            Path(mc_params.mrc_out).parent.mkdir(parents=True)
-        if mc_params.movie.endswith(".mrc"):
-            input_flag = "-InMrc"
-        elif mc_params.movie.endswith((".tif", ".tiff")):
-            input_flag = "-InTiff"
-        elif mc_params.movie.endswith(".eer"):
-            input_flag = "-InEer"
-        else:
-            self.log.error(f"No input flag found for movie {mc_params.movie}")
-            input_flag = None
-            rw.transport.nack(header)
-        command.extend([input_flag, mc_params.movie])
-
         mc_flags = {
             "mrc_out": "-OutMrc",
             "patch_size": "-Patch",
@@ -218,7 +203,6 @@ class MotionCorr(CommonService):
             "fm_ref": "-FmRef",
             "kv": "-Kv",
             "fm_dose": "-FmDose",
-            "fm_int_file": "-FmIntFile",
             "mag": "-Mag",
             "ft_bin": "-FtBin",
             "serial": "-Serial",
@@ -233,9 +217,25 @@ class MotionCorr(CommonService):
             "split_sum": "-SplitSum",
         }
 
+        # Determine the input and output files
+        if not Path(mc_params.mrc_out).parent.exists():
+            Path(mc_params.mrc_out).parent.mkdir(parents=True)
+        if mc_params.movie.endswith(".mrc"):
+            input_flag = "-InMrc"
+        elif mc_params.movie.endswith((".tif", ".tiff")):
+            input_flag = "-InTiff"
+        elif mc_params.movie.endswith(".eer"):
+            input_flag = "-InEer"
+            mc_flags["fm_int_file"] = "-FmIntFile"
+        else:
+            self.log.error(f"No input flag found for movie {mc_params.movie}")
+            input_flag = None
+            rw.transport.nack(header)
+        command.extend([input_flag, mc_params.movie])
+
         # Create the motion correction command
         for k, v in mc_params.dict().items():
-            if v and (k in mc_flags):
+            if (v is not None) and (k in mc_flags):
                 if type(v) is dict:
                     command.extend((mc_flags[k], " ".join(str(_) for _ in v.values())))
                 else:
