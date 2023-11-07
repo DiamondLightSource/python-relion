@@ -195,7 +195,7 @@ class Class2DWrapper(zocalo.wrapper.BaseWrapper):
             class2d_command, cwd=str(project_dir), capture_output=True
         )
         if not job_is_rerun:
-            (job_dir / "RELION_JOB_EXIT_SUCCESS").unlink()
+            (job_dir / "RELION_JOB_EXIT_SUCCESS").unlink(missing_ok=True)
 
         # Register the Class2D job with the node creator
         self.log.info(f"Sending {job_type} to node creator")
