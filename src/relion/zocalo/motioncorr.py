@@ -149,9 +149,6 @@ class MotionCorr(CommonService):
         for frame in range(len(x_shifts_str)):
             self.x_shift_list.append(float(x_shifts_str[frame]))
             self.y_shift_list.append(float(y_shifts_str[frame]))
-            self.each_total_motion.append(
-                hypot(float(x_shifts_str[frame]), float(y_shifts_str[frame]))
-            )
 
     def motioncor2(self, command, mrc_out):
         """Run the MotionCor2 command"""
@@ -225,7 +222,6 @@ class MotionCorr(CommonService):
             input_flag = "-InTiff"
         elif mc_params.movie.endswith(".eer"):
             input_flag = "-InEer"
-            mc_flags["fm_int_file"] = "-FmIntFile"
         else:
             self.log.error(f"No input flag found for movie {mc_params.movie}")
             input_flag = None
@@ -270,6 +266,9 @@ class MotionCorr(CommonService):
                 "in_fm_motion": "-InFmMotion",
                 "split_sum": "-SplitSum",
             }
+            if mc_params.movie.endswith(".eer"):
+                mc2_flags["fm_int_file"] = "-FmIntFile"
+
             # Add values from input parameters with flags
             for k, v in mc_params.dict().items():
                 if v and (k in mc2_flags):
