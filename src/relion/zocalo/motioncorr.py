@@ -251,7 +251,6 @@ class MotionCorr(CommonService):
                 "fm_ref": "-FmRef",
                 "kv": "-Kv",
                 "fm_dose": "-FmDose",
-                "fm_int_file": "-FmIntFile",
                 "init_dose": "-InitDose",
                 "mag": "-Mag",
                 "ft_bin": "-FtBin",
@@ -271,7 +270,7 @@ class MotionCorr(CommonService):
 
             # Add values from input parameters with flags
             for k, v in mc_params.dict().items():
-                if v and (k in mc2_flags):
+                if (v is not None) and (k in mc2_flags):
                     if type(v) is dict:
                         command.extend(
                             (mc2_flags[k], " ".join(str(_) for _ in v.values()))
