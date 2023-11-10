@@ -303,7 +303,7 @@ class MotionCorr(CommonService):
             }
             # Add values from input parameters with flags
             for param_k, param_v in mc_params.dict().items():
-                if param_v and (param_k in relion_mc_flags):
+                if (param_v is not None) and (param_k in relion_mc_flags):
                     if type(param_v) is dict:
                         for flag_k, flag_v in relion_mc_flags[param_k].items():
                             command.extend(
