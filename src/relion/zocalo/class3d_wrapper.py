@@ -455,6 +455,9 @@ class Class3DWrapper(zocalo.wrapper.BaseWrapper):
         classes_block = class_star_file.find_block("model_classes")
         classes_loop = classes_block.find_loop("_rlnReferenceImage").get_loop()
 
+        best_class = 0
+        best_class_resolution = 100
+
         for class_id in range(class3d_params.nr_classes):
             # Add an ispyb insert for each class
             class_ispyb_parameters = {
@@ -489,6 +492,9 @@ class Class3DWrapper(zocalo.wrapper.BaseWrapper):
             estimated_resolution = float(classes_loop.val(class_id, 4))
             if np.isfinite(estimated_resolution):
                 class_ispyb_parameters["estimated_resolution"] = estimated_resolution
+                if estimated_resolution < best_class_resolution:
+                    best_class = class_id + 1
+                    best_class_resolution = estimated_resolution
             else:
                 class_ispyb_parameters["estimated_resolution"] = 0.0
             fourier_completeness = float(classes_loop.val(class_id, 5))
@@ -520,6 +526,8 @@ class Class3DWrapper(zocalo.wrapper.BaseWrapper):
             "register": "done_3d_batch",
             "program_id": class3d_params.program_id,
             "session_id": class3d_params.session_id,
+            "class3d_dir": class3d_params.class3d_dir,
+            "best_class": best_class,
         }
         self.recwrap.send_to("murfey_feedback", murfey_params)
 

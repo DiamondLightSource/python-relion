@@ -17,8 +17,7 @@ logger = logging.getLogger("relion.refine.wrapper")
 
 class RefineParameters(BaseModel):
     bfactor_directory: str = Field(..., min_length=1)
-    class_particles_file: str = Field(..., min_length=1)
-    particle_batch_size: int
+    class3d_dir: str = Field(..., min_length=1)
     class_number: int
     number_of_particles: int
     pixel_size: float
@@ -86,7 +85,7 @@ class RefineWrapper(zocalo.wrapper.BaseWrapper):
             return False
 
         # Determine the directory to run in
-        project_dir = Path(refine_params.class_particles_file).parent.parent.parent
+        project_dir = Path(refine_params.class3d_dir).parent.parent
         bfactor_dir = Path(refine_params.bfactor_directory)
         (bfactor_dir / "Import/job001").mkdir(parents=True, exist_ok=True)
         os.chdir(bfactor_dir)
@@ -94,12 +93,15 @@ class RefineWrapper(zocalo.wrapper.BaseWrapper):
         # Link the required files
         particles_data = bfactor_dir / "Import/job001/particles_data.star"
         particles_data.unlink(missing_ok=True)
-        particles_data.symlink_to(refine_params.class_particles_file)
+        particles_data.symlink_to(
+            Path(refine_params.class3d_dir)
+            / f"run_it{refine_params.nr_iter_3d:03}_data.star"
+        )
 
         class_reference = bfactor_dir / "Import/job001/refinement_ref.mrc"
         class_reference.unlink(missing_ok=True)
         class_reference.symlink_to(
-            Path(refine_params.class_particles_file).parent
+            Path(refine_params.class3d_dir)
             / f"run_it{refine_params.nr_iter_3d:03}_class{refine_params.class_number:03}.mrc"
         )
 
@@ -167,6 +169,11 @@ class RefineWrapper(zocalo.wrapper.BaseWrapper):
                 + select_result.stderr.decode("utf8", "replace")
             )
             return False
+
+        # Find the number of particles in the class
+        particle_batch_size = select_result.stdout.decode("utf8", "replace").split(" ")[
+            3
+        ]
 
         ###############################################################################
         # Split the particles file
@@ -447,7 +454,7 @@ class RefineWrapper(zocalo.wrapper.BaseWrapper):
         ###############################################################################
         # Send refinement job information to ispyb
         ispyb_parameters = []
-        if refine_params.number_of_particles == refine_params.particle_batch_size:
+        if refine_params.number_of_particles == particle_batch_size:
             # Construct a bfactor group in the classification group table
             refined_grp_ispyb_parameters = {
                 "ispyb_command": "buffer",
@@ -490,10 +497,7 @@ class RefineWrapper(zocalo.wrapper.BaseWrapper):
                 "rotation_accuracy": classes_loop.val(1, 2),
                 "translation_accuracy": classes_loop.val(1, 3),
                 "estimated_resolution": final_resolution,
-                "selected": (
-                    refine_params.number_of_particles
-                    == refine_params.particle_batch_size
-                ),
+                "selected": (refine_params.number_of_particles == particle_batch_size),
             }
             if job_is_rerun:
                 refined_ispyb_parameters["buffer_lookup"].update(
@@ -529,7 +533,7 @@ class RefineWrapper(zocalo.wrapper.BaseWrapper):
             "buffer_command": {"ispyb_command": "insert_bfactor_fit"},
             "resolution": final_resolution,
             "number_of_particles": refine_params.number_of_particles,
-            "particle_batch_size": refine_params.particle_batch_size,
+            "particle_batch_size": particle_batch_size,
         }
         ispyb_parameters.append(bfactor_ispyb_parameters)
 
@@ -540,9 +544,16 @@ class RefineWrapper(zocalo.wrapper.BaseWrapper):
             "register": "done_refinement",
             "program_id": refine_params.program_id,
             "session_id": refine_params.session_id,
+            "resolution": final_resolution,
+            "number_of_particles": refine_params.number_of_particles,
+            "refined_class_uuid": refine_params.refined_class_uuid,
         }
         self.recwrap.send_to("murfey_feedback", murfey_postprocess_params)
 
         (postprocess_job_dir / "RELION_JOB_EXIT_SUCCESS").touch(exist_ok=True)
-        self.log.info(f"Done refinement for {refine_params.class_particles_file}.")
+        self.log.info(
+            f"Done refinement for {refine_params.class3d_dir} "
+            f"class {refine_params.class_number} "
+            f"with {refine_params.number_of_particles} particles."
+        )
         return True
