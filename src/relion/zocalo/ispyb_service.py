@@ -942,6 +942,9 @@ class EMISPyB(CommonService):
                 ),
                 classDistribution=full_parameters("class_distribution"),
                 selected=full_parameters("selected"),
+                bFactorFitIntercept=full_parameters("bfactor_fit_intercept"),
+                bFactorFitLinear=full_parameters("bfactor_fit_linear"),
+                bFactorFitQuadratic=full_parameters("bfactor_fit_quadratic"),
             )
             particle_classification = (
                 session.query(models.ParticleClassification)
@@ -1084,6 +1087,57 @@ class EMISPyB(CommonService):
         except ispyb.ISPyBException as e:
             self.log.error(
                 "Inserting CryoEM Initial Model entry caused exception '%s'.",
+                e,
+                exc_info=True,
+            )
+            return False
+
+    def do_insert_bfactor_fit(self, parameters, session, message=None, **kwargs):
+        if message is None:
+            message = {}
+        dcid = parameters("dcid")
+
+        def full_parameters(param):
+            return message.get(param) or parameters(param)
+
+        self.log.info(f"Inserting bfactor calculation parameters. DCID: {dcid}")
+        try:
+            values = models.BFactorFit(
+                bFactorFitId=full_parameters("bfactor_id"),
+                particleClassificationId=full_parameters("particle_classification_id"),
+                resolution=full_parameters("resolution"),
+                numberOfParticles=full_parameters("particle_count"),
+                particleBatchSize=full_parameters("particle_batch_size"),
+            )
+            bfactor = (
+                session.query(models.BFactorFit)
+                .filter(models.BFactorFit.bFactorFitId == values.bFactorFitId)
+                .first()
+            )
+            if bfactor:
+                session.query(models.BFactorFit).filter(
+                    models.BFactorFit.bFactorFitId == values.bFactorFitId,
+                ).update(
+                    {
+                        k: v
+                        for k, v in values.__dict__.items()
+                        if k not in ["_sa_instance_state", "bFactorFitId"]
+                        and v is not None
+                    }
+                )
+            else:
+                session.add(values)
+            session.commit()
+            self.log.info(
+                f"Created bfactor record {values.bFactorFitId} for DCID {dcid}"
+            )
+            return {
+                "success": True,
+                "return_value": values.bFactorFitId,
+            }
+        except sqlalchemy.exc.SQLAlchemyError as e:
+            self.log.error(
+                "Inserting bfactor entry caused exception '%s'.",
                 e,
                 exc_info=True,
             )

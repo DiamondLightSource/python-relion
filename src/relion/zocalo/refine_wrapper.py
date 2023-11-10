@@ -18,9 +18,9 @@ logger = logging.getLogger("relion.refine.wrapper")
 class RefineParameters(BaseModel):
     bfactor_directory: str = Field(..., min_length=1)
     class_particles_file: str = Field(..., min_length=1)
-    total_particles: int
+    particle_batch_size: int
     class_number: int
-    particle_count: int
+    number_of_particles: int
     pixel_size: float
     mask_file: str = None
     nr_iter_3d: int = 20
@@ -183,7 +183,7 @@ class RefineWrapper(zocalo.wrapper.BaseWrapper):
             "--nr_split",
             "1",
             "--split_size",
-            str(refine_params.particle_count),
+            str(refine_params.number_of_particles),
             "--pipeline_control",
             f"{split_job_dir}/",
         ]
@@ -193,7 +193,7 @@ class RefineWrapper(zocalo.wrapper.BaseWrapper):
 
         # Register the Selection job with the node creator
         self.log.info(f"Sending {self.split_job_type} to node creator")
-        refine_params.relion_options.batch_size = refine_params.particle_count
+        refine_params.relion_options.batch_size = refine_params.number_of_particles
         node_creator_parameters = {
             "job_type": self.split_job_type,
             "input_file": f"{bfactor_dir}/{select_job_dir}/particles.star",
@@ -438,15 +438,17 @@ class RefineWrapper(zocalo.wrapper.BaseWrapper):
 
         self.log.info(
             f"Final results: bfactor {final_bfactor} and resolution {final_resolution} "
-            f"for {refine_params.particle_count} particles."
+            f"for {refine_params.number_of_particles} particles."
         )
         if not final_bfactor or not final_resolution:
             self.log.error(f"Unable to read bfactor and resolution for {bfactor_dir}")
             return False
 
-        # Send classification job information to ispyb
+        ###############################################################################
+        # Send refinement job information to ispyb
         ispyb_parameters = []
-        if refine_params.particle_count == refine_params.total_particles:
+        if refine_params.number_of_particles == refine_params.particle_batch_size:
+            # Construct a bfactor group in the classification group table
             refined_grp_ispyb_parameters = {
                 "ispyb_command": "buffer",
                 "buffer_command": {
@@ -454,7 +456,7 @@ class RefineWrapper(zocalo.wrapper.BaseWrapper):
                 },
                 "type": "refine",
                 "batch_number": "1",
-                "number_of_particles_per_batch": refine_params.particle_count,
+                "number_of_particles_per_batch": refine_params.number_of_particles,
                 "number_of_classes_per_batch": "1",
                 "symmetry": refine_params.symmetry,
                 "particle_picker_id": refine_params.picker_id,
@@ -483,13 +485,14 @@ class RefineWrapper(zocalo.wrapper.BaseWrapper):
                 "buffer_command": {"ispyb_command": "insert_particle_classification"},
                 "class_number": refine_params.class_number,
                 "class_image_full_path": f"{bfactor_dir}/{postprocess_job_dir}/postprocess.mrc",
-                "particles_per_class": refine_params.particle_count,
+                "particles_per_class": refine_params.number_of_particles,
                 "class_distribution": 1,
                 "rotation_accuracy": classes_loop.val(1, 2),
                 "translation_accuracy": classes_loop.val(1, 3),
                 "estimated_resolution": final_resolution,
                 "selected": (
-                    refine_params.particle_count == refine_params.total_particles
+                    refine_params.number_of_particles
+                    == refine_params.particle_batch_size
                 ),
             }
             if job_is_rerun:
@@ -516,8 +519,6 @@ class RefineWrapper(zocalo.wrapper.BaseWrapper):
                 ] = fourier_completeness
             else:
                 refined_ispyb_parameters["overall_fourier_completeness"] = 0.0
-
-            # Add the ispyb command to the command list
             ispyb_parameters.append(refined_ispyb_parameters)
 
         bfactor_ispyb_parameters = {
@@ -525,10 +526,10 @@ class RefineWrapper(zocalo.wrapper.BaseWrapper):
             "buffer_lookup": {
                 "particle_classification_id": refine_params.refined_class_uuid
             },
-            "buffer_command": {"ispyb_command": "insert_bfactor"},
-            "particle_count": refine_params.particle_count,
-            "total_particles": refine_params.total_particles,
+            "buffer_command": {"ispyb_command": "insert_bfactor_fit"},
             "resolution": final_resolution,
+            "number_of_particles": refine_params.number_of_particles,
+            "particle_batch_size": refine_params.particle_batch_size,
         }
         ispyb_parameters.append(bfactor_ispyb_parameters)
 
