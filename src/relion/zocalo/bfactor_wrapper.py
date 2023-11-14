@@ -143,7 +143,7 @@ class BFactorWrapper(zocalo.wrapper.BaseWrapper):
         refine_result, node_creator_refine = run_refine3d(
             working_dir=bfactor_dir,
             refine_job_dir=bfactor_dir / refine_job_dir,
-            particles_file=f"{split_job_dir}/particles_split1.star",
+            particles_file=bfactor_dir / split_job_dir / "particles_split1.star",
             class_reference=class_reference,
             refine_params=refine_params,
         )
@@ -168,7 +168,7 @@ class BFactorWrapper(zocalo.wrapper.BaseWrapper):
 
         postprocess_result, node_creator_postprocess = run_postprocessing(
             working_dir=bfactor_dir,
-            postprocess_job_dir=f"{bfactor_dir}/{postprocess_job_dir}",
+            postprocess_job_dir=bfactor_dir / postprocess_job_dir,
             refine_job_dir=bfactor_dir / refine_job_dir,
             mask_file=refine_mask_file,
             refine_params=refine_params,

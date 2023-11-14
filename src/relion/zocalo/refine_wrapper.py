@@ -369,7 +369,13 @@ class RefineWrapper(zocalo.wrapper.BaseWrapper):
         }
         ispyb_parameters.append(bfactor_ispyb_parameters)
 
-        self.recwrap.send_to("ispyb_connector", ispyb_parameters)
+        self.recwrap.send_to(
+            "ispyb_connector",
+            {
+                "ispyb_command": "multipart_message",
+                "ispyb_command_list": ispyb_parameters,
+            },
+        )
 
         # Tell Murfey the refinement has finished
         murfey_postprocess_params = {
