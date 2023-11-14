@@ -79,6 +79,11 @@ class BFactorWrapper(zocalo.wrapper.BaseWrapper):
         refine_mask_file.unlink(missing_ok=True)
         refine_mask_file.symlink_to(refine_params.mask_file)
 
+        self.log.info(
+            f"Running bfactor calculation for {refine_params.class_reference} "
+            f"with {refine_params.number_of_particles} particles"
+        )
+
         ###############################################################################
         # Split the particles file
         split_job_dir = Path("Select/job002")
@@ -93,7 +98,7 @@ class BFactorWrapper(zocalo.wrapper.BaseWrapper):
             "--random_order",
             "--nr_split",
             "1",
-            "--split_size",
+            "--size_split",
             str(refine_params.number_of_particles),
             "--pipeline_control",
             f"{split_job_dir}/",

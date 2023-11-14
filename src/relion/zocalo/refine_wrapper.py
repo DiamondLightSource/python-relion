@@ -85,6 +85,8 @@ class RefineWrapper(zocalo.wrapper.BaseWrapper):
         refine_params.relion_options.mask_diameter = refine_params.mask_diameter
         refine_params.relion_options.refine_class = refine_params.class_number
 
+        self.log.info(f"Running refinement pipeline for {class_reference}")
+
         ###############################################################################
         # Select the particles from the requested class
         select_job_dir = Path(f"Select/job{job_num_refine-1:03}")
@@ -93,8 +95,8 @@ class RefineWrapper(zocalo.wrapper.BaseWrapper):
         refine_selection_link = Path(
             project_dir / f"Select/Refine_class{refine_params.class_number}"
         )
-        if not refine_selection_link.exists():
-            refine_selection_link.symlink_to(select_job_dir)
+        if not refine_selection_link.is_symlink():
+            refine_selection_link.symlink_to(f"job{job_num_refine-1:03}")
 
         select_command = [
             "relion_star_handler",
@@ -326,8 +328,8 @@ class RefineWrapper(zocalo.wrapper.BaseWrapper):
             "class_image_full_path": f"{project_dir}/{postprocess_job_dir}/postprocess.mrc",
             "particles_per_class": number_of_particles,
             "class_distribution": 1,
-            "rotation_accuracy": classes_loop.val(1, 2),
-            "translation_accuracy": classes_loop.val(1, 3),
+            "rotation_accuracy": classes_loop.val(0, 2),
+            "translation_accuracy": classes_loop.val(0, 3),
             "estimated_resolution": final_resolution,
             "selected": "1",
         }
@@ -341,12 +343,12 @@ class RefineWrapper(zocalo.wrapper.BaseWrapper):
             refined_ispyb_parameters["buffer_store"] = refine_params.refined_class_uuid
 
         # Add the resolution and fourier completeness if they are valid numbers
-        estimated_resolution = float(classes_loop.val(1, 4))
+        estimated_resolution = float(classes_loop.val(0, 4))
         if np.isfinite(estimated_resolution):
             refined_ispyb_parameters["estimated_resolution"] = estimated_resolution
         else:
             refined_ispyb_parameters["estimated_resolution"] = 0.0
-        fourier_completeness = float(classes_loop.val(1, 5))
+        fourier_completeness = float(classes_loop.val(0, 5))
         if np.isfinite(fourier_completeness):
             refined_ispyb_parameters[
                 "overall_fourier_completeness"
