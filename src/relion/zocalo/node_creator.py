@@ -320,7 +320,8 @@ class NodeCreator(CommonService):
                 do_overwrite=True,
             )
             # Add the job commands to the process .CCPEM_pipeliner_jobinfo file
-            process.update_jobinfo_file(action="Run", command_list=relion_commands)
+            if not (job_dir / ".CCPEM_pipeliner_jobinfo").exists():
+                process.update_jobinfo_file(action="Run", command_list=relion_commands)
             # Generate the default_pipeline.star file
             project.check_process_completion()
             # Copy the default_pipeline.star file
