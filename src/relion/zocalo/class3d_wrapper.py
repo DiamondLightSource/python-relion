@@ -526,6 +526,7 @@ class Class3DWrapper(zocalo.wrapper.BaseWrapper):
             "register": "done_3d_batch",
             "program_id": class3d_params.program_id,
             "session_id": class3d_params.session_id,
+            "refine_dir": f"{project_dir}/Refine3D/job",
             "class3d_dir": class3d_params.class3d_dir,
             "best_class": best_class,
         }

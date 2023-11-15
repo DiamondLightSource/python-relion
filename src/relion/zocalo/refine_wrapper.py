@@ -382,8 +382,9 @@ class RefineWrapper(zocalo.wrapper.BaseWrapper):
         # Tell Murfey the refinement has finished
         murfey_postprocess_params = {
             "register": "done_refinement",
+            "project_dir": str(project_dir),
             "resolution": final_resolution,
-            "number_of_particles": number_of_particles,
+            "batch_size": number_of_particles,
             "refined_class_uuid": refine_params.refined_class_uuid,
             "class_reference": str(class_reference),
             "class_number": refine_params.class_number,

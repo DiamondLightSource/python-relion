@@ -215,7 +215,7 @@ class BFactorWrapper(zocalo.wrapper.BaseWrapper):
             },
             "buffer_command": {"ispyb_command": "insert_bfactor_fit"},
             "resolution": final_resolution,
-            "number_of_particles": refine_params.number_of_particles,
+            "bfactor_directory": refine_params.bfactor_directory,
             "particle_batch_size": refine_params.batch_size,
         }
         self.recwrap.send_to("ispyb_connector", ispyb_parameters)
