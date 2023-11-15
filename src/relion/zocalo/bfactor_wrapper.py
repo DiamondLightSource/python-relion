@@ -23,9 +23,7 @@ class BFactorParameters(CommonRefineParameters):
     class_number: int
     number_of_particles: int
     batch_size: int
-    pixel_size: float
     mask_file: str
-    mask_diameter: float
     refined_class_uuid: int
 
 
@@ -140,8 +138,8 @@ class BFactorWrapper(zocalo.wrapper.BaseWrapper):
         refine_job_dir.mkdir(parents=True, exist_ok=True)
 
         # Run Refine3D and confirm it ran successfully
+        self.log.info(f"Running {self.refine_job_type} in {refine_job_dir}")
         refine_result, node_creator_refine = run_refine3d(
-            working_dir=bfactor_dir,
             refine_job_dir=bfactor_dir / refine_job_dir,
             particles_file=bfactor_dir / split_job_dir / "particles_split1.star",
             class_reference=class_reference,
@@ -166,8 +164,8 @@ class BFactorWrapper(zocalo.wrapper.BaseWrapper):
         postprocess_job_dir = Path("PostProcess/job004")
         postprocess_job_dir.mkdir(parents=True, exist_ok=True)
 
+        self.log.info(f"Running {self.postprocess_job_type} in {postprocess_job_dir}")
         postprocess_result, node_creator_postprocess = run_postprocessing(
-            working_dir=bfactor_dir,
             postprocess_job_dir=bfactor_dir / postprocess_job_dir,
             refine_job_dir=bfactor_dir / refine_job_dir,
             mask_file=refine_mask_file,

@@ -24,8 +24,6 @@ class RefineParameters(CommonRefineParameters):
     refine_job_dir: str = Field(..., min_length=1)
     class3d_dir: str = Field(..., min_length=1)
     class_number: int
-    pixel_size: float
-    mask_diameter: float
     nr_iter_3d: int = 20
     mask_lowpass: float = 15
     mask_threshold: float = 0.02
@@ -153,10 +151,12 @@ class RefineWrapper(zocalo.wrapper.BaseWrapper):
         Path(refine_params.refine_job_dir).mkdir(parents=True, exist_ok=True)
 
         # Run Refine3D and confirm it ran successfully
+        self.log.info(
+            f"Running {self.refine_job_type} in {refine_params.refine_job_dir}"
+        )
         refine_result, node_creator_refine = run_refine3d(
-            working_dir=project_dir,
-            refine_job_dir=refine_params.refine_job_dir,
-            particles_file=f"{project_dir}/{select_job_dir}/particles.star",
+            refine_job_dir=Path(refine_params.refine_job_dir),
+            particles_file=project_dir / select_job_dir / "particles.star",
             class_reference=class_reference,
             refine_params=refine_params,
         )
@@ -178,6 +178,8 @@ class RefineWrapper(zocalo.wrapper.BaseWrapper):
         # Do the mask creation
         mask_job_dir = Path(f"Mask/job{job_num_refine:03}")
         mask_job_dir.mkdir(parents=True, exist_ok=True)
+
+        self.log.info(f"Running {self.mask_job_type} in {mask_job_dir}")
         mask_command = [
             "relion_mask_create",
             "--i",
@@ -240,11 +242,11 @@ class RefineWrapper(zocalo.wrapper.BaseWrapper):
             postprocess_job_dir.mkdir(parents=True, exist_ok=True)
 
         # Do the post-processsing
+        self.log.info(f"Running {self.postprocess_job_type} in {postprocess_job_dir}")
         postprocess_result, node_creator_postprocess = run_postprocessing(
-            working_dir=project_dir,
-            postprocess_job_dir=f"{project_dir}/{postprocess_job_dir}",
-            refine_job_dir=refine_params.refine_job_dir,
-            mask_file=f"{project_dir}/{mask_job_dir}/mask.mrc",
+            postprocess_job_dir=project_dir / postprocess_job_dir,
+            refine_job_dir=Path(refine_params.refine_job_dir),
+            mask_file=project_dir / mask_job_dir / "mask.mrc",
             refine_params=refine_params,
         )
         if not job_is_rerun:

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import subprocess
+from pathlib import Path
 
 from pydantic import BaseModel
 
@@ -11,6 +12,8 @@ postprocess_job_type = "relion.postprocess"
 
 
 class CommonRefineParameters(BaseModel):
+    pixel_size: float
+    mask_diameter: float
     mpi_run_command: str = "srun -n 5"
     dont_correct_greyscale: bool = True
     ini_high: float = 60.0
@@ -37,13 +40,18 @@ class CommonRefineParameters(BaseModel):
 
 
 def run_refine3d(
-    working_dir,
-    refine_job_dir,
-    particles_file,
-    class_reference,
-    refine_params,
+    refine_job_dir: Path,
+    particles_file: Path,
+    class_reference: Path,
+    refine_params: CommonRefineParameters,
 ):
-    """Run 3D refinement jobs"""
+    """Run a 3D Relion refinement job
+    Parameters:
+        refine_job_dir: Directory in which to run the job
+        particles_file: Input particles star file to refine
+        class_reference: Reference class mrc to use
+        refine_params: Job parameters to send to Relion
+    """
     refine_command = refine_params.mpi_run_command.split()
     refine_command.extend(
         [
@@ -93,9 +101,7 @@ def run_refine3d(
     refine_command.extend(("--pipeline_control", f"{refine_job_dir}/"))
 
     # Run Refine3D and confirm it ran successfully
-    refine_result = subprocess.run(
-        refine_command, cwd=str(working_dir), capture_output=True
-    )
+    refine_result = subprocess.run(refine_command, capture_output=True)
 
     # Register the Refine3D job with the node creator
     node_creator_parameters = {
@@ -116,13 +122,18 @@ def run_refine3d(
 
 
 def run_postprocessing(
-    working_dir,
-    postprocess_job_dir,
-    refine_job_dir,
-    mask_file,
-    refine_params,
+    postprocess_job_dir: Path,
+    refine_job_dir: Path,
+    mask_file: Path,
+    refine_params: CommonRefineParameters,
 ):
-    """Run postprocessing on a refinement job"""
+    """Run Relion postprocessing on a refinement job
+    Parameters:
+        postprocess_job_dir: Directory in which to run the job
+        refine_job_dir: Directory of the refinement job to run postprocessing on
+        mask_file: Mask mrc file to apply
+        refine_params: Job parameters to send to Relion
+    """
     postprocess_command = [
         "relion_postprocess",
         "--i",
@@ -139,9 +150,7 @@ def run_postprocessing(
         "--pipeline_control",
         f"{postprocess_job_dir}/",
     ]
-    postprocess_result = subprocess.run(
-        postprocess_command, cwd=str(working_dir), capture_output=True
-    )
+    postprocess_result = subprocess.run(postprocess_command, capture_output=True)
 
     # Register the post-processing job with the node creator
     node_creator_parameters = {
