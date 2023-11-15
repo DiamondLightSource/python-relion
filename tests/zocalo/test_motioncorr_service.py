@@ -342,7 +342,7 @@ def test_motioncor_relion_service_spa(
             "pix_size": 0.1,
             "autopick": {"autopick": "autopick"},
             "ctf": {"ctf": "ctf"},
-            "movie": f"{tmp_path}/Movies/sample.tiff",
+            "movie": f"{tmp_path}/Movies/sample.eer",
             "mrc_out": f"{tmp_path}/MotionCorr/job002/Movies/sample.mrc",
             "patch_size": {"x": 5, "y": 5},
             "gpu": 0,
@@ -364,7 +364,7 @@ def test_motioncor_relion_service_spa(
             "fm_dose": 1,
             "init_dose": 1,
             "use_motioncor2": False,
-            "fm_int_file": "fm_int_file",
+            "fm_int_file": f"{tmp_path}/fm_int_file.txt",
             "mag": {"mag1": "mag1", "mag2": "mag2"},
             "ft_bin": 1.1,
             "serial": 1,
@@ -390,6 +390,10 @@ def test_motioncor_relion_service_spa(
     output_relion_options.update(
         motioncorr_test_message["parameters"]["relion_options"]
     )
+
+    # Write sample eer frame file
+    with open(f"{tmp_path}/fm_int_file.txt", "w") as fm_int_file:
+        fm_int_file.write("100 10 1\n")
 
     # Set up the mock service
     service = motioncorr.MotionCorr(environment=mock_environment)
@@ -435,12 +439,14 @@ def test_motioncor_relion_service_spa(
         "300",
         "--preexposure",
         "1.0",
-        "--eer_grouping",
+        "--eer_upsampling",
         "1",
         "--bfactor",
         "150",
         "--defect_file",
         "file",
+        "--eer_grouping",
+        "10",
         "--dose_weighting",
         "--i",
         "dummy",
@@ -539,7 +545,7 @@ def test_motioncor_relion_service_spa(
             "parameters": {
                 "job_type": "relion.import.movies",
                 "input_file": motioncorr_test_message["parameters"]["movie"],
-                "output_file": f"{tmp_path}/Import/job001/Movies/sample.tiff",
+                "output_file": f"{tmp_path}/Import/job001/Movies/sample.eer",
                 "relion_options": output_relion_options,
                 "command": "",
                 "stdout": "",
@@ -553,7 +559,7 @@ def test_motioncor_relion_service_spa(
         message={
             "parameters": {
                 "job_type": "relion.motioncorr.own",
-                "input_file": f"{tmp_path}/Import/job001/Movies/sample.tiff",
+                "input_file": f"{tmp_path}/Import/job001/Movies/sample.eer",
                 "output_file": motioncorr_test_message["parameters"]["mrc_out"],
                 "relion_options": output_relion_options,
                 "command": " ".join(mc_command),

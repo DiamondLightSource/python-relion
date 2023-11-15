@@ -296,7 +296,7 @@ class MotionCorr(CommonService):
                 "defect_file": "--defect_file",
                 "rot_gain": "--gain_rot",
                 "flip_gain": "--gain_flip",
-                "eer_sampling": "--eer_grouping",
+                "eer_sampling": "--eer_upsampling",
                 "init_dose": "--preexposure",
                 "patch_size": {"--patch_x": "x", "--patch_y": "y"},
                 "bft": {"--bfactor": "local_motion"},
@@ -311,6 +311,17 @@ class MotionCorr(CommonService):
                             )
                     else:
                         command.extend((relion_mc_flags[param_k], str(param_v)))
+
+            # Read eer grouping from file
+            if (
+                mc_params.movie.endswith(".eer")
+                and mc_params.fm_int_file
+                and Path(mc_params.fm_int_file).is_file()
+            ):
+                with open(mc_params.fm_int_file, "r") as fm_int_file:
+                    eer_params = fm_int_file.read()
+                command.extend(("--eer_grouping", eer_params.split(" ")[1]))
+
             # Add some standard flags
             command.extend(("--dose_weighting", "--i", "dummy"))
             # Run Relion motion correction
