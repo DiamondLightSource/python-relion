@@ -176,7 +176,7 @@ class RefineWrapper(zocalo.wrapper.BaseWrapper):
 
         ###############################################################################
         # Do the mask creation
-        mask_job_dir = Path(f"Mask/job{job_num_refine:03}")
+        mask_job_dir = Path(f"Mask/job{job_num_refine + 1:03}")
         mask_job_dir.mkdir(parents=True, exist_ok=True)
 
         self.log.info(f"Running {self.mask_job_type} in {mask_job_dir}")
