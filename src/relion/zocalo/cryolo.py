@@ -27,8 +27,6 @@ class CryoloParameters(BaseModel):
     particle_diameter: float = None
     mc_uuid: int
     picker_uuid: int
-    program_id: int
-    session_id: int
     relion_options: RelionServiceOptions
     ctf_values: dict = {}
 
@@ -362,8 +360,6 @@ class CrYOLO(CommonService):
                     "micrograph": cryolo_params.input_path,
                     "particle_diameters": list(cryolo_particle_sizes),
                     "extraction_parameters": extraction_params,
-                    "program_id": cryolo_params.program_id,
-                    "session_id": cryolo_params.session_id,
                 },
             )
         else:
@@ -375,8 +371,6 @@ class CrYOLO(CommonService):
                     "micrograph": cryolo_params.input_path,
                     "particle_diameters": list(cryolo_particle_sizes),
                     "extraction_parameters": extraction_params,
-                    "program_id": cryolo_params.program_id,
-                    "session_id": cryolo_params.session_id,
                 },
             )
 

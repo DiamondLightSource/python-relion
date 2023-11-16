@@ -65,8 +65,6 @@ class Class3DParameters(BaseModel):
     picker_id: int
     class3d_grp_uuid: int
     class_uuids: str
-    program_id: int
-    session_id: int
     relion_options: RelionServiceOptions
 
 
@@ -225,8 +223,6 @@ class Class3DWrapper(zocalo.wrapper.BaseWrapper):
         murfey_params = {
             "register": "save_initial_model",
             "initial_model": f"{job_dir}/initial_model.mrc",
-            "program_id": initial_model_params.program_id,
-            "session_id": initial_model_params.session_id,
         }
         self.recwrap.send_to("murfey_feedback", murfey_params)
 
@@ -518,8 +514,6 @@ class Class3DWrapper(zocalo.wrapper.BaseWrapper):
         # Tell Murfey the batch has finished
         murfey_params = {
             "register": "done_3d_batch",
-            "program_id": class3d_params.program_id,
-            "session_id": class3d_params.session_id,
         }
         self.recwrap.send_to("murfey_feedback", murfey_params)
 

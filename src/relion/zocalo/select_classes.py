@@ -28,8 +28,6 @@ class SelectClassesParameters(BaseModel):
     min_particles: int = 500
     class3d_batch_size: int = 50000
     class3d_max_size: int = 200000
-    program_id: int
-    session_id: int
     class_uuids: str
     relion_options: RelionServiceOptions
 
@@ -192,8 +190,6 @@ class SelectClasses(CommonService):
             murfey_params = {
                 "register": "save_class_selection_score",
                 "class_selection_score": quantile_threshold,
-                "program_id": autoselect_params.program_id,
-                "session_id": autoselect_params.session_id,
             }
             if isinstance(rw, MockRW):
                 rw.transport.send(destination="murfey_feedback", message=murfey_params)
@@ -490,8 +486,6 @@ class SelectClasses(CommonService):
             murfey_3d_params = {
                 "register": "run_class3d",
                 "class3d_message": class3d_params,
-                "program_id": autoselect_params.program_id,
-                "session_id": autoselect_params.session_id,
             }
             if isinstance(rw, MockRW):
                 rw.transport.send("murfey_feedback", murfey_3d_params)
@@ -500,8 +494,6 @@ class SelectClasses(CommonService):
 
         murfey_confirmation = {
             "register": "done_class_selection",
-            "program_id": autoselect_params.program_id,
-            "session_id": autoselect_params.session_id,
         }
         if isinstance(rw, MockRW):
             rw.transport.send(

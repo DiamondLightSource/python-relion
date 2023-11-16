@@ -51,8 +51,6 @@ class Class2DParameters(BaseModel):
     mpi_run_command: str = "srun -n 5"
     threads: int = 8
     gpus: str = "0:1:2:3"
-    program_id: int
-    session_id: int
     relion_options: RelionServiceOptions
     combine_star_job_number: int
     picker_id: int
@@ -368,8 +366,6 @@ class Class2DWrapper(zocalo.wrapper.BaseWrapper):
             murfey_params = {
                 "register": "done_incomplete_2d_batch",
                 "job_dir": class2d_params.class2d_dir,
-                "program_id": class2d_params.program_id,
-                "session_id": class2d_params.session_id,
             }
             self.recwrap.send_to("murfey_feedback", murfey_params)
 

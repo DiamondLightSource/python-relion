@@ -17,8 +17,6 @@ class SelectParticlesParameters(BaseModel):
     batch_size: int
     image_size: int
     incomplete_batch_size: int = 10000
-    program_id: int
-    session_id: int
     relion_options: RelionServiceOptions
 
 
@@ -262,8 +260,6 @@ class SelectParticles(CommonService):
                 murfey_params = {
                     "register": "incomplete_particles_file",
                     "class2d_message": class2d_params,
-                    "program_id": select_params.program_id,
-                    "session_id": select_params.session_id,
                 }
                 if isinstance(rw, MockRW):
                     rw.transport.send("murfey_feedback", murfey_params)
@@ -284,8 +280,6 @@ class SelectParticles(CommonService):
                 murfey_params = {
                     "register": "complete_particles_file",
                     "class2d_message": class2d_params,
-                    "program_id": select_params.program_id,
-                    "session_id": select_params.session_id,
                 }
                 if isinstance(rw, MockRW):
                     rw.transport.send(
@@ -296,8 +290,6 @@ class SelectParticles(CommonService):
 
         murfey_confirmation = {
             "register": "done_particle_selection",
-            "program_id": select_params.program_id,
-            "session_id": select_params.session_id,
         }
         if isinstance(rw, MockRW):
             rw.transport.send(
