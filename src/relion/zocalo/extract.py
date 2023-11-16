@@ -33,6 +33,7 @@ class ExtractParameters(BaseModel):
     downscale: bool = False
     invert_contrast: bool = True
     confidence_threshold: float = 0
+    voltage: int = 300
     relion_options: RelionServiceOptions
 
 
@@ -116,7 +117,13 @@ class Extract(CommonService):
             f"Output: {extract_params.output_file}"
         )
 
-        # Update the relion options to get out the box sizes
+        # Update the relion options
+        extract_params.relion_options.downscale = extract_params.downscale
+        extract_params.relion_options.batch_size = extract_params.batch_size
+        extract_params.relion_options.voltage = extract_params.voltage
+        extract_params.relion_options.angpix = extract_params.pix_size
+
+        # Get out the box sizes using the relion options
         if extract_params.particle_diameter:
             extract_params.relion_options.particle_diameter = (
                 extract_params.particle_diameter
@@ -124,8 +131,6 @@ class Extract(CommonService):
         else:
             extract_params.relion_options.boxsize = extract_params.boxsize
             extract_params.relion_options.small_boxsize = extract_params.small_boxsize
-        extract_params.relion_options.downscale = extract_params.downscale
-        extract_params.relion_options.batch_size = extract_params.batch_size
 
         # Make sure the output directory exists
         job_dir = Path(re.search(".+/job[0-9]{3}/", extract_params.output_file)[0])

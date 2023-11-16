@@ -55,6 +55,7 @@ class MotionCorrParameters(BaseModel):
     in_fm_motion: int = None
     split_sum: int = None
     dose_motionstats_cutoff: float = 4.0
+    do_icebreaker_jobs: bool = True
     movie_id: int
     mc_uuid: int
     picker_uuid: int
@@ -211,6 +212,14 @@ class MotionCorr(CommonService):
             )
             rw.transport.nack(header)
             return
+
+        if mc_params.experiment_type == "spa":
+            # Update the relion options
+            mc_params.relion_options.voltage = mc_params.kv
+            mc_params.relion_options.angpix = mc_params.pix_size
+            mc_params.relion_options.dose_per_frame = mc_params.fm_dose
+            mc_params.relion_options.gain_ref = mc_params.gain_ref
+            mc_params.relion_options.do_icebreaker_jobs = mc_params.do_icebreaker_jobs
 
         # Determine the input and output files
         self.log.info(f"Input: {mc_params.movie} Output: {mc_params.mrc_out}")
@@ -423,7 +432,7 @@ class MotionCorr(CommonService):
         # If this is SPA, determine and set up the next jobs
         if mc_params.experiment_type == "spa":
             # Set up icebreaker if requested, then ctffind
-            if mc_params.relion_options.do_icebreaker_jobs:
+            if mc_params.do_icebreaker_jobs:
                 # Three IceBreaker jobs: CtfFind job is MC+4
                 ctf_job_number = 6
 
