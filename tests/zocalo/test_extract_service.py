@@ -76,11 +76,14 @@ def test_extract_service(mock_mrcfile, mock_environment, offline_transport, tmp_
             "invert_contrast": True,
             "confidence_threshold": 1,
             "batch_size": 20000,
+            "voltage": 300,
             "relion_options": {"batch_size": 20000},
         },
         "content": "dummy",
     }
     output_relion_options = RelionServiceOptions()
+    output_relion_options.voltage = extract_test_message["parameters"]["voltage"]
+    output_relion_options.angpix = extract_test_message["parameters"]["pix_size"]
     output_relion_options.particle_diameter = extract_test_message["parameters"][
         "particle_diameter"
     ]

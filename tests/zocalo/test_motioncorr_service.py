@@ -94,6 +94,7 @@ def test_motioncor2_service_spa(
             "in_fm_motion": 1,
             "split_sum": 1,
             "movie_id": 1,
+            "do_icebreaker_jobs": True,
             "relion_options": {
                 "angpix": 0.1,
                 "do_icebreaker_jobs": True,
@@ -104,6 +105,14 @@ def test_motioncor2_service_spa(
         "content": "dummy",
     }
     output_relion_options = dict(RelionServiceOptions())
+    output_relion_options["voltage"] = motioncorr_test_message["parameters"]["kv"]
+    output_relion_options["angpix"] = motioncorr_test_message["parameters"]["pix_size"]
+    output_relion_options["dose_per_frame"] = motioncorr_test_message["parameters"][
+        "fm_dose"
+    ]
+    output_relion_options["gain_ref"] = motioncorr_test_message["parameters"][
+        "gain_ref"
+    ]
     output_relion_options.update(
         motioncorr_test_message["parameters"]["relion_options"]
     )

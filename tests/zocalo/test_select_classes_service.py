@@ -84,17 +84,14 @@ def select_classes_common_setup(
             "0.015038 0.029918 1.500000 0.752250 9.628800"
         )
 
-    input_relion_options = {
-        "do_icebreaker_jobs": True,
-        "class2d_fraction_of_classes_to_remove": 0.5,
-    }
     output_relion_options = dict(RelionServiceOptions())
-    output_relion_options.update(input_relion_options)
+    output_relion_options["class2d_fraction_of_classes_to_remove"] = 0.5
 
     select_test_message = {
         "parameters": {
             "input_file": f"{job_dir}/Class2D/job010/run_it020_optimiser.star",
             "combine_star_job_number": 13,
+            "class2d_fraction_of_classes_to_remove": 0.5,
             "particles_file": "particles.star",
             "classes_file": "class_averages.star",
             "python_exe": "python",
@@ -102,10 +99,8 @@ def select_classes_common_setup(
             "min_particles": 500,
             "class3d_batch_size": 50000,
             "class3d_max_size": 200000,
-            "program_id": 1,
-            "session_id": 2,
             "class_uuids": "{'1': '1', '2': '2'}",
-            "relion_options": input_relion_options,
+            "relion_options": {},
         },
         "content": "dummy",
     }
@@ -272,8 +267,6 @@ def test_select_classes_service_first_batch(
         message={
             "register": "save_class_selection_score",
             "class_selection_score": 0.006,
-            "program_id": 1,
-            "session_id": 2,
         },
     )
     offline_transport.send.assert_any_call(
@@ -285,16 +278,12 @@ def test_select_classes_service_first_batch(
                 "class3d_dir": f"{tmp_path}/Class3D/job",
                 "batch_size": 50000,
             },
-            "program_id": 1,
-            "session_id": 2,
         },
     )
     offline_transport.send.assert_any_call(
         destination="murfey_feedback",
         message={
             "register": "done_class_selection",
-            "program_id": 1,
-            "session_id": 2,
         },
     )
 
@@ -347,8 +336,6 @@ def test_select_classes_service_batch_threshold(
                 "class3d_dir": f"{tmp_path}/Class3D/job",
                 "batch_size": 100000,
             },
-            "program_id": 1,
-            "session_id": 2,
         },
     )
 
@@ -401,8 +388,6 @@ def test_select_classes_service_two_thresholds(
                 "class3d_dir": f"{tmp_path}/Class3D/job",
                 "batch_size": 100000,
             },
-            "program_id": 1,
-            "session_id": 2,
         },
     )
 
@@ -456,8 +441,6 @@ def test_select_classes_service_last_threshold(
                 "class3d_dir": f"{tmp_path}/Class3D/job",
                 "batch_size": 200000,
             },
-            "program_id": 1,
-            "session_id": 2,
         },
     )
 

@@ -75,8 +75,6 @@ def test_select_particles_service(mock_environment, offline_transport, tmp_path)
             "input_file": str(extract_file),
             "batch_size": 2,
             "image_size": 64,
-            "program_id": 1,
-            "session_id": 2,
             "relion_options": input_relion_options,
         },
         "content": "dummy",
@@ -113,16 +111,12 @@ def test_select_particles_service(mock_environment, offline_transport, tmp_path)
                 "batch_size": 2,
                 "particles_file": f"{tmp_path}/Select/job009/particles_split2.star",
             },
-            "program_id": 1,
-            "session_id": 2,
         },
     )
     offline_transport.send.assert_any_call(
         destination="murfey_feedback",
         message={
             "register": "done_particle_selection",
-            "program_id": 1,
-            "session_id": 2,
         },
     )
 
