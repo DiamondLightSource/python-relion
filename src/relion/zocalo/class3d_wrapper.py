@@ -304,7 +304,13 @@ class Class3DWrapper(zocalo.wrapper.BaseWrapper):
         self.class_uuids_dict = json.loads(class3d_params.class_uuids.replace("'", '"'))
         self.class_uuids_keys = list(self.class_uuids_dict.keys())
 
-        # Update the relion options to get out the box sizes
+        # Update the relion options
+        class3d_params.relion_options.batch_size = class3d_params.batch_size
+        class3d_params.relion_options.inimodel_nr_classes = class3d_params.nr_classes
+        class3d_params.relion_options.class3d_nr_classes = class3d_params.nr_classes
+        class3d_params.relion_options.class3d_nr_iter = class3d_params.nr_iter
+
+        # Get out the box sizes using the relion options
         if class3d_params.particle_diameter:
             class3d_params.relion_options.particle_diameter = (
                 class3d_params.particle_diameter

@@ -51,12 +51,13 @@ class Class2DParameters(BaseModel):
     mpi_run_command: str = "srun -n 5"
     threads: int = 8
     gpus: str = "0:1:2:3"
-    relion_options: RelionServiceOptions
     combine_star_job_number: int
     picker_id: int
     class2d_grp_uuid: int
     class_uuids: str
     autoselect_python: str = "python"
+    do_icebreaker_jobs: bool = True
+    relion_options: RelionServiceOptions
 
 
 class Class2DWrapper(zocalo.wrapper.BaseWrapper):
@@ -109,7 +110,15 @@ class Class2DWrapper(zocalo.wrapper.BaseWrapper):
         else:
             job_type = "relion.class2d.em"
 
-        # Update the relion options to get out the box sizes
+        # Update the relion options
+        class2d_params.relion_options.batch_size = class2d_params.batch_size
+        class2d_params.relion_options.class2d_nr_classes = class2d_params.nr_classes
+        class2d_params.relion_options.class2d_nr_iter = class2d_params.nr_iter
+        class2d_params.relion_options.do_icebreaker_jobs = (
+            class2d_params.do_icebreaker_jobs
+        )
+
+        # Get out the box sizes using the relion options
         if class2d_params.particle_diameter:
             class2d_params.relion_options.particle_diameter = (
                 class2d_params.particle_diameter
@@ -337,7 +346,7 @@ class Class2DWrapper(zocalo.wrapper.BaseWrapper):
 
         if class2d_params.batch_is_complete:
             # Create an icebreaker job
-            if class2d_params.relion_options.do_icebreaker_jobs:
+            if class2d_params.do_icebreaker_jobs:
                 self.log.info("Sending to icebreaker particle analysis")
                 icebreaker_params = {
                     "icebreaker_type": "particles",

@@ -21,6 +21,7 @@ from relion.zocalo.spa_relion_service_options import RelionServiceOptions
 class SelectClassesParameters(BaseModel):
     input_file: str = Field(..., min_length=1)
     combine_star_job_number: int
+    class2d_fraction_of_classes_to_remove: float = 0.9
     particles_file: str = "particles.star"
     classes_file: str = "class_averages.star"
     python_exe: str = "python"
@@ -126,6 +127,11 @@ class SelectClasses(CommonService):
             rw.transport.nack(header)
             return
 
+        # Update the relion options
+        autoselect_params.relion_options.class2d_fraction_of_classes_to_remove = (
+            autoselect_params.class2d_fraction_of_classes_to_remove
+        )
+
         self.log.info(f"Inputs: {autoselect_params.input_file}")
 
         class2d_job_dir = Path(
@@ -181,9 +187,7 @@ class SelectClasses(CommonService):
             class_scores = np.array(star_block.find_loop("_rlnClassScore"), dtype=float)
             quantile_threshold = np.quantile(
                 class_scores,
-                float(
-                    autoselect_params.relion_options.class2d_fraction_of_classes_to_remove
-                ),
+                float(autoselect_params.class2d_fraction_of_classes_to_remove),
             )
 
             self.log.info(f"Sending new threshold {quantile_threshold} to Murfey")
