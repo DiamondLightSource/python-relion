@@ -266,7 +266,7 @@ class NodeCreator(CommonService):
         pipeliner_job = read_job(f"{job_dir}/job.star")
         pipeliner_job.output_dir = str(job_dir.relative_to(project_dir)) + "/"
         relion_commands = [[], pipeliner_job.get_final_commands()]
-        pipeliner_job.prepare_to_run()
+        pipeliner_job.prepare_to_run(ignore_invalid_joboptions=True)
 
         # Write the log files
         with open(job_dir / "run.out", "w") as f:
