@@ -248,6 +248,15 @@ class Class2DWrapper(zocalo.wrapper.BaseWrapper):
         ispyb_parameters.append(classification_grp_ispyb_parameters)
 
         # Send individual classes to ispyb
+        if not class2d_params.batch_is_complete:
+            class_particles_file = cif.read_file(
+                f"{class2d_params.class2d_dir}/run_it{class2d_params.nr_iter:03}_data.star"
+            )
+            particles_block = class_particles_file.find_block("particles")
+            particles_in_batch = len(particles_block.find_loop("_rlnCoordinateX"))
+        else:
+            particles_in_batch = class2d_params.batch_size
+
         class_star_file = cif.read_file(
             f"{class2d_params.class2d_dir}/run_it{class2d_params.nr_iter:03}_model.star"
         )
@@ -268,7 +277,7 @@ class Class2DWrapper(zocalo.wrapper.BaseWrapper):
                     f"/run_it{class2d_params.nr_iter:03}_classes_{class_id+1}.jpeg"
                 ),
                 "particles_per_class": (
-                    float(classes_loop.val(class_id, 1)) * class2d_params.batch_size
+                    float(classes_loop.val(class_id, 1)) * particles_in_batch
                 ),
                 "class_distribution": classes_loop.val(class_id, 1),
                 "rotation_accuracy": classes_loop.val(class_id, 2),
