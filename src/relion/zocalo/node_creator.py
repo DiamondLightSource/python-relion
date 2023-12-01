@@ -215,9 +215,15 @@ class NodeCreator(CommonService):
                             ".+/job[0-9]{3}/", job_info.input_file.split(":")[ii]
                         )[0]
                     )
-                    pipeline_options[label] = (
-                        input_job_dir.relative_to(project_dir) / star
-                    )
+                    try:
+                        pipeline_options[label] = (
+                            input_job_dir.relative_to(project_dir) / star
+                        )
+                    except ValueError:
+                        self.log.warning(
+                            f"WARNING: {input_job_dir} is not relative to {project_dir}"
+                        )
+                        pipeline_options[label] = input_job_dir / star
                     ii += 1
             else:
                 pipeline_options["fn_in_raw"] = job_info.input_file
