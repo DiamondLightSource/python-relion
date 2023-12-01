@@ -53,7 +53,7 @@ class BFactorWrapper(zocalo.wrapper.BaseWrapper):
             return False
 
         # Determine the directory to run in
-        project_dir = Path(refine_params.class_reference).parent.parent.parent
+        project_dir = Path(refine_params.bfactor_directory).parent.parent
         bfactor_dir = Path(refine_params.bfactor_directory)
         (bfactor_dir / "Import/job001").mkdir(parents=True, exist_ok=True)
         os.chdir(bfactor_dir)
@@ -150,6 +150,9 @@ class BFactorWrapper(zocalo.wrapper.BaseWrapper):
         self.log.info(f"Sending {self.refine_job_type} to node creator")
         self.recwrap.send_to("node_creator", node_creator_refine)
 
+        with open(bfactor_dir / "refines.out", "a") as refine_out:
+            refine_out.write(refine_result.stdout.decode("utf8", "replace") + "\n\n")
+
         # End here if the command failed
         if refine_result.returncode:
             self.log.error(
@@ -175,6 +178,11 @@ class BFactorWrapper(zocalo.wrapper.BaseWrapper):
         # Register the post-processing job with the node creator
         self.log.info(f"Sending {self.postprocess_job_type} to node creator")
         self.recwrap.send_to("node_creator", node_creator_postprocess)
+
+        with open(bfactor_dir / "postprocess.out", "a") as postprocess_out:
+            postprocess_out.write(
+                postprocess_result.stdout.decode("utf8", "replace") + "\n\n"
+            )
 
         # End here if the command failed
         if postprocess_result.returncode:

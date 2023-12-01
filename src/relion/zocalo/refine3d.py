@@ -30,6 +30,8 @@ class CommonRefineParameters(BaseModel):
     low_resol_join_halves: int = 40
     offset_range: float = 5
     offset_step: float = 4
+    ignore_angles: bool = True
+    resol_angles: bool = True
     symmetry: str = "C1"
     do_norm: bool = True
     do_scale: bool = True
@@ -86,6 +88,8 @@ def run_refine3d(
         "low_resol_join_halves": "--low_resol_join_halves",
         "offset_range": "--offset_range",
         "offset_step": "--offset_step",
+        "ignore_angles": "--auto_ignore_angles",
+        "resol_angles": "--auto_resol_angles",
         "symmetry": "--sym",
         "do_norm": "--norm",
         "do_scale": "--scale",

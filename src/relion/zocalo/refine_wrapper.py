@@ -61,7 +61,7 @@ class RefineWrapper(zocalo.wrapper.BaseWrapper):
             return False
 
         # Determine the directory to run in
-        project_dir = Path(refine_params.class3d_dir).parent.parent
+        project_dir = Path(refine_params.refine_job_dir).parent.parent
         os.chdir(project_dir)
 
         job_num_refine = int(
@@ -176,7 +176,7 @@ class RefineWrapper(zocalo.wrapper.BaseWrapper):
 
         ###############################################################################
         # Do the mask creation
-        mask_job_dir = Path(f"Mask/job{job_num_refine + 1:03}")
+        mask_job_dir = Path(f"MaskCreate/job{job_num_refine + 1:03}")
         mask_job_dir.mkdir(parents=True, exist_ok=True)
 
         self.log.info(f"Running {self.mask_job_type} in {mask_job_dir}")
