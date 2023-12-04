@@ -304,42 +304,66 @@ class SelectClasses(CommonService):
             self.previous_total_count = 0
         combine_star_command.extend(("--output_dir", str(combine_star_dir)))
 
-        result = subprocess.run(
-            combine_star_command, cwd=str(project_dir), capture_output=True
-        )
-        self.parse_combiner_output(result.stdout.decode("utf8", "replace"))
-
-        # Send combination job to node creator
-        self.log.info("Sending combine_star_files_job (combine) to node creator")
-        combine_node_creator_params = {
-            "job_type": "combine_star_files_job",
-            "input_file": f"{select_dir}/{autoselect_params.particles_file}",
-            "output_file": f"{combine_star_dir}/particles_all.star",
-            "relion_options": dict(autoselect_params.relion_options),
-            "command": " ".join(combine_star_command),
-            "stdout": result.stdout.decode("utf8", "replace"),
-            "stderr": result.stderr.decode("utf8", "replace"),
-        }
-        if result.returncode:
-            combine_node_creator_params["success"] = False
-        else:
-            combine_node_creator_params["success"] = True
-        if isinstance(rw, MockRW):
-            rw.transport.send(
-                destination="node_creator",
-                message={"parameters": combine_node_creator_params, "content": "dummy"},
+        if not (
+            combine_star_dir / f".done_{autoselect_params.particles_file}"
+        ).is_file():
+            # Only run this if the particles file has not been added before
+            result = subprocess.run(
+                combine_star_command, cwd=str(project_dir), capture_output=True
             )
-        else:
-            rw.send_to("node_creator", combine_node_creator_params)
+            (combine_star_dir / f".done_{autoselect_params.particles_file}").touch()
+            self.parse_combiner_output(result.stdout.decode("utf8", "replace"))
 
-        # End here if the command failed
-        if result.returncode:
-            self.log.error(
-                f"Star file combination failed with exitcode {result.returncode}:\n"
-                + result.stderr.decode("utf8", "replace")
-            )
-            rw.transport.nack(header)
-            return
+            # Send combination job to node creator
+            self.log.info("Sending combine_star_files_job (combine) to node creator")
+            combine_node_creator_params = {
+                "job_type": "combine_star_files_job",
+                "input_file": f"{select_dir}/{autoselect_params.particles_file}",
+                "output_file": f"{combine_star_dir}/particles_all.star",
+                "relion_options": dict(autoselect_params.relion_options),
+                "command": " ".join(combine_star_command),
+                "stdout": result.stdout.decode("utf8", "replace"),
+                "stderr": result.stderr.decode("utf8", "replace"),
+            }
+            if result.returncode:
+                combine_node_creator_params["success"] = False
+            else:
+                combine_node_creator_params["success"] = True
+            if isinstance(rw, MockRW):
+                rw.transport.send(
+                    destination="node_creator",
+                    message={
+                        "parameters": combine_node_creator_params,
+                        "content": "dummy",
+                    },
+                )
+            else:
+                rw.send_to("node_creator", combine_node_creator_params)
+
+            # End here if the command failed
+            if result.returncode:
+                self.log.error(
+                    f"Star file combination failed with exitcode {result.returncode}:\n"
+                    + result.stderr.decode("utf8", "replace")
+                )
+                rw.transport.nack(header)
+                return
+        else:
+            # If combination isn't run the number of particles needs to be found
+            self.total_count = 0
+            self.previous_total_count = 0
+            with open(combine_star_dir / "particles_all.star", "r") as particles_file:
+                while True:
+                    particle_line = particles_file.readline()
+                    if not particle_line:
+                        break
+                    particle_split_line = particle_line.split()
+                    if (
+                        len(particle_split_line) > 0
+                        and particle_split_line[0][0].isdigit()
+                    ):
+                        self.total_count += 1
+                        self.previous_total_count += 1
 
         # Determine the next split size to use and whether to run 3D classification
         send_to_3d_classification = False
@@ -463,6 +487,11 @@ class SelectClasses(CommonService):
             )
         else:
             rw.send_to("murfey_feedback", murfey_confirmation)
+
+        # Remove the temporary hold file
+        (combine_star_dir / f".done_{autoselect_params.particles_file}").unlink(
+            missing_ok=True
+        )
 
         self.log.info(f"Done {self.job_type} for {autoselect_params.input_file}.")
         rw.transport.ack(header)
