@@ -38,10 +38,9 @@ def combine_star_files(files_to_process: List[Path], output_dir: Path):
 
     # Make a temporary star file to get the table headings from
     reference_optics = None
-    with (
-        open(files_to_process[0], "r") as full_starfile,
-        open(output_dir / ".particles_tmp.star", "w") as tmp_starfile,
-    ):
+    with open(files_to_process[0], "r") as full_starfile, open(
+        output_dir / ".particles_tmp.star", "w"
+    ) as tmp_starfile:
         for line_counter in range(50):
             line = full_starfile.readline()
             if line.startswith("opticsGroup"):
