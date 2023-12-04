@@ -92,10 +92,9 @@ def combine_star_files(files_to_process: List[Path], output_dir: Path):
 
         # Add the particles lines to the final star file
         file_particles_count = 0
-        with (
-            open(split_file, "r") as added_starfile,
-            open(output_dir / ".particles_all_tmp.star", "a") as particles_file,
-        ):
+        with open(split_file, "r") as added_starfile, open(
+            output_dir / ".particles_all_tmp.star", "a"
+        ) as particles_file:
             while True:
                 particle_line = added_starfile.readline()
                 if not particle_line:
@@ -129,10 +128,9 @@ def split_star_file(
     """
 
     # Make a temporary star file to get the table headings from
-    with (
-        open(file_to_process, "r") as full_starfile,
-        open(output_dir / ".particles_tmp.star", "w") as tmp_starfile,
-    ):
+    with open(file_to_process, "r") as full_starfile, open(
+        output_dir / ".particles_tmp.star", "w"
+    ) as tmp_starfile:
         for line_counter in range(50):
             line = full_starfile.readline()
             if not line:
