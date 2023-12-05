@@ -141,7 +141,8 @@ def split_star_file(
     (output_dir / ".particles_tmp.star").unlink()
 
     # Find the number of lines in the full file
-    starfile_starter_lines = line_counter + 1 - star_dictionary["particles"].shape[0]
+    starfile_starter_lines = line_counter - star_dictionary["particles"].shape[0]
+    count = 0
     with open(file_to_process, "r") as full_starfile:
         for count, line in enumerate(full_starfile):
             pass
