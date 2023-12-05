@@ -22,6 +22,7 @@ class CryoloParameters(BaseModel):
         "/dls_sw/apps/EM/crYOLO/phosaurus_models/gmodel_phosnet_202005_N63_c17.h5"
     )
     threshold: float = 0.3
+    retained_fraction: float = 1
     cryolo_command: str = "cryolo_predict.py"
     particle_diameter: float = None
     mc_uuid: int
@@ -201,7 +202,7 @@ class CrYOLO(CommonService):
             rw.transport.nack(header)
             return
 
-        # Find the diameters of the particles
+        # Read in the cbox file for particle selection and finding sizes
         try:
             cbox_file = cif.read_file(
                 str(
@@ -218,9 +219,46 @@ class CrYOLO(CommonService):
                 np.array(cbox_block.find_loop("_Confidence"), dtype=float),
                 np.array(cbox_block.find_loop("_Confidence"), dtype=float),
             )
-            cryolo_particle_sizes = cbox_sizes[
-                cbox_confidence > cryolo_params.threshold
-            ]
+
+            # Select only a fraction of particles based on confidence if requested
+            if (
+                cryolo_params.retained_fraction < 1
+                and cryolo_params.retained_fraction > 0
+            ):
+                particles_confidence = np.array(
+                    cbox_block.find_loop("_Confidence"), dtype=float
+                )
+                cryolo_threshold = np.quantile(
+                    particles_confidence, cryolo_params.retained_fraction
+                )
+
+                self.log.info(
+                    f"Selecting particles with confidence above {cryolo_threshold}"
+                )
+
+                particles_x_all = np.array(
+                    cbox_block.find_loop("_CoordinateX"), dtype=float
+                )
+                particles_y_all = np.array(
+                    cbox_block.find_loop("_CoordinateY"), dtype=float
+                )
+                thresholded_x = particles_x_all[particles_confidence > cryolo_threshold]
+                thresholded_y = particles_y_all[particles_confidence > cryolo_threshold]
+
+                # Rewrite the star file with only the selected particles
+                with open(job_dir / cryolo_params.output_path, "w") as particles_star:
+                    particles_star.write(
+                        "\ndata_\n\nloop_\n_rlnCoordinateX #1\n_rlnCoordinateY #2\n"
+                    )
+                    for particle in range(len(thresholded_x)):
+                        particles_star.write(
+                            f"{thresholded_x[particle]} {thresholded_y[particle]}\n"
+                        )
+            else:
+                cryolo_threshold = cryolo_params.threshold
+
+            # Get the diameters of the particles for murfey
+            cryolo_particle_sizes = cbox_sizes[cbox_confidence > cryolo_threshold]
         except (FileNotFoundError, OSError, AttributeError):
             cryolo_particle_sizes = []
 

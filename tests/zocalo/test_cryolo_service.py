@@ -60,6 +60,7 @@ def test_cryolo_service(mock_subprocess, mock_environment, offline_transport, tm
             "config_file": str(tmp_path) + "/config.json",
             "weights": "sample_weights",
             "threshold": 0.3,
+            "retained_fraction": 0.5,
             "mc_uuid": 0,
             "picker_uuid": 0,
             "program_id": 1,
@@ -85,8 +86,9 @@ def test_cryolo_service(mock_subprocess, mock_environment, offline_transport, tm
     cbox_path.parent.mkdir(parents=True)
     with open(cbox_path, "w") as f:
         f.write(
-            "data_cryolo\n\nloop_\n\n_EstWidth\n_EstHeight\n_Confidence\n"
-            "100 200 0.5\n100 200 0.5"
+            "data_cryolo\n\nloop_\n\n"
+            "_EstWidth\n_EstHeight\n_Confidence\n_CoordinateX\n_CoordinateY\n"
+            "100 200 0.6 0.1 0.2\n100 200 0.5 0.3 0.4"
         )
 
     # Make the cryolo temporary dirs
@@ -159,7 +161,7 @@ def test_cryolo_service(mock_subprocess, mock_environment, offline_transport, tm
             "register": "picked_particles",
             "motion_correction_id": cryolo_test_message["parameters"]["mc_uuid"],
             "micrograph": cryolo_test_message["parameters"]["input_path"],
-            "particle_diameters": [100.0, 100.0, 200.0, 200.0],
+            "particle_diameters": [100.0, 200.0],
             "extraction_parameters": extraction_params,
             "program_id": cryolo_test_message["parameters"]["program_id"],
             "session_id": cryolo_test_message["parameters"]["session_id"],
