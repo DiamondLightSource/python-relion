@@ -79,7 +79,7 @@ def test_motioncorr_service_spa(
             "fm_dose": 1,
             "fm_int_file": "fm_int_file",
             "mag": {"mag1": "mag1", "mag2": "mag2"},
-            "ft_bin": 1.1,
+            "ft_bin": 2,
             "serial": 1,
             "in_suffix": "mrc",
             "eer_sampling": 1,
@@ -92,6 +92,7 @@ def test_motioncorr_service_spa(
             "split_sum": 1,
             "movie_id": 1,
             "relion_options": {
+                "angpix": 0.1,
                 "do_icebreaker_jobs": True,
                 "cryolo_threshold": 0.3,
                 "ampl_contrast": 0.2,
@@ -103,6 +104,7 @@ def test_motioncorr_service_spa(
     output_relion_options.update(
         motioncorr_test_message["parameters"]["relion_options"]
     )
+    output_relion_options["angpix"] = 0.2
 
     # Set up the mock service
     service = motioncorr.MotionCorr(environment=mock_environment)
@@ -162,7 +164,7 @@ def test_motioncorr_service_spa(
         "-Mag",
         "mag1 mag2",
         "-FtBin",
-        "1.1",
+        "2.0",
         "-Serial",
         "1",
         "-InSuffix",
@@ -233,7 +235,7 @@ def test_motioncorr_service_spa(
                 "amplitude_contrast": output_relion_options["ampl_contrast"],
                 "experiment_type": "spa",
                 "output_image": f"{tmp_path}/CtfFind/job006/Movies/sample.ctf",
-                "pix_size": motioncorr_test_message["parameters"]["pix_size"],
+                "pix_size": motioncorr_test_message["parameters"]["pix_size"] * 2,
             },
             "content": "dummy",
         },
