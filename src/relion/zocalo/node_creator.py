@@ -198,6 +198,11 @@ class NodeCreator(CommonService):
             self.log.info("No existing project found, so creating one")
             PipelinerProject(make_new_project=True)
 
+        if not pipeline_spa_jobs.get(job_info.job_type):
+            self.log.error(f"Unknown job type {job_info.job_type}")
+            rw.transport.nack(header)
+            return
+
         try:
             # Get the options for this job out of the RelionServiceOptions
             pipeline_options = generate_service_options(
@@ -268,9 +273,26 @@ class NodeCreator(CommonService):
         else:
             (job_dir / FAIL_FILE).touch()
 
+        # Get the files and directories relative to the project if possible
+        relative_job_dir = (
+            job_dir.relative_to(project_dir)
+            if job_dir.is_relative_to(project_dir)
+            else job_dir
+        )
+        relative_input_file = (
+            Path(job_info.input_file).relative_to(project_dir)
+            if Path(job_info.input_file).is_relative_to(project_dir)
+            else job_info.input_file
+        )
+        relative_output_file = (
+            Path(job_info.output_file).relative_to(project_dir)
+            if Path(job_info.output_file).is_relative_to(project_dir)
+            else job_info.output_file
+        )
+
         # Load this job as a pipeliner job to create the nodes
         pipeliner_job = read_job(f"{job_dir}/job.star")
-        pipeliner_job.output_dir = str(job_dir.relative_to(project_dir)) + "/"
+        pipeliner_job.output_dir = str(relative_job_dir) + "/"
         relion_commands = [[], pipeliner_job.get_final_commands()]
         pipeliner_job.prepare_to_run(ignore_invalid_joboptions=True)
 
@@ -287,13 +309,9 @@ class NodeCreator(CommonService):
             # Write the output files which Relion produces
             extra_output_nodes = create_output_files(
                 job_type=job_info.job_type,
-                job_dir=job_dir.relative_to(project_dir),
-                input_file=(
-                    job_info.input_file
-                    if job_dir.parent.name == "Import"
-                    else Path(job_info.input_file).relative_to(project_dir)
-                ),
-                output_file=Path(job_info.output_file).relative_to(project_dir),
+                job_dir=relative_job_dir,
+                input_file=relative_input_file,
+                output_file=relative_output_file,
                 relion_options=job_info.relion_options,
                 results=job_info.results,
             )
@@ -303,10 +321,7 @@ class NodeCreator(CommonService):
                 for node in pipeliner_job.output_nodes:
                     existing_nodes.append(node.name)
                 for node in extra_output_nodes.keys():
-                    if (
-                        f"{job_dir.relative_to(project_dir)}/{node}"
-                        not in existing_nodes
-                    ):
+                    if f"{relative_job_dir}/{node}" not in existing_nodes:
                         pipeliner_job.add_output_node(
                             node,
                             extra_output_nodes[node][0],
