@@ -279,7 +279,8 @@ class MotionCorr(CommonService):
         # Adjust the pixel size based on the binning
         if mc_params.ft_bin:
             mc_params.pix_size *= mc_params.ft_bin
-            mc_params.relion_options.angpix *= mc_params.ft_bin
+            if mc_params.relion_options:
+                mc_params.relion_options.angpix *= mc_params.ft_bin
 
         # Extract results for ispyb
         total_motion = 0
