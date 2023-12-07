@@ -32,6 +32,7 @@ class ExtractParameters(BaseModel):
     bg_radius: int = -1
     downscale: bool = False
     invert_contrast: bool = True
+    confidence_threshold: float = 0
     relion_options: RelionServiceOptions
 
 
@@ -148,10 +149,40 @@ class Extract(CommonService):
             )
 
         # Find the locations of the particles
-        coords_file = cif.read(extract_params.coord_list_file)
-        coords_block = coords_file.sole_block()
-        particles_x = np.array(coords_block.find_loop("_rlnCoordinateX"))
-        particles_y = np.array(coords_block.find_loop("_rlnCoordinateY"))
+        cbox_name = Path(
+            extract_params.coord_list_file.replace("STAR", "CBOX")
+        ).with_suffix(".cbox")
+        if cbox_name.is_file() and extract_params.confidence_threshold:
+            # If a threshold is given and the CBOX file exists use the confidences
+            try:
+                cbox_file = cif.read_file(cbox_name)
+                cbox_block = cbox_file.find_block("cryolo")
+
+                particles_confidence = np.array(
+                    cbox_block.find_loop("_Confidence"), dtype=float
+                )
+                particles_x_all = np.array(
+                    cbox_block.find_loop("_CoordinateX"), dtype=float
+                )
+                particles_y_all = np.array(
+                    cbox_block.find_loop("_CoordinateY"), dtype=float
+                )
+                particles_x = particles_x_all[
+                    particles_confidence > extract_params.confidence_threshold
+                ]
+                particles_y = particles_y_all[
+                    particles_confidence > extract_params.confidence_threshold
+                ]
+            except (AttributeError, OSError):
+                # Catch the case of CBOX files with no particles
+                particles_x = np.array([])
+                particles_y = np.array([])
+        else:
+            # Otherwise read from the star file
+            coords_file = cif.read(extract_params.coord_list_file)
+            coords_block = coords_file.sole_block()
+            particles_x = np.array(coords_block.find_loop("_rlnCoordinateX"))
+            particles_y = np.array(coords_block.find_loop("_rlnCoordinateY"))
 
         # Construct the output star file
         extracted_parts_doc = cif.Document()

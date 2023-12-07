@@ -74,6 +74,7 @@ def test_extract_service(mock_mrcfile, mock_environment, offline_transport, tmp_
             "bg_radius": -1,
             "downscale": True,
             "invert_contrast": True,
+            "confidence_threshold": 1,
             "batch_size": 20000,
             "relion_options": {"batch_size": 20000},
         },
