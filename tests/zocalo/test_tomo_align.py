@@ -89,6 +89,7 @@ def test_tomo_align_service(
 
     service.rot_centre_z_list = [1.1, 2.1]
     service.tilt_offset = 1.1
+    service.alignment_quality = 0.5
     service.mag = 1000
     service.rot = 0
 
@@ -159,6 +160,7 @@ def test_tomo_align_service(
                         "xy_shift_plot": "test_stack_xy_shift_plot.json",
                         "proj_xy": "test_stack_aretomo_projXY.jpeg",
                         "proj_xz": "test_stack_aretomo_projXZ.jpeg",
+                        "alignment_quality": "0.5",
                         "store_result": "ispyb_tomogram_id",
                     },
                     {
@@ -221,6 +223,10 @@ def test_parse_tomo_align_output(mock_environment, offline_transport):
     tomo_align.TomoAlign.parse_tomo_output(service, "Rot center Z 100.0 200.0 300.0")
     tomo_align.TomoAlign.parse_tomo_output(service, "Rot center Z 150.0 250.0 350.0")
     tomo_align.TomoAlign.parse_tomo_output(service, "Tilt offset 1.0, CC: 0.5")
+    tomo_align.TomoAlign.parse_tomo_output(
+        service, "Best tilt axis:   57, Score:   0.07568"
+    )
 
     assert service.rot_centre_z_list == ["300.0", "350.0"]
     assert service.tilt_offset == 1.0
+    assert service.alignment_quality == 0.07568

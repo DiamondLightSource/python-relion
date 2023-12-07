@@ -103,6 +103,7 @@ class TomoAlign(CommonService):
     newstack_path: str | None = None
     alignment_output_dir: str | None = None
     stack_name: str | None = None
+    alignment_quality: float | None = None
 
     def initializing(self):
         """Subscribe to a queue. Received messages must be acknowledged."""
@@ -122,6 +123,8 @@ class TomoAlign(CommonService):
                 self.rot_centre_z_list.append(line.split()[5])
             if line.startswith("Tilt offset"):
                 self.tilt_offset = float(line.split()[2].strip(","))
+            if line.startswith("Best tilt axis"):
+                self.alignment_quality = float(line.split()[5])
 
     def extract_from_aln(self, tomo_parameters):
         tomo_aln_file = None
@@ -352,6 +355,7 @@ class TomoAlign(CommonService):
                 "xy_shift_plot": self.plot_file,
                 "proj_xy": self.xy_proj_file,
                 "proj_xz": self.xz_proj_file,
+                "alignment_quality": str(self.alignment_quality),
                 "store_result": "ispyb_tomogram_id",
             }
         ]
