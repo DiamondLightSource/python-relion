@@ -13,7 +13,6 @@ from pydantic import Field, ValidationError
 
 from relion.zocalo.refine3d import (
     CommonRefineParameters,
-    run_initial_model,
     run_postprocessing,
     run_refine3d,
 )
@@ -46,7 +45,6 @@ class RefineWrapper(zocalo.wrapper.BaseWrapper):
     # Job names
     select_job_type = "relion.select.onvalue"
     extract_job_type = "relion.extract.reextract"
-    initial_model_job_type = "relion.initialmodel"
     refine_job_type = "relion.refine3d"
     mask_job_type = "relion.maskcreate"
     postprocess_job_type = "relion.postprocess"
@@ -79,10 +77,6 @@ class RefineWrapper(zocalo.wrapper.BaseWrapper):
             Path(refine_params.class3d_dir)
             / f"run_it{refine_params.nr_iter_3d:03}_data.star"
         )
-        # class_reference = (
-        #    Path(refine_params.class3d_dir)
-        #    / f"run_it{refine_params.nr_iter_3d:03}_class{refine_params.class_number:03}.mrc"
-        # )
 
         # Relion options
         refine_params.relion_options.angpix = refine_params.pixel_size
@@ -95,14 +89,14 @@ class RefineWrapper(zocalo.wrapper.BaseWrapper):
 
         ###############################################################################
         # Select the particles from the requested class
-        select_job_dir = Path(f"Select/job{job_num_refine-3:03}")
+        select_job_dir = Path(f"Select/job{job_num_refine-2:03}")
         select_job_dir.mkdir(parents=True, exist_ok=True)
 
         refine_selection_link = Path(
             project_dir / f"Select/Refine_class{refine_params.class_number}"
         )
         if not refine_selection_link.is_symlink():
-            refine_selection_link.symlink_to(f"job{job_num_refine-3:03}")
+            refine_selection_link.symlink_to(f"job{job_num_refine-2:03}")
 
         self.log.info(f"Running {self.select_job_type} in {select_job_dir}")
         select_command = [
@@ -157,14 +151,14 @@ class RefineWrapper(zocalo.wrapper.BaseWrapper):
 
         ###############################################################################
         # Run re-extraction on the selected particles
-        extract_job_dir = Path(f"Extract/job{job_num_refine-2:03}")
+        extract_job_dir = Path(f"Extract/job{job_num_refine-1:03}")
         extract_job_dir.mkdir(parents=True, exist_ok=True)
 
         refine_extraction_link = Path(
             project_dir / f"Extract/Reextract_class{refine_params.class_number}"
         )
         if not refine_extraction_link.is_symlink():
-            refine_extraction_link.symlink_to(f"job{job_num_refine-2:03}")
+            refine_extraction_link.symlink_to(f"job{job_num_refine-1:03}")
 
         # If no background radius set diameter as 75% of box
         if refine_params.bg_radius == -1:
@@ -236,29 +230,40 @@ class RefineWrapper(zocalo.wrapper.BaseWrapper):
 
         ###############################################################################
         # Create a reference for the refinement
-        initial_model_job_dir = Path(f"InitialModel/job{job_num_refine - 1:03}")
-        initial_model_job_dir.mkdir(parents=True, exist_ok=True)
-
-        # Run initial model and confirm it ran successfully
-        self.log.info(
-            f"Running {self.initial_model_job_type} in {initial_model_job_dir}"
+        class_reference = (
+            Path(refine_params.class3d_dir)
+            / f"run_it{refine_params.nr_iter_3d:03}_class{refine_params.class_number:03}.mrc"
         )
-        initial_model_result, node_creator_refine = run_initial_model(
-            initial_model_job_dir=project_dir / initial_model_job_dir,
-            particles_file=project_dir / extract_job_dir / "particles.star",
-            initial_model_params=refine_params,
+        rescaled_class_reference = (
+            project_dir
+            / extract_job_dir
+            / f"refinement_reference_class{refine_params.class_number:03}.mrc"
         )
 
-        # Register the Refine3D job with the node creator
-        self.log.info(f"Sending {self.initial_model_job_type} to node creator")
-        self.recwrap.send_to("node_creator", node_creator_refine)
+        self.log.info("Running class reference rescaling")
+        rescale_command = [
+            "relion_image_handler",
+            "--i",
+            str(class_reference),
+            "--o",
+            str(rescaled_class_reference),
+            "--angpix",
+            str(refine_params.downscaled_pixel_size),
+            "--rescale_angpix",
+            str(refine_params.pixel_size),
+            "--new_box",
+            str(refine_params.boxsize),
+        ]
+        rescale_result = subprocess.run(
+            rescale_command, cwd=str(project_dir), capture_output=True
+        )
 
         # End here if the command failed
-        if initial_model_result.returncode:
+        if rescale_result.returncode:
             self.log.error(
-                "Refinement initial model failed with exitcode "
-                f"{initial_model_result.returncode}:\n"
-                + initial_model_result.stderr.decode("utf8", "replace")
+                "Refinement reference scaling failed with exitcode "
+                f"{rescale_result.returncode}:\n"
+                + rescale_result.stderr.decode("utf8", "replace")
             )
             return False
 
@@ -273,7 +278,7 @@ class RefineWrapper(zocalo.wrapper.BaseWrapper):
         refine_result, node_creator_refine = run_refine3d(
             refine_job_dir=Path(refine_params.refine_job_dir),
             particles_file=project_dir / extract_job_dir / "particles.star",
-            class_reference=initial_model_job_dir / "initial_model.mrc",
+            class_reference=rescaled_class_reference,
             refine_params=refine_params,
         )
 
@@ -502,7 +507,7 @@ class RefineWrapper(zocalo.wrapper.BaseWrapper):
             "resolution": final_resolution,
             "batch_size": number_of_particles,
             "refined_class_uuid": refine_params.refined_class_uuid,
-            "class_reference": str(initial_model_job_dir / "initial_model.mrc"),
+            "class_reference": str(rescaled_class_reference),
             "class_number": refine_params.class_number,
             "mask_file": f"{project_dir}/{mask_job_dir}/mask.mrc",
         }
