@@ -229,7 +229,7 @@ class CrYOLO(CommonService):
                     cbox_block.find_loop("_Confidence"), dtype=float
                 )
                 cryolo_threshold = np.quantile(
-                    particles_confidence, cryolo_params.retained_fraction
+                    particles_confidence, 1 - cryolo_params.retained_fraction
                 )
 
                 self.log.info(

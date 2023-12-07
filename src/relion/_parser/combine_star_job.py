@@ -5,7 +5,7 @@ from pathlib import Path
 from pipeliner.data_structure import SELECT_DIR
 from pipeliner.job_options import BooleanJobOption, IntJobOption, StringJobOption
 from pipeliner.nodes import NODE_PARTICLESDATA, Node
-from pipeliner.pipeliner_job import ExternalProgram, PipelinerJob
+from pipeliner.pipeliner_job import ExternalProgram, PipelinerCommand, PipelinerJob
 
 COMBINE_STAR_NAME = "combine_star_files.py"
 
@@ -91,7 +91,8 @@ class ProcessStarFiles(PipelinerJob):
             Node(self.output_dir + "particles_all.star", NODE_PARTICLESDATA)
         )
 
-        return [command]
+        pipeliner_commands = [PipelinerCommand([command], relion_control=False)]
+        return pipeliner_commands
 
     def create_output_nodes(self):
         self.add_output_node("particles_all.star", NODE_PARTICLESDATA, ["relion"])
