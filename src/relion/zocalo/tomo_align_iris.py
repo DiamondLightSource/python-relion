@@ -28,6 +28,8 @@ class TomoAlignIris(TomoAlign, CommonService):
                 self.rot_centre_z_list.append(line.split()[5])
             if line.startswith("Tilt offset"):
                 self.tilt_offset = float(line.split()[2].strip(","))
+            if line.startswith("Best tilt axis"):
+                self.alignment_quality = float(line.split()[5])
         tomo_file.close()
 
     def aretomo(self, tomo_parameters):

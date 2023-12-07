@@ -1119,6 +1119,7 @@ class EMISPyB(CommonService):
                 xyShiftPlot=full_parameters("xy_shift_plot"),
                 projXY=full_parameters("proj_xy"),
                 projXZ=full_parameters("proj_xz"),
+                globalAlignmentQuality=full_parameters("alignment_quality"),
             )
             session.add(values)
             session.commit()
