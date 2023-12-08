@@ -333,6 +333,16 @@ class NodeCreator(CommonService):
             with open(job_dir / "job_metadata.json", "w") as metadata_file:
                 metadata_file.write(json.dumps(metadata_dict))
 
+            # Create the results display for the non-pipeliner job
+            if job_info.job_type == "combine_star_files_job":
+                results_files = [job_dir.glob(".results_display*")]
+                for results_obj in results_files:
+                    results_obj.unlink()
+
+                results_displays = pipeliner_job.create_results_display()
+                for results_obj in results_displays:
+                    results_obj.write_displayobj_file(outdir=str(job_dir))
+
         # Create the node and default_pipeline.star files in the project directory
         with ProjectGraph(read_only=False) as project:
             process = project.add_job(

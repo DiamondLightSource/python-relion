@@ -3,6 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from pipeliner.data_structure import SELECT_DIR
+from pipeliner.display_tools import mini_montage_from_starfile
 from pipeliner.job_options import BooleanJobOption, IntJobOption, StringJobOption
 from pipeliner.nodes import NODE_PARTICLESDATA, Node
 from pipeliner.pipeliner_job import ExternalProgram, PipelinerCommand, PipelinerJob
@@ -85,10 +86,10 @@ class ProcessStarFiles(PipelinerJob):
 
         # Add files as input nodes, as long as they are not also the output node
         for particle_file in file_list:
-            if particle_file != self.output_dir + "particles_all.star":
+            if particle_file != str(Path(self.output_dir) / "particles_all.star"):
                 self.input_nodes.append(Node(particle_file, NODE_PARTICLESDATA))
         self.output_nodes.append(
-            Node(self.output_dir + "particles_all.star", NODE_PARTICLESDATA)
+            Node(str(Path(self.output_dir) / "particles_all.star"), NODE_PARTICLESDATA)
         )
 
         pipeliner_commands = [PipelinerCommand([command], relion_control=False)]
@@ -102,3 +103,24 @@ class ProcessStarFiles(PipelinerJob):
         output_files = Path(self.output_dir).glob("particles_split*.star")
         for split in output_files:
             self.output_nodes.append(Node(str(split), NODE_PARTICLESDATA))
+
+    def create_results_display(self):
+        output_dobs = [
+            mini_montage_from_starfile(
+                starfile=str(Path(self.output_dir) / "class_averages.star"),
+                block="",
+                column="_rlnReferenceImage",
+                outputdir=self.output_dir,
+                nimg=-1,
+                title="Selected 2D classes",
+            ),
+            mini_montage_from_starfile(
+                starfile=str(Path(self.output_dir) / "particles_all.star"),
+                block="particles",
+                column="_rlnImageName",
+                outputdir=self.output_dir,
+                nimg=20,
+                title="Examples of selected particles",
+            ),
+        ]
+        return output_dobs
