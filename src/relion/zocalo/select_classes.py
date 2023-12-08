@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import io
 import json
 import re
 import shutil
 import subprocess
+from contextlib import redirect_stdout
 from pathlib import Path
 
 import numpy as np
@@ -12,6 +14,7 @@ from gemmi import cif
 from pydantic import BaseModel, Field, ValidationError
 from workflows.services.common_service import CommonService
 
+from relion._parser.combine_star_files import combine_star_files, split_star_file
 from relion.zocalo.spa_relion_service_options import RelionServiceOptions
 
 
@@ -169,11 +172,11 @@ class SelectClasses(CommonService):
             autoselect_command.extend(("--min_score", str(autoselect_params.min_score)))
 
         # Run the class selection
-        result = subprocess.run(
+        autoselect_result = subprocess.run(
             autoselect_command, cwd=str(project_dir), capture_output=True
         )
 
-        if not autoselect_params.min_score and not result.returncode:
+        if not autoselect_params.min_score and not autoselect_result.returncode:
             # If a minimum score isn't given, then work it out and rerun the job
             star_doc = cif.read_file(str(select_dir / "rank_model.star"))
             star_block = star_doc["model_classes"]
@@ -203,7 +206,7 @@ class SelectClasses(CommonService):
             autoselect_command[-1] = str(quantile_threshold)
 
             # Re-run the class selection
-            result = subprocess.run(
+            autoselect_result = subprocess.run(
                 autoselect_command, cwd=str(project_dir), capture_output=True
             )
 
@@ -215,10 +218,10 @@ class SelectClasses(CommonService):
             "output_file": str(select_dir / autoselect_params.particles_file),
             "relion_options": dict(autoselect_params.relion_options),
             "command": " ".join(autoselect_command),
-            "stdout": result.stdout.decode("utf8", "replace"),
-            "stderr": result.stderr.decode("utf8", "replace"),
+            "stdout": autoselect_result.stdout.decode("utf8", "replace"),
+            "stderr": autoselect_result.stderr.decode("utf8", "replace"),
         }
-        if result.returncode:
+        if autoselect_result.returncode:
             autoselect_node_creator_params["success"] = False
         else:
             autoselect_node_creator_params["success"] = True
@@ -234,16 +237,18 @@ class SelectClasses(CommonService):
             rw.send_to("node_creator", autoselect_node_creator_params)
 
         # End here if the command failed
-        if result.returncode:
+        if autoselect_result.returncode:
             self.log.error(
-                f"2D autoselection failed with exitcode {result.returncode}:\n"
-                + result.stderr.decode("utf8", "replace")
+                f"2D autoselection failed with exitcode {autoselect_result.returncode}:\n"
+                + autoselect_result.stderr.decode("utf8", "replace")
             )
             rw.transport.nack(header)
             return
 
         # Find which classes were picked
-        classes_block = cif.read_file(f"{select_dir}/class_averages.star").sole_block()
+        classes_block = cif.read_file(
+            f"{select_dir}/{autoselect_params.classes_file}"
+        ).sole_block()
         selected_classes = list(classes_block.find_loop("_rlnReferenceImage"))
 
         # Class ids get fed in as a string, need to convert these to a dictionary
@@ -288,47 +293,46 @@ class SelectClasses(CommonService):
 
         # Run the combine star files job to combine the files into particles_all.star
         self.log.info("Running star file combination and splitting")
-        combine_star_command = [
-            "combine_star_files.py",
-            str(select_dir / autoselect_params.particles_file),
-        ]
-
         combine_star_dir = Path(
             project_dir / f"Select/job{autoselect_params.combine_star_job_number:03}"
         )
+        files_to_combine = [select_dir / autoselect_params.particles_file]
         if (combine_star_dir / "particles_all.star").exists():
-            combine_star_command.append(str(combine_star_dir / "particles_all.star"))
+            files_to_combine.append(combine_star_dir / "particles_all.star")
         else:
             combine_star_dir.mkdir(parents=True, exist_ok=True)
             Path(project_dir / "Select/Star_combination").symlink_to(combine_star_dir)
             self.previous_total_count = 0
-        combine_star_command.extend(("--output_dir", str(combine_star_dir)))
 
         if not (
             combine_star_dir / f".done_{autoselect_params.particles_file}"
         ).is_file():
             # Only run this if the particles file has not been added before
-            result = subprocess.run(
-                combine_star_command, cwd=str(project_dir), capture_output=True
-            )
-            (combine_star_dir / f".done_{autoselect_params.particles_file}").touch()
-            self.parse_combiner_output(result.stdout.decode("utf8", "replace"))
-
-            # Send combination job to node creator
-            self.log.info("Sending combine_star_files_job (combine) to node creator")
             combine_node_creator_params = {
                 "job_type": "combine_star_files_job",
                 "input_file": f"{select_dir}/{autoselect_params.particles_file}",
                 "output_file": f"{combine_star_dir}/particles_all.star",
                 "relion_options": dict(autoselect_params.relion_options),
-                "command": " ".join(combine_star_command),
-                "stdout": result.stdout.decode("utf8", "replace"),
-                "stderr": result.stderr.decode("utf8", "replace"),
+                "command": "",
+                "stdout": "",
+                "stderr": "",
             }
-            if result.returncode:
-                combine_node_creator_params["success"] = False
-            else:
-                combine_node_creator_params["success"] = True
+
+            # Call the combining function and redirect prints to an io object
+            combine_result = io.StringIO()
+            with redirect_stdout(combine_result):
+                try:
+                    combine_star_files(files_to_combine, combine_star_dir)
+                    (
+                        combine_star_dir / f".done_{autoselect_params.particles_file}"
+                    ).touch()
+                    combine_node_creator_params["success"] = True
+                except IndexError:
+                    combine_node_creator_params["success"] = False
+            self.parse_combiner_output(combine_result.getvalue())
+
+            # Send combination job to node creator
+            self.log.info("Sending combine_star_files_job (combine) to node creator")
             if isinstance(rw, MockRW):
                 rw.transport.send(
                     destination="node_creator",
@@ -341,11 +345,8 @@ class SelectClasses(CommonService):
                 rw.send_to("node_creator", combine_node_creator_params)
 
             # End here if the command failed
-            if result.returncode:
-                self.log.error(
-                    f"Star file combination failed with exitcode {result.returncode}:\n"
-                    + result.stderr.decode("utf8", "replace")
-                )
+            if not combine_node_creator_params["success"]:
+                self.log.error("Star file combination failed")
                 rw.transport.nack(header)
                 return
         else:
@@ -364,6 +365,26 @@ class SelectClasses(CommonService):
                     ):
                         self.total_count += 1
                         self.previous_total_count += 1
+
+        # Create a file containing all selected classes
+        if not (combine_star_dir / autoselect_params.classes_file).is_file():
+            add_header = True
+        else:
+            add_header = False
+        with open(select_dir / autoselect_params.classes_file, "r") as class_file, open(
+            combine_star_dir / autoselect_params.classes_file, "a"
+        ) as combined_classes:
+            while True:
+                line = class_file.readline()
+                if not line:
+                    break
+                if line[0].isdigit():
+                    # Always add lines which list a class
+                    add_header = False
+                    combined_classes.write(line)
+                elif add_header:
+                    # Only add other lines if this is a new file and not on classes yet
+                    combined_classes.write(line)
 
         # Determine the next split size to use and whether to run 3D classification
         send_to_3d_classification = False
@@ -400,50 +421,43 @@ class SelectClasses(CommonService):
                 ) * autoselect_params.class3d_batch_size
 
         # Run the combine star files job to split particles_all.star into batches
-        split_star_command = [
-            "combine_star_files.py",
-            str(combine_star_dir / "particles_all.star"),
-            "--output_dir",
-            str(combine_star_dir),
-            "--split",
-            "--split_size",
-            str(next_batch_size),
-        ]
-
-        result = subprocess.run(
-            split_star_command, cwd=str(project_dir), capture_output=True
-        )
-        self.parse_combiner_output(result.stdout.decode("utf8", "replace"))
-
-        # Send splitting job to node creator
-        self.log.info("Sending combine_star_files_job (split) to node creator")
-        combine_node_creator_params = {
+        split_node_creator_params = {
             "job_type": "combine_star_files_job",
             "input_file": f"{select_dir}/{autoselect_params.particles_file}",
             "output_file": f"{combine_star_dir}/particles_all.star",
             "relion_options": dict(autoselect_params.relion_options),
-            "command": " ".join(split_star_command),
-            "stdout": result.stdout.decode("utf8", "replace"),
-            "stderr": result.stderr.decode("utf8", "replace"),
+            "command": "",
+            "stdout": "",
+            "stderr": "",
         }
-        if result.returncode:
-            combine_node_creator_params["success"] = False
-        else:
-            combine_node_creator_params["success"] = True
+
+        # Call the combining function and redirect prints to an io object
+        split_result = io.StringIO()
+        with redirect_stdout(split_result):
+            try:
+                split_star_file(
+                    file_to_process=combine_star_dir / "particles_all.star",
+                    output_dir=combine_star_dir,
+                    split_size=next_batch_size,
+                )
+                split_node_creator_params["success"] = True
+            except IndexError:
+                split_node_creator_params["success"] = False
+        self.parse_combiner_output(split_result.getvalue())
+
+        # Send splitting job to node creator
+        self.log.info("Sending combine_star_files_job (split) to node creator")
         if isinstance(rw, MockRW):
             rw.transport.send(
                 destination="node_creator",
-                message={"parameters": combine_node_creator_params, "content": "dummy"},
+                message={"parameters": split_node_creator_params, "content": "dummy"},
             )
         else:
-            rw.send_to("node_creator", combine_node_creator_params)
+            rw.send_to("node_creator", split_node_creator_params)
 
         # End here if the command failed
-        if result.returncode:
-            self.log.error(
-                f"Star file splitting failed with exitcode {result.returncode}:\n"
-                + result.stderr.decode("utf8", "replace")
-            )
+        if not split_node_creator_params["success"]:
+            self.log.error("Star file splitting failed")
             rw.transport.nack(header)
             return
 
