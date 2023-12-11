@@ -242,8 +242,15 @@ class CrYOLO(CommonService):
                 particles_y_all = np.array(
                     cbox_block.find_loop("_CoordinateY"), dtype=float
                 )
-                thresholded_x = particles_x_all[particles_confidence > cryolo_threshold]
-                thresholded_y = particles_y_all[particles_confidence > cryolo_threshold]
+                box_size_x_all = np.array(cbox_block.find_loop("_Width"), dtype=float)
+                box_size_y_all = np.array(cbox_block.find_loop("_Height"), dtype=float)
+
+                thresholded_x = (particles_x_all + box_size_x_all / 2)[
+                    particles_confidence > cryolo_threshold
+                ]
+                thresholded_y = (particles_y_all + box_size_y_all / 2)[
+                    particles_confidence > cryolo_threshold
+                ]
 
                 # Rewrite the star file with only the selected particles
                 with open(job_dir / cryolo_params.output_path, "w") as particles_star:

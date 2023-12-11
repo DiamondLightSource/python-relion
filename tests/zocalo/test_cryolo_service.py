@@ -82,13 +82,13 @@ def test_cryolo_service(mock_subprocess, mock_environment, offline_transport, tm
     # Write star co-ordinate file in the format cryolo will output
     output_path.parent.mkdir(parents=True)
     with open(output_path, "w") as f:
-        f.write("data_\n\nloop_\n\n_rlnCoordinateX\n_rlnCoordinateY\n 0.1 0.2")
+        f.write("data_\n\nloop_\n\n_rlnCoordinateX\n_rlnCoordinateY\n 1.1 2.2")
     cbox_path.parent.mkdir(parents=True)
     with open(cbox_path, "w") as f:
         f.write(
-            "data_cryolo\n\nloop_\n\n"
-            "_EstWidth\n_EstHeight\n_Confidence\n_CoordinateX\n_CoordinateY\n"
-            "100 200 0.6 0.1 0.2\n100 200 0.5 0.3 0.4"
+            "data_cryolo\n\nloop_\n\n_EstWidth\n_EstHeight\n_Confidence\n"
+            "_CoordinateX\n_CoordinateY\n_Width\n_Height\n"
+            "100 200 0.6 0.1 0.2 2 4\n100 200 0.5 0.3 0.4 6 8"
         )
 
     # Make the cryolo temporary dirs
@@ -149,7 +149,7 @@ def test_cryolo_service(mock_subprocess, mock_environment, offline_transport, tm
         message={
             "image_command": "picked_particles",
             "file": cryolo_test_message["parameters"]["input_path"],
-            "coordinates": [["0.1", "0.2"]],
+            "coordinates": [["1.1", "2.2"]],
             "angpix": 0.1,
             "diameter": 16.0,
             "outfile": str(output_path.with_suffix(".jpeg")),
