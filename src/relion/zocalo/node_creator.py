@@ -335,7 +335,7 @@ class NodeCreator(CommonService):
 
             # Create the results display for the non-pipeliner job
             if job_info.job_type == "combine_star_files_job":
-                results_files = [job_dir.glob(".results_display*")]
+                results_files = job_dir.glob(".results_display*")
                 for results_obj in results_files:
                     results_obj.unlink()
 
