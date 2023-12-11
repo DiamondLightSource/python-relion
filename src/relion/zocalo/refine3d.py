@@ -13,7 +13,6 @@ postprocess_job_type = "relion.postprocess"
 
 class CommonRefineParameters(BaseModel):
     pixel_size: float
-    downscaled_pixel_size: float
     mask_diameter: float
     mpi_run_command: str = "srun -n 5"
     dont_correct_greyscale: bool = True

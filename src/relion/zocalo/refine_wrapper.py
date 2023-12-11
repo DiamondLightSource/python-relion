@@ -24,6 +24,7 @@ class RefineParameters(CommonRefineParameters):
     refine_job_dir: str = Field(..., min_length=1)
     class3d_dir: str = Field(..., min_length=1)
     micrographs_file: str = Field(..., min_length=1)
+    downscaled_pixel_size: float
     class_number: int
     nr_iter_3d: int = 20
     boxsize: int = 256
@@ -196,7 +197,7 @@ class RefineWrapper(zocalo.wrapper.BaseWrapper):
             "-1",
             "--invert_contrast",
             "--pipeline_control",
-            str(extract_job_dir),
+            f"{extract_job_dir}/",
         ]
         extract_result = subprocess.run(
             extract_command, cwd=str(project_dir), capture_output=True

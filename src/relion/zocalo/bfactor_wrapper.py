@@ -63,15 +63,12 @@ class BFactorWrapper(zocalo.wrapper.BaseWrapper):
         class_particles.unlink(missing_ok=True)
         class_particles.symlink_to(
             project_dir
-            / f"Select/Refine_class{refine_params.class_number}/particles.star"
+            / f"Extract/Reextract_class{refine_params.class_number}/particles.star"
         )
 
         class_reference = bfactor_dir / "Import/job001/refinement_ref.mrc"
         class_reference.unlink(missing_ok=True)
         class_reference.symlink_to(refine_params.class_reference)
-
-        (bfactor_dir / "Extract").unlink(missing_ok=True)
-        (bfactor_dir / "Extract").symlink_to(project_dir / "Extract")
 
         refine_mask_file = bfactor_dir / "Import/job001/mask.mrc"
         refine_mask_file.unlink(missing_ok=True)
