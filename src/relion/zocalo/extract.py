@@ -142,9 +142,9 @@ class Extract(CommonService):
             extract_params.bg_radius = round(
                 0.375
                 * (
-                    extract_params.small_boxsize
+                    extract_params.relion_options.small_boxsize
                     if extract_params.downscale
-                    else extract_params.boxsize
+                    else extract_params.relion_options.boxsize
                 )
             )
 
