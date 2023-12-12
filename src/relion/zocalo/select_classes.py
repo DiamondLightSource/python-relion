@@ -331,7 +331,7 @@ class SelectClasses(CommonService):
                         combine_star_dir / f".done_{autoselect_params.particles_file}"
                     ).touch()
                     combine_node_creator_params["success"] = True
-                except IndexError:
+                except (IndexError, KeyError):
                     combine_node_creator_params["success"] = False
             self.parse_combiner_output(combine_result.getvalue())
 
@@ -449,7 +449,7 @@ class SelectClasses(CommonService):
                     split_size=next_batch_size,
                 )
                 split_node_creator_params["success"] = True
-            except IndexError:
+            except (IndexError, KeyError):
                 split_node_creator_params["success"] = False
         self.parse_combiner_output(split_result.getvalue())
 
