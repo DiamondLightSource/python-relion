@@ -313,7 +313,11 @@ class SelectClasses(CommonService):
                 "input_file": f"{select_dir}/{autoselect_params.particles_file}",
                 "output_file": f"{combine_star_dir}/particles_all.star",
                 "relion_options": dict(autoselect_params.relion_options),
-                "command": "",
+                "command": (
+                    "combine_star_files "
+                    + " ".join([str(i) for i in files_to_combine])
+                    + f" --output_dir {combine_star_dir}"
+                ),
                 "stdout": "",
                 "stderr": "",
             }
@@ -426,7 +430,11 @@ class SelectClasses(CommonService):
             "input_file": f"{select_dir}/{autoselect_params.particles_file}",
             "output_file": f"{combine_star_dir}/particles_all.star",
             "relion_options": dict(autoselect_params.relion_options),
-            "command": "",
+            "command": (
+                f"combine_star_files {combine_star_dir}/particles_all.star "
+                f"--output_dir {combine_star_dir} "
+                f"--split --split_size {next_batch_size}"
+            ),
             "stdout": "",
             "stderr": "",
         }
