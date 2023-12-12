@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import sys
+from pathlib import Path
 from unittest import mock
 
 import pytest
@@ -32,10 +33,28 @@ def offline_transport(mocker):
     return transport
 
 
-def select_classes_common_setup(tmp_path):
+def select_classes_common_setup(
+    job_dir: Path, initial_particle_count: int, particles_to_add: int
+):
     """Setup for the tests below: create the message for and output of autoselection"""
-    autoselect_file = tmp_path / "Select/job012/rank_model.star"
-    autoselect_file.parent.mkdir(parents=True)
+    particles_file = job_dir / "Select/job012/particles.star"
+    particles_file.parent.mkdir(parents=True)
+    with open(particles_file, "w") as f:
+        f.write("data_optics\n\nloop_\n_group\nopticsGroup1\n\n")
+        f.write("data_particles\n\nloop_\n_particle\n")
+        for i in range(particles_to_add):
+            f.write(f"{i}\n")
+
+    if initial_particle_count:
+        particles_file = job_dir / "Select/job013/particles_all.star"
+        particles_file.parent.mkdir(parents=True)
+        with open(particles_file, "w") as f:
+            f.write("data_optics\n\nloop_\n_group\nopticsGroup1\n\n")
+            f.write("data_particles\n\nloop_\n_particle\n")
+            for i in range(initial_particle_count):
+                f.write(f"{i}\n")
+
+    autoselect_file = job_dir / "Select/job012/rank_model.star"
     with open(autoselect_file, "w") as f:
         f.write(
             "data_model_classes\n\nloop_\n_rlnReferenceImage\n"
@@ -51,7 +70,7 @@ def select_classes_common_setup(tmp_path):
             "0.008 0.035 3.100 1.416 16.183 1.000 -0.133 -0.001"
         )
 
-    classes_file = tmp_path / "Select/job012/class_averages.star"
+    classes_file = job_dir / "Select/job012/class_averages.star"
     with open(classes_file, "w") as f:
         f.write(
             "data_\n\nloop_\n_rlnReferenceImage\n_rlnPredictedClassScore\n"
@@ -74,7 +93,7 @@ def select_classes_common_setup(tmp_path):
 
     select_test_message = {
         "parameters": {
-            "input_file": f"{tmp_path}/Class2D/job010/run_it020_optimiser.star",
+            "input_file": f"{job_dir}/Class2D/job010/run_it020_optimiser.star",
             "combine_star_job_number": 13,
             "particles_file": "particles.star",
             "classes_file": "class_averages.star",
@@ -95,9 +114,8 @@ def select_classes_common_setup(tmp_path):
 
 @pytest.mark.skipif(sys.platform == "win32", reason="does not run on windows")
 @mock.patch("relion.zocalo.select_classes.subprocess.run")
-@mock.patch("relion.zocalo.select_classes.shutil.copy2")
 def test_select_classes_service_first_batch(
-    mock_copy, mock_subprocess, mock_environment, offline_transport, tmp_path
+    mock_subprocess, mock_environment, offline_transport, tmp_path
 ):
     """
     Send a test message to the select classes service when it is a new job.
@@ -112,17 +130,25 @@ def test_select_classes_service_first_batch(
         "message-id": mock.sentinel,
         "subscription": mock.sentinel,
     }
-    select_test_message, relion_options = select_classes_common_setup(tmp_path)
+    select_test_message, relion_options = select_classes_common_setup(
+        tmp_path, initial_particle_count=0, particles_to_add=60000
+    )
 
     # Set up the mock service and send the message to it
     service = select_classes.SelectClasses(environment=mock_environment)
     service.transport = offline_transport
     service.start()
-    service.total_count = 60000
     service.select_classes(None, header=header, message=select_test_message)
 
-    assert mock_copy.call_count == 1
-    assert mock_subprocess.call_count == 7
+    # Check the correct particle counts were found and split files made
+    assert service.previous_total_count == 0
+    assert service.total_count == 60000
+    assert (tmp_path / "Select/job013/particles_split1.star").is_file()
+    assert (tmp_path / "Select/job013/particles_split2.star").is_file()
+    assert (tmp_path / "Select/job013/particles_batch_50000.star").is_file()
+
+    # Check the mock calls
+    assert mock_subprocess.call_count == 5
     mock_subprocess.assert_any_call(
         [
             "relion_class_ranker",
@@ -146,29 +172,6 @@ def test_select_classes_service_first_batch(
             "Select/job012/",
             "--min_score",
             "0.006",
-        ],
-        cwd=str(tmp_path),
-        capture_output=True,
-    )
-    mock_subprocess.assert_any_call(
-        [
-            "combine_star_files.py",
-            f"{tmp_path}/Select/job012/particles.star",
-            "--output_dir",
-            f"{tmp_path}/Select/job013",
-        ],
-        cwd=str(tmp_path),
-        capture_output=True,
-    )
-    mock_subprocess.assert_any_call(
-        [
-            "combine_star_files.py",
-            f"{tmp_path}/Select/job013/particles_all.star",
-            "--output_dir",
-            f"{tmp_path}/Select/job013",
-            "--split",
-            "--split_size",
-            "50000",
         ],
         cwd=str(tmp_path),
         capture_output=True,
@@ -235,11 +238,11 @@ def test_select_classes_service_first_batch(
                 "output_file": f"{tmp_path}/Select/job013/particles_all.star",
                 "relion_options": relion_options,
                 "command": (
-                    f"combine_star_files.py {tmp_path}/Select/job012/particles.star "
+                    f"combine_star_files {tmp_path}/Select/job012/particles.star "
                     f"--output_dir {tmp_path}/Select/job013"
                 ),
-                "stdout": "stdout",
-                "stderr": "stderr",
+                "stdout": "",
+                "stderr": "",
                 "success": True,
             },
             "content": "dummy",
@@ -254,11 +257,11 @@ def test_select_classes_service_first_batch(
                 "output_file": f"{tmp_path}/Select/job013/particles_all.star",
                 "relion_options": relion_options,
                 "command": (
-                    f"combine_star_files.py {tmp_path}/Select/job013/particles_all.star "
+                    f"combine_star_files {tmp_path}/Select/job013/particles_all.star "
                     f"--output_dir {tmp_path}/Select/job013 --split --split_size 50000"
                 ),
-                "stdout": "stdout",
-                "stderr": "stderr",
+                "stdout": "",
+                "stderr": "",
                 "success": True,
             },
             "content": "dummy",
@@ -298,9 +301,8 @@ def test_select_classes_service_first_batch(
 
 @pytest.mark.skipif(sys.platform == "win32", reason="does not run on windows")
 @mock.patch("relion.zocalo.select_classes.subprocess.run")
-@mock.patch("relion.zocalo.select_classes.shutil.copy2")
 def test_select_classes_service_batch_threshold(
-    mock_copy, mock_subprocess, mock_environment, offline_transport, tmp_path
+    mock_subprocess, mock_environment, offline_transport, tmp_path
 ):
     """
     Test the service for the case where the particle count crosses a batch threshold.
@@ -317,46 +319,25 @@ def test_select_classes_service_batch_threshold(
         "message-id": mock.sentinel,
         "subscription": mock.sentinel,
     }
-    select_test_message, relion_options = select_classes_common_setup(tmp_path)
+    select_test_message, relion_options = select_classes_common_setup(
+        tmp_path, initial_particle_count=90000, particles_to_add=20000
+    )
 
     # Set up the mock service and send the message to it
     service = select_classes.SelectClasses(environment=mock_environment)
     service.transport = offline_transport
     service.start()
-
-    (tmp_path / "Select/job013/").mkdir(parents=True)
-    (tmp_path / "Select/job013/particles_all.star").touch()
-    service.previous_total_count = 90000
-    service.total_count = 110000
     service.select_classes(None, header=header, message=select_test_message)
 
+    # Check the correct particle counts were found and split files made
+    assert service.previous_total_count == 90000
+    assert service.total_count == 110000
+    assert (tmp_path / "Select/job013/particles_split1.star").is_file()
+    assert (tmp_path / "Select/job013/particles_split2.star").is_file()
+    assert (tmp_path / "Select/job013/particles_batch_100000.star").is_file()
+
     # Don't bother to check the auto-selection calls here, they are checked above
-    # Do check the combiner calls for the batch threshold and check the Murfey 3D calls
-    assert mock_copy.call_count == 1
-    mock_subprocess.assert_any_call(
-        [
-            "combine_star_files.py",
-            f"{tmp_path}/Select/job012/particles.star",
-            f"{tmp_path}/Select/job013/particles_all.star",
-            "--output_dir",
-            f"{tmp_path}/Select/job013",
-        ],
-        cwd=str(tmp_path),
-        capture_output=True,
-    )
-    mock_subprocess.assert_any_call(
-        [
-            "combine_star_files.py",
-            f"{tmp_path}/Select/job013/particles_all.star",
-            "--output_dir",
-            f"{tmp_path}/Select/job013",
-            "--split",
-            "--split_size",
-            "100000",
-        ],
-        cwd=str(tmp_path),
-        capture_output=True,
-    )
+    # Do check the Murfey 3D calls
     offline_transport.send.assert_any_call(
         destination="murfey_feedback",
         message={
@@ -374,9 +355,8 @@ def test_select_classes_service_batch_threshold(
 
 @pytest.mark.skipif(sys.platform == "win32", reason="does not run on windows")
 @mock.patch("relion.zocalo.select_classes.subprocess.run")
-@mock.patch("relion.zocalo.select_classes.shutil.copy2")
 def test_select_classes_service_two_thresholds(
-    mock_copy, mock_subprocess, mock_environment, offline_transport, tmp_path
+    mock_subprocess, mock_environment, offline_transport, tmp_path
 ):
     """
     Test the service for the case where the particle count crosses two thresholds.
@@ -393,35 +373,25 @@ def test_select_classes_service_two_thresholds(
         "message-id": mock.sentinel,
         "subscription": mock.sentinel,
     }
-    select_test_message, relion_options = select_classes_common_setup(tmp_path)
+    select_test_message, relion_options = select_classes_common_setup(
+        tmp_path, initial_particle_count=10000, particles_to_add=100000
+    )
 
     # Set up the mock service and send the message to it
     service = select_classes.SelectClasses(environment=mock_environment)
     service.transport = offline_transport
     service.start()
-
-    (tmp_path / "Select/job013/").mkdir(parents=True)
-    (tmp_path / "Select/job013/particles_all.star").touch()
-    service.previous_total_count = 10000
-    service.total_count = 110000
     service.select_classes(None, header=header, message=select_test_message)
 
+    # Check the correct particle counts were found and split files made
+    assert service.previous_total_count == 10000
+    assert service.total_count == 110000
+    assert (tmp_path / "Select/job013/particles_split1.star").is_file()
+    assert (tmp_path / "Select/job013/particles_split2.star").is_file()
+    assert (tmp_path / "Select/job013/particles_batch_100000.star").is_file()
+
     # Don't bother to check the auto-selection calls here, they are checked above
-    # Do check the combiner calls for the batch threshold and check the Murfey 3D calls
-    assert mock_copy.call_count == 1
-    mock_subprocess.assert_any_call(
-        [
-            "combine_star_files.py",
-            f"{tmp_path}/Select/job013/particles_all.star",
-            "--output_dir",
-            f"{tmp_path}/Select/job013",
-            "--split",
-            "--split_size",
-            "100000",
-        ],
-        cwd=str(tmp_path),
-        capture_output=True,
-    )
+    # Do check the Murfey 3D calls
     offline_transport.send.assert_any_call(
         destination="murfey_feedback",
         message={
@@ -439,9 +409,8 @@ def test_select_classes_service_two_thresholds(
 
 @pytest.mark.skipif(sys.platform == "win32", reason="does not run on windows")
 @mock.patch("relion.zocalo.ctffind.subprocess.run")
-@mock.patch("relion.zocalo.select_classes.shutil.copy2")
 def test_select_classes_service_last_threshold(
-    mock_copy, mock_subprocess, mock_environment, offline_transport, tmp_path
+    mock_subprocess, mock_environment, offline_transport, tmp_path
 ):
     """
     Test the service for the case where the particle count crosses the maximum.
@@ -459,35 +428,25 @@ def test_select_classes_service_last_threshold(
         "message-id": mock.sentinel,
         "subscription": mock.sentinel,
     }
-    select_test_message, relion_options = select_classes_common_setup(tmp_path)
+    select_test_message, relion_options = select_classes_common_setup(
+        tmp_path, initial_particle_count=190000, particles_to_add=70000
+    )
 
     # Set up the mock service and send the message to it
     service = select_classes.SelectClasses(environment=mock_environment)
     service.transport = offline_transport
     service.start()
-
-    (tmp_path / "Select/job013/").mkdir(parents=True)
-    (tmp_path / "Select/job013/particles_all.star").touch()
-    service.previous_total_count = 190000
-    service.total_count = 260000
     service.select_classes(None, header=header, message=select_test_message)
 
+    # Check the correct particle counts were found and split files made
+    assert service.previous_total_count == 190000
+    assert service.total_count == 260000
+    assert (tmp_path / "Select/job013/particles_split1.star").is_file()
+    assert (tmp_path / "Select/job013/particles_split2.star").is_file()
+    assert (tmp_path / "Select/job013/particles_batch_200000.star").is_file()
+
     # Don't bother to check the auto-selection calls here, they are checked above
-    # Do check the combiner calls for the batch threshold and check the Murfey 3D calls
-    assert mock_copy.call_count == 1
-    mock_subprocess.assert_any_call(
-        [
-            "combine_star_files.py",
-            f"{tmp_path}/Select/job013/particles_all.star",
-            "--output_dir",
-            f"{tmp_path}/Select/job013",
-            "--split",
-            "--split_size",
-            "200000",
-        ],
-        cwd=str(tmp_path),
-        capture_output=True,
-    )
+    # Do check the Murfey 3D calls
     offline_transport.send.assert_any_call(
         destination="murfey_feedback",
         message={
@@ -521,34 +480,25 @@ def test_select_classes_service_not_threshold(
         "message-id": mock.sentinel,
         "subscription": mock.sentinel,
     }
-    select_test_message, relion_options = select_classes_common_setup(tmp_path)
+    select_test_message, relion_options = select_classes_common_setup(
+        tmp_path, initial_particle_count=110000, particles_to_add=20000
+    )
 
     # Set up the mock service and send the message to it
     service = select_classes.SelectClasses(environment=mock_environment)
     service.transport = offline_transport
     service.start()
-
-    (tmp_path / "Select/job013/").mkdir(parents=True)
-    (tmp_path / "Select/job013/particles_all.star").touch()
-    service.previous_total_count = 110000
-    service.total_count = 130000
     service.select_classes(None, header=header, message=select_test_message)
 
+    # Check the correct particle counts were found and split files made
+    assert service.previous_total_count == 110000
+    assert service.total_count == 130000
+    assert (tmp_path / "Select/job013/particles_split1.star").is_file()
+    assert not (tmp_path / "Select/job013/particles_split2.star").is_file()
+    assert len(list(tmp_path.glob("Select/job013/particles_batch_*"))) == 0
+
     # Don't bother to check the auto-selection calls here, they are checked above
-    # Do check the combiner calls for the batch threshold and check the Murfey 3D calls
-    mock_subprocess.assert_any_call(
-        [
-            "combine_star_files.py",
-            f"{tmp_path}/Select/job013/particles_all.star",
-            "--output_dir",
-            f"{tmp_path}/Select/job013",
-            "--split",
-            "--split_size",
-            "150000",
-        ],
-        cwd=str(tmp_path),
-        capture_output=True,
-    )
+    # Do check the Murfey 3D calls
     assert len(offline_transport.send.call_args_list) == 6
 
 
@@ -570,34 +520,25 @@ def test_select_classes_service_past_maximum(
         "message-id": mock.sentinel,
         "subscription": mock.sentinel,
     }
-    select_test_message, relion_options = select_classes_common_setup(tmp_path)
+    select_test_message, relion_options = select_classes_common_setup(
+        tmp_path, initial_particle_count=290000, particles_to_add=20000
+    )
 
     # Set up the mock service and send the message to it
     service = select_classes.SelectClasses(environment=mock_environment)
     service.transport = offline_transport
     service.start()
-
-    (tmp_path / "Select/job013/").mkdir(parents=True)
-    (tmp_path / "Select/job013/particles_all.star").touch()
-    service.previous_total_count = 290000
-    service.total_count = 310000
     service.select_classes(None, header=header, message=select_test_message)
 
+    # Check the correct particle counts were found and split files made
+    assert service.previous_total_count == 290000
+    assert service.total_count == 310000
+    assert (tmp_path / "Select/job013/particles_split1.star").is_file()
+    assert (tmp_path / "Select/job013/particles_split2.star").is_file()
+    assert len(list(tmp_path.glob("Select/job013/particles_batch_*"))) == 0
+
     # Don't bother to check the auto-selection calls here, they are checked above
-    # Do check the combiner calls for the batch threshold and check the Murfey 3D calls
-    mock_subprocess.assert_any_call(
-        [
-            "combine_star_files.py",
-            f"{tmp_path}/Select/job013/particles_all.star",
-            "--output_dir",
-            f"{tmp_path}/Select/job013",
-            "--split",
-            "--split_size",
-            "200000",
-        ],
-        cwd=str(tmp_path),
-        capture_output=True,
-    )
+    # Do check the Murfey 3D calls
     assert len(offline_transport.send.call_args_list) == 6
 
 
