@@ -10,14 +10,17 @@ from gemmi import cif
 from pydantic import BaseModel, Field, ValidationError
 from workflows.services.common_service import CommonService
 
-from relion.zocalo.spa_relion_service_options import RelionServiceOptions
+from relion.zocalo.spa_relion_service_options import (
+    RelionServiceOptions,
+    update_relion_options,
+)
 
 
 class ExtractParameters(BaseModel):
     micrographs_file: str = Field(..., min_length=1)
     coord_list_file: str = Field(..., min_length=1)
     output_file: str = Field(..., min_length=1)
-    pix_size: float
+    pixel_size: float
     ctf_image: str
     ctf_max_resolution: float
     ctf_figure_of_merit: float
@@ -117,20 +120,10 @@ class Extract(CommonService):
             f"Output: {extract_params.output_file}"
         )
 
-        # Update the relion options
-        extract_params.relion_options.downscale = extract_params.downscale
-        extract_params.relion_options.batch_size = extract_params.batch_size
-        extract_params.relion_options.voltage = extract_params.voltage
-        extract_params.relion_options.angpix = extract_params.pix_size
-
-        # Get out the box sizes using the relion options
-        if extract_params.particle_diameter:
-            extract_params.relion_options.particle_diameter = (
-                extract_params.particle_diameter
-            )
-        else:
-            extract_params.relion_options.boxsize = extract_params.boxsize
-            extract_params.relion_options.small_boxsize = extract_params.small_boxsize
+        # Update the relion options and get box sizes
+        extract_params.relion_options = update_relion_options(
+            extract_params.relion_options, dict(extract_params)
+        )
 
         # Make sure the output directory exists
         job_dir = Path(re.search(".+/job[0-9]{3}/", extract_params.output_file)[0])
@@ -282,7 +275,7 @@ class Extract(CommonService):
             # Downscale the image size
             if extract_params.downscale:
                 extract_params.relion_options.pixel_size_downscaled = (
-                    extract_params.pix_size
+                    extract_params.pixel_size
                     * extract_params.relion_options.boxsize
                     / extract_params.relion_options.small_boxsize
                 )
@@ -387,10 +380,10 @@ class Extract(CommonService):
         # Produce the mrc file of the extracted particles
         if extract_params.downscale:
             box_len = extract_params.relion_options.small_boxsize
-            pix_size = extract_params.relion_options.pixel_size_downscaled
+            pixel_size = extract_params.relion_options.pixel_size_downscaled
         else:
             box_len = extract_params.relion_options.boxsize
-            pix_size = extract_params.relion_options.angpix
+            pixel_size = extract_params.relion_options.pixel_size
 
         particle_count = np.shape(output_mrc_stack)[0]
         self.log.info(f"Extracted {particle_count} particles")
@@ -400,8 +393,8 @@ class Extract(CommonService):
                 mrc.header.mx = box_len
                 mrc.header.my = box_len
                 mrc.header.mz = 1
-                mrc.header.cella.x = pix_size * box_len
-                mrc.header.cella.y = pix_size * box_len
+                mrc.header.cella.x = pixel_size * box_len
+                mrc.header.cella.y = pixel_size * box_len
                 mrc.header.cella.z = 1
 
         # Register the extract job with the node creator

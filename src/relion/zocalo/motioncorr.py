@@ -15,17 +15,20 @@ from gemmi import cif
 from pydantic import BaseModel, Field, ValidationError, validator
 from workflows.services.common_service import CommonService
 
-from relion.zocalo.spa_relion_service_options import RelionServiceOptions
+from relion.zocalo.spa_relion_service_options import (
+    RelionServiceOptions,
+    update_relion_options,
+)
 
 
 class MotionCorrParameters(BaseModel):
     movie: str = Field(..., min_length=1)
     mrc_out: str = Field(..., min_length=1)
     experiment_type: str
-    pix_size: float
-    fm_dose: float
+    pixel_size: float
+    dose_per_frame: float
     use_motioncor2: bool = True
-    patch_size: dict = {"x": 5, "y": 5}
+    patch_sizes: dict = {"x": 5, "y": 5}
     gpu: int = 0
     threads: int = 1
     gain_ref: str = None
@@ -39,11 +42,11 @@ class MotionCorrParameters(BaseModel):
     throw: int = None
     trunc: int = None
     fm_ref: int = 0
-    kv: int = None
+    voltage: int = None
     fm_int_file: str = None
     init_dose: float = None
     mag: Optional[dict] = None
-    ft_bin: float = None
+    motion_corr_binning: float = None
     serial: int = None
     in_suffix: str = None
     eer_sampling: int = None
@@ -213,13 +216,23 @@ class MotionCorr(CommonService):
             rw.transport.nack(header)
             return
 
+        # Get the eer grouping out of the fractionation file
+        eer_grouping = 0
+        if mc_params.movie.endswith(".eer") and mc_params.fm_int_file and Path(mc_params.fm_int_file).is_file():
+            with open(mc_params.fm_int_file, "r") as eer_file:
+                eer_values = eer_file.readline()
+                try:
+                    eer_grouping = eer_values.split()[1]
+                except ValueError:
+                    self.log.warning("Cannot read eer grouping")
+
         if mc_params.experiment_type == "spa":
             # Update the relion options
-            mc_params.relion_options.voltage = mc_params.kv
-            mc_params.relion_options.angpix = mc_params.pix_size
-            mc_params.relion_options.dose_per_frame = mc_params.fm_dose
-            mc_params.relion_options.gain_ref = mc_params.gain_ref
-            mc_params.relion_options.do_icebreaker_jobs = mc_params.do_icebreaker_jobs
+            mc_params.relion_options = update_relion_options(
+                mc_params.relion_options, dict(mc_params)
+            )
+            mc_params.relion_options.eer_grouping = eer_grouping
+
 
         # Determine the input and output files
         self.log.info(f"Input: {mc_params.movie} Output: {mc_params.mrc_out}")
@@ -244,8 +257,8 @@ class MotionCorr(CommonService):
             command = ["MotionCor2", input_flag, mc_params.movie]
             mc2_flags = {
                 "mrc_out": "-OutMrc",
-                "patch_size": "-Patch",
-                "pix_size": "-PixSize",
+                "patch_sizes": "-Patch",
+                "pixel_size": "-PixSize",
                 "gain_ref": "-Gain",
                 "rot_gain": "-RotGain",
                 "flip_gain": "-FlipGain",
@@ -258,11 +271,11 @@ class MotionCorr(CommonService):
                 "throw": "-Throw",
                 "trunc": "-Trunc",
                 "fm_ref": "-FmRef",
-                "kv": "-Kv",
-                "fm_dose": "-FmDose",
+                "voltage": "-Kv",
+                "dose_per_frame": "-FmDose",
                 "init_dose": "-InitDose",
                 "mag": "-Mag",
-                "ft_bin": "-FtBin",
+                "motion_corr_binning": "-FtBin",
                 "serial": "-Serial",
                 "in_suffix": "-InSuffix",
                 "eer_sampling": "-EerSampling",
@@ -298,16 +311,16 @@ class MotionCorr(CommonService):
                 "threads": "--j",
                 "movie": "--in_movie",
                 "mrc_out": "--out_mic",
-                "pix_size": "--angpix",
-                "kv": "--voltage",
-                "fm_dose": "--dose_per_frame",
+                "pixel_size": "--angpix",
+                "voltage": "--voltage",
+                "dose_per_frame": "--dose_per_frame",
                 "gain_ref": "--gainref",
                 "defect_file": "--defect_file",
                 "rot_gain": "--gain_rot",
                 "flip_gain": "--gain_flip",
                 "eer_sampling": "--eer_upsampling",
                 "init_dose": "--preexposure",
-                "patch_size": {"--patch_x": "x", "--patch_y": "y"},
+                "patch_sizes": {"--patch_x": "x", "--patch_y": "y"},
                 "bft": {"--bfactor": "local_motion"},
             }
             # Add values from input parameters with flags
@@ -322,19 +335,21 @@ class MotionCorr(CommonService):
                         command.extend((relion_mc_flags[param_k], str(param_v)))
 
             # Read eer grouping from file
-            if (
-                mc_params.movie.endswith(".eer")
-                and mc_params.fm_int_file
-                and Path(mc_params.fm_int_file).is_file()
-            ):
-                with open(mc_params.fm_int_file, "r") as fm_int_file:
-                    eer_params = fm_int_file.read()
-                command.extend(("--eer_grouping", eer_params.split(" ")[1]))
+            if eer_grouping:
+                command.extend(("--eer_grouping", eer_grouping))
 
             # Add some standard flags
             command.extend(("--dose_weighting", "--i", "dummy"))
             # Run Relion motion correction
             result = self.relion_motioncor(command, mc_params.mrc_out)
+
+        # Adjust the pixel size based on the binning
+        if mc_params.motion_corr_binning:
+            mc_params.pixel_size *= mc_params.motion_corr_binning
+            if mc_params.relion_options:
+                mc_params.relion_options.pixel_size *= mc_params.motion_corr_binning
+
+        # Confirm the command ran successfully
         if result.returncode:
             self.log.error(
                 f"Motion correction of {mc_params.movie} "
@@ -366,17 +381,13 @@ class MotionCorr(CommonService):
             rw.transport.nack(header)
             return
 
-        # Adjust the pixel size based on the binning
-        if mc_params.ft_bin:
-            mc_params.pix_size *= mc_params.ft_bin
-            if mc_params.relion_options:
-                mc_params.relion_options.angpix *= mc_params.ft_bin
-
         # Extract results for ispyb
         total_motion = 0
         early_motion = 0
         late_motion = 0
-        cutoff_frame = round(mc_params.dose_motionstats_cutoff / mc_params.fm_dose)
+        cutoff_frame = round(
+            mc_params.dose_motionstats_cutoff / mc_params.dose_per_frame
+        )
         for i in range(1, len(self.x_shift_list)):
             total_motion += hypot(
                 self.x_shift_list[i] - self.x_shift_list[i - 1],
@@ -413,9 +424,9 @@ class MotionCorr(CommonService):
             "drift_plot_full_path": str(plot_path),
             "micrograph_snapshot_full_path": str(snapshot_path),
             "micrograph_full_path": str(mc_params.mrc_out),
-            "patches_used_x": mc_params.patch_size["x"],
-            "patches_used_y": mc_params.patch_size["y"],
-            "dose_per_frame": mc_params.fm_dose,
+            "patches_used_x": mc_params.patch_sizes["x"],
+            "patches_used_y": mc_params.patch_sizes["y"],
+            "dose_per_frame": mc_params.dose_per_frame,
         }
         self.log.info(f"Sending to ispyb {ispyb_parameters}")
         if isinstance(rw, MockRW):
@@ -512,7 +523,7 @@ class MotionCorr(CommonService):
         mc_params.ctf["input_image"] = mc_params.mrc_out
         mc_params.ctf["mc_uuid"] = mc_params.mc_uuid
         mc_params.ctf["picker_uuid"] = mc_params.picker_uuid
-        mc_params.ctf["pix_size"] = mc_params.pix_size
+        mc_params.ctf["pixel_size"] = mc_params.pixel_size
         if isinstance(rw, MockRW):
             rw.transport.send(  # type: ignore
                 destination="ctffind",

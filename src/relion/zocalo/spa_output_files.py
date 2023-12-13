@@ -21,10 +21,10 @@ def get_optics_table(
     output_cif = cif.Document()
     data_optics = output_cif.add_new_block("optics")
 
-    new_angpix = (
+    scaled_pixel_size = (
         str(relion_options.pixel_size_downscaled)
         if relion_options.pixel_size_downscaled
-        else str(relion_options.angpix)
+        else str(relion_options.pixel_size)
     )
 
     optics_columns = [
@@ -50,15 +50,15 @@ def get_optics_table(
     optics_values = [
         "opticsGroup1",
         "1",
-        str(relion_options.angpix),
+        str(relion_options.pixel_size),
         str(relion_options.voltage),
         str(relion_options.spher_aber),
         str(relion_options.ampl_contrast),
     ]
     if particle:
-        optics_values.extend([new_angpix, str(im_size), "2", "0"])
+        optics_values.extend([scaled_pixel_size, str(im_size), "2", "0"])
     else:
-        optics_values.append(new_angpix)
+        optics_values.append(scaled_pixel_size)
 
     optics_loop = data_optics.init_loop("_rln", optics_columns)
     optics_loop.add_row(optics_values)

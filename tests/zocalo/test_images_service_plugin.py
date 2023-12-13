@@ -63,7 +63,7 @@ def plugin_params_parpick(jpeg_path, outfile):
             "parameters": {"images_command": "picked_particles"},
             "file": jpeg_path,
             "coordinates": [("0", "1"), ("2", "2")],
-            "angpix": 0.5,
+            "pixel_size": 0.5,
             "diameter": 190,
             "outfile": outfile,
         }

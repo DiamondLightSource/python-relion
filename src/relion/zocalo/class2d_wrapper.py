@@ -12,7 +12,10 @@ import zocalo.wrapper
 from gemmi import cif
 from pydantic import BaseModel, Field, ValidationError
 
-from relion.zocalo.spa_relion_service_options import RelionServiceOptions
+from relion.zocalo.spa_relion_service_options import (
+    RelionServiceOptions,
+    update_relion_options,
+)
 
 logger = logging.getLogger("relion.class2d.wrapper")
 
@@ -33,9 +36,9 @@ class Class2DParameters(BaseModel):
     skip_gridding: bool = False
     do_ctf: bool = True
     ctf_intact_first_peak: bool = False
-    nr_iter: int = 20
+    class2d_nr_iter: int = 20
     tau_fudge: float = 2
-    nr_classes: int = 50
+    class2d_nr_classes: int = 50
     flatten_solvent: bool = True
     do_zero_mask: bool = True
     highres_limit: float = None
@@ -51,7 +54,6 @@ class Class2DParameters(BaseModel):
     mpi_run_command: str = "srun -n 5"
     threads: int = 8
     gpus: str = "0:1:2:3"
-    combine_star_job_number: int
     picker_id: int
     class2d_grp_uuid: int
     class_uuids: str
@@ -110,21 +112,10 @@ class Class2DWrapper(zocalo.wrapper.BaseWrapper):
         else:
             job_type = "relion.class2d.em"
 
-        # Update the relion options
-        class2d_params.relion_options.batch_size = class2d_params.batch_size
-        class2d_params.relion_options.class2d_nr_classes = class2d_params.nr_classes
-        class2d_params.relion_options.class2d_nr_iter = class2d_params.nr_iter
-        class2d_params.relion_options.do_icebreaker_jobs = (
-            class2d_params.do_icebreaker_jobs
+        # Update the relion options to get out the mask diameter
+        class2d_params.relion_options = update_relion_options(
+            class2d_params.relion_options, dict(class2d_params)
         )
-
-        # Get out the box sizes using the relion options
-        if class2d_params.particle_diameter:
-            class2d_params.relion_options.particle_diameter = (
-                class2d_params.particle_diameter
-            )
-        else:
-            class2d_params.relion_options.mask_diameter = class2d_params.mask_diameter
 
         # Make the job directory and move to the project directory
         job_dir = Path(class2d_params.class2d_dir)
@@ -154,9 +145,9 @@ class Class2DWrapper(zocalo.wrapper.BaseWrapper):
             "skip_gridding": "--skip_gridding",
             "do_ctf": "--ctf",
             "ctf_intact_first_peak": "--ctf_intact_first_peak",
-            "nr_iter": "--iter",
+            "class2d_nr_iter": "--iter",
             "tau_fudge": "--tau2_fudge",
-            "nr_classes": "--K",
+            "class2d_nr_classes": "--K",
             "flatten_solvent": "--flatten_solvent",
             "do_zero_mask": "--zero_mask",
             "highres_limit": "--strict_highres_exp",
@@ -239,7 +230,7 @@ class Class2DWrapper(zocalo.wrapper.BaseWrapper):
                 class2d_params.particles_file.split("particles_split")[1].split(".")[0]
             ),
             "number_of_particles_per_batch": class2d_params.batch_size,
-            "number_of_classes_per_batch": class2d_params.nr_classes,
+            "number_of_classes_per_batch": class2d_params.class2d_nr_classes,
             "symmetry": "C1",
             "particle_picker_id": class2d_params.picker_id,
         }
@@ -257,7 +248,7 @@ class Class2DWrapper(zocalo.wrapper.BaseWrapper):
         # Send individual classes to ispyb
         if not class2d_params.batch_is_complete:
             class_particles_file = cif.read_file(
-                f"{class2d_params.class2d_dir}/run_it{class2d_params.nr_iter:03}_data.star"
+                f"{class2d_params.class2d_dir}/run_it{class2d_params.class2d_nr_iter:03}_data.star"
             )
             particles_block = class_particles_file.find_block("particles")
             particles_in_batch = len(particles_block.find_loop("_rlnCoordinateX"))
@@ -265,12 +256,12 @@ class Class2DWrapper(zocalo.wrapper.BaseWrapper):
             particles_in_batch = class2d_params.batch_size
 
         class_star_file = cif.read_file(
-            f"{class2d_params.class2d_dir}/run_it{class2d_params.nr_iter:03}_model.star"
+            f"{class2d_params.class2d_dir}/run_it{class2d_params.class2d_nr_iter:03}_model.star"
         )
         classes_block = class_star_file.find_block("model_classes")
         classes_loop = classes_block.find_loop("_rlnReferenceImage").get_loop()
 
-        for class_id in range(class2d_params.nr_classes):
+        for class_id in range(class2d_params.class2d_nr_classes):
             # Add an ispyb insert for each class
             class_ispyb_parameters = {
                 "ispyb_command": "buffer",
@@ -281,7 +272,7 @@ class Class2DWrapper(zocalo.wrapper.BaseWrapper):
                 "class_number": class_id + 1,
                 "class_image_full_path": (
                     f"{class2d_params.class2d_dir}"
-                    f"/run_it{class2d_params.nr_iter:03}_classes_{class_id+1}.jpeg"
+                    f"/run_it{class2d_params.class2d_nr_iter:03}_classes_{class_id+1}.jpeg"
                 ),
                 "particles_per_class": (
                     float(classes_loop.val(class_id, 1)) * particles_in_batch
@@ -328,7 +319,7 @@ class Class2DWrapper(zocalo.wrapper.BaseWrapper):
                 "image_command": "mrc_to_jpeg",
                 "file": (
                     f"{class2d_params.class2d_dir}"
-                    f"/run_it{class2d_params.nr_iter:03}_classes.mrcs"
+                    f"/run_it{class2d_params.class2d_nr_iter:03}_classes.mrcs"
                 ),
                 "all_frames": "True",
             },
@@ -363,8 +354,7 @@ class Class2DWrapper(zocalo.wrapper.BaseWrapper):
             # Create a 2D autoselection job
             self.log.info("Sending to class selection")
             autoselect_parameters = {
-                "input_file": f"{class2d_params.class2d_dir}/run_it{class2d_params.nr_iter:03}_optimiser.star",
-                "combine_star_job_number": class2d_params.combine_star_job_number,
+                "input_file": f"{class2d_params.class2d_dir}/run_it{class2d_params.class2d_nr_iter:03}_optimiser.star",
                 "relion_options": dict(class2d_params.relion_options),
                 "python": class2d_params.autoselect_python,
                 "class_uuids": class2d_params.class_uuids,

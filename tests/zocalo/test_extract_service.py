@@ -59,7 +59,7 @@ def test_extract_service(mock_mrcfile, mock_environment, offline_transport, tmp_
 
     extract_test_message = {
         "parameters": {
-            "pix_size": 0.1,
+            "pixel_size": 0.1,
             "ctf_image": f"{tmp_path}/CtFind/job006/Movies/sample.ctf",
             "ctf_max_resolution": "10",
             "ctf_figure_of_merit": "20",
@@ -83,13 +83,13 @@ def test_extract_service(mock_mrcfile, mock_environment, offline_transport, tmp_
     }
     output_relion_options = RelionServiceOptions()
     output_relion_options.voltage = extract_test_message["parameters"]["voltage"]
-    output_relion_options.angpix = extract_test_message["parameters"]["pix_size"]
+    output_relion_options.pixel_size = extract_test_message["parameters"]["pixel_size"]
     output_relion_options.particle_diameter = extract_test_message["parameters"][
         "particle_diameter"
     ]
     output_relion_options.downscale = extract_test_message["parameters"]["downscale"]
     output_relion_options.pixel_size_downscaled = (
-        extract_test_message["parameters"]["pix_size"]
+        extract_test_message["parameters"]["pixel_size"]
         * output_relion_options.boxsize
         / output_relion_options.small_boxsize
     )

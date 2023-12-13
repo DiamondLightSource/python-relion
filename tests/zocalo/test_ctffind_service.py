@@ -53,7 +53,7 @@ def test_ctffind_service(
     ctffind_test_message = {
         "parameters": {
             "experiment_type": "spa",
-            "pix_size": 0.1,
+            "pixel_size": 0.1,
             "voltage": 300.0,
             "spher_aber": 2.7,
             "ampl_contrast": 0.8,
@@ -95,7 +95,7 @@ def test_ctffind_service(
     parameters_list = [
         ctffind_test_message["parameters"]["input_image"],
         ctffind_test_message["parameters"]["output_image"],
-        ctffind_test_message["parameters"]["pix_size"],
+        ctffind_test_message["parameters"]["pixel_size"],
         ctffind_test_message["parameters"]["voltage"],
         ctffind_test_message["parameters"]["spher_aber"],
         ctffind_test_message["parameters"]["ampl_contrast"],
@@ -139,8 +139,7 @@ def test_ctffind_service(
                 "relion_options": output_relion_options,
                 "mc_uuid": ctffind_test_message["parameters"]["mc_uuid"],
                 "picker_uuid": ctffind_test_message["parameters"]["picker_uuid"],
-                "pix_size": ctffind_test_message["parameters"]["pix_size"],
-                "threshold": output_relion_options["cryolo_threshold"],
+                "pixel_size": ctffind_test_message["parameters"]["pixel_size"],
             },
         },
     )
