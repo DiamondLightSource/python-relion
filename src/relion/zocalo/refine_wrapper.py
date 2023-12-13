@@ -96,8 +96,8 @@ class RefineWrapper(zocalo.wrapper.BaseWrapper):
         refine_selection_link = Path(
             project_dir / f"Select/Refine_class{refine_params.class_number}"
         )
-        if not refine_selection_link.is_symlink():
-            refine_selection_link.symlink_to(f"job{job_num_refine-2:03}")
+        refine_selection_link.unlink(missing_ok=True)
+        refine_selection_link.symlink_to(f"job{job_num_refine-2:03}")
 
         self.log.info(f"Running {self.select_job_type} in {select_job_dir}")
         select_command = [
@@ -158,8 +158,8 @@ class RefineWrapper(zocalo.wrapper.BaseWrapper):
         refine_extraction_link = Path(
             project_dir / f"Extract/Reextract_class{refine_params.class_number}"
         )
-        if not refine_extraction_link.is_symlink():
-            refine_extraction_link.symlink_to(f"job{job_num_refine-1:03}")
+        refine_extraction_link.unlink(missing_ok=True)
+        refine_extraction_link.symlink_to(f"job{job_num_refine-1:03}")
 
         # If no background radius set diameter as 75% of box
         if refine_params.bg_radius == -1:
@@ -191,10 +191,6 @@ class RefineWrapper(zocalo.wrapper.BaseWrapper):
             "--norm",
             "--bg_radius",
             str(refine_params.bg_radius),
-            "--white_dust",
-            "-1",
-            "--black_dust",
-            "-1",
             "--invert_contrast",
             "--pipeline_control",
             f"{extract_job_dir}/",
