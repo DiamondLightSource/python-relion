@@ -24,7 +24,7 @@ class MotionCorrParameters(BaseModel):
     experiment_type: str
     pix_size: float
     fm_dose: float
-    use_motioncor2: bool = False
+    use_motioncor2: bool = True
     patch_size: dict = {"x": 5, "y": 5}
     gpu: int = 0
     threads: int = 1
