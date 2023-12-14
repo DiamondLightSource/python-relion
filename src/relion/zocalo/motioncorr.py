@@ -218,7 +218,11 @@ class MotionCorr(CommonService):
 
         # Get the eer grouping out of the fractionation file
         eer_grouping = 0
-        if mc_params.movie.endswith(".eer") and mc_params.fm_int_file and Path(mc_params.fm_int_file).is_file():
+        if (
+            mc_params.movie.endswith(".eer")
+            and mc_params.fm_int_file
+            and Path(mc_params.fm_int_file).is_file()
+        ):
             with open(mc_params.fm_int_file, "r") as eer_file:
                 eer_values = eer_file.readline()
                 try:
@@ -232,7 +236,6 @@ class MotionCorr(CommonService):
                 mc_params.relion_options, dict(mc_params)
             )
             mc_params.relion_options.eer_grouping = eer_grouping
-
 
         # Determine the input and output files
         self.log.info(f"Input: {mc_params.movie} Output: {mc_params.mrc_out}")
@@ -318,6 +321,7 @@ class MotionCorr(CommonService):
                 "defect_file": "--defect_file",
                 "rot_gain": "--gain_rot",
                 "flip_gain": "--gain_flip",
+                "motion_corr_binning": "--bin_factor",
                 "eer_sampling": "--eer_upsampling",
                 "init_dose": "--preexposure",
                 "patch_sizes": {"--patch_x": "x", "--patch_y": "y"},
