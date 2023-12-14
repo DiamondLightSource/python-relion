@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import re
 import string
 import subprocess
@@ -10,6 +11,7 @@ from typing import Optional
 
 import plotly.express as px
 import workflows.recipe
+from gemmi import cif
 from pydantic import BaseModel, Field, ValidationError, validator
 from workflows.services.common_service import CommonService
 
@@ -22,8 +24,10 @@ class MotionCorrParameters(BaseModel):
     experiment_type: str
     pix_size: float
     fm_dose: float
+    use_motioncor2: bool = True
     patch_size: dict = {"x": 5, "y": 5}
     gpu: int = 0
+    threads: int = 1
     gain_ref: str = None
     rot_gain: int = None
     flip_gain: int = None
@@ -37,6 +41,7 @@ class MotionCorrParameters(BaseModel):
     fm_ref: int = 0
     kv: int = None
     fm_int_file: str = None
+    init_dose: float = None
     mag: Optional[dict] = None
     ft_bin: float = None
     serial: int = None
@@ -91,7 +96,7 @@ class MotionCorr(CommonService):
     _logger_name = "relion.zocalo.motioncorr"
 
     # Job name
-    job_type = "relion.motioncorr.motioncor2"
+    job_type = "relion.motioncorr"
 
     # Values to extract for ISPyB
     x_shift_list = []
@@ -109,9 +114,9 @@ class MotionCorr(CommonService):
             allow_non_recipe_messages=True,
         )
 
-    def parse_mc_output(self, mc_stdout: str):
+    def parse_mc2_stdout(self, mc_stdout: str):
         """
-        Read the output logs of MotionCorr to determine
+        Read the output logs of MotionCor2 to determine
         the movement of each frame
         """
         frames_line = False
@@ -132,10 +137,34 @@ class MotionCorr(CommonService):
             if "x Shift" in line:
                 frames_line = True
 
+    def parse_relion_mc_output(self, stdout_file):
+        """
+        Read the output star file made by Relion to determine
+        the movement of each frame
+        """
+        shift_cif = cif.read_file(str(stdout_file))
+        shift_block = shift_cif.find_block("global_shift")
+        x_shifts_str = list(shift_block.find_loop("_rlnMicrographShiftX"))
+        y_shifts_str = list(shift_block.find_loop("_rlnMicrographShiftY"))
+        for frame in range(len(x_shifts_str)):
+            self.x_shift_list.append(float(x_shifts_str[frame]))
+            self.y_shift_list.append(float(y_shifts_str[frame]))
+
     def motioncor2(self, command, mrc_out):
         """Run the MotionCor2 command"""
         result = subprocess.run(command, capture_output=True)
-        self.parse_mc_output(result.stdout.decode("utf8", "replace"))
+        self.parse_mc2_stdout(result.stdout.decode("utf8", "replace"))
+        return result
+
+    def relion_motioncor(self, command, mrc_out):
+        """Run Relion's owm motion correction"""
+        result = subprocess.run(command, capture_output=True)
+        if Path(mrc_out).with_suffix(".star").exists():
+            self.parse_relion_mc_output(Path(mrc_out).with_suffix(".star"))
+        else:
+            self.log.error(
+                f"Relion output log {Path(mrc_out).with_suffix('.star')} not found"
+            )
         return result
 
     def motion_correction(self, rw, header: dict, message: dict):
@@ -163,8 +192,6 @@ class MotionCorr(CommonService):
             rw.send = rw.dummy
             message = message["content"]
 
-        command = ["MotionCor2"]
-
         parameter_map = ChainMapWithReplacement(
             message if isinstance(message, dict) else {},
             rw.recipe_step["parameters"],
@@ -185,39 +212,8 @@ class MotionCorr(CommonService):
             rw.transport.nack(header)
             return
 
-        mc_flags = {
-            "mrc_out": "-OutMrc",
-            "patch_size": "-Patch",
-            "pix_size": "-PixSize",
-            "gain_ref": "-Gain",
-            "rot_gain": "-RotGain",
-            "flip_gain": "-FlipGain",
-            "dark": "-Dark",
-            "gpu": "-Gpu",
-            "use_gpus": "-UseGpus",
-            "sum_range": "-SumRange",
-            "iter": "-Iter",
-            "tol": "-Tol",
-            "throw": "-Throw",
-            "trunc": "-Trunc",
-            "fm_ref": "-FmRef",
-            "kv": "-Kv",
-            "fm_dose": "-FmDose",
-            "mag": "-Mag",
-            "ft_bin": "-FtBin",
-            "serial": "-Serial",
-            "in_suffix": "-InSuffix",
-            "eer_sampling": "-EerSampling",
-            "out_stack": "-OutStack",
-            "bft": "-Bft",
-            "group": "-Group",
-            "defect_file": "-DefectFile",
-            "arc_dir": "-ArcDir",
-            "in_fm_motion": "-InFmMotion",
-            "split_sum": "-SplitSum",
-        }
-
         # Determine the input and output files
+        self.log.info(f"Input: {mc_params.movie} Output: {mc_params.mrc_out}")
         if not Path(mc_params.mrc_out).parent.exists():
             Path(mc_params.mrc_out).parent.mkdir(parents=True)
         if mc_params.movie.endswith(".mrc"):
@@ -226,25 +222,110 @@ class MotionCorr(CommonService):
             input_flag = "-InTiff"
         elif mc_params.movie.endswith(".eer"):
             input_flag = "-InEer"
-            mc_flags["fm_int_file"] = "-FmIntFile"
         else:
             self.log.error(f"No input flag found for movie {mc_params.movie}")
             input_flag = None
             rw.transport.nack(header)
-        command.extend([input_flag, mc_params.movie])
 
-        # Create the motion correction command
-        for k, v in mc_params.dict().items():
-            if (v is not None) and (k in mc_flags):
-                if type(v) is dict:
-                    command.extend((mc_flags[k], " ".join(str(_) for _ in v.values())))
-                else:
-                    command.extend((mc_flags[k], str(v)))
+        # Run motion correction
+        if mc_params.use_motioncor2:
+            # Construct the command for MotionCor
+            self.job_type = "relion.motioncorr.motioncor2"
+            self.log.info("Using MotionCor2")
+            command = ["MotionCor2", input_flag, mc_params.movie]
+            mc2_flags = {
+                "mrc_out": "-OutMrc",
+                "patch_size": "-Patch",
+                "pix_size": "-PixSize",
+                "gain_ref": "-Gain",
+                "rot_gain": "-RotGain",
+                "flip_gain": "-FlipGain",
+                "dark": "-Dark",
+                "gpu": "-Gpu",
+                "use_gpus": "-UseGpus",
+                "sum_range": "-SumRange",
+                "iter": "-Iter",
+                "tol": "-Tol",
+                "throw": "-Throw",
+                "trunc": "-Trunc",
+                "fm_ref": "-FmRef",
+                "kv": "-Kv",
+                "fm_dose": "-FmDose",
+                "init_dose": "-InitDose",
+                "mag": "-Mag",
+                "ft_bin": "-FtBin",
+                "serial": "-Serial",
+                "in_suffix": "-InSuffix",
+                "eer_sampling": "-EerSampling",
+                "out_stack": "-OutStack",
+                "bft": "-Bft",
+                "group": "-Group",
+                "defect_file": "-DefectFile",
+                "arc_dir": "-ArcDir",
+                "in_fm_motion": "-InFmMotion",
+                "split_sum": "-SplitSum",
+            }
+            if mc_params.movie.endswith(".eer"):
+                mc2_flags["fm_int_file"] = "-FmIntFile"
 
-        self.log.info(f"Input: {mc_params.movie} Output: {mc_params.mrc_out}")
+            # Add values from input parameters with flags
+            for k, v in mc_params.dict().items():
+                if (v is not None) and (k in mc2_flags):
+                    if type(v) is dict:
+                        command.extend(
+                            (mc2_flags[k], " ".join(str(_) for _ in v.values()))
+                        )
+                    else:
+                        command.extend((mc2_flags[k], str(v)))
+            # Run MotionCor2
+            result = self.motioncor2(command, mc_params.mrc_out)
+        else:
+            # Construct the command for Relion motion correction
+            self.job_type = "relion.motioncorr.own"
+            self.log.info("Using Relion's own motion correction")
+            os.environ["FI_PROVIDER"] = "tcp"
+            command = ["relion_motion_correction", "--use_own"]
+            relion_mc_flags = {
+                "threads": "--j",
+                "movie": "--in_movie",
+                "mrc_out": "--out_mic",
+                "pix_size": "--angpix",
+                "kv": "--voltage",
+                "fm_dose": "--dose_per_frame",
+                "gain_ref": "--gainref",
+                "defect_file": "--defect_file",
+                "rot_gain": "--gain_rot",
+                "flip_gain": "--gain_flip",
+                "eer_sampling": "--eer_upsampling",
+                "init_dose": "--preexposure",
+                "patch_size": {"--patch_x": "x", "--patch_y": "y"},
+                "bft": {"--bfactor": "local_motion"},
+            }
+            # Add values from input parameters with flags
+            for param_k, param_v in mc_params.dict().items():
+                if (param_v is not None) and (param_k in relion_mc_flags):
+                    if type(param_v) is dict:
+                        for flag_k, flag_v in relion_mc_flags[param_k].items():
+                            command.extend(
+                                (flag_k, str(mc_params.dict()[param_k][flag_v]))
+                            )
+                    else:
+                        command.extend((relion_mc_flags[param_k], str(param_v)))
 
-        # Run motion correction and confirm it ran successfully
-        result = self.motioncor2(command, mc_params.mrc_out)
+            # Read eer grouping from file
+            if (
+                mc_params.movie.endswith(".eer")
+                and mc_params.fm_int_file
+                and Path(mc_params.fm_int_file).is_file()
+            ):
+                with open(mc_params.fm_int_file, "r") as fm_int_file:
+                    eer_params = fm_int_file.read()
+                command.extend(("--eer_grouping", eer_params.split(" ")[1]))
+
+            # Add some standard flags
+            command.extend(("--dose_weighting", "--i", "dummy"))
+            # Run Relion motion correction
+            result = self.relion_motioncor(command, mc_params.mrc_out)
         if result.returncode:
             self.log.error(
                 f"Motion correction of {mc_params.movie} "
@@ -376,7 +457,7 @@ class MotionCorr(CommonService):
                     rw.send_to("icebreaker", icebreaker_job003_params)
 
                 self.log.info(
-                    f"Sending to IceBreaker contract enhancement: {mc_params.mrc_out}"
+                    f"Sending to IceBreaker contrast enhancement: {mc_params.mrc_out}"
                 )
                 icebreaker_job004_params = {
                     "icebreaker_type": "enhancecontrast",

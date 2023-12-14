@@ -356,6 +356,7 @@ def _relion_no_extra_files(
 
 _output_files: Dict[str, Callable] = {
     "relion.import.movies": _import_output_files,
+    "relion.motioncorr.own": _motioncorr_output_files,
     "relion.motioncorr.motioncor2": _motioncorr_output_files,
     "icebreaker.micrograph_analysis.micrographs": _icebreaker_output_files,
     "icebreaker.micrograph_analysis.enhancecontrast": _icebreaker_output_files,
