@@ -86,6 +86,7 @@ def select_classes_common_setup(
 
     output_relion_options = dict(RelionServiceOptions())
     output_relion_options["class2d_fraction_of_classes_to_remove"] = 0.5
+    output_relion_options["autoselect_min_score"] = 0.0
 
     select_test_message = {
         "parameters": {
