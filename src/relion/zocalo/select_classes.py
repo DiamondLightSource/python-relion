@@ -301,7 +301,7 @@ class SelectClasses(CommonService):
             files_to_combine.append(combine_star_dir / "particles_all.star")
         else:
             combine_star_dir.mkdir(parents=True, exist_ok=True)
-            Path(project_dir / "Select/Star_combination").symlink_to(combine_star_dir)
+            Path(project_dir / "Select/Best_particles").symlink_to(combine_star_dir)
             self.previous_total_count = 0
 
         if not (
