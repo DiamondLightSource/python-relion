@@ -25,7 +25,7 @@ class SelectClassesParameters(BaseModel):
     particles_file: str = "particles.star"
     classes_file: str = "class_averages.star"
     python_exe: str = "python"
-    min_score: float = 0
+    autoselect_min_score: float = 0
     min_particles: int = 500
     class3d_batch_size: int = 50000
     class3d_max_size: int = 200000
@@ -131,6 +131,9 @@ class SelectClasses(CommonService):
         autoselect_params.relion_options.class2d_fraction_of_classes_to_remove = (
             autoselect_params.class2d_fraction_of_classes_to_remove
         )
+        autoselect_params.relion_options.autoselect_min_score = (
+            autoselect_params.autoselect_min_score
+        )
 
         self.log.info(f"Inputs: {autoselect_params.input_file}")
 
@@ -170,17 +173,22 @@ class SelectClasses(CommonService):
             ("--pipeline_control", f"{select_dir.relative_to(project_dir)}/")
         )
 
-        if not autoselect_params.min_score:
+        if not autoselect_params.autoselect_min_score:
             autoselect_command.extend(("--min_score", "0.0"))
         else:
-            autoselect_command.extend(("--min_score", str(autoselect_params.min_score)))
+            autoselect_command.extend(
+                ("--min_score", str(autoselect_params.autoselect_min_score))
+            )
 
         # Run the class selection
         autoselect_result = subprocess.run(
             autoselect_command, cwd=str(project_dir), capture_output=True
         )
 
-        if not autoselect_params.min_score and not autoselect_result.returncode:
+        if (
+            not autoselect_params.autoselect_min_score
+            and not autoselect_result.returncode
+        ):
             # If a minimum score isn't given, then work it out and rerun the job
             star_doc = cif.read_file(str(select_dir / "rank_model.star"))
             star_block = star_doc["model_classes"]

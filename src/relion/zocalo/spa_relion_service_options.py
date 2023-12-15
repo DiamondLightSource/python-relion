@@ -104,6 +104,8 @@ class RelionServiceOptions(BaseModel):
 
     # Fraction of classes to attempt to remove using the RELION 2D class ranker
     class2d_fraction_of_classes_to_remove: float = 0.9
+    # Threshold to apply to class scores
+    autoselect_min_score: float = 0.7
     # 2D classification particle batch size
     batch_size: int = 50000
     # Maximum batch size for the single batch of 3D classification
@@ -221,7 +223,7 @@ def generate_service_options(
 
     job_options["relion.select.class2dauto"] = {
         "python_exe": "/dls_sw/apps/EM/relion/4.0/conda/bin/python",
-        "rank_threshold": 0.5,
+        "rank_threshold": relion_options.autoselect_min_score,
         "other_args": "--select_min_nr_particles 500",
     }
 
