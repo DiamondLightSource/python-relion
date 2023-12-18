@@ -57,7 +57,7 @@ class SelectClasses(CommonService):
 
     def initializing(self):
         """Subscribe to a queue. Received messages must be acknowledged."""
-        self.log.info("Select particles service starting")
+        self.log.info("Select classes service starting")
         workflows.recipe.wrap_subscribe(
             self._transport,
             "select_classes",
