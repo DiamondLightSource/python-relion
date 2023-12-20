@@ -93,7 +93,7 @@ class RelionServiceOptions(BaseModel):
     patch_sizes: dict = {"x": 5, "y": 5}
 
     # Additional arguments for RELION's Motion Correction wrapper
-    motioncor_other_args: str = "--do_at_most 200 --skip_logfile"
+    motion_corr_other_args: str = "--do_at_most 200 --skip_logfile"
     # Threshold for cryolo autopicking
     cryolo_threshold: float = 0.15
     # Location of the cryolo specific files
@@ -158,7 +158,7 @@ def generate_service_options(
         "patch_x": relion_options.patch_sizes["x"],
         "patch_y": relion_options.patch_sizes["y"],
         "bin_factor": relion_options.motion_corr_binning,
-        "other_args": f"{relion_options.motioncor_other_args}",
+        "other_args": f"{relion_options.motion_corr_other_args}",
         "nr_mpi": 4,
         "nr_threads": 10,
     }

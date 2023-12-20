@@ -160,7 +160,7 @@ class MotionCorr(CommonService):
         self.parse_mc2_stdout(result.stdout.decode("utf8", "replace"))
         return result
 
-    def relion_motioncor(self, command, mrc_out):
+    def relion_motioncorr(self, command, mrc_out):
         """Run Relion's owm motion correction"""
         result = subprocess.run(command, capture_output=True)
         if Path(mrc_out).with_suffix(".star").exists():
@@ -254,7 +254,7 @@ class MotionCorr(CommonService):
 
         # Run motion correction
         if mc_params.use_motioncor2:
-            # Construct the command for MotionCor
+            # Construct the command for MotionCor2
             self.job_type = "relion.motioncorr.motioncor2"
             self.log.info("Using MotionCor2")
             command = ["MotionCor2", input_flag, mc_params.movie]
@@ -345,7 +345,7 @@ class MotionCorr(CommonService):
             # Add some standard flags
             command.extend(("--dose_weighting", "--i", "dummy"))
             # Run Relion motion correction
-            result = self.relion_motioncor(command, mc_params.mrc_out)
+            result = self.relion_motioncorr(command, mc_params.mrc_out)
 
         # Adjust the pixel size based on the binning
         if mc_params.motion_corr_binning:
