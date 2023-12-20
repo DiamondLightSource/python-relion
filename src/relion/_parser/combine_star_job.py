@@ -6,7 +6,12 @@ from pipeliner.data_structure import SELECT_DIR
 from pipeliner.display_tools import mini_montage_from_starfile
 from pipeliner.job_options import BooleanJobOption, IntJobOption, StringJobOption
 from pipeliner.nodes import NODE_PARTICLESDATA, Node
-from pipeliner.pipeliner_job import ExternalProgram, PipelinerCommand, PipelinerJob
+from pipeliner.pipeliner_job import ExternalProgram, PipelinerJob
+
+try:
+    from pipeliner.pipeliner_job import PipelinerCommand
+except Exception:
+    PipelinerCommand = None
 
 COMBINE_STAR_NAME = "combine_star_files.py"
 
@@ -92,6 +97,8 @@ class ProcessStarFiles(PipelinerJob):
             Node(str(Path(self.output_dir) / "particles_all.star"), NODE_PARTICLESDATA)
         )
 
+        if PipelinerCommand is None:
+            return [command]
         pipeliner_commands = [PipelinerCommand([command], relion_control=False)]
         return pipeliner_commands
 
