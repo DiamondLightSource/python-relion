@@ -16,7 +16,7 @@ class CommonRefineParameters(BaseModel):
     mask_diameter: float
     mpi_run_command: str = "srun -n 5"
     dont_correct_greyscale: bool = True
-    ini_high: float = 60.0
+    ini_high: float = 50.0
     dont_combine_weights_via_disc: bool = True
     nr_pool: int = 10
     pad: int = 2
@@ -29,7 +29,7 @@ class CommonRefineParameters(BaseModel):
     local_healpix_order: int = 4
     low_resol_join_halves: int = 40
     offset_range: float = 5
-    offset_step: float = 4
+    offset_step: float = 2
     ignore_angles: bool = False
     resol_angles: bool = False
     symmetry: str = "C1"
