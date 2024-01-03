@@ -12,7 +12,10 @@ import zocalo.wrapper
 from gemmi import cif
 from pydantic import BaseModel, Field, ValidationError
 
-from relion.zocalo.spa_relion_service_options import RelionServiceOptions
+from relion.zocalo.spa_relion_service_options import (
+    RelionServiceOptions,
+    update_relion_options,
+)
 
 logger = logging.getLogger("relion.class3d.wrapper")
 
@@ -38,13 +41,13 @@ class Class3DParameters(BaseModel):
     pad: int = 2
     skip_gridding: bool = False
     dont_correct_greyscale: bool = True
-    ini_high: float = 40.0
+    initial_lowpass: float = 40.0
     do_ctf: bool = True
     ctf_intact_first_peak: bool = False
-    nr_iter: int = 20
+    class3d_nr_iter: int = 20
     fast_subsets: bool = False
     tau_fudge: float = 4
-    nr_classes: int = 4
+    class3d_nr_classes: int = 4
     flatten_solvent: bool = True
     do_zero_mask: bool = True
     highres_limit: float = None
@@ -65,8 +68,6 @@ class Class3DParameters(BaseModel):
     picker_id: int
     class3d_grp_uuid: int
     class_uuids: str
-    program_id: int
-    session_id: int
     relion_options: RelionServiceOptions
 
 
@@ -84,7 +85,7 @@ class Class3DWrapper(zocalo.wrapper.BaseWrapper):
         "skip_gridding": "--skip_gridding",
         "do_ctf": "--ctf",
         "ctf_intact_first_peak": "--ctf_intact_first_peak",
-        "nr_classes": "--K",
+        "class3d_nr_classes": "--K",
         "flatten_solvent": "--flatten_solvent",
         "do_zero_mask": "--zero_mask",
         "oversampling": "--oversampling",
@@ -225,8 +226,6 @@ class Class3DWrapper(zocalo.wrapper.BaseWrapper):
         murfey_params = {
             "register": "save_initial_model",
             "initial_model": f"{job_dir}/initial_model.mrc",
-            "program_id": initial_model_params.program_id,
-            "session_id": initial_model_params.session_id,
         }
         self.recwrap.send_to("murfey_feedback", murfey_params)
 
@@ -263,7 +262,7 @@ class Class3DWrapper(zocalo.wrapper.BaseWrapper):
                 "store_result": "ispyb_initial_model_id",
             }
         ]
-        for i in range(1, initial_model_params.nr_classes):
+        for i in range(1, initial_model_params.class3d_nr_classes):
             # Insert initial model for every class, sending model id each time
             ini_ispyb_parameters.append(
                 {
@@ -279,7 +278,7 @@ class Class3DWrapper(zocalo.wrapper.BaseWrapper):
                     "cryoem_initial_model_id": "$ispyb_initial_model_id",
                 }
             )
-        for i in range(initial_model_params.nr_classes):
+        for i in range(initial_model_params.class3d_nr_classes):
             # Add resolution to every model if it is finite
             if np.isfinite(float(resolution)):
                 ini_ispyb_parameters[i]["resolution"] = resolution
@@ -308,13 +307,10 @@ class Class3DWrapper(zocalo.wrapper.BaseWrapper):
         self.class_uuids_dict = json.loads(class3d_params.class_uuids.replace("'", '"'))
         self.class_uuids_keys = list(self.class_uuids_dict.keys())
 
-        # Update the relion options to get out the box sizes
-        if class3d_params.particle_diameter:
-            class3d_params.relion_options.particle_diameter = (
-                class3d_params.particle_diameter
-            )
-        else:
-            class3d_params.relion_options.mask_diameter = class3d_params.mask_diameter
+        # Update the relion options to get out the mask diameter
+        class3d_params.relion_options = update_relion_options(
+            class3d_params.relion_options, dict(class3d_params)
+        )
 
         # Make the job directory and move to the project directory
         job_dir = Path(class3d_params.class3d_dir)
@@ -350,8 +346,8 @@ class Class3DWrapper(zocalo.wrapper.BaseWrapper):
 
         class3d_flags = {
             "dont_correct_greyscale": "--firstiter_cc",
-            "ini_high": "--ini_high",
-            "nr_iter": "--iter",
+            "initial_lowpass": "--ini_high",
+            "class3d_nr_iter": "--iter",
             "fast_subsets": "--fast_subsets",
             "tau_fudge": "--tau2_fudge",
             "highres_limit": "--strict_highres_exp",
@@ -433,7 +429,7 @@ class Class3DWrapper(zocalo.wrapper.BaseWrapper):
             "type": "3D",
             "batch_number": "1",
             "number_of_particles_per_batch": class3d_params.batch_size,
-            "number_of_classes_per_batch": class3d_params.nr_classes,
+            "number_of_classes_per_batch": class3d_params.class3d_nr_classes,
             "symmetry": class3d_params.symmetry,
             "particle_picker_id": class3d_params.picker_id,
         }
@@ -450,12 +446,12 @@ class Class3DWrapper(zocalo.wrapper.BaseWrapper):
 
         # Send individual classes to ispyb
         class_star_file = cif.read_file(
-            f"{class3d_params.class3d_dir}/run_it{class3d_params.nr_iter:03}_model.star"
+            f"{class3d_params.class3d_dir}/run_it{class3d_params.class3d_nr_iter:03}_model.star"
         )
         classes_block = class_star_file.find_block("model_classes")
         classes_loop = classes_block.find_loop("_rlnReferenceImage").get_loop()
 
-        for class_id in range(class3d_params.nr_classes):
+        for class_id in range(class3d_params.class3d_nr_classes):
             # Add an ispyb insert for each class
             class_ispyb_parameters = {
                 "ispyb_command": "buffer",
@@ -464,7 +460,10 @@ class Class3DWrapper(zocalo.wrapper.BaseWrapper):
                 },
                 "buffer_command": {"ispyb_command": "insert_particle_classification"},
                 "class_number": class_id + 1,
-                "class_image_full_path": f"{class3d_params.class3d_dir}/run_it{class3d_params.nr_iter:03}_class{class_id+1:03}.mrc",
+                "class_image_full_path": (
+                    f"{class3d_params.class3d_dir}/"
+                    f"run_it{class3d_params.class3d_nr_iter:03}_class{class_id+1:03}.mrc"
+                ),
                 "particles_per_class": (
                     float(classes_loop.val(class_id, 1)) * class3d_params.batch_size
                 ),
@@ -518,8 +517,6 @@ class Class3DWrapper(zocalo.wrapper.BaseWrapper):
         # Tell Murfey the batch has finished
         murfey_params = {
             "register": "done_3d_batch",
-            "program_id": class3d_params.program_id,
-            "session_id": class3d_params.session_id,
         }
         self.recwrap.send_to("murfey_feedback", murfey_params)
 

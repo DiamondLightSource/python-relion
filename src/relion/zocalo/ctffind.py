@@ -16,7 +16,7 @@ class CTFParameters(BaseModel):
     input_image: str = Field(..., min_length=1)
     output_image: str = Field(..., min_length=1)
     experiment_type: str
-    pix_size: float
+    pixel_size: float
     voltage: float = 300.0
     spher_aber: float = 2.7
     ampl_contrast: float = 0.8
@@ -153,7 +153,7 @@ class CTFFind(CommonService):
         parameters_list = [
             ctf_params.input_image,
             ctf_params.output_image,
-            ctf_params.pix_size,
+            ctf_params.pixel_size,
             ctf_params.voltage,
             ctf_params.spher_aber,
             ctf_params.ampl_contrast,
@@ -312,10 +312,7 @@ class CTFFind(CommonService):
             ctf_params.autopick["relion_options"] = dict(ctf_params.relion_options)
             ctf_params.autopick["mc_uuid"] = ctf_params.mc_uuid
             ctf_params.autopick["picker_uuid"] = ctf_params.picker_uuid
-            ctf_params.autopick["pix_size"] = ctf_params.pix_size
-            ctf_params.autopick[
-                "threshold"
-            ] = ctf_params.relion_options.cryolo_threshold
+            ctf_params.autopick["pixel_size"] = ctf_params.pixel_size
             if isinstance(rw, MockRW):
                 rw.transport.send(
                     destination="cryolo",

@@ -54,17 +54,15 @@ def test_cryolo_service(mock_subprocess, mock_environment, offline_transport, tm
     cryolo_test_message = {
         "parameters": {
             "boxsize": 256,
-            "pix_size": 0.1,
+            "pixel_size": 0.1,
             "input_path": "MotionCorr/job002/sample.mrc",
             "output_path": str(output_path),
-            "config_file": str(tmp_path) + "/config.json",
-            "weights": "sample_weights",
-            "threshold": 0.3,
+            "cryolo_config_file": str(tmp_path) + "/config.json",
+            "cryolo_model_weights": "sample_weights",
+            "cryolo_threshold": 0.15,
             "retained_fraction": 0.5,
             "mc_uuid": 0,
             "picker_uuid": 0,
-            "program_id": 1,
-            "session_id": 2,
             "particle_diameter": 1.1,
             "ctf_values": {"dummy": "dummy"},
             "cryolo_command": "cryolo_predict.py",
@@ -73,6 +71,7 @@ def test_cryolo_service(mock_subprocess, mock_environment, offline_transport, tm
         "content": "dummy",
     }
     output_relion_options = dict(RelionServiceOptions())
+    output_relion_options["cryolo_threshold"] = 0.55
     output_relion_options.update(cryolo_test_message["parameters"]["relion_options"])
 
     # Write a dummy config file expected by cryolo
@@ -115,7 +114,7 @@ def test_cryolo_service(mock_subprocess, mock_environment, offline_transport, tm
             "--weights",
             "sample_weights",
             "--threshold",
-            "0.3",
+            "0.15",
         ],
         cwd=tmp_path / "AutoPick/job007",
         capture_output=True,
@@ -150,7 +149,7 @@ def test_cryolo_service(mock_subprocess, mock_environment, offline_transport, tm
             "image_command": "picked_particles",
             "file": cryolo_test_message["parameters"]["input_path"],
             "coordinates": [["1.1", "2.2"]],
-            "angpix": 0.1,
+            "pixel_size": 0.1,
             "diameter": 16.0,
             "outfile": str(output_path.with_suffix(".jpeg")),
         },
@@ -163,8 +162,6 @@ def test_cryolo_service(mock_subprocess, mock_environment, offline_transport, tm
             "micrograph": cryolo_test_message["parameters"]["input_path"],
             "particle_diameters": [100.0, 200.0],
             "extraction_parameters": extraction_params,
-            "program_id": cryolo_test_message["parameters"]["program_id"],
-            "session_id": cryolo_test_message["parameters"]["session_id"],
         },
     )
     offline_transport.send.assert_any_call(
@@ -179,7 +176,7 @@ def test_cryolo_service(mock_subprocess, mock_environment, offline_transport, tm
                     f"cryolo_predict.py --conf {tmp_path}/config.json "
                     f"-o {tmp_path}/AutoPick/job007 --otf "
                     f"-i MotionCorr/job002/sample.mrc "
-                    f"--weights sample_weights --threshold 0.3"
+                    f"--weights sample_weights --threshold 0.15"
                 ),
                 "stdout": "stdout",
                 "stderr": "stderr",

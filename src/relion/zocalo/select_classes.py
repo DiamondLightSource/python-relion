@@ -21,15 +21,14 @@ from relion.zocalo.spa_relion_service_options import RelionServiceOptions
 class SelectClassesParameters(BaseModel):
     input_file: str = Field(..., min_length=1)
     combine_star_job_number: int
+    class2d_fraction_of_classes_to_remove: float = 0.9
     particles_file: str = "particles.star"
     classes_file: str = "class_averages.star"
     python_exe: str = "python"
-    min_score: float = 0
+    autoselect_min_score: float = 0
     min_particles: int = 500
     class3d_batch_size: int = 50000
     class3d_max_size: int = 200000
-    program_id: int
-    session_id: int
     class_uuids: str
     relion_options: RelionServiceOptions
 
@@ -58,7 +57,7 @@ class SelectClasses(CommonService):
 
     def initializing(self):
         """Subscribe to a queue. Received messages must be acknowledged."""
-        self.log.info("Select particles service starting")
+        self.log.info("Select classes service starting")
         workflows.recipe.wrap_subscribe(
             self._transport,
             "select_classes",
@@ -128,6 +127,14 @@ class SelectClasses(CommonService):
             rw.transport.nack(header)
             return
 
+        # Update the relion options
+        autoselect_params.relion_options.class2d_fraction_of_classes_to_remove = (
+            autoselect_params.class2d_fraction_of_classes_to_remove
+        )
+        autoselect_params.relion_options.autoselect_min_score = (
+            autoselect_params.autoselect_min_score
+        )
+
         self.log.info(f"Inputs: {autoselect_params.input_file}")
 
         class2d_job_dir = Path(
@@ -166,34 +173,35 @@ class SelectClasses(CommonService):
             ("--pipeline_control", f"{select_dir.relative_to(project_dir)}/")
         )
 
-        if not autoselect_params.min_score:
+        if not autoselect_params.autoselect_min_score:
             autoselect_command.extend(("--min_score", "0.0"))
         else:
-            autoselect_command.extend(("--min_score", str(autoselect_params.min_score)))
+            autoselect_command.extend(
+                ("--min_score", str(autoselect_params.autoselect_min_score))
+            )
 
         # Run the class selection
         autoselect_result = subprocess.run(
             autoselect_command, cwd=str(project_dir), capture_output=True
         )
 
-        if not autoselect_params.min_score and not autoselect_result.returncode:
+        if (
+            not autoselect_params.autoselect_min_score
+            and not autoselect_result.returncode
+        ):
             # If a minimum score isn't given, then work it out and rerun the job
             star_doc = cif.read_file(str(select_dir / "rank_model.star"))
             star_block = star_doc["model_classes"]
             class_scores = np.array(star_block.find_loop("_rlnClassScore"), dtype=float)
             quantile_threshold = np.quantile(
                 class_scores,
-                float(
-                    autoselect_params.relion_options.class2d_fraction_of_classes_to_remove
-                ),
+                float(autoselect_params.class2d_fraction_of_classes_to_remove),
             )
 
             self.log.info(f"Sending new threshold {quantile_threshold} to Murfey")
             murfey_params = {
                 "register": "save_class_selection_score",
                 "class_selection_score": quantile_threshold,
-                "program_id": autoselect_params.program_id,
-                "session_id": autoselect_params.session_id,
             }
             if isinstance(rw, MockRW):
                 rw.transport.send(destination="murfey_feedback", message=murfey_params)
@@ -301,7 +309,7 @@ class SelectClasses(CommonService):
             files_to_combine.append(combine_star_dir / "particles_all.star")
         else:
             combine_star_dir.mkdir(parents=True, exist_ok=True)
-            Path(project_dir / "Select/Star_combination").symlink_to(combine_star_dir)
+            Path(project_dir / "Select/Best_particles").symlink_to(combine_star_dir)
             self.previous_total_count = 0
 
         if not (
@@ -490,8 +498,6 @@ class SelectClasses(CommonService):
             murfey_3d_params = {
                 "register": "run_class3d",
                 "class3d_message": class3d_params,
-                "program_id": autoselect_params.program_id,
-                "session_id": autoselect_params.session_id,
             }
             if isinstance(rw, MockRW):
                 rw.transport.send("murfey_feedback", murfey_3d_params)
@@ -500,8 +506,6 @@ class SelectClasses(CommonService):
 
         murfey_confirmation = {
             "register": "done_class_selection",
-            "program_id": autoselect_params.program_id,
-            "session_id": autoselect_params.session_id,
         }
         if isinstance(rw, MockRW):
             rw.transport.send(

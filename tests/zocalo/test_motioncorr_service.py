@@ -55,12 +55,12 @@ def test_motioncor2_service_spa(
     motioncorr_test_message = {
         "parameters": {
             "experiment_type": "spa",
-            "pix_size": 0.1,
+            "pixel_size": 0.1,
             "autopick": {"autopick": "autopick"},
             "ctf": {"ctf": "ctf"},
             "movie": f"{tmp_path}/Movies/sample.tiff",
             "mrc_out": f"{tmp_path}/MotionCorr/job002/Movies/sample.mrc",
-            "patch_size": {"x": 5, "y": 5},
+            "patch_sizes": {"x": 5, "y": 5},
             "gpu": 0,
             "threads": 1,
             "gain_ref": "gain.mrc",
@@ -76,13 +76,13 @@ def test_motioncor2_service_spa(
             "throw": 1,
             "trunc": 1,
             "fm_ref": 1,
-            "kv": 300,
-            "fm_dose": 1,
             "init_dose": 1,
             "use_motioncor2": True,
+            "voltage": 300,
+            "dose_per_frame": 1,
             "fm_int_file": "fm_int_file",
             "mag": {"mag1": "mag1", "mag2": "mag2"},
-            "ft_bin": 2,
+            "motion_corr_binning": 2,
             "serial": 1,
             "in_suffix": "mrc",
             "eer_sampling": 1,
@@ -94,8 +94,9 @@ def test_motioncor2_service_spa(
             "in_fm_motion": 1,
             "split_sum": 1,
             "movie_id": 1,
+            "do_icebreaker_jobs": True,
             "relion_options": {
-                "angpix": 0.1,
+                "pixel_size": 0.1,
                 "do_icebreaker_jobs": True,
                 "cryolo_threshold": 0.3,
                 "ampl_contrast": 0.2,
@@ -104,10 +105,24 @@ def test_motioncor2_service_spa(
         "content": "dummy",
     }
     output_relion_options = dict(RelionServiceOptions())
+    output_relion_options["voltage"] = motioncorr_test_message["parameters"]["voltage"]
+    output_relion_options["pixel_size"] = motioncorr_test_message["parameters"][
+        "pixel_size"
+    ]
+    output_relion_options["dose_per_frame"] = motioncorr_test_message["parameters"][
+        "dose_per_frame"
+    ]
+    output_relion_options["gain_ref"] = motioncorr_test_message["parameters"][
+        "gain_ref"
+    ]
+    output_relion_options["motion_corr_binning"] = motioncorr_test_message[
+        "parameters"
+    ]["motion_corr_binning"]
     output_relion_options.update(
         motioncorr_test_message["parameters"]["relion_options"]
     )
-    output_relion_options["angpix"] = 0.2
+    output_relion_options["pixel_size"] = 0.2
+    output_relion_options["eer_grouping"] = 0
 
     # Set up the mock service
     service = motioncorr.MotionCorr(environment=mock_environment)
@@ -133,7 +148,7 @@ def test_motioncor2_service_spa(
         "-OutMrc",
         motioncorr_test_message["parameters"]["mrc_out"],
         "-PixSize",
-        str(motioncorr_test_message["parameters"]["pix_size"]),
+        str(motioncorr_test_message["parameters"]["pixel_size"]),
         "-FmDose",
         "1.0",
         "-Patch",
@@ -240,7 +255,7 @@ def test_motioncor2_service_spa(
                 "amplitude_contrast": output_relion_options["ampl_contrast"],
                 "experiment_type": "spa",
                 "output_image": f"{tmp_path}/CtfFind/job006/Movies/sample.ctf",
-                "pix_size": motioncorr_test_message["parameters"]["pix_size"] * 2,
+                "pixel_size": motioncorr_test_message["parameters"]["pixel_size"] * 2,
             },
             "content": "dummy",
         },
@@ -258,14 +273,16 @@ def test_motioncor2_service_spa(
                 "micrograph_full_path": motioncorr_test_message["parameters"][
                     "mrc_out"
                 ],
-                "patches_used_x": motioncorr_test_message["parameters"]["patch_size"][
+                "patches_used_x": motioncorr_test_message["parameters"]["patch_sizes"][
                     "x"
                 ],
-                "patches_used_y": motioncorr_test_message["parameters"]["patch_size"][
+                "patches_used_y": motioncorr_test_message["parameters"]["patch_sizes"][
                     "y"
                 ],
                 "buffer_store": motioncorr_test_message["parameters"]["mc_uuid"],
-                "dose_per_frame": motioncorr_test_message["parameters"]["fm_dose"],
+                "dose_per_frame": motioncorr_test_message["parameters"][
+                    "dose_per_frame"
+                ],
                 "ispyb_command": "buffer",
                 "buffer_command": {"ispyb_command": "insert_motion_correction"},
             },
@@ -339,12 +356,12 @@ def test_motioncor_relion_service_spa(
     motioncorr_test_message = {
         "parameters": {
             "experiment_type": "spa",
-            "pix_size": 0.1,
+            "pixel_size": 0.1,
             "autopick": {"autopick": "autopick"},
             "ctf": {"ctf": "ctf"},
             "movie": f"{tmp_path}/Movies/sample.eer",
             "mrc_out": f"{tmp_path}/MotionCorr/job002/Movies/sample.mrc",
-            "patch_size": {"x": 5, "y": 5},
+            "patch_sizes": {"x": 5, "y": 5},
             "gpu": 0,
             "threads": 2,
             "gain_ref": "gain.mrc",
@@ -360,13 +377,13 @@ def test_motioncor_relion_service_spa(
             "throw": 1,
             "trunc": 1,
             "fm_ref": 1,
-            "kv": 300,
-            "fm_dose": 1,
+            "voltage": 300,
+            "dose_per_frame": 1,
             "init_dose": 1,
             "use_motioncor2": False,
             "fm_int_file": f"{tmp_path}/fm_int_file.txt",
             "mag": {"mag1": "mag1", "mag2": "mag2"},
-            "ft_bin": 2,
+            "motion_corr_binning": 2,
             "serial": 1,
             "in_suffix": "mrc",
             "eer_sampling": 1,
@@ -379,7 +396,7 @@ def test_motioncor_relion_service_spa(
             "split_sum": 1,
             "movie_id": 1,
             "relion_options": {
-                "angpix": 0.1,
+                "pixel_size": 0.1,
                 "do_icebreaker_jobs": True,
                 "cryolo_threshold": 0.3,
                 "ampl_contrast": 0.2,
@@ -388,10 +405,24 @@ def test_motioncor_relion_service_spa(
         "content": "dummy",
     }
     output_relion_options = dict(RelionServiceOptions())
+    output_relion_options["voltage"] = motioncorr_test_message["parameters"]["voltage"]
+    output_relion_options["pixel_size"] = motioncorr_test_message["parameters"][
+        "pixel_size"
+    ]
+    output_relion_options["dose_per_frame"] = motioncorr_test_message["parameters"][
+        "dose_per_frame"
+    ]
+    output_relion_options["gain_ref"] = motioncorr_test_message["parameters"][
+        "gain_ref"
+    ]
+    output_relion_options["motion_corr_binning"] = motioncorr_test_message[
+        "parameters"
+    ]["motion_corr_binning"]
     output_relion_options.update(
         motioncorr_test_message["parameters"]["relion_options"]
     )
-    output_relion_options["angpix"] = 0.2
+    output_relion_options["pixel_size"] = 0.2
+    output_relion_options["eer_grouping"] = 10
 
     # Write sample eer frame file
     with open(f"{tmp_path}/fm_int_file.txt", "w") as fm_int_file:
@@ -408,7 +439,7 @@ def test_motioncor_relion_service_spa(
     service.each_total_motion = [5.0, 5.0]
     total_motion = 10.0
     early_motion = 10.0
-    late_motion = 0.0
+    late_motion = 0
     average_motion_per_frame = 5
 
     # Send a message to the service
@@ -422,7 +453,7 @@ def test_motioncor_relion_service_spa(
         "--out_mic",
         motioncorr_test_message["parameters"]["mrc_out"],
         "--angpix",
-        str(motioncorr_test_message["parameters"]["pix_size"]),
+        str(motioncorr_test_message["parameters"]["pixel_size"]),
         "--dose_per_frame",
         "1.0",
         "--patch_x",
@@ -441,6 +472,8 @@ def test_motioncor_relion_service_spa(
         "300",
         "--preexposure",
         "1.0",
+        "--bin_factor",
+        "2.0",
         "--eer_upsampling",
         "1",
         "--bfactor",
@@ -502,7 +535,7 @@ def test_motioncor_relion_service_spa(
                 "amplitude_contrast": output_relion_options["ampl_contrast"],
                 "experiment_type": "spa",
                 "output_image": f"{tmp_path}/CtfFind/job006/Movies/sample.ctf",
-                "pix_size": motioncorr_test_message["parameters"]["pix_size"] * 2,
+                "pixel_size": motioncorr_test_message["parameters"]["pixel_size"] * 2,
             },
             "content": "dummy",
         },
@@ -520,14 +553,16 @@ def test_motioncor_relion_service_spa(
                 "micrograph_full_path": motioncorr_test_message["parameters"][
                     "mrc_out"
                 ],
-                "patches_used_x": motioncorr_test_message["parameters"]["patch_size"][
+                "patches_used_x": motioncorr_test_message["parameters"]["patch_sizes"][
                     "x"
                 ],
-                "patches_used_y": motioncorr_test_message["parameters"]["patch_size"][
+                "patches_used_y": motioncorr_test_message["parameters"]["patch_sizes"][
                     "y"
                 ],
                 "buffer_store": motioncorr_test_message["parameters"]["mc_uuid"],
-                "dose_per_frame": motioncorr_test_message["parameters"]["fm_dose"],
+                "dose_per_frame": motioncorr_test_message["parameters"][
+                    "dose_per_frame"
+                ],
                 "ispyb_command": "buffer",
                 "buffer_command": {"ispyb_command": "insert_motion_correction"},
             },
@@ -600,12 +635,12 @@ def test_motioncor2_service_tomo(
     motioncorr_test_message = {
         "parameters": {
             "experiment_type": "tomography",
-            "pix_size": 0.1,
+            "pixel_size": 0.1,
             "autopick": {"autopick": "autopick"},
             "ctf": {"ctf": "ctf"},
             "movie": f"{tmp_path}/Movies/sample.tiff",
             "mrc_out": f"{tmp_path}/MotionCorr/job002/Movies/sample.mrc",
-            "patch_size": {"x": 5, "y": 5},
+            "patch_sizes": {"x": 5, "y": 5},
             "gpu": 0,
             "threads": 1,
             "gain_ref": "gain.mrc",
@@ -621,13 +656,13 @@ def test_motioncor2_service_tomo(
             "throw": None,
             "trunc": None,
             "fm_ref": 1,
-            "kv": None,
-            "fm_dose": 1,
             "use_motioncor2": True,
+            "voltage": None,
+            "dose_per_frame": 1,
             "fm_int_file": None,
             "init_dose": None,
             "mag": None,
-            "ft_bin": None,
+            "motion_corr_binning": None,
             "serial": None,
             "in_suffix": None,
             "eer_sampling": None,
@@ -667,7 +702,7 @@ def test_motioncor2_service_tomo(
             "-OutMrc",
             motioncorr_test_message["parameters"]["mrc_out"],
             "-PixSize",
-            str(motioncorr_test_message["parameters"]["pix_size"]),
+            str(motioncorr_test_message["parameters"]["pixel_size"]),
             "-FmDose",
             "1.0",
             "-Patch",
@@ -692,7 +727,7 @@ def test_motioncor2_service_tomo(
                 "mc_uuid": motioncorr_test_message["parameters"]["mc_uuid"],
                 "picker_uuid": motioncorr_test_message["parameters"]["picker_uuid"],
                 "experiment_type": "tomography",
-                "pix_size": motioncorr_test_message["parameters"]["pix_size"],
+                "pixel_size": motioncorr_test_message["parameters"]["pixel_size"],
             },
             "content": "dummy",
         },
@@ -710,14 +745,16 @@ def test_motioncor2_service_tomo(
                 "micrograph_full_path": motioncorr_test_message["parameters"][
                     "mrc_out"
                 ],
-                "patches_used_x": motioncorr_test_message["parameters"]["patch_size"][
+                "patches_used_x": motioncorr_test_message["parameters"]["patch_sizes"][
                     "x"
                 ],
-                "patches_used_y": motioncorr_test_message["parameters"]["patch_size"][
+                "patches_used_y": motioncorr_test_message["parameters"]["patch_sizes"][
                     "y"
                 ],
                 "buffer_store": motioncorr_test_message["parameters"]["mc_uuid"],
-                "dose_per_frame": motioncorr_test_message["parameters"]["fm_dose"],
+                "dose_per_frame": motioncorr_test_message["parameters"][
+                    "dose_per_frame"
+                ],
                 "ispyb_command": "buffer",
                 "buffer_command": {"ispyb_command": "insert_motion_correction"},
             },
@@ -764,12 +801,12 @@ def test_motioncor_relion_service_tomo(
     motioncorr_test_message = {
         "parameters": {
             "experiment_type": "tomography",
-            "pix_size": 0.1,
+            "pixel_size": 0.1,
             "autopick": {"autopick": "autopick"},
             "ctf": {"ctf": "ctf"},
             "movie": f"{tmp_path}/Movies/sample.tiff",
             "mrc_out": f"{tmp_path}/MotionCorr/job002/Movies/sample.mrc",
-            "patch_size": {"x": 5, "y": 5},
+            "patch_sizes": {"x": 5, "y": 5},
             "gpu": 0,
             "threads": 1,
             "gain_ref": "gain.mrc",
@@ -785,13 +822,13 @@ def test_motioncor_relion_service_tomo(
             "throw": None,
             "trunc": None,
             "fm_ref": 1,
-            "kv": None,
-            "fm_dose": 1,
+            "voltage": None,
+            "dose_per_frame": 1,
             "use_motioncor2": False,
             "fm_int_file": None,
             "init_dose": None,
             "mag": None,
-            "ft_bin": None,
+            "motion_corr_binning": None,
             "serial": None,
             "in_suffix": None,
             "eer_sampling": None,
@@ -832,7 +869,7 @@ def test_motioncor_relion_service_tomo(
             "--out_mic",
             motioncorr_test_message["parameters"]["mrc_out"],
             "--angpix",
-            str(motioncorr_test_message["parameters"]["pix_size"]),
+            str(motioncorr_test_message["parameters"]["pixel_size"]),
             "--dose_per_frame",
             "1.0",
             "--patch_x",
@@ -860,7 +897,7 @@ def test_motioncor_relion_service_tomo(
                 "mc_uuid": motioncorr_test_message["parameters"]["mc_uuid"],
                 "picker_uuid": motioncorr_test_message["parameters"]["picker_uuid"],
                 "experiment_type": "tomography",
-                "pix_size": motioncorr_test_message["parameters"]["pix_size"],
+                "pixel_size": motioncorr_test_message["parameters"]["pixel_size"],
             },
             "content": "dummy",
         },
@@ -878,14 +915,16 @@ def test_motioncor_relion_service_tomo(
                 "micrograph_full_path": motioncorr_test_message["parameters"][
                     "mrc_out"
                 ],
-                "patches_used_x": motioncorr_test_message["parameters"]["patch_size"][
+                "patches_used_x": motioncorr_test_message["parameters"]["patch_sizes"][
                     "x"
                 ],
-                "patches_used_y": motioncorr_test_message["parameters"]["patch_size"][
+                "patches_used_y": motioncorr_test_message["parameters"]["patch_sizes"][
                     "y"
                 ],
                 "buffer_store": motioncorr_test_message["parameters"]["mc_uuid"],
-                "dose_per_frame": motioncorr_test_message["parameters"]["fm_dose"],
+                "dose_per_frame": motioncorr_test_message["parameters"][
+                    "dose_per_frame"
+                ],
                 "ispyb_command": "buffer",
                 "buffer_command": {"ispyb_command": "insert_motion_correction"},
             },

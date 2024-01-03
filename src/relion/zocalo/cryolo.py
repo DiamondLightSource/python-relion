@@ -16,19 +16,17 @@ from relion.zocalo.spa_relion_service_options import RelionServiceOptions
 class CryoloParameters(BaseModel):
     input_path: str = Field(..., min_length=1)
     output_path: str = Field(..., min_length=1)
-    pix_size: float
-    config_file: str = "/dls_sw/apps/EM/crYOLO/phosaurus_models/config.json"
-    weights: str = (
+    pixel_size: float
+    cryolo_config_file: str = "/dls_sw/apps/EM/crYOLO/phosaurus_models/config.json"
+    cryolo_model_weights: str = (
         "/dls_sw/apps/EM/crYOLO/phosaurus_models/gmodel_phosnet_202005_N63_c17.h5"
     )
-    threshold: float = 0.3
+    cryolo_threshold: float = 0.3
     retained_fraction: float = 1
     cryolo_command: str = "cryolo_predict.py"
     particle_diameter: float = None
     mc_uuid: int
     picker_uuid: int
-    program_id: int
-    session_id: int
     relion_options: RelionServiceOptions
     ctf_values: dict = {}
 
@@ -133,14 +131,14 @@ class CrYOLO(CommonService):
 
         # Construct a command to run cryolo with the given parameters
         command = cryolo_params.cryolo_command.split()
-        command.extend((["--conf", cryolo_params.config_file]))
+        command.extend((["--conf", cryolo_params.cryolo_config_file]))
         command.extend((["-o", str(job_dir)]))
         command.extend((["--otf"]))
 
         cryolo_flags = {
-            "weights": "--weights",
+            "cryolo_model_weights": "--weights",
             "input_path": "-i",
-            "threshold": "--threshold",
+            "cryolo_threshold": "--threshold",
             "cryolo_gpus": "--gpu",
         }
 
@@ -161,46 +159,6 @@ class CrYOLO(CommonService):
 
         # Read in the stdout from cryolo
         self.parse_cryolo_output(result.stdout.decode("utf8", "replace"))
-
-        # Register the cryolo job with the node creator
-        self.log.info(f"Sending {self.job_type} to node creator")
-        node_creator_parameters = {
-            "job_type": self.job_type,
-            "input_file": cryolo_params.input_path,
-            "output_file": cryolo_params.output_path,
-            "relion_options": dict(cryolo_params.relion_options),
-            "command": " ".join(command),
-            "stdout": result.stdout.decode("utf8", "replace"),
-            "stderr": result.stderr.decode("utf8", "replace"),
-        }
-        if (
-            result.returncode
-            and result.stderr.decode("utf8", "replace").split("\n")[-1]
-            == "IndexError: list index out of range"
-        ):
-            # If Cryolo failed because there are no picks then consider it a success
-            result.returncode = 0
-
-        if result.returncode:
-            node_creator_parameters["success"] = False
-        else:
-            node_creator_parameters["success"] = True
-        if isinstance(rw, MockRW):
-            rw.transport.send(
-                destination="node_creator",
-                message={"parameters": node_creator_parameters, "content": "dummy"},
-            )
-        else:
-            rw.send_to("node_creator", node_creator_parameters)
-
-        # End here if the command failed
-        if result.returncode:
-            self.log.error(
-                f"crYOLO failed with exitcode {result.returncode}:\n"
-                + result.stderr.decode("utf8", "replace")
-            )
-            rw.transport.nack(header)
-            return
 
         # Read in the cbox file for particle selection and finding sizes
         try:
@@ -262,12 +220,53 @@ class CrYOLO(CommonService):
                             f"{thresholded_x[particle]} {thresholded_y[particle]}\n"
                         )
             else:
-                cryolo_threshold = cryolo_params.threshold
+                cryolo_threshold = cryolo_params.cryolo_threshold
+            cryolo_params.relion_options.cryolo_threshold = cryolo_threshold
 
             # Get the diameters of the particles for murfey
             cryolo_particle_sizes = cbox_sizes[cbox_confidence > cryolo_threshold]
         except (FileNotFoundError, OSError, AttributeError):
             cryolo_particle_sizes = []
+
+        # Register the cryolo job with the node creator
+        self.log.info(f"Sending {self.job_type} to node creator")
+        node_creator_parameters = {
+            "job_type": self.job_type,
+            "input_file": cryolo_params.input_path,
+            "output_file": cryolo_params.output_path,
+            "relion_options": dict(cryolo_params.relion_options),
+            "command": " ".join(command),
+            "stdout": result.stdout.decode("utf8", "replace"),
+            "stderr": result.stderr.decode("utf8", "replace"),
+        }
+        if (
+            result.returncode
+            and result.stderr.decode("utf8", "replace").split("\n")[-1]
+            == "IndexError: list index out of range"
+        ):
+            # If Cryolo failed because there are no picks then consider it a success
+            result.returncode = 0
+
+        if result.returncode:
+            node_creator_parameters["success"] = False
+        else:
+            node_creator_parameters["success"] = True
+        if isinstance(rw, MockRW):
+            rw.transport.send(
+                destination="node_creator",
+                message={"parameters": node_creator_parameters, "content": "dummy"},
+            )
+        else:
+            rw.send_to("node_creator", node_creator_parameters)
+
+        # End here if the command failed
+        if result.returncode:
+            self.log.error(
+                f"crYOLO failed with exitcode {result.returncode}:\n"
+                + result.stderr.decode("utf8", "replace")
+            )
+            rw.transport.nack(header)
+            return
 
         # Forward results to ISPyB
         ispyb_parameters = {
@@ -275,7 +274,7 @@ class CrYOLO(CommonService):
             "buffer_lookup": {"motion_correction_id": cryolo_params.mc_uuid},
             "buffer_command": {"ispyb_command": "insert_particle_picker"},
             "buffer_store": cryolo_params.picker_uuid,
-            "particle_picking_template": cryolo_params.weights,
+            "particle_picking_template": cryolo_params.cryolo_model_weights,
             "number_of_particles": self.number_of_particles,
             "summary_image_full_path": str(
                 Path(cryolo_params.output_path).with_suffix(".jpeg")
@@ -311,8 +310,8 @@ class CrYOLO(CommonService):
                     "image_command": "picked_particles",
                     "file": cryolo_params.input_path,
                     "coordinates": coords,
-                    "angpix": cryolo_params.pix_size,
-                    "diameter": cryolo_params.pix_size * 160,
+                    "pixel_size": cryolo_params.pixel_size,
+                    "diameter": cryolo_params.pixel_size * 160,
                     "outfile": str(
                         Path(cryolo_params.output_path).with_suffix(".jpeg")
                     ),
@@ -325,8 +324,8 @@ class CrYOLO(CommonService):
                     "image_command": "picked_particles",
                     "file": cryolo_params.input_path,
                     "coordinates": coords,
-                    "angpix": cryolo_params.pix_size,
-                    "diameter": cryolo_params.pix_size * 160,
+                    "pixel_size": cryolo_params.pixel_size,
+                    "diameter": cryolo_params.pixel_size * 160,
                     "outfile": str(
                         Path(cryolo_params.output_path).with_suffix(".jpeg")
                     ),
@@ -362,8 +361,6 @@ class CrYOLO(CommonService):
                     "micrograph": cryolo_params.input_path,
                     "particle_diameters": list(cryolo_particle_sizes),
                     "extraction_parameters": extraction_params,
-                    "program_id": cryolo_params.program_id,
-                    "session_id": cryolo_params.session_id,
                 },
             )
         else:
@@ -375,8 +372,6 @@ class CrYOLO(CommonService):
                     "micrograph": cryolo_params.input_path,
                     "particle_diameters": list(cryolo_particle_sizes),
                     "extraction_parameters": extraction_params,
-                    "program_id": cryolo_params.program_id,
-                    "session_id": cryolo_params.session_id,
                 },
             )
 

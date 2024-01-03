@@ -54,7 +54,7 @@ class RelionServiceOptions(BaseModel):
 
     """Parameters that Murfey will set"""
     # Pixel size in Angstroms in the input movies
-    angpix: float = 0.885
+    pixel_size: float = 0.885
     # Dose in electrons per squared Angstrom per frame
     dose_per_frame: float = 1.277
     # Gain-reference image in MRC format
@@ -90,29 +90,28 @@ class RelionServiceOptions(BaseModel):
     ampl_contrast: float = 0.1
 
     # Local motion-estimation patches for MotionCor2
-    motioncor_patches_x: int = 5
-    motioncor_patches_y: int = 5
+    patch_sizes: dict = {"x": 5, "y": 5}
 
     # Additional arguments for RELION's Motion Correction wrapper
-    motioncor_other_args: str = "--do_at_most 200 --skip_logfile"
+    motion_corr_other_args: str = "--do_at_most 200 --skip_logfile"
     # Threshold for cryolo autopicking
     cryolo_threshold: float = 0.15
     # Location of the cryolo specific files
-    cryolo_config: str = "/dls_sw/apps/EM/crYOLO/phosaurus_models/config.json"
-    cryolo_gmodel: str = (
+    cryolo_config_file: str = "/dls_sw/apps/EM/crYOLO/phosaurus_models/config.json"
+    cryolo_model_weights: str = (
         "/dls_sw/apps/EM/crYOLO/phosaurus_models/gmodel_phosnet_202005_N63_c17.h5"
     )
 
     # Fraction of classes to attempt to remove using the RELION 2D class ranker
     class2d_fraction_of_classes_to_remove: float = 0.9
+    # Threshold to apply to class scores
+    autoselect_min_score: float = 0.7
     # 2D classification particle batch size
     batch_size: int = 50000
     # Maximum batch size for the single batch of 3D classification
     class3d_max_size: int = 200000
-    # Initial models to generate
-    inimodel_nr_classes: int = 4
     # Initial lowpass filter on 3D reference
-    class3d_ini_lowpass: int = 40
+    initial_lowpass: int = 40
 
     # Classification batches and iteration counts
     class2d_nr_classes: int = 50
@@ -128,10 +127,10 @@ class RelionServiceOptions(BaseModel):
         if values.get("particle_diameter"):
             values["mask_diameter"] = 1.1 * values["particle_diameter"]
             values["boxsize"] = calculate_box_size(
-                values["particle_diameter"] / values["angpix"]
+                values["particle_diameter"] / values["pixel_size"]
             )
             values["small_boxsize"] = calculate_downscaled_box_size(
-                values["boxsize"], values["angpix"]
+                values["boxsize"], values["pixel_size"]
             )
         return values
 
@@ -146,7 +145,7 @@ def generate_service_options(
     }
 
     job_options["relion.import.movies"] = {
-        "angpix": relion_options.angpix,
+        "angpix": relion_options.pixel_size,
         "kV": relion_options.voltage,
     }
 
@@ -156,10 +155,10 @@ def generate_service_options(
         if Path(relion_options.gain_ref).exists()
         else "",
         "eer_grouping": relion_options.eer_grouping,
-        "patch_x": relion_options.motioncor_patches_x,
-        "patch_y": relion_options.motioncor_patches_y,
+        "patch_x": relion_options.patch_sizes["x"],
+        "patch_y": relion_options.patch_sizes["y"],
         "bin_factor": relion_options.motion_corr_binning,
-        "other_args": f"{relion_options.motioncor_other_args}",
+        "other_args": f"{relion_options.motion_corr_other_args}",
         "nr_mpi": 4,
         "nr_threads": 10,
     }
@@ -181,9 +180,9 @@ def generate_service_options(
     job_options["relion.ctffind.ctffind4"] = {"nr_mpi": 40}
 
     job_options["cryolo.autopick"] = {
-        "model_path": relion_options.cryolo_gmodel,
-        "config_file": relion_options.cryolo_config,
-        "box_size": relion_options.boxsize,
+        "model_path": relion_options.cryolo_model_weights,
+        "config_file": relion_options.cryolo_config_file,
+        "box_size": "160",
         "confidence_threshold": relion_options.cryolo_threshold,
         "gpus": "0 1 2 3",
     }
@@ -224,7 +223,7 @@ def generate_service_options(
 
     job_options["relion.select.class2dauto"] = {
         "python_exe": "/dls_sw/apps/EM/relion/4.0/conda/bin/python",
-        "rank_threshold": 0.5,
+        "rank_threshold": relion_options.autoselect_min_score,
         "other_args": "--select_min_nr_particles 500",
     }
 
@@ -234,7 +233,7 @@ def generate_service_options(
     }
 
     job_options["relion.initialmodel"] = {
-        "nr_classes": relion_options.inimodel_nr_classes,
+        "nr_classes": relion_options.class3d_nr_classes,
         "sym_name": relion_options.symmetry,
         "particle_diameter": relion_options.mask_diameter,
         "do_preread_images": True,
@@ -248,7 +247,7 @@ def generate_service_options(
         "nr_classes": relion_options.class3d_nr_classes,
         "nr_iter": relion_options.class3d_nr_iter,
         "sym_name": relion_options.symmetry,
-        "ini_high": relion_options.class3d_ini_lowpass,
+        "ini_high": relion_options.initial_lowpass,
         "particle_diameter": relion_options.mask_diameter,
         "do_preread_images": True,
         "use_gpu": True,
@@ -262,12 +261,30 @@ def generate_service_options(
     return job_options[submission_type]
 
 
+def update_relion_options(relion_options: RelionServiceOptions, new_options: dict):
+    relion_options_dict = dict(relion_options)
+
+    # Drop automatically generated parameters if particle_diameter is provided
+    if new_options.get("particle_diameter"):
+        if "boxsize" in new_options.keys():
+            del new_options["boxsize"]
+        if "small_boxsize" in new_options.keys():
+            del new_options["small_boxsize"]
+        if "mask_diameter" in new_options.keys():
+            del new_options["mask_diameter"]
+
+    for k, v in new_options.items():
+        if (v is not None) and (k in relion_options_dict.keys()):
+            relion_options_dict[k] = v
+    return RelionServiceOptions.parse_obj(relion_options_dict)
+
+
 service_options = RelionServiceOptions()
 service_values = {
     service_options.do_icebreaker_jobs,
     service_options.cryolo_threshold,
     service_options.pixel_size_downscaled,
-    service_options.angpix,
+    service_options.pixel_size,
     service_options.voltage,
     service_options.spher_aber,
     service_options.ampl_contrast,
