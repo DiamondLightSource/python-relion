@@ -98,6 +98,9 @@ def picked_particles(plugin_params):
         basefilename = basefilename.replace(".jpeg", ".mrc")
     coords = plugin_params.parameters("coordinates")
     pixel_size = plugin_params.parameters("pixel_size")
+    if not pixel_size:
+        # Legacy case of zocalo-relion
+        pixel_size = plugin_params.parameters("angpix")
     diam = plugin_params.parameters("diameter")
     contrast_factor = plugin_params.parameters("contrast_factor", default=6)
     outfile = plugin_params.parameters("outfile")
