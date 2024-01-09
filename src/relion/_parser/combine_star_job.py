@@ -13,7 +13,7 @@ try:
 except Exception:
     PipelinerCommand = None
 
-COMBINE_STAR_NAME = "combine_star_files.py"
+COMBINE_STAR_NAME = "combine_star_files"
 
 
 class ProcessStarFiles(PipelinerJob):
