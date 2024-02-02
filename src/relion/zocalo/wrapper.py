@@ -132,7 +132,10 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
             self.params["ispyb_parameters"]["extract2_downscale"] = True
         pprint(self.params["ispyb_parameters"])
 
-        movietype = self.params["ispyb_parameters"]["import_images"].split(".")[-1]
+        if "." in self.params["ispyb_parameters"]["import_images"]:
+            movietype = self.params["ispyb_parameters"]["import_images"].split(".")[-1]
+        else:
+            movietype = self.params["ispyb_parameters"]["import_images"].split("*")[-1]
 
         self.opts = RelionItOptions()
         self.opts.update_from(vars(dls_options))
