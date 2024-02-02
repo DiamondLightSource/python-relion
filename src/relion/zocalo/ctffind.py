@@ -19,7 +19,7 @@ class CTFParameters(BaseModel):
     pixel_size: float
     voltage: float = 300.0
     spher_aber: float = 2.7
-    ampl_contrast: float = 0.8
+    ampl_contrast: float = 0.1
     ampl_spectrum: int = 512
     min_res: float = 30.0
     max_res: float = 5.0
