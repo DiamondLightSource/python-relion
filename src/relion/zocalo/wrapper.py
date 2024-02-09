@@ -124,6 +124,15 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
                 except ValueError:
                     pass
 
+        # Could be given either a requirement to downscale, or a downscaled box size
+        if self.params["ispyb_parameters"]["extract_downscale"]:
+            self.params["ispyb_parameters"][
+                "extract_small_boxsize"
+            ] = cryolo_relion_it.calculate_downscaled_box_size(
+                self.params["ispyb_parameters"]["extract_boxsize"],
+                self.params["ispyb_parameters"]["angpix"],
+            )
+
         if self.params["ispyb_parameters"]["import_images"].endswith(".eer"):
             self.params["ispyb_parameters"]["motioncor_do_own"] = True
         if self.params["ispyb_parameters"].get("extract_small_boxsize"):
