@@ -125,7 +125,7 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
                     pass
 
         # Could be given either a requirement to downscale, or a downscaled box size
-        if self.params["ispyb_parameters"]["extract_downscale"]:
+        if self.params["ispyb_parameters"].get("extract_downscale"):
             self.params["ispyb_parameters"][
                 "extract_small_boxsize"
             ] = cryolo_relion_it.calculate_downscaled_box_size(
