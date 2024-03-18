@@ -133,7 +133,7 @@ class RelionWrapper(zocalo.wrapper.BaseWrapper):
                 self.params["ispyb_parameters"]["angpix"],
             )
 
-        if self.params["ispyb_parameters"]["import_images"].endswith(".eer"):
+        if self.params["ispyb_parameters"]["import_images"].endswith("eer"):
             self.params["ispyb_parameters"]["motioncor_do_own"] = True
         if self.params["ispyb_parameters"].get("extract_small_boxsize"):
             self.params["ispyb_parameters"]["extract_downscale"] = True
