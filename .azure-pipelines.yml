@@ -19,18 +19,18 @@ stages:
       - task: UsePythonVersion@0
         displayName: Set up python
         inputs:
-          versionSpec: 3.8
+          versionSpec: 3.9
 
       - bash: python .azure-pipelines/syntax-validation.py
-        displayName: Syntax validation (3.8)
+        displayName: Syntax validation (3.9)
 
       - task: UsePythonVersion@0
         displayName: Set up python
         inputs:
-          versionSpec: 3.10
+          versionSpec: 3.11
 
       - bash: python .azure-pipelines/syntax-validation.py
-        displayName: Syntax validation (3.10)
+        displayName: Syntax validation (3.11)
 
       # Run flake8 validation on a shallow clone
       - bash: |
@@ -50,7 +50,7 @@ stages:
       - task: UsePythonVersion@0
         displayName: Set up python
         inputs:
-          versionSpec: 3.10
+          versionSpec: 3.11
 
       - bash: |
           pip install --disable-pip-version-check collective.checkdocs wheel
@@ -86,12 +86,12 @@ stages:
       vmImage: ubuntu-20.04
     strategy:
       matrix:
-        python38:
-          PYTHON_VERSION: 3.8
         python39:
           PYTHON_VERSION: 3.9
         python310:
           PYTHON_VERSION: 3.10
+        python311:
+          PYTHON_VERSION: 3.11
     steps:
     - template: .azure-pipelines/ci-unix.yml
 
@@ -100,12 +100,12 @@ stages:
       vmImage: macOS-latest
     strategy:
       matrix:
-        python38:
-          PYTHON_VERSION: 3.8
         python39:
           PYTHON_VERSION: 3.9
         python310:
           PYTHON_VERSION: 3.10
+        python311:
+          PYTHON_VERSION: 3.11
     steps:
     - template: .azure-pipelines/ci-unix.yml
 
@@ -114,12 +114,12 @@ stages:
       vmImage: windows-latest
     strategy:
       matrix:
-        python38:
-          PYTHON_VERSION: 3.8
         python39:
           PYTHON_VERSION: 3.9
         python310:
           PYTHON_VERSION: 3.10
+        python311:
+          PYTHON_VERSION: 3.11
     steps:
     - template: .azure-pipelines/ci-windows.yml
 
@@ -139,7 +139,7 @@ stages:
       - task: UsePythonVersion@0
         displayName: Set up python
         inputs:
-          versionSpec: 3.10
+          versionSpec: 3.11
 
       - task: DownloadBuildArtifacts@0
         displayName: Get pre-built package

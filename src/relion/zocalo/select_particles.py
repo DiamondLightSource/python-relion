@@ -141,9 +141,7 @@ class SelectParticles(CommonService):
                 new_row = []
                 for col in range(extracted_parts_loop.width()):
                     new_row.append(
-                        extracted_parts_loop.val(
-                            num_new_parts - num_remaining_parts, col
-                        )
+                        extracted_parts_loop[num_new_parts - num_remaining_parts, col]
                     )
                 prev_parts_loop.add_row(new_row)
 
@@ -197,9 +195,7 @@ class SelectParticles(CommonService):
                 new_row = []
                 for col in range(extracted_parts_loop.width()):
                     new_row.append(
-                        extracted_parts_loop.val(
-                            num_new_parts - num_remaining_parts, col
-                        )
+                        extracted_parts_loop[num_new_parts - num_remaining_parts, col]
                     )
                 new_split_loop.add_row(new_row)
 

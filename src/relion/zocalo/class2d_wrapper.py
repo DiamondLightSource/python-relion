@@ -275,11 +275,11 @@ class Class2DWrapper(zocalo.wrapper.BaseWrapper):
                     f"/run_it{class2d_params.class2d_nr_iter:03}_classes_{class_id+1}.jpeg"
                 ),
                 "particles_per_class": (
-                    float(classes_loop.val(class_id, 1)) * particles_in_batch
+                    float(classes_loop[class_id, 1]) * particles_in_batch
                 ),
-                "class_distribution": classes_loop.val(class_id, 1),
-                "rotation_accuracy": classes_loop.val(class_id, 2),
-                "translation_accuracy": classes_loop.val(class_id, 3),
+                "class_distribution": classes_loop[class_id, 1],
+                "rotation_accuracy": classes_loop[class_id, 2],
+                "translation_accuracy": classes_loop[class_id, 3],
             }
             if job_is_rerun:
                 class_ispyb_parameters["buffer_lookup"].update(
@@ -295,12 +295,12 @@ class Class2DWrapper(zocalo.wrapper.BaseWrapper):
                 ]
 
             # Add the resolution and fourier completeness if they are valid numbers
-            estimated_resolution = float(classes_loop.val(class_id, 4))
+            estimated_resolution = float(classes_loop[class_id, 4])
             if np.isfinite(estimated_resolution):
                 class_ispyb_parameters["estimated_resolution"] = estimated_resolution
             else:
                 class_ispyb_parameters["estimated_resolution"] = 0.0
-            fourier_completeness = float(classes_loop.val(class_id, 5))
+            fourier_completeness = float(classes_loop[class_id, 5])
             if np.isfinite(fourier_completeness):
                 class_ispyb_parameters[
                     "overall_fourier_completeness"
