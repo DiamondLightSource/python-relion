@@ -69,6 +69,12 @@ def run():
         dest="sym",
         default="C1",
     )
+    parser.add_argument(
+        "--alias",
+        help="Alias for 3D refinement job",
+        dest="alias",
+        default="",
+    )
     args = parser.parse_args()
 
     for pf in args.particles_files:
@@ -81,5 +87,6 @@ def run():
             extract_size=args.extract_size,
             symmetry=args.sym,
             ini_high=args.ini_high,
+            alias=args.alias,
         )
         runner(micrographs_star=args.micrographs_star)

@@ -39,6 +39,7 @@ class RefinePipelineRunner:
         extract_size: int = 0,
         symmetry: str = "C1",
         ini_high: float = 60,
+        alias: str = "",
     ):
         self._proj_path = Path(project_path)
         self._particles_star = Path(particles_star_file)
@@ -54,8 +55,9 @@ class RefinePipelineRunner:
         }
         self._mask = mask
         self._extract_size = extract_size
+        self._refine_alias = alias
 
-    def _run_job(self, job: str, params: dict, cluster=True, gpu: bool = True) -> str:
+    def _run_job(self, job: str, params: dict, cluster=True, gpu: bool = True, alias: str = "") -> str:
         write_default_jobstar(job)
         _params = job_default_parameters_dict(job)
         _params.update(params)
@@ -74,6 +76,8 @@ class RefinePipelineRunner:
         job_obj = self._proj.run_job(
             f"{job.replace('.', '_')}_job.star", wait_for_queued=True
         )
+        if alias:
+            self._proj.set_alias(job_obj.output_dir, alias)
         return job_obj.output_dir
 
     def _run_import(
@@ -96,7 +100,7 @@ class RefinePipelineRunner:
             )
             model = f"{model_import}/{Path(self._ref_model).name}"
         params = {"fn_img": imported_star_file, "fn_ref": model}
-        return self._run_job(job, params)
+        return self._run_job(job, params, alias=self._refine_alias)
 
     def _run_postprocess(self, input_model: str):
         job = "relion.postprocess"
