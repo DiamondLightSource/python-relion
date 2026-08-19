@@ -26,6 +26,7 @@ from pipeliner.data_structure import (
     FAIL_FILE,
     JOBSTATUS_FAIL,
     JOBSTATUS_RUN,
+    JOBSTATUS_SUCCESS,
     SUCCESS_FILE,
 )
 
@@ -260,7 +261,7 @@ class PipelineRunner:
             output_path = pathlib.Path(job.output_dir)
             try:
                 job.post_run_actions()
-                post_run_status = JOBSTATUS_RUN
+                post_run_status = JOBSTATUS_SUCCESS
             except Exception as e:
                 touch(output_path / FAIL_FILE)
                 post_run_status = JOBSTATUS_FAIL
